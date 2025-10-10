@@ -1,0 +1,138 @@
+@{
+    var ictsRequests = ViewData["IctsRequests"] as List<TAB.Web.Models.SimRequest> ?? new List<TAB.Web.Models.SimRequest>();
+}
+
+<div class="container-fluid">
+    <!-- ICTS Processing Queue -->
+    <div class="card border-0 shadow-sm">
+        <div class="card-header bg-white border-0 py-3">
+            <div class="d-flex justify-content-between align-items-center">
+                <h5 class="mb-0"><i class="bi bi-gear-fill me-2"></i>ICTS Processing Queue</h5>
+                <span class="badge bg-warning text-dark">@ictsRequests.Count pending</span>
+            </div>
+        </div>
+        <div class="card-body p-0">
+            @if (ictsRequests.Any())
+            {
+                <div class="table-responsive">
+                    <table class="table table-hover mb-0">
+                        <thead class="bg-light">
+                            <tr>
+                                <th>Request ID</th>
+                                <th>Employee Details</th>
+                                <th>Organization</th>
+                                <th>Class of Service</th>
+                                <th>Supervisor</th>
+                                <th>Approved Date</th>
+                                <th>Actions</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            @foreach (var request in ictsRequests)
+                            {
+                                <tr>
+                                    <td>
+                                        <span class="badge bg-primary">SIM-@request.Id.ToString("D6")</span>
+                                    </td>
+                                    <td>
+                                        <strong>@request.FirstName @request.LastName</strong>
+                                        <div class="small text-muted">Index: @request.IndexNo</div>
+                                        <div class="small text-muted">@request.FunctionalTitle</div>
+                                    </td>
+                                    <td>
+                                        <div>@request.Organization</div>
+                                        <div class="small text-muted">@request.Office</div>
+                                    </td>
+                                    <td>
+                                        <span class="badge bg-info">Class @request.Grade</span>
+                                    </td>
+                                    <td>@request.Supervisor</td>
+                                    <td>@request.ProcessedDate?.ToString("MMM dd, yyyy") ?? request.RequestDate.ToString("MMM dd, yyyy")</td>
+                                    <td>
+                                        <button type="button" class="btn btn-sm btn-primary" 
+                                                onclick="processRequest(@request.Id)">
+                                            <i class="bi bi-phone"></i> Assign SIM
+                                        </button>
+                                    </td>
+                                </tr>
+                            }
+                        </tbody>
+                    </table>
+                </div>
+            }
+            else
+            {
+                <div class="text-center py-5">
+                    <i class="bi bi-check-circle display-1 text-success"></i>
+                    <p class="mt-3 text-muted">All requests have been processed</p>
+                </div>
+            }
+        </div>
+    </div>
+</div>
+
+<!-- SIM Assignment Modal -->
+<div class="modal fade" id="simAssignmentModal" tabindex="-1" aria-hidden="true">
+    <div class="modal-dialog">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title">Assign SIM Card</h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+            </div>
+            <div class="modal-body">
+                <form id="simAssignmentForm">
+                    <input type="hidden" id="requestId" />
+                    <div class="mb-3">
+                        <label for="phoneNumber" class="form-label">Phone Number</label>
+                        <input type="text" class="form-control" id="phoneNumber" 
+                               placeholder="+254 XXX XXX XXX" required>
+                    </div>
+                    <div class="mb-3">
+                        <label for="simCardNumber" class="form-label">SIM Card Number</label>
+                        <input type="text" class="form-control" id="simCardNumber" 
+                               placeholder="Enter SIM card number" required>
+                    </div>
+                    <div class="mb-3">
+                        <label for="serviceProvider" class="form-label">Service Provider</label>
+                        <select class="form-select" id="serviceProvider" required>
+                            <option value="">Select provider...</option>
+                            <option value="Safaricom">Safaricom</option>
+                            <option value="Airtel">Airtel</option>
+                            <option value="Telkom">Telkom</option>
+                        </select>
+                    </div>
+                    <div class="mb-3">
+                        <label for="notes" class="form-label">Notes (Optional)</label>
+                        <textarea class="form-control" id="notes" rows="3"></textarea>
+                    </div>
+                </form>
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancel</button>
+                <button type="button" class="btn btn-primary" onclick="submitSimAssignment()">
+                    <i class="bi bi-check-circle"></i> Assign SIM
+                </button>
+            </div>
+        </div>
+    </div>
+</div>
+
+<script>
+    function processRequest(id) {
+        document.getElementById('requestId').value = id;
+        var modal = new bootstrap.Modal(document.getElementById('simAssignmentModal'));
+        modal.show();
+    }
+    
+    function submitSimAssignment() {
+        const id = document.getElementById('requestId').value;
+        const phoneNumber = document.getElementById('phoneNumber').value;
+        const simCardNumber = document.getElementById('simCardNumber').value;
+        const serviceProvider = document.getElementById('serviceProvider').value;
+        
+        if (phoneNumber && simCardNumber && serviceProvider) {
+            // Implementation for SIM assignment
+            window.location.href = `/Modules/SimManagement/Approvals/ICTS/Process?id=${id}&phone=${phoneNumber}&sim=${simCardNumber}&provider=${serviceProvider}`;
+        }
+    }
+</script>

@@ -1,0 +1,856 @@
+@page
+@model TAB.Web.Pages.Modules.EBillManagement.CallRecords.SupervisorApprovalsModel
+@{
+    ViewData["Title"] = "Supervisor Approvals";
+    ViewData["PageIcon"] = "bi-person-check";
+    ViewData["PageTitle"] = "Supervisor Approvals";
+    ViewData["Breadcrumb"] = "E-Bill / Call Records / Supervisor Approvals";
+}
+
+<style>
+    .modern-table {
+        border-collapse: separate;
+        border-spacing: 0;
+    }
+
+    .modern-table thead th {
+        background-color: #009EDB;
+        color: white;
+        font-weight: 600;
+        font-size: 0.85rem;
+        text-transform: uppercase;
+        letter-spacing: 0.5px;
+        padding: 1rem 0.75rem;
+        border: none;
+        position: sticky;
+        top: 0;
+        z-index: 10;
+    }
+
+    .modern-table thead th:first-child {
+        border-radius: 12px 0 0 0;
+    }
+
+    .modern-table thead th:last-child {
+        border-radius: 0 12px 0 0;
+    }
+
+    .modern-table tbody tr {
+        transition: all 0.2s ease;
+        border-bottom: 1px solid #f0f0f0;
+    }
+
+    .modern-table tbody tr:hover {
+        background-color: #f8f9fa;
+        box-shadow: 0 2px 8px rgba(0, 0, 0, 0.05);
+    }
+
+    .modern-table tbody td {
+        padding: 0.875rem 0.75rem;
+        vertical-align: middle;
+        font-size: 0.9rem;
+    }
+
+    .extension-badge {
+        display: inline-block;
+        padding: 0.35rem 0.75rem;
+        border-radius: 8px;
+        font-weight: 500;
+        font-size: 0.85rem;
+        background-color: #6366f1;
+        color: white;
+    }
+
+    .dial-number {
+        font-family: 'Courier New', monospace;
+        font-weight: 600;
+        color: #2d3748;
+        font-size: 0.9rem;
+    }
+
+    .call-type-badge {
+        padding: 0.4rem 0.8rem;
+        border-radius: 8px;
+        font-weight: 500;
+        font-size: 0.8rem;
+        text-transform: uppercase;
+    }
+
+    .verification-badge {
+        padding: 0.35rem 0.75rem;
+        border-radius: 8px;
+        font-weight: 500;
+        font-size: 0.85rem;
+    }
+
+    .amount-cell {
+        font-size: 1.05rem;
+        font-weight: 600;
+        color: #009EDB;
+    }
+
+    .status-badge {
+        padding: 0.4rem 0.9rem;
+        border-radius: 10px;
+        font-weight: 500;
+        font-size: 0.8rem;
+        display: inline-flex;
+        align-items: center;
+        gap: 0.35rem;
+    }
+
+    .table-container {
+        max-height: 600px;
+        overflow-y: auto;
+        border-radius: 12px;
+    }
+
+    .table-container::-webkit-scrollbar {
+        width: 8px;
+    }
+
+    .table-container::-webkit-scrollbar-track {
+        background: #f1f1f1;
+        border-radius: 10px;
+    }
+
+    .table-container::-webkit-scrollbar-thumb {
+        background: #009EDB;
+        border-radius: 10px;
+    }
+
+    .table-container::-webkit-scrollbar-thumb:hover {
+        background: #0084c7;
+    }
+
+    .extension-header {
+        background-color: #f8f9fa;
+        border-bottom: 2px solid #e0e0e0;
+        padding: 0.75rem 1rem;
+    }
+
+    .extension-checkbox {
+        width: 20px;
+        height: 20px;
+        cursor: pointer;
+    }
+
+    .call-checkbox {
+        width: 18px;
+        height: 18px;
+        cursor: pointer;
+    }
+
+    .approve-selected-btn {
+        position: sticky;
+        bottom: 0;
+        z-index: 100;
+        box-shadow: 0 -2px 10px rgba(0, 0, 0, 0.1);
+    }
+
+    .bi-chevron-down {
+        transition: transform 0.3s ease;
+    }
+
+    [data-bs-toggle="collapse"]:hover {
+        text-decoration: none !important;
+    }
+</style>
+
+<!-- Status Message -->
+@if (!string.IsNullOrEmpty(Model.StatusMessage))
+{
+    <div class="alert alert-@(Model.StatusMessageClass ?? "info") alert-dismissible fade show" role="alert">
+        <i class="bi bi-@(Model.StatusMessageClass == "success" ? "check-circle" : Model.StatusMessageClass == "danger" ? "exclamation-triangle" : "info-circle") me-2"></i>
+        @Model.StatusMessage
+        <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
+    </div>
+}
+
+<!-- Header Card -->
+<div class="card border-0 shadow-sm mb-4" style="border-radius: 20px;">
+    <div class="card-body p-4">
+        <div class="d-flex align-items-center justify-content-between">
+            <div class="d-flex align-items-center">
+                <div class="bg-primary bg-opacity-10 rounded-circle d-flex align-items-center justify-content-center me-3"
+                     style="width: 60px; height: 60px;">
+                    <i class="bi bi-person-check text-primary" style="font-size: 24px;"></i>
+                </div>
+                <div>
+                    <h5 class="card-title mb-1">Supervisor Approvals</h5>
+                    <p class="text-muted mb-0">Review and approve call verifications from your team</p>
+                </div>
+            </div>
+            <div class="text-end">
+                <div class="text-muted small">Pending</div>
+                <h3 class="mb-0 text-primary">@Model.PendingSubmissions.Count</h3>
+            </div>
+        </div>
+    </div>
+</div>
+
+@{
+    bool hasActiveFilters = !string.IsNullOrEmpty(Model.FilterUser) ||
+                           Model.FilterStartDate.HasValue ||
+                           Model.FilterEndDate.HasValue ||
+                           Model.FilterMonth.HasValue ||
+                           Model.FilterYear.HasValue ||
+                           Model.FilterOverageOnly;
+}
+
+<!-- Filters Card -->
+<div class="card border-0 shadow-sm mb-4" style="border-radius: 20px;">
+    <div class="card-header bg-white border-0 py-3" style="border-radius: 20px 20px 0 0;">
+        <button class="btn btn-link text-decoration-none w-100 d-flex justify-content-between align-items-center p-0"
+                type="button"
+                data-bs-toggle="collapse"
+                data-bs-target="#filtersCollapse"
+                aria-expanded="@(hasActiveFilters ? "true" : "false")"
+                aria-controls="filtersCollapse">
+            <div class="d-flex align-items-center">
+                <i class="bi bi-funnel text-primary me-2" style="font-size: 1.2rem;"></i>
+                <h6 class="mb-0 text-dark fw-semibold">Filters</h6>
+                @if (hasActiveFilters)
+                {
+                    <span class="badge bg-primary ms-2">Active</span>
+                }
+            </div>
+            <i class="bi bi-chevron-down text-muted" style="@(hasActiveFilters ? "transform: rotate(180deg);" : "")"></i>
+        </button>
+    </div>
+    <div class="collapse @(hasActiveFilters ? "show" : "")" id="filtersCollapse">
+        <div class="card-body p-4 pt-2">
+            <form method="get" class="row g-3">
+            <div class="col-md-4">
+                <label for="FilterUser" class="form-label small fw-semibold">Staff Member</label>
+                <select class="form-select border-0 bg-light" id="FilterUser" name="FilterUser" style="border-radius: 12px;">
+                    <option value="">All Staff</option>
+                    @foreach (var staff in Model.StaffWithPendingRequests)
+                    {
+                        <option value="@staff.IndexNumber" selected="@(Model.FilterUser == staff.IndexNumber)">
+                            @staff.Name (@staff.IndexNumber)
+                        </option>
+                    }
+                </select>
+            </div>
+            <div class="col-md-2">
+                <label for="FilterMonth" class="form-label small fw-semibold">Month</label>
+                <select class="form-select border-0 bg-light" id="FilterMonth" name="FilterMonth" style="border-radius: 12px;">
+                    <option value="">All Months</option>
+                    <option value="1" selected="@(Model.FilterMonth == 1)">January</option>
+                    <option value="2" selected="@(Model.FilterMonth == 2)">February</option>
+                    <option value="3" selected="@(Model.FilterMonth == 3)">March</option>
+                    <option value="4" selected="@(Model.FilterMonth == 4)">April</option>
+                    <option value="5" selected="@(Model.FilterMonth == 5)">May</option>
+                    <option value="6" selected="@(Model.FilterMonth == 6)">June</option>
+                    <option value="7" selected="@(Model.FilterMonth == 7)">July</option>
+                    <option value="8" selected="@(Model.FilterMonth == 8)">August</option>
+                    <option value="9" selected="@(Model.FilterMonth == 9)">September</option>
+                    <option value="10" selected="@(Model.FilterMonth == 10)">October</option>
+                    <option value="11" selected="@(Model.FilterMonth == 11)">November</option>
+                    <option value="12" selected="@(Model.FilterMonth == 12)">December</option>
+                </select>
+            </div>
+            <div class="col-md-2">
+                <label for="FilterYear" class="form-label small fw-semibold">Year</label>
+                <select class="form-select border-0 bg-light" id="FilterYear" name="FilterYear" style="border-radius: 12px;">
+                    <option value="">All Years</option>
+                    @for (int year = DateTime.Now.Year; year >= DateTime.Now.Year - 5; year--)
+                    {
+                        <option value="@year" selected="@(Model.FilterYear == year)">@year</option>
+                    }
+                </select>
+            </div>
+            <div class="col-md-2">
+                <label for="FilterStartDate" class="form-label small fw-semibold">Start Date</label>
+                <input type="date" class="form-control border-0 bg-light" id="FilterStartDate" name="FilterStartDate"
+                       value="@Model.FilterStartDate?.ToString("yyyy-MM-dd")" style="border-radius: 12px;" />
+            </div>
+            <div class="col-md-2">
+                <label for="FilterEndDate" class="form-label small fw-semibold">End Date</label>
+                <input type="date" class="form-control border-0 bg-light" id="FilterEndDate" name="FilterEndDate"
+                       value="@Model.FilterEndDate?.ToString("yyyy-MM-dd")" style="border-radius: 12px;" />
+            </div>
+            <div class="col-md-12">
+                <div class="form-check">
+                    <input class="form-check-input" type="checkbox" id="FilterOverageOnly" name="FilterOverageOnly"
+                           value="true" @(Model.FilterOverageOnly ? "checked" : "") />
+                    <label class="form-check-label" for="FilterOverageOnly">
+                        <i class="bi bi-exclamation-triangle-fill text-warning me-1"></i>Show Overages Only
+                    </label>
+                </div>
+            </div>
+            <div class="col-12">
+                <button type="submit" class="btn btn-primary" style="border-radius: 12px;">
+                    <i class="bi bi-filter me-1"></i>Apply Filters
+                </button>
+                <a asp-page="/Modules/EBillManagement/CallRecords/SupervisorApprovals" class="btn btn-outline-secondary" style="border-radius: 12px;">
+                    <i class="bi bi-x-circle me-1"></i>Clear Filters
+                </a>
+            </div>
+            </form>
+        </div>
+    </div>
+</div>
+
+<!-- Pending Submissions -->
+<div class="card border-0 shadow-sm" style="border-radius: 20px;">
+    <div class="card-header bg-light border-0 py-3" style="border-radius: 20px 20px 0 0;">
+        <h6 class="mb-0 text-muted fw-semibold">
+            <i class="bi bi-list-check me-2"></i>
+            Pending Submissions (@Model.PendingSubmissions.Count)
+        </h6>
+    </div>
+    <div class="card-body p-0">
+        @if (Model.PendingSubmissions.Any())
+        {
+            <div class="accordion accordion-flush" id="submissionsAccordion">
+                @for (int i = 0; i < Model.PendingSubmissions.Count; i++)
+                {
+                    var submission = Model.PendingSubmissions[i];
+                    var accordionId = $"submission{i}";
+
+                    <div class="accordion-item border-0 border-bottom">
+                        <h2 class="accordion-header">
+                            <button class="accordion-button collapsed" type="button" data-bs-toggle="collapse"
+                                    data-bs-target="#@accordionId" style="background-color: white;">
+                                <div class="d-flex w-100 align-items-center justify-content-between me-3">
+                                    <div class="d-flex align-items-center flex-grow-1">
+                                        <div class="bg-primary bg-opacity-10 rounded-circle p-2 me-3">
+                                            <i class="bi bi-person text-primary"></i>
+                                        </div>
+                                        <div>
+                                            <h6 class="mb-0">@submission.UserName</h6>
+                                            <small class="text-muted">@submission.UserIndexNumber</small>
+                                        </div>
+                                    </div>
+                                    <div class="d-flex gap-4 me-3">
+                                        <div class="text-center">
+                                            <div class="text-muted small">Submitted</div>
+                                            <div class="fw-semibold">@submission.SubmittedDate.ToString("MMM dd, yyyy")</div>
+                                        </div>
+                                        <div class="text-center">
+                                            <div class="text-muted small">Calls</div>
+                                            <div class="fw-semibold">@submission.TotalCalls</div>
+                                        </div>
+                                        <div class="text-center">
+                                            <div class="text-muted small">Total Amount</div>
+                                            <div class="fw-semibold text-primary">$@submission.TotalAmount.ToString("N2")</div>
+                                        </div>
+                                        @if (submission.OverageCount > 0)
+                                        {
+                                            <div class="text-center">
+                                                <span class="badge bg-warning text-dark">
+                                                    <i class="bi bi-exclamation-triangle me-1"></i>
+                                                    @submission.OverageCount Overages
+                                                </span>
+                                            </div>
+                                        }
+                                        @if (submission.HasDocuments)
+                                        {
+                                            <div class="text-center">
+                                                <span class="badge bg-info">
+                                                    <i class="bi bi-paperclip me-1"></i>
+                                                    Docs
+                                                </span>
+                                            </div>
+                                        }
+                                    </div>
+                                </div>
+                            </button>
+                        </h2>
+                        <div id="@accordionId" class="accordion-collapse collapse" data-bs-parent="#submissionsAccordion">
+                            <div class="accordion-body p-0">
+                                @{
+                                    var extensionGroups = submission.Verifications
+                                        .GroupBy(v => v.CallRecord.ExtensionNumber)
+                                        .OrderBy(g => g.Key);
+                                }
+
+                                @foreach (var extensionGroup in extensionGroups)
+                                {
+                                    var extensionNumber = extensionGroup.Key;
+                                    var extensionCalls = extensionGroup.ToList();
+                                    var extensionTotal = extensionCalls.Sum(v => v.ActualAmount);
+                                    var extensionCount = extensionCalls.Count;
+                                    var extensionId = $"ext_{submission.UserIndexNumber}_{extensionNumber}".Replace(" ", "_");
+
+                                    <div class="extension-header">
+                                        <div class="d-flex justify-content-between align-items-center">
+                                            <div class="d-flex align-items-center">
+                                                <input type="checkbox"
+                                                       class="extension-checkbox me-3"
+                                                       id="@extensionId"
+                                                       onchange="toggleExtensionCalls('@extensionId')"
+                                                       title="Select all calls from this extension">
+                                                <span class="extension-badge me-2">
+                                                    <i class="bi bi-telephone-fill me-1"></i>@extensionNumber
+                                                </span>
+                                                <span class="text-muted">@extensionCount call(s)</span>
+                                            </div>
+                                            <div class="fw-bold text-primary">
+                                                Total: $@extensionTotal.ToString("N2")
+                                            </div>
+                                        </div>
+                                    </div>
+
+                                    <div class="table-container">
+                                        <table class="table modern-table mb-0">
+                                            <thead>
+                                                <tr>
+                                                    <th style="width: 50px;">
+                                                        <i class="bi bi-check-square text-muted"></i>
+                                                    </th>
+                                                    <th>Date & Time</th>
+                                                    <th>Dialed Number</th>
+                                                    <th>Destination</th>
+                                                    <th>Type</th>
+                                                    <th>Class of Service</th>
+                                                    <th>Duration</th>
+                                                    <th>Cost</th>
+                                                    <th>Verification</th>
+                                                    <th>Status</th>
+                                                </tr>
+                                            </thead>
+                                            <tbody>
+                                                @foreach (var verification in extensionCalls)
+                                                {
+                                                    <tr>
+                                                        <td class="text-center">
+                                                            <input type="checkbox"
+                                                                   class="call-checkbox"
+                                                                   data-extension="@extensionId"
+                                                                   data-verification-id="@verification.Id"
+                                                                   data-amount="@verification.ActualAmount"
+                                                                   onchange="updateSelectionSummary()">
+                                                        </td>
+                                                        <td>
+                                                            <div class="fw-semibold">@verification.CallRecord.CallDate.ToString("MMM dd, yyyy")</div>
+                                                            <small class="text-muted">@verification.CallRecord.CallDate.ToString("hh:mm tt")</small>
+                                                        </td>
+                                                        <td>
+                                                            <div class="dial-number">@verification.CallRecord.CallNumber</div>
+                                                        </td>
+                                                        <td>
+                                                            <div class="fw-semibold">@verification.CallRecord.CallDestination</div>
+                                                            <small class="text-muted">@verification.CallRecord.CallDestinationType</small>
+                                                        </td>
+                                                        <td>
+                                                            <span class="call-type-badge bg-primary bg-opacity-10 text-primary">
+                                                                @verification.CallRecord.CallType
+                                                            </span>
+                                                        </td>
+                                                        <td>
+                                                            @if (verification.CallRecord.UserPhone?.ClassOfService != null)
+                                                            {
+                                                                <div>
+                                                                    <span class="badge bg-info bg-opacity-10 text-info">
+                                                                        @verification.CallRecord.UserPhone.ClassOfService.Class
+                                                                    </span>
+                                                                    @if (verification.CallRecord.UserPhone.ClassOfService.AirtimeAllowanceAmount.HasValue && verification.CallRecord.UserPhone.ClassOfService.AirtimeAllowanceAmount.Value > 0)
+                                                                    {
+                                                                        <br />
+                                                                        <small class="text-muted">Limit: $@verification.CallRecord.UserPhone.ClassOfService.AirtimeAllowanceAmount.Value.ToString("N2")</small>
+                                                                    }
+                                                                    else
+                                                                    {
+                                                                        <br />
+                                                                        <small class="text-muted">Unlimited</small>
+                                                                    }
+                                                                </div>
+                                                            }
+                                                            else
+                                                            {
+                                                                <span class="text-muted">-</span>
+                                                            }
+                                                        </td>
+                                                        <td>
+                                                            <span class="fw-semibold">@verification.CallRecord.GetDurationFormatted()</span>
+                                                        </td>
+                                                        <td>
+                                                            <div class="amount-cell">$@verification.ActualAmount.ToString("N2")</div>
+                                                        </td>
+                                                        <td>
+                                                            <span class="verification-badge bg-info bg-opacity-10 text-info">
+                                                                @verification.VerificationType
+                                                            </span>
+                                                        </td>
+                                                        <td>
+                                                            @if (verification.IsOverage)
+                                                            {
+                                                                <span class="status-badge bg-warning text-dark">
+                                                                    <i class="bi bi-exclamation-triangle"></i>
+                                                                    <span>Overage</span>
+                                                                </span>
+                                                            }
+                                                            else
+                                                            {
+                                                                <span class="status-badge bg-success text-white">
+                                                                    <i class="bi bi-check-circle"></i>
+                                                                    <span>Within Limit</span>
+                                                                </span>
+                                                            }
+                                                            @if (verification.Documents.Any())
+                                                            {
+                                                                <br />
+                                                                <small class="text-muted mt-1 d-inline-flex align-items-center">
+                                                                    <i class="bi bi-paperclip me-1"></i>@verification.Documents.Count doc(s)
+                                                                </small>
+                                                            }
+                                                        </td>
+                                                    </tr>
+                                                }
+                                            </tbody>
+                                        </table>
+                                    </div>
+                                }
+
+                                <div class="p-3 bg-white border-top approve-selected-btn">
+                                    <div class="d-flex justify-content-between align-items-center">
+                                        <div id="selection-summary-@submission.UserIndexNumber" class="text-muted">
+                                            <span class="fw-semibold">No calls selected</span>
+                                        </div>
+                                        <div class="d-flex gap-2">
+                                            <button type="button"
+                                                    class="btn btn-success"
+                                                    style="border-radius: 12px;"
+                                                    id="approve-selected-@submission.UserIndexNumber"
+                                                    onclick="approveSelected('@submission.UserIndexNumber')"
+                                                    disabled>
+                                                <i class="bi bi-check-circle me-1"></i>Approve Selected
+                                            </button>
+                                            <button type="button"
+                                                    class="btn btn-primary"
+                                                    style="border-radius: 12px;"
+                                                    id="review-selected-@submission.UserIndexNumber"
+                                                    onclick="reviewSelected('@submission.UserIndexNumber', '@submission.SubmittedDate.ToString("yyyy-MM-dd")')"
+                                                    disabled>
+                                                <i class="bi bi-eye me-1"></i>Review Selected
+                                            </button>
+                                            <a asp-page="/Modules/EBillManagement/CallRecords/ReviewVerification"
+                                               asp-route-indexNumber="@submission.UserIndexNumber"
+                                               asp-route-date="@submission.SubmittedDate.ToString("yyyy-MM-dd")"
+                                               class="btn btn-outline-primary" style="border-radius: 12px;">
+                                                <i class="bi bi-list-ul me-1"></i>Review All
+                                            </a>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                }
+            </div>
+        }
+        else
+        {
+            <div class="p-5 text-center">
+                <i class="bi bi-inbox display-4 text-muted"></i>
+                <p class="text-muted mt-3">No pending approvals</p>
+                <p class="small text-muted">Verifications from your team will appear here when submitted</p>
+            </div>
+        }
+    </div>
+</div>
+
+<!-- Approval Confirmation Modal -->
+<div class="modal fade" id="approvalConfirmationModal" tabindex="-1">
+    <div class="modal-dialog modal-dialog-centered">
+        <div class="modal-content border-0 shadow-lg" style="border-radius: 20px;">
+            <div class="modal-header border-0 pb-0" style="background-color: #10b981; border-radius: 20px 20px 0 0;">
+                <div class="w-100 text-center py-3">
+                    <div class="mb-3">
+                        <div class="bg-white rounded-circle d-inline-flex align-items-center justify-content-center" style="width: 70px; height: 70px;">
+                            <i class="bi bi-check-circle-fill text-success" style="font-size: 40px;"></i>
+                        </div>
+                    </div>
+                    <h4 class="modal-title fw-bold text-white mb-1">Confirm Approval</h4>
+                    <p class="text-white text-opacity-75 mb-0 small">Review the details before approving</p>
+                </div>
+                <button type="button" class="btn-close btn-close-white position-absolute top-0 end-0 m-3" data-bs-dismiss="modal"></button>
+            </div>
+            <div class="modal-body p-4">
+                <div class="card border-success border-2 mb-3">
+                    <div class="card-body p-3">
+                        <div class="row g-3">
+                            <div class="col-6">
+                                <div class="text-center">
+                                    <div class="text-muted small mb-1">Selected Calls</div>
+                                    <h3 class="mb-0 text-success" id="modal-call-count">0</h3>
+                                </div>
+                            </div>
+                            <div class="col-6">
+                                <div class="text-center">
+                                    <div class="text-muted small mb-1">Total Amount</div>
+                                    <h3 class="mb-0 text-success" id="modal-total-amount">$0.00</h3>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="alert alert-info mb-3" style="border-radius: 12px; background-color: #e0f2fe; border-color: #38bdf8;">
+                    <div class="d-flex align-items-start">
+                        <i class="bi bi-info-circle-fill text-info me-2" style="font-size: 1.25rem;"></i>
+                        <div>
+                            <strong class="text-info">What happens next?</strong>
+                            <ul class="mb-0 mt-2 ps-3 small text-info">
+                                <li>Selected calls will be marked as approved</li>
+                                <li>Approval timestamp and your details will be recorded</li>
+                                <li>User will be notified of the approval</li>
+                            </ul>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="bg-light p-3" style="border-radius: 12px;">
+                    <h6 class="fw-semibold mb-2">
+                        <i class="bi bi-list-check me-2 text-primary"></i>Selected Call Details
+                    </h6>
+                    <div id="modal-call-list" class="small" style="max-height: 200px; overflow-y: auto;">
+                        <!-- Call list will be populated by JavaScript -->
+                    </div>
+                </div>
+            </div>
+            <div class="modal-footer border-0 pt-0 px-4 pb-4">
+                <button type="button" class="btn btn-outline-secondary" data-bs-dismiss="modal" style="border-radius: 12px; min-width: 120px;">
+                    <i class="bi bi-x-circle me-1"></i>Cancel
+                </button>
+                <button type="button" class="btn btn-success" id="confirm-approve-btn" style="border-radius: 12px; min-width: 120px;">
+                    <i class="bi bi-check-circle me-1"></i>Approve Now
+                </button>
+            </div>
+        </div>
+    </div>
+</div>
+
+@section Scripts {
+    <script>
+        // Toggle all calls in an extension
+        function toggleExtensionCalls(extensionId) {
+            const extensionCheckbox = document.getElementById(extensionId);
+            const isChecked = extensionCheckbox.checked;
+
+            // Find all call checkboxes for this extension
+            const callCheckboxes = document.querySelectorAll(`input.call-checkbox[data-extension="${extensionId}"]`);
+            callCheckboxes.forEach(checkbox => {
+                checkbox.checked = isChecked;
+            });
+
+            updateSelectionSummary();
+        }
+
+        // Update selection summary for all submissions
+        function updateSelectionSummary() {
+            // Get all accordion items
+            const accordions = document.querySelectorAll('.accordion-item');
+
+            accordions.forEach(accordion => {
+                const summaryDiv = accordion.querySelector('[id^="selection-summary-"]');
+                const approveBtn = accordion.querySelector('[id^="approve-selected-"]');
+
+                if (!summaryDiv || !approveBtn) return;
+
+                // Get all checked call checkboxes in this accordion
+                const checkedBoxes = accordion.querySelectorAll('input.call-checkbox:checked');
+                const count = checkedBoxes.length;
+
+                if (count > 0) {
+                    // Calculate total amount
+                    let totalAmount = 0;
+                    checkedBoxes.forEach(checkbox => {
+                        totalAmount += parseFloat(checkbox.dataset.amount || 0);
+                    });
+
+                    summaryDiv.innerHTML = `
+                        <span class="fw-semibold text-success">
+                            <i class="bi bi-check-circle me-1"></i>
+                            ${count} call(s) selected
+                        </span>
+                        <span class="text-muted ms-2">Total: $${totalAmount.toFixed(2)}</span>
+                    `;
+                    approveBtn.disabled = false;
+
+                    // Enable Review Selected button
+                    const reviewBtn = accordion.querySelector(`[id^="review-selected-"]`);
+                    if (reviewBtn) reviewBtn.disabled = false;
+                } else {
+                    summaryDiv.innerHTML = '<span class="fw-semibold">No calls selected</span>';
+                    approveBtn.disabled = true;
+
+                    // Disable Review Selected button
+                    const reviewBtn = accordion.querySelector(`[id^="review-selected-"]`);
+                    if (reviewBtn) reviewBtn.disabled = true;
+                }
+
+                // Update extension checkboxes state
+                updateExtensionCheckboxStates(accordion);
+            });
+        }
+
+        // Update extension checkbox states based on their calls
+        function updateExtensionCheckboxStates(accordion) {
+            const extensionCheckboxes = accordion.querySelectorAll('input.extension-checkbox');
+
+            extensionCheckboxes.forEach(extCheckbox => {
+                const extensionId = extCheckbox.id;
+                const callCheckboxes = accordion.querySelectorAll(`input.call-checkbox[data-extension="${extensionId}"]`);
+
+                if (callCheckboxes.length === 0) return;
+
+                const checkedCount = Array.from(callCheckboxes).filter(cb => cb.checked).length;
+
+                if (checkedCount === callCheckboxes.length) {
+                    extCheckbox.checked = true;
+                    extCheckbox.indeterminate = false;
+                } else if (checkedCount > 0) {
+                    extCheckbox.checked = false;
+                    extCheckbox.indeterminate = true;
+                } else {
+                    extCheckbox.checked = false;
+                    extCheckbox.indeterminate = false;
+                }
+            });
+        }
+
+        // Global variable to store current approval data
+        let currentApprovalData = null;
+
+        // Approve selected calls
+        function approveSelected(userIndexNumber) {
+            // Find the accordion for this user
+            const accordion = document.querySelector(`[id*="${userIndexNumber}"]`).closest('.accordion-item');
+            const checkedBoxes = accordion.querySelectorAll('input.call-checkbox:checked');
+
+            if (checkedBoxes.length === 0) {
+                alert('Please select at least one call to approve.');
+                return;
+            }
+
+            // Get verification IDs and call details
+            const verificationIds = [];
+            const callDetails = [];
+            let totalAmount = 0;
+
+            checkedBoxes.forEach(checkbox => {
+                verificationIds.push(checkbox.dataset.verificationId);
+                totalAmount += parseFloat(checkbox.dataset.amount || 0);
+
+                // Get call details from the row
+                const row = checkbox.closest('tr');
+                const dateCell = row.querySelector('td:nth-child(2)');
+                const dialedNumberCell = row.querySelector('td:nth-child(3)');
+                const destinationCell = row.querySelector('td:nth-child(4)');
+                const amountCell = row.querySelector('td:nth-child(8)');
+
+                callDetails.push({
+                    date: dateCell ? dateCell.textContent.trim().split('\n')[0].trim() : 'N/A',
+                    dialedNumber: dialedNumberCell ? dialedNumberCell.textContent.trim() : 'N/A',
+                    destination: destinationCell ? destinationCell.textContent.trim().split('\n')[0].trim() : 'N/A',
+                    amount: checkbox.dataset.amount
+                });
+            });
+
+            // Store data for confirmation
+            currentApprovalData = {
+                verificationIds: verificationIds,
+                totalAmount: totalAmount
+            };
+
+            // Populate modal
+            document.getElementById('modal-call-count').textContent = checkedBoxes.length;
+            document.getElementById('modal-total-amount').textContent = `$${totalAmount.toFixed(2)}`;
+
+            // Build call list
+            const callListHtml = callDetails.map(call => `
+                <div class="d-flex justify-content-between align-items-center py-2 border-bottom">
+                    <div>
+                        <div class="fw-semibold">${call.dialedNumber}</div>
+                        <div class="text-muted" style="font-size: 0.85rem;">${call.destination} • ${call.date}</div>
+                    </div>
+                    <div class="fw-bold text-success">$${parseFloat(call.amount).toFixed(2)}</div>
+                </div>
+            `).join('');
+
+            document.getElementById('modal-call-list').innerHTML = callListHtml || '<p class="text-muted mb-0">No calls selected</p>';
+
+            // Show modal
+            const modal = new bootstrap.Modal(document.getElementById('approvalConfirmationModal'));
+            modal.show();
+        }
+
+        // Review selected calls
+        function reviewSelected(userIndexNumber, submittedDate) {
+            // Find the accordion for this user
+            const accordion = document.querySelector(`[id*="${userIndexNumber}"]`).closest('.accordion-item');
+            const checkedBoxes = accordion.querySelectorAll('input.call-checkbox:checked');
+
+            if (checkedBoxes.length === 0) {
+                alert('Please select at least one call to review.');
+                return;
+            }
+
+            // Get verification IDs
+            const verificationIds = [];
+            checkedBoxes.forEach(checkbox => {
+                verificationIds.push(checkbox.dataset.verificationId);
+            });
+
+            // Navigate to ReviewVerification with selected IDs
+            const idsParam = verificationIds.join(',');
+            window.location.href = `/Modules/EBillManagement/CallRecords/ReviewVerification?indexNumber=${userIndexNumber}&date=${submittedDate}&ids=${idsParam}`;
+        }
+
+        // Confirm approval from modal
+        document.getElementById('confirm-approve-btn').addEventListener('click', function() {
+            if (!currentApprovalData) return;
+
+            // Submit to server
+            const form = document.createElement('form');
+            form.method = 'POST';
+            form.action = '?handler=ApproveSelected';
+
+            // Add anti-forgery token
+            const token = document.querySelector('input[name="__RequestVerificationToken"]').value;
+            const tokenInput = document.createElement('input');
+            tokenInput.type = 'hidden';
+            tokenInput.name = '__RequestVerificationToken';
+            tokenInput.value = token;
+            form.appendChild(tokenInput);
+
+            // Add verification IDs
+            currentApprovalData.verificationIds.forEach(id => {
+                const input = document.createElement('input');
+                input.type = 'hidden';
+                input.name = 'verificationIds';
+                input.value = id;
+                form.appendChild(input);
+            });
+
+            document.body.appendChild(form);
+            form.submit();
+        });
+
+        // Initialize on page load
+        document.addEventListener('DOMContentLoaded', function() {
+            updateSelectionSummary();
+
+            // Handle filter collapse icon rotation
+            const filtersCollapse = document.getElementById('filtersCollapse');
+            const chevronIcon = document.querySelector('[data-bs-target="#filtersCollapse"] .bi-chevron-down');
+
+            if (filtersCollapse && chevronIcon) {
+                filtersCollapse.addEventListener('show.bs.collapse', function() {
+                    chevronIcon.style.transform = 'rotate(180deg)';
+                    chevronIcon.style.transition = 'transform 0.3s ease';
+                });
+
+                filtersCollapse.addEventListener('hide.bs.collapse', function() {
+                    chevronIcon.style.transform = 'rotate(0deg)';
+                    chevronIcon.style.transition = 'transform 0.3s ease';
+                });
+            }
+        });
+    </script>
+}
+

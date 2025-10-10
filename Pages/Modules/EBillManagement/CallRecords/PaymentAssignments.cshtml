@@ -1,0 +1,294 @@
+@page
+@model TAB.Web.Pages.Modules.EBillManagement.CallRecords.PaymentAssignmentsModel
+@{
+    ViewData["Title"] = "Payment Assignments";
+    ViewData["PageIcon"] = "bi-arrow-left-right";
+    ViewData["PageTitle"] = "Payment Assignments";
+    ViewData["Breadcrumb"] = "E-Bill / Call Records / Assignments";
+}
+
+<!-- Status Message -->
+@if (!string.IsNullOrEmpty(Model.StatusMessage))
+{
+    <div class="alert alert-@(Model.StatusMessageClass ?? "info") alert-dismissible fade show" role="alert">
+        <i class="bi bi-@(Model.StatusMessageClass == "success" ? "check-circle" : Model.StatusMessageClass == "danger" ? "exclamation-triangle" : "info-circle") me-2"></i>
+        @Model.StatusMessage
+        <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
+    </div>
+}
+
+<!-- Admin View Indicator -->
+@if (User.IsInRole("Admin") && string.IsNullOrEmpty(Model.UserIndexNumber))
+{
+    <div class="alert alert-info alert-dismissible fade show" role="alert">
+        <i class="bi bi-shield-check me-2"></i>
+        <strong>Admin View:</strong> You are viewing all payment assignments across the system.
+        <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
+    </div>
+}
+
+<!-- Header Card -->
+<div class="card border-0 shadow-sm mb-4" style="border-radius: 20px;">
+    <div class="card-body p-4">
+        <div class="d-flex align-items-center justify-content-between">
+            <div class="d-flex align-items-center">
+                <div class="bg-warning bg-opacity-10 rounded-circle d-flex align-items-center justify-content-center me-3"
+                     style="width: 60px; height: 60px;">
+                    <i class="bi bi-arrow-left-right text-warning" style="font-size: 24px;"></i>
+                </div>
+                <div>
+                    <h5 class="card-title mb-1">Payment Assignments</h5>
+                    @if (User.IsInRole("Admin") && string.IsNullOrEmpty(Model.UserIndexNumber))
+                    {
+                        <p class="text-muted mb-0">System-wide payment assignment overview</p>
+                    }
+                    else
+                    {
+                        <p class="text-muted mb-0">Manage call payments assigned to you by other users</p>
+                    }
+                </div>
+            </div>
+            <div class="text-end">
+                <div class="text-muted small">Pending</div>
+                <h3 class="mb-0 text-warning">@Model.PendingAssignments.Count</h3>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Pending Assignments -->
+<div class="card border-0 shadow-sm mb-4" style="border-radius: 20px;">
+    <div class="card-header bg-light border-0 py-3" style="border-radius: 20px 20px 0 0;">
+        <h6 class="mb-0 text-muted fw-semibold">
+            <i class="bi bi-hourglass me-2"></i>
+            Pending Assignments (@Model.PendingAssignments.Count)
+        </h6>
+    </div>
+    <div class="card-body p-0">
+        @if (Model.PendingAssignments.Any())
+        {
+            @foreach (var assignment in Model.PendingAssignments)
+            {
+                <div class="border-bottom p-4 hover-bg-light">
+                    <div class="row align-items-center">
+                        <div class="col-md-7">
+                            <div class="d-flex align-items-start">
+                                <div class="bg-warning bg-opacity-10 rounded-circle p-3 me-3">
+                                    <i class="bi bi-telephone text-warning"></i>
+                                </div>
+                                <div>
+                                    <h6 class="mb-1">
+                                        Call to @assignment.CallRecord.CallDestination
+                                    </h6>
+                                    <div class="text-muted small mb-2">
+                                        <i class="bi bi-calendar me-1"></i>
+                                        @assignment.CallRecord.CallDate.ToString("MMMM dd, yyyy 'at' hh:mm tt")
+                                        <span class="mx-2">•</span>
+                                        <i class="bi bi-clock me-1"></i>
+                                        @assignment.CallRecord.GetDurationFormatted()
+                                    </div>
+                                    <div class="mb-2">
+                                        <span class="badge bg-info bg-opacity-10 text-info">
+                                            @assignment.CallRecord.CallDestinationType
+                                        </span>
+                                        <span class="badge bg-primary bg-opacity-10 text-primary ms-1">
+                                            @assignment.CallRecord.CallType
+                                        </span>
+                                    </div>
+                                    <div class="alert alert-warning-subtle p-2 mb-2">
+                                        <strong class="small">Assigned from:</strong>
+                                        <span class="small">@assignment.AssignedFrom</span>
+                                        @if (User.IsInRole("Admin") && string.IsNullOrEmpty(Model.UserIndexNumber))
+                                        {
+                                            <br />
+                                            <strong class="small">Assigned to:</strong>
+                                            <span class="small">@assignment.AssignedTo</span>
+                                        }
+                                    </div>
+                                    <div class="bg-light p-2 rounded">
+                                        <strong class="small">Reason:</strong>
+                                        <p class="mb-0 small">@assignment.AssignmentReason</p>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                        <div class="col-md-3 text-center">
+                            <div class="text-muted small mb-1">Cost</div>
+                            <div class="fw-bold text-primary fs-4">
+                                $@assignment.CallRecord.CallCostUSD.ToString("N2")
+                            </div>
+                            <div class="text-muted small mt-1">
+                                Assigned @assignment.AssignedDate.ToString("MMM dd")
+                            </div>
+                        </div>
+                        @if (!User.IsInRole("Admin") || !string.IsNullOrEmpty(Model.UserIndexNumber))
+                        {
+                            <div class="col-md-2">
+                                <form method="post" class="d-grid gap-2">
+                                    <button type="submit" asp-page-handler="Accept" asp-route-assignmentId="@assignment.Id"
+                                            class="btn btn-success btn-sm" style="border-radius: 8px;">
+                                        <i class="bi bi-check-circle me-1"></i>Accept
+                                    </button>
+                                    <button type="button" class="btn btn-outline-danger btn-sm" style="border-radius: 8px;"
+                                            onclick="showRejectModal(@assignment.Id)">
+                                        <i class="bi bi-x-circle me-1"></i>Reject
+                                    </button>
+                                </form>
+                            </div>
+                        }
+                        else
+                        {
+                            <div class="col-md-2 text-center">
+                                <span class="badge bg-secondary">View Only</span>
+                            </div>
+                        }
+                    </div>
+                </div>
+            }
+        }
+        else
+        {
+            <div class="p-5 text-center">
+                <i class="bi bi-inbox display-4 text-muted"></i>
+                <p class="text-muted mt-3">No pending payment assignments</p>
+            </div>
+        }
+    </div>
+</div>
+
+<!-- Recent Activity -->
+<div class="card border-0 shadow-sm" style="border-radius: 20px;">
+    <div class="card-header bg-light border-0 py-3" style="border-radius: 20px 20px 0 0;">
+        <h6 class="mb-0 text-muted fw-semibold">
+            <i class="bi bi-clock-history me-2"></i>
+            Recent Activity (Last 30 Days)
+        </h6>
+    </div>
+    <div class="card-body p-0">
+        @if (Model.CompletedAssignments.Any())
+        {
+            <div class="table-responsive">
+                <table class="table table-hover mb-0">
+                    <thead class="bg-light">
+                        <tr>
+                            <th>Date</th>
+                            <th>From</th>
+                            <th>Call Details</th>
+                            <th>Cost</th>
+                            <th>Status</th>
+                            <th>Action Date</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        @foreach (var assignment in Model.CompletedAssignments)
+                        {
+                            <tr>
+                                <td>
+                                    @assignment.CallRecord.CallDate.ToString("MMM dd, yyyy")<br />
+                                    <small class="text-muted">@assignment.CallRecord.CallDate.ToString("hh:mm tt")</small>
+                                </td>
+                                <td>@assignment.AssignedFrom</td>
+                                <td>
+                                    @assignment.CallRecord.CallDestination<br />
+                                    <small class="text-muted">@assignment.CallRecord.GetDurationFormatted()</small>
+                                </td>
+                                <td class="fw-semibold">$@assignment.CallRecord.CallCostUSD.ToString("N2")</td>
+                                <td>
+                                    @if (assignment.AssignmentStatus == "Accepted")
+                                    {
+                                        <span class="badge bg-success">
+                                            <i class="bi bi-check-circle me-1"></i>Accepted
+                                        </span>
+                                    }
+                                    else if (assignment.AssignmentStatus == "Rejected")
+                                    {
+                                        <span class="badge bg-danger">
+                                            <i class="bi bi-x-circle me-1"></i>Rejected
+                                        </span>
+                                    }
+                                    else
+                                    {
+                                        <span class="badge bg-secondary">@assignment.AssignmentStatus</span>
+                                    }
+                                </td>
+                                <td>
+                                    @if (assignment.ModifiedDate.HasValue)
+                                    {
+                                        @assignment.ModifiedDate.Value.ToString("MMM dd, yyyy")
+                                    }
+                                </td>
+                            </tr>
+                        }
+                    </tbody>
+                </table>
+            </div>
+        }
+        else
+        {
+            <div class="p-5 text-center">
+                <i class="bi bi-inbox display-4 text-muted"></i>
+                <p class="text-muted mt-3">No recent activity</p>
+            </div>
+        }
+    </div>
+</div>
+
+<!-- Reject Modal -->
+<div class="modal fade" id="rejectModal" tabindex="-1">
+    <div class="modal-dialog modal-dialog-centered">
+        <div class="modal-content" style="border-radius: 20px;">
+            <div class="modal-header border-0">
+                <h5 class="modal-title">Reject Payment Assignment</h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+            </div>
+            <form method="post" asp-page-handler="Reject">
+                <input type="hidden" id="rejectAssignmentId" name="assignmentId" />
+                <div class="modal-body">
+                    <div class="mb-3">
+                        <label for="rejectionReason" class="form-label fw-semibold">
+                            Reason for Rejection <span class="text-danger">*</span>
+                        </label>
+                        <textarea class="form-control border-0 bg-light"
+                                  id="rejectionReason"
+                                  name="rejectionReason"
+                                  rows="4"
+                                  style="border-radius: 12px;"
+                                  placeholder="Please explain why you're rejecting this assignment..."
+                                  required></textarea>
+                    </div>
+                </div>
+                <div class="modal-footer border-0">
+                    <button type="button" class="btn btn-outline-secondary" data-bs-dismiss="modal" style="border-radius: 12px;">
+                        Cancel
+                    </button>
+                    <button type="submit" class="btn btn-danger" style="border-radius: 12px;">
+                        <i class="bi bi-x-circle me-1"></i>Reject Assignment
+                    </button>
+                </div>
+            </form>
+        </div>
+    </div>
+</div>
+
+@section Scripts {
+    <script>
+        function showRejectModal(assignmentId) {
+            document.getElementById('rejectAssignmentId').value = assignmentId;
+            document.getElementById('rejectionReason').value = '';
+            new bootstrap.Modal(document.getElementById('rejectModal')).show();
+        }
+    </script>
+}
+
+<style>
+    .hover-bg-light:hover {
+        background-color: rgba(0, 0, 0, 0.02);
+        transition: background-color 0.2s;
+    }
+
+    .alert-warning-subtle {
+        background-color: rgba(255, 193, 7, 0.1);
+        border: 1px solid rgba(255, 193, 7, 0.2);
+        border-radius: 8px;
+    }
+</style>

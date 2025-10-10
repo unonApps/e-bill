@@ -1,0 +1,10 @@
+# Disabled Pipeline - Remove this file when you get parallelism granted
+trigger: none
+pr: none
+
+pool:
+  vmImage: 'ubuntu-latest'
+
+steps:
+- script: echo Pipeline disabled pending parallelism grant
+  displayName: 'Pipeline Disabled'

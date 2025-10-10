@@ -1,0 +1,20 @@
+-- Mark all previous migrations as applied
+INSERT INTO __EFMigrationsHistory (MigrationId, ProductVersion) VALUES ('20250620192830_InitialCreate', '8.0.0');
+INSERT INTO __EFMigrationsHistory (MigrationId, ProductVersion) VALUES ('20250620200642_AddUserStatus', '8.0.0');
+INSERT INTO __EFMigrationsHistory (MigrationId, ProductVersion) VALUES ('20250620205129_AddClassOfService', '8.0.0');
+INSERT INTO __EFMigrationsHistory (MigrationId, ProductVersion) VALUES ('20250620211421_AddHandsetAllowanceToClassOfService', '8.0.0');
+INSERT INTO __EFMigrationsHistory (MigrationId, ProductVersion) VALUES ('20250620213518_AddServiceProvider', '8.0.0');
+INSERT INTO __EFMigrationsHistory (MigrationId, ProductVersion) VALUES ('20250620215436_AddRequestManagementTables', '8.0.0');
+INSERT INTO __EFMigrationsHistory (MigrationId, ProductVersion) VALUES ('20250620220910_UpdateSimRequestModel', '8.0.0');
+INSERT INTO __EFMigrationsHistory (MigrationId, ProductVersion) VALUES ('20250620234433_AddSimRequestHistory', '8.0.0');
+INSERT INTO __EFMigrationsHistory (MigrationId, ProductVersion) VALUES ('20250621162443_AddClassOfServiceFieldsToSimRequest', '8.0.0');
+INSERT INTO __EFMigrationsHistory (MigrationId, ProductVersion) VALUES ('20250621164056_AddSupervisorFieldsToRefundRequestAndEbill', '8.0.0');
+INSERT INTO __EFMigrationsHistory (MigrationId, ProductVersion) VALUES ('20250621175847_AddIctsFieldsToSimRequest', '8.0.0');
+INSERT INTO __EFMigrationsHistory (MigrationId, ProductVersion) VALUES ('20250622162737_AddPendingSIMCollectionStatus', '8.0.0');
+INSERT INTO __EFMigrationsHistory (MigrationId, ProductVersion) VALUES ('20250622184626_UpdateRefundRequestWorkflow', '8.0.0');
+INSERT INTO __EFMigrationsHistory (MigrationId, ProductVersion) VALUES ('20250622194507_UpdateRefundRequestModel', '8.0.0');
+INSERT INTO __EFMigrationsHistory (MigrationId, ProductVersion) VALUES ('20250623013242_AddCostAccountingFields', '8.0.0');
+INSERT INTO __EFMigrationsHistory (MigrationId, ProductVersion) VALUES ('20250623181816_AddClaimsUnitProcessingFields', '8.0.0');
+INSERT INTO __EFMigrationsHistory (MigrationId, ProductVersion) VALUES ('20250703094239_AddEbillUserEntity', '8.0.0');
+INSERT INTO __EFMigrationsHistory (MigrationId, ProductVersion) VALUES ('20250710122644_AddCallLogEntity', '8.0.0');
+INSERT INTO __EFMigrationsHistory (MigrationId, ProductVersion) VALUES ('20250710125334_AddImportAuditEntity', '8.0.0');

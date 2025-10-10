@@ -1,0 +1,907 @@
+@page
+@model TAB.Web.Pages.Admin.CallLogsModel
+@{
+    ViewData["Title"] = "Call Logs Management";
+    ViewData["ActiveMenu"] = "CallLogs";
+}
+
+<style>
+    /* Statistics Grid */
+    .stats-grid {
+        display: grid;
+        grid-template-columns: repeat(auto-fit, minmax(240px, 1fr));
+        gap: 1.25rem;
+        margin-bottom: 2rem;
+    }
+
+    .stat-card {
+        background: white;
+        border-radius: 12px;
+        padding: 1.5rem;
+        border: 1px solid #e5e7eb;
+        transition: all 0.3s ease;
+        position: relative;
+        overflow: hidden;
+    }
+
+    .stat-card::before {
+        content: '';
+        position: absolute;
+        top: 0;
+        left: 0;
+        right: 0;
+        height: 4px;
+        background: linear-gradient(90deg, var(--gradient-start), var(--gradient-end));
+    }
+
+    .stat-card:nth-child(1)::before {
+        --gradient-start: #009EDB;
+        --gradient-end: #0084c7;
+    }
+
+    .stat-card:nth-child(2)::before {
+        --gradient-start: #10b981;
+        --gradient-end: #34d399;
+    }
+
+    .stat-card:nth-child(3)::before {
+        --gradient-start: #f59e0b;
+        --gradient-end: #fbbf24;
+    }
+
+    .stat-card:nth-child(4)::before {
+        --gradient-start: #ef4444;
+        --gradient-end: #f87171;
+    }
+
+    .stat-card:hover {
+        transform: translateY(-4px);
+        box-shadow: 0 10px 30px rgba(0, 0, 0, 0.1);
+    }
+
+    .stat-content {
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+    }
+
+    .stat-icon {
+        width: 50px;
+        height: 50px;
+        border-radius: 12px;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        font-size: 1.5rem;
+    }
+
+    .stat-icon-primary {
+        background: linear-gradient(135deg, #009EDB, #0084c7);
+        color: white;
+    }
+
+    .stat-icon-success {
+        background: linear-gradient(135deg, #10b981, #34d399);
+        color: white;
+    }
+
+    .stat-icon-warning {
+        background: linear-gradient(135deg, #f59e0b, #fbbf24);
+        color: white;
+    }
+
+    .stat-icon-danger {
+        background: linear-gradient(135deg, #ef4444, #f87171);
+        color: white;
+    }
+
+    .stat-details {
+        text-align: right;
+    }
+
+    .stat-number {
+        font-size: 1.75rem;
+        font-weight: 700;
+        color: #1f2937;
+        line-height: 1;
+        margin-bottom: 0.25rem;
+    }
+
+    .stat-label {
+        font-size: 0.875rem;
+        color: #6b7280;
+        font-weight: 500;
+    }
+
+    /* Filter Section */
+    .filter-section {
+        background: white;
+        border-radius: 12px;
+        padding: 1.5rem;
+        margin-bottom: 2rem;
+        box-shadow: 0 2px 10px rgba(0, 0, 0, 0.05);
+        border: 1px solid #e5e7eb;
+    }
+
+    .filter-header {
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        margin-bottom: 1.5rem;
+        padding-bottom: 1rem;
+        border-bottom: 2px solid #f3f4f6;
+    }
+
+    .filter-title {
+        font-size: 1.25rem;
+        font-weight: 600;
+        color: #1f2937;
+        display: flex;
+        align-items: center;
+        gap: 0.5rem;
+    }
+
+    .filter-title i {
+        color: #009EDB;
+    }
+
+    .filter-grid {
+        display: grid;
+        grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
+        gap: 1rem;
+    }
+
+    .filter-group {
+        display: flex;
+        flex-direction: column;
+        gap: 0.5rem;
+    }
+
+    .filter-label {
+        font-size: 0.875rem;
+        font-weight: 600;
+        color: #4b5563;
+        display: flex;
+        align-items: center;
+        gap: 0.5rem;
+    }
+
+    .filter-label i {
+        color: #009EDB;
+        font-size: 0.875rem;
+    }
+
+    .filter-input,
+    .filter-select {
+        padding: 0.625rem 1rem;
+        border: 2px solid #e5e7eb;
+        border-radius: 8px;
+        font-size: 0.875rem;
+        transition: all 0.2s ease;
+        background: white;
+    }
+
+    .filter-input:focus,
+    .filter-select:focus {
+        outline: none;
+        border-color: #009EDB;
+        box-shadow: 0 0 0 3px rgba(0, 158, 219, 0.1);
+    }
+
+    .btn-clear-filters {
+        padding: 0.625rem 1.25rem;
+        background: #f3f4f6;
+        color: #4b5563;
+        border: none;
+        border-radius: 8px;
+        font-weight: 500;
+        font-size: 0.875rem;
+        display: inline-flex;
+        align-items: center;
+        gap: 0.5rem;
+        transition: all 0.2s ease;
+        text-decoration: none;
+    }
+
+    .btn-clear-filters:hover {
+        background: #e5e7eb;
+        color: #1f2937;
+        text-decoration: none;
+    }
+
+    /* Quick Filter Tabs */
+    .quick-filter-tabs {
+        background: white;
+        border-radius: 12px;
+        padding: 0.75rem;
+        margin-bottom: 1.5rem;
+        border: 1px solid #e5e7eb;
+        display: flex;
+        gap: 0.5rem;
+        align-items: center;
+    }
+
+    .quick-filter-btn {
+        padding: 0.5rem 1rem;
+        background: transparent;
+        color: #6b7280;
+        border: 2px solid transparent;
+        border-radius: 8px;
+        font-weight: 500;
+        font-size: 0.875rem;
+        transition: all 0.2s ease;
+        cursor: pointer;
+    }
+
+    .quick-filter-btn:hover {
+        background: #f9fafb;
+        color: #1f2937;
+    }
+
+    .quick-filter-btn.active {
+        background: linear-gradient(135deg, #f0f9ff 0%, #e0f2fe 100%);
+        color: #009EDB;
+        border-color: #009EDB;
+    }
+
+    /* Table Styles */
+    .table-container {
+        background: white;
+        border-radius: 12px;
+        box-shadow: 0 2px 10px rgba(0, 0, 0, 0.05);
+        border: 1px solid #e5e7eb;
+        overflow: hidden;
+    }
+
+    .table-header {
+        padding: 1.25rem 1.5rem;
+        background: white;
+        border-bottom: 2px solid #f3f4f6;
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+    }
+
+    .table thead th {
+        background-color: #f8f9fa;
+        border: 0;
+        padding: 1rem;
+        font-weight: 600;
+        color: #4a5568;
+        text-transform: uppercase;
+        font-size: 12px;
+        letter-spacing: 0.5px;
+    }
+
+    .table tbody tr {
+        transition: all 0.2s ease;
+        border-bottom: 1px solid #f3f4f6;
+    }
+
+    .table tbody tr:hover {
+        background-color: #f9fafb;
+    }
+
+    /* Status Badges */
+    .status-badge {
+        padding: 0.25rem 0.75rem;
+        border-radius: 9999px;
+        font-size: 0.75rem;
+        font-weight: 600;
+        text-transform: uppercase;
+        letter-spacing: 0.5px;
+        display: inline-block;
+    }
+
+    .badge-success {
+        background: #d1fae5;
+        color: #065f46;
+    }
+
+    .badge-warning {
+        background: #fed7aa;
+        color: #92400e;
+    }
+
+    .badge-danger {
+        background: #fee2e2;
+        color: #991b1b;
+    }
+
+    .badge-info {
+        background: #dbeafe;
+        color: #1e40af;
+    }
+
+    /* Empty State */
+    .empty-state {
+        text-align: center;
+        padding: 4rem 2rem;
+        background: #f9fafb;
+        border-radius: 12px;
+    }
+
+    .empty-state-icon {
+        width: 80px;
+        height: 80px;
+        margin: 0 auto 1.5rem;
+        background: white;
+        border-radius: 50%;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        font-size: 2rem;
+        color: #9ca3af;
+    }
+
+    /* Action Buttons */
+    .action-btn {
+        padding: 0.375rem 0.75rem;
+        border-radius: 6px;
+        border: none;
+        font-size: 0.875rem;
+        transition: all 0.2s ease;
+        cursor: pointer;
+        background: transparent;
+    }
+
+    .action-btn-view {
+        color: #1d4ed8;
+    }
+
+    .action-btn-view:hover {
+        background: #eff6ff;
+    }
+
+    .action-btn-link {
+        color: #15803d;
+    }
+
+    .action-btn-link:hover {
+        background: #f0fdf4;
+    }
+
+    .action-btn-delete {
+        color: #dc2626;
+    }
+
+    .action-btn-delete:hover {
+        background: #fef2f2;
+    }
+
+    /* Pagination */
+    .pagination-container {
+        padding: 1.5rem;
+        background: white;
+        border-top: 2px solid #f3f4f6;
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        flex-wrap: wrap;
+        gap: 1rem;
+    }
+
+    .pagination {
+        margin: 0;
+    }
+
+    .page-link {
+        color: #4b5563;
+        border: 1px solid #e5e7eb;
+        padding: 0.5rem 0.75rem;
+        font-size: 0.875rem;
+        transition: all 0.2s ease;
+    }
+
+    .page-link:hover {
+        background: #f9fafb;
+        border-color: #009EDB;
+        color: #009EDB;
+    }
+
+    .page-item.active .page-link {
+        background: #009EDB;
+        border-color: #009EDB;
+        color: white;
+    }
+
+    .page-item.disabled .page-link {
+        background: #f3f4f6;
+        color: #9ca3af;
+        cursor: not-allowed;
+    }
+
+    .page-info {
+        font-size: 0.875rem;
+        color: #6b7280;
+    }
+
+    /* Responsive */
+    @@media (max-width: 768px) {
+        .stats-grid {
+            grid-template-columns: 1fr;
+        }
+
+        .filter-grid {
+            grid-template-columns: 1fr;
+        }
+
+        .table-header {
+            flex-direction: column;
+            gap: 1rem;
+            align-items: stretch;
+        }
+
+        .quick-filter-tabs {
+            flex-direction: column;
+        }
+
+        .quick-filter-btn {
+            width: 100%;
+        }
+    }
+</style>
+
+<!-- Page Header -->
+<div class="d-flex justify-content-between align-items-center mb-4">
+    <div>
+        <h1 class="h3 mb-0 text-gray-800">Call Logs Management</h1>
+        <p class="text-muted mb-0">View and manage telecommunication records across all providers</p>
+    </div>
+    <div>
+        <button type="button" class="btn btn-primary" data-bs-toggle="modal" data-bs-target="#importModal">
+            <i class="bi bi-cloud-upload me-2"></i>Import Data
+        </button>
+    </div>
+</div>
+
+<!-- Statistics Cards -->
+<div class="stats-grid">
+    <div class="stat-card">
+        <div class="stat-content">
+            <div class="stat-icon stat-icon-primary">
+                <i class="bi bi-files"></i>
+            </div>
+            <div class="stat-details">
+                <div class="stat-number">@Model.TotalLogs.ToString("N0")</div>
+                <div class="stat-label">Total Records</div>
+            </div>
+        </div>
+    </div>
+
+    <div class="stat-card">
+        <div class="stat-content">
+            <div class="stat-icon stat-icon-success">
+                <i class="bi bi-link-45deg"></i>
+            </div>
+            <div class="stat-details">
+                <div class="stat-number">@Model.LinkedLogs.ToString("N0")</div>
+                <div class="stat-label">Linked Records</div>
+            </div>
+        </div>
+    </div>
+
+    <div class="stat-card">
+        <div class="stat-content">
+            <div class="stat-icon stat-icon-warning">
+                <i class="bi bi-exclamation-triangle"></i>
+            </div>
+            <div class="stat-details">
+                <div class="stat-number">@Model.UnlinkedLogs.ToString("N0")</div>
+                <div class="stat-label">Unlinked Records</div>
+            </div>
+        </div>
+    </div>
+
+    <div class="stat-card">
+        <div class="stat-content">
+            <div class="stat-icon stat-icon-danger">
+                <i class="bi bi-currency-dollar"></i>
+            </div>
+            <div class="stat-details">
+                <div class="stat-number">@Model.TotalAmount.ToString("C0")</div>
+                <div class="stat-label">Total Amount</div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Quick Filter Tabs -->
+<div class="quick-filter-tabs">
+    <span class="text-muted me-3" style="font-size: 0.875rem;">Quick Filters:</span>
+    <button type="button" class="quick-filter-btn @(string.IsNullOrEmpty(Model.FilterType) || Model.FilterType == "all" ? "active" : "")"
+            onclick="applyQuickFilter('all')">
+        All Records
+    </button>
+    <button type="button" class="quick-filter-btn @(Model.FilterType == "linked" ? "active" : "")"
+            onclick="applyQuickFilter('linked')">
+        Linked Only
+    </button>
+    <button type="button" class="quick-filter-btn @(Model.FilterType == "unlinked" ? "active" : "")"
+            onclick="applyQuickFilter('unlinked')">
+        Unlinked Only
+    </button>
+</div>
+
+<!-- Filter Section (Collapsible) -->
+<div class="mb-3">
+    <button class="btn btn-outline-primary btn-sm" type="button" data-bs-toggle="collapse" data-bs-target="#filterCollapse" aria-expanded="false">
+        <i class="bi bi-funnel me-2"></i>Advanced Filters
+    </button>
+</div>
+
+<div class="collapse" id="filterCollapse">
+    <div class="filter-section">
+        <div class="filter-header">
+            <h2 class="filter-title">
+                <i class="bi bi-funnel"></i>
+                Filters
+            </h2>
+            <div class="filter-actions">
+                <span class="badge bg-light text-dark">
+                    @if (Model.AllTelecomRecords.Any())
+                    {
+                        <text>@Model.AllTelecomRecords.Count records found</text>
+                    }
+                    else
+                    {
+                        <text>No results</text>
+                    }
+                </span>
+            </div>
+        </div>
+
+        <form method="get" class="filter-form" id="filterForm">
+            <div class="filter-grid">
+                <div class="filter-group">
+                    <label class="filter-label" for="searchFilter">
+                        <i class="bi bi-search"></i> Search
+                    </label>
+                    <input type="text" name="SearchTerm" id="searchFilter" class="filter-input"
+                           placeholder="Search by phone, name, account..." value="@Model.SearchTerm" />
+                </div>
+
+                <div class="filter-group">
+                    <label class="filter-label" for="filterType">
+                        <i class="bi bi-flag"></i> Link Status
+                    </label>
+                    <select name="FilterType" id="filterType" class="filter-select">
+                        <option value="all" selected="@(Model.FilterType == "all")">All Records</option>
+                        <option value="linked" selected="@(Model.FilterType == "linked")">Linked Only</option>
+                        <option value="unlinked" selected="@(Model.FilterType == "unlinked")">Unlinked Only</option>
+                    </select>
+                </div>
+
+                <div class="filter-group">
+                    <label class="filter-label" for="startDate">
+                        <i class="bi bi-calendar-minus"></i> Start Date
+                    </label>
+                    <input type="date" name="StartDate" id="startDate" class="filter-input"
+                           value="@Model.StartDate?.ToString("yyyy-MM-dd")" />
+                </div>
+
+                <div class="filter-group">
+                    <label class="filter-label" for="endDate">
+                        <i class="bi bi-calendar-plus"></i> End Date
+                    </label>
+                    <input type="date" name="EndDate" id="endDate" class="filter-input"
+                           value="@Model.EndDate?.ToString("yyyy-MM-dd")" />
+                </div>
+
+                <div class="filter-group">
+                    <label class="filter-label" for="importAudit">
+                        <i class="bi bi-box-arrow-in-down"></i> Import Batch
+                    </label>
+                    <select name="ImportAuditId" id="importAudit" class="filter-select">
+                        <option value="">All Batches</option>
+                        @foreach (var audit in Model.RecentImports)
+                        {
+                            <option value="@audit.Id" selected="@(Model.ImportAuditId == audit.Id)">
+                                @audit.FileName - @audit.ImportDate.ToString("MMM dd, yyyy")
+                            </option>
+                        }
+                    </select>
+                </div>
+
+                <div class="filter-group align-self-end">
+                    <div class="d-flex gap-2">
+                        <button type="submit" class="btn btn-primary">
+                            <i class="bi bi-funnel me-1"></i>Apply
+                        </button>
+                        <a href="/Admin/CallLogs" class="btn-clear-filters">
+                            <i class="bi bi-x-circle"></i> Clear
+                        </a>
+                    </div>
+                </div>
+            </div>
+        </form>
+    </div>
+</div>
+
+<!-- Recent Imports Section -->
+@if (Model.RecentImports.Any())
+{
+    <div class="card border-0 shadow-sm mb-4" style="border-radius: 12px;">
+        <div class="card-body">
+            <h6 class="fw-bold mb-3">
+                <i class="bi bi-clock-history me-2 text-primary"></i>Recent Imports
+            </h6>
+            <div class="row g-2">
+                @foreach (var import in Model.RecentImports.Take(5))
+                {
+                    <div class="col-md-2">
+                        <div class="p-2 bg-light rounded text-center">
+                            <div class="fw-semibold small">@import.FileName</div>
+                            <div class="text-muted" style="font-size: 0.75rem;">
+                                @import.SuccessCount records
+                            </div>
+                            <a href="?ImportAuditId=@import.Id" class="btn btn-sm btn-link p-0">
+                                <i class="bi bi-eye"></i> View
+                            </a>
+                        </div>
+                    </div>
+                }
+            </div>
+        </div>
+    </div>
+}
+
+<!-- Main Table -->
+<div class="table-container">
+    <div class="table-header">
+        <h5 class="mb-0 fw-semibold">
+            <i class="bi bi-table me-2"></i>Call Log Records
+        </h5>
+        <div class="d-flex gap-2">
+            <select class="form-select form-select-sm" id="pageSizeSelect" style="width: auto;">
+                <option value="10" selected="@(Model.PageSize == 10)">10 per page</option>
+                <option value="25" selected="@(Model.PageSize == 25)">25 per page</option>
+                <option value="50" selected="@(Model.PageSize == 50)">50 per page</option>
+                <option value="100" selected="@(Model.PageSize == 100)">100 per page</option>
+            </select>
+        </div>
+    </div>
+
+    @if (!Model.AllTelecomRecords.Any())
+    {
+        <div class="empty-state">
+            <div class="empty-state-icon">
+                <i class="bi bi-inbox"></i>
+            </div>
+            <h5 class="text-muted mb-2">No Call Logs Found</h5>
+            <p class="text-muted mb-0">Try adjusting your filters or import new data to get started.</p>
+        </div>
+    }
+    else
+    {
+        <div class="table-responsive">
+            <table class="table table-hover mb-0">
+                <thead>
+                    <tr>
+                        <th>
+                            <i class="bi bi-hash me-1"></i>ACCOUNT
+                        </th>
+                        <th>
+                            <i class="bi bi-person me-1"></i>USER
+                        </th>
+                        <th>
+                            <i class="bi bi-telephone me-1"></i>PHONE/SERVICE
+                        </th>
+                        <th>
+                            <i class="bi bi-calendar3 me-1"></i>DATE
+                        </th>
+                        <th class="text-end">
+                            <i class="bi bi-currency-dollar me-1"></i>AMOUNT
+                        </th>
+                        <th>
+                            <i class="bi bi-flag me-1"></i>STATUS
+                        </th>
+                        <th class="text-center">
+                            <i class="bi bi-gear me-1"></i>ACTIONS
+                        </th>
+                    </tr>
+                </thead>
+                <tbody>
+                    @foreach (var record in Model.AllTelecomRecords)
+                    {
+                        <tr>
+                            <td>
+                                <div class="fw-semibold">@(record.AccountNo ?? record.IndexNumber ?? "N/A")</div>
+                                <small class="text-muted">@record.Type</small>
+                            </td>
+                            <td>
+                                @if (record.EbillUser != null)
+                                {
+                                    <div>@record.EbillUser.FirstName @record.EbillUser.LastName</div>
+                                    <small class="text-muted">@record.EbillUser.IndexNumber</small>
+                                }
+                                else
+                                {
+                                    <span class="status-badge badge-warning">Unlinked</span>
+                                }
+                            </td>
+                            <td>
+                                <div>@(record.MSISDN ?? record.Dialed ?? record.DialedNumber ?? "N/A")</div>
+                                <small class="text-muted">@(record.Carrier ?? record.ServiceProvider ?? record.Type)</small>
+                            </td>
+                            <td>
+                                @if (record.InvoiceDate != null)
+                                {
+                                    <div>@((DateTime)record.InvoiceDate).ToString("MMM dd, yyyy")</div>
+                                }
+                                else if (record.CallDate != null)
+                                {
+                                    <div>@((DateTime)record.CallDate).ToString("MMM dd, yyyy")</div>
+                                }
+                                else
+                                {
+                                    <span>N/A</span>
+                                }
+                            </td>
+                            <td class="text-end fw-semibold">
+                                @if (record.GrossTotal != null)
+                                {
+                                    @(((decimal)record.GrossTotal).ToString("C"))
+                                }
+                                else if (record.Cost != null)
+                                {
+                                    @(((decimal)record.Cost).ToString("C"))
+                                }
+                                else
+                                {
+                                    <span>N/A</span>
+                                }
+                            </td>
+                            <td>
+                                @if (record.EbillUserId != null)
+                                {
+                                    <span class="status-badge badge-success">Linked</span>
+                                }
+                                else
+                                {
+                                    <span class="status-badge badge-warning">Unlinked</span>
+                                }
+                            </td>
+                            <td>
+                                <div class="d-flex gap-1 justify-content-center">
+                                    <button type="button" class="action-btn action-btn-view"
+                                            onclick="viewTelecomDetails('@record.Type', @record.Id)" title="View Details">
+                                        <i class="bi bi-eye"></i>
+                                    </button>
+                                    @if (record.EbillUserId == null)
+                                    {
+                                        <button type="button" class="action-btn action-btn-link"
+                                                onclick="linkTelecomToUser('@record.Type', @record.Id, '@(record.AccountNo ?? record.IndexNumber ?? "")')"
+                                                title="Link to User">
+                                            <i class="bi bi-link-45deg"></i>
+                                        </button>
+                                    }
+                                    <button type="button" class="action-btn action-btn-delete"
+                                            onclick="deleteTelecomRecord('@record.Type', @record.Id)" title="Delete">
+                                        <i class="bi bi-trash"></i>
+                                    </button>
+                                </div>
+                            </td>
+                        </tr>
+                    }
+                </tbody>
+            </table>
+        </div>
+
+        <!-- Pagination -->
+        @if (Model.AllTelecomRecords.Any())
+        {
+            var totalPages = (int)Math.Ceiling(Model.AllTelecomRecords.Count / (double)Model.PageSize);
+            var currentPage = Model.PageNumber;
+            var startPage = Math.Max(1, currentPage - 2);
+            var endPage = Math.Min(totalPages, currentPage + 2);
+
+            if (totalPages > 1)
+            {
+                <div class="pagination-container">
+                <div class="page-info">
+                    Showing @((currentPage - 1) * Model.PageSize + 1) - @Math.Min(currentPage * Model.PageSize, Model.AllTelecomRecords.Count) of @Model.AllTelecomRecords.Count records
+                </div>
+
+                <nav>
+                    <ul class="pagination">
+                        <!-- First Page -->
+                        <li class="page-item @(currentPage == 1 ? "disabled" : "")">
+                            <a class="page-link" href="?PageNumber=1&PageSize=@Model.PageSize&FilterType=@Model.FilterType&SearchTerm=@Model.SearchTerm" aria-label="First">
+                                <span>&laquo;&laquo;</span>
+                            </a>
+                        </li>
+
+                        <!-- Previous Page -->
+                        <li class="page-item @(currentPage == 1 ? "disabled" : "")">
+                            <a class="page-link" href="?PageNumber=@(currentPage - 1)&PageSize=@Model.PageSize&FilterType=@Model.FilterType&SearchTerm=@Model.SearchTerm" aria-label="Previous">
+                                <span>&laquo;</span>
+                            </a>
+                        </li>
+
+                        <!-- Page Numbers -->
+                        @if (startPage > 1)
+                        {
+                            <li class="page-item">
+                                <a class="page-link" href="?PageNumber=1&PageSize=@Model.PageSize&FilterType=@Model.FilterType&SearchTerm=@Model.SearchTerm">1</a>
+                            </li>
+                            @if (startPage > 2)
+                            {
+                                <li class="page-item disabled">
+                                    <span class="page-link">...</span>
+                                </li>
+                            }
+                        }
+
+                        @for (int i = startPage; i <= endPage; i++)
+                        {
+                            <li class="page-item @(i == currentPage ? "active" : "")">
+                                <a class="page-link" href="?PageNumber=@i&PageSize=@Model.PageSize&FilterType=@Model.FilterType&SearchTerm=@Model.SearchTerm">@i</a>
+                            </li>
+                        }
+
+                        @if (endPage < totalPages)
+                        {
+                            @if (endPage < totalPages - 1)
+                            {
+                                <li class="page-item disabled">
+                                    <span class="page-link">...</span>
+                                </li>
+                            }
+                            <li class="page-item">
+                                <a class="page-link" href="?PageNumber=@totalPages&PageSize=@Model.PageSize&FilterType=@Model.FilterType&SearchTerm=@Model.SearchTerm">@totalPages</a>
+                            </li>
+                        }
+
+                        <!-- Next Page -->
+                        <li class="page-item @(currentPage == totalPages ? "disabled" : "")">
+                            <a class="page-link" href="?PageNumber=@(currentPage + 1)&PageSize=@Model.PageSize&FilterType=@Model.FilterType&SearchTerm=@Model.SearchTerm" aria-label="Next">
+                                <span>&raquo;</span>
+                            </a>
+                        </li>
+
+                        <!-- Last Page -->
+                        <li class="page-item @(currentPage == totalPages ? "disabled" : "")">
+                            <a class="page-link" href="?PageNumber=@totalPages&PageSize=@Model.PageSize&FilterType=@Model.FilterType&SearchTerm=@Model.SearchTerm" aria-label="Last">
+                                <span>&raquo;&raquo;</span>
+                            </a>
+                        </li>
+                    </ul>
+                </nav>
+            </div>
+            }
+        }
+    }
+</div>
+
+@section Scripts {
+    <script>
+        // Page size change handler
+        document.getElementById('pageSizeSelect').addEventListener('change', function() {
+            const url = new URL(window.location);
+            url.searchParams.set('PageSize', this.value);
+            url.searchParams.set('PageNumber', '1');
+            window.location.href = url.toString();
+        });
+
+        // Quick filter function
+        function applyQuickFilter(filterType) {
+            const url = new URL(window.location);
+            url.searchParams.set('FilterType', filterType);
+            url.searchParams.set('PageNumber', '1');
+            window.location.href = url.toString();
+        }
+
+        // Auto-submit form on filter change
+        document.querySelectorAll('.filter-select, .filter-input').forEach(element => {
+            element.addEventListener('change', function() {
+                if (this.closest('form')) {
+                    // Add a small delay to allow user to potentially change multiple filters
+                    setTimeout(() => {
+                        this.closest('form').submit();
+                    }, 500);
+                }
+            });
+        });
+    </script>
+}

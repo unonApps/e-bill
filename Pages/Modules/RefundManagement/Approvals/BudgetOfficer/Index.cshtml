@@ -1,0 +1,1921 @@
+@page
+@model TAB.Web.Pages.Modules.RefundManagement.Approvals.BudgetOfficer.IndexModel
+@{
+    ViewData["Title"] = "Refund Requests Management";
+}
+
+<style>
+    .minimal-card {
+        background: #ffffff;
+        border: none;
+        border-radius: 12px;
+        box-shadow: 0 2px 12px rgba(0, 0, 0, 0.04);
+        transition: all 0.3s ease;
+    }
+    
+    .minimal-card:hover {
+        box-shadow: 0 4px 20px rgba(0, 0, 0, 0.08);
+        transform: translateY(-2px);
+    }
+    
+    .stat-icon {
+        width: 48px;
+        height: 48px;
+        border-radius: 12px;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        font-size: 20px;
+        color: white;
+    }
+    
+    .stat-pending { background: linear-gradient(135deg, #f59e0b, #f97316); }
+    .stat-processed { background: linear-gradient(135deg, #10b981, #059669); }
+    .stat-rejected { background: linear-gradient(135deg, #ef4444, #dc2626); }
+    
+    .minimal-table {
+        background: white;
+        border-radius: 12px;
+        overflow: hidden;
+        box-shadow: 0 2px 12px rgba(0, 0, 0, 0.04);
+        border: none;
+    }
+    
+    .minimal-table thead th {
+        background: #f8fafc;
+        border: none;
+        padding: 20px 16px;
+        font-weight: 600;
+        font-size: 14px;
+        color: #475569;
+        text-transform: uppercase;
+        letter-spacing: 0.5px;
+    }
+    
+    .minimal-table tbody td {
+        border: none;
+        padding: 20px 16px;
+        border-bottom: 1px solid #f1f5f9;
+        vertical-align: middle;
+    }
+    
+    .minimal-table tbody tr:last-child td {
+        border-bottom: none;
+    }
+    
+    .minimal-table tbody tr:hover {
+        background: #f8fafc;
+    }
+    
+    .request-id {
+        font-weight: 600;
+        color: #1e293b;
+        font-size: 16px;
+    }
+    
+    .Staff-name {
+        font-weight: 600;
+        color: #1e293b;
+        margin-bottom: 4px;
+    }
+    
+    .Staff-details {
+        color: #64748b;
+        font-size: 13px;
+        line-height: 1.4;
+    }
+    
+    .priority-badge {
+        padding: 6px 12px;
+        border-radius: 20px;
+        font-size: 12px;
+        font-weight: 600;
+        text-transform: uppercase;
+        letter-spacing: 0.5px;
+    }
+    
+    .priority-high { background: #fef2f2; color: #dc2626; }
+    .priority-medium { background: #fffbeb; color: #d97706; }
+    .priority-low { background: #f0fdf4; color: #16a34a; }
+    
+    .status-badge {
+        padding: 8px 16px;
+        border-radius: 20px;
+        font-size: 12px;
+        font-weight: 600;
+        display: inline-flex;
+        align-items: center;
+        gap: 6px;
+    }
+    
+    .status-pending {
+        background: linear-gradient(135deg, #f59e0b, #f97316);
+        color: white;
+    }
+    
+    .status-approved {
+        background: linear-gradient(135deg, #10b981, #059669);
+        color: white;
+    }
+    
+    .status-rejected {
+        background: linear-gradient(135deg, #ef4444, #dc2626);
+        color: white;
+    }
+    
+    .action-btn {
+        padding: 8px 16px;
+        border-radius: 8px;
+        font-size: 12px;
+        font-weight: 500;
+        border: 1px solid;
+        transition: all 0.2s ease;
+        display: flex;
+        align-items: center;
+        gap: 6px;
+        justify-content: center;
+        min-width: 100px;
+    }
+    
+    .action-btn:hover {
+        transform: translateY(-1px);
+        box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
+    }
+    
+    .btn-approve {
+        background: #dcfce7;
+        border-color: #16a34a;
+        color: #15803d;
+    }
+    
+    .btn-approve:hover {
+        background: #16a34a;
+        color: white;
+    }
+    
+    .btn-view {
+        background: #f0f9ff;
+        border-color: #0ea5e9;
+        color: #0c4a6e;
+    }
+    
+    .btn-view:hover {
+        background: #0ea5e9;
+        color: white;
+    }
+    
+    .btn-reject {
+        background: #fef2f2;
+        border-color: #ef4444;
+        color: #dc2626;
+    }
+    
+    .btn-reject:hover {
+        background: #ef4444;
+        color: white;
+    }
+    
+    .btn-revert {
+        background: #fef3c7;
+        border-color: #f59e0b;
+        color: #92400e;
+    }
+    
+    .btn-revert:hover {
+        background: #f59e0b;
+        color: white;
+    }
+    
+    .amount-details {
+        background: #f8fafc;
+        border: 1px solid #e2e8f0;
+        border-radius: 8px;
+        padding: 8px 12px;
+        font-size: 13px;
+        color: #475569;
+        font-weight: 500;
+    }
+    
+    .page-header {
+        margin-bottom: 32px;
+    }
+    
+    .page-title {
+        font-size: 28px;
+        font-weight: 700;
+        color: #1e293b;
+        margin-bottom: 8px;
+    }
+    
+    .page-subtitle {
+        color: #64748b;
+        font-size: 16px;
+        margin: 0;
+    }
+    
+    .nav-tabs-minimal {
+        border: none;
+        background: #f8fafc;
+        border-radius: 12px;
+        padding: 4px;
+        margin-bottom: 24px;
+    }
+    
+    .nav-tabs-minimal .nav-link {
+        border: none;
+        border-radius: 8px;
+        padding: 12px 24px;
+        font-weight: 500;
+        color: #64748b;
+        transition: all 0.2s ease;
+    }
+    
+    .nav-tabs-minimal .nav-link.active {
+        background: white;
+        color: #1e293b;
+        box-shadow: 0 2px 8px rgba(0, 0, 0, 0.08);
+    }
+    
+    .empty-state {
+        text-align: center;
+        padding: 80px 20px;
+        color: #94a3b8;
+    }
+    
+    .empty-state i {
+        font-size: 64px;
+        margin-bottom: 16px;
+        opacity: 0.5;
+    }
+    
+    .alert-minimal {
+        border: none;
+        border-radius: 12px;
+        padding: 16px 20px;
+        margin-bottom: 24px;
+    }
+    
+    .request-date {
+        font-size: 13px;
+        color: #64748b;
+    }
+    
+    /* Pulse animation for active workflow step */
+    @@keyframes pulse {
+        0% {
+            transform: scale(1);
+            box-shadow: 0 0 0 0 rgba(251, 191, 36, 0.7);
+        }
+        70% {
+            transform: scale(1.05);
+            box-shadow: 0 0 0 10px rgba(251, 191, 36, 0);
+        }
+        100% {
+            transform: scale(1);
+            box-shadow: 0 0 0 0 rgba(251, 191, 36, 0);
+        }
+    }
+    
+    /* Modal enhancements */
+    .modal-xl {
+        max-width: 1200px;
+    }
+    
+    .workflow-step {
+        transition: all 0.3s ease;
+    }
+    
+    .workflow-step:hover {
+        transform: translateY(-2px);
+    }
+
+    /* View Details Modal Styles */
+    .detail-label {
+        font-size: 12px;
+        font-weight: 500;
+        text-transform: uppercase;
+        letter-spacing: 0.5px;
+        color: #6b7280;
+    }
+
+    .detail-value {
+        font-weight: 500;
+        color: #111827;
+        font-size: 14px;
+        margin-top: 2px;
+    }
+
+    /* Timeline Styles */
+    .workflow-timeline {
+        position: relative;
+        padding-left: 30px;
+    }
+
+    .workflow-timeline::before {
+        content: '';
+        position: absolute;
+        left: 15px;
+        top: 0;
+        bottom: 0;
+        width: 2px;
+        background: linear-gradient(to bottom, #e5e7eb, #f3f4f6);
+    }
+
+    .timeline-item {
+        position: relative;
+        margin-bottom: 24px;
+        padding-bottom: 24px;
+    }
+
+    .timeline-item:last-child {
+        margin-bottom: 0;
+        padding-bottom: 0;
+    }
+
+    .timeline-marker {
+        position: absolute;
+        left: -22px;
+        top: 2px;
+        width: 32px;
+        height: 32px;
+        border-radius: 50%;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        border: 3px solid white;
+        z-index: 1;
+        font-size: 14px;
+    }
+
+    .timeline-marker.timeline-submitted {
+        background: #10b981;
+        color: white;
+    }
+
+    .timeline-marker.timeline-approved {
+        background: #10b981;
+        color: white;
+    }
+
+    .timeline-marker.timeline-current {
+        background: #f59e0b;
+        color: white;
+        animation: pulse 2s infinite;
+    }
+
+    .timeline-marker.timeline-pending {
+        background: #e5e7eb;
+        color: #9ca3af;
+    }
+
+    .timeline-content {
+        margin-left: 16px;
+    }
+
+    .timeline-header {
+        display: flex;
+        justify-content: between;
+        align-items: center;
+        margin-bottom: 4px;
+        flex-wrap: wrap;
+    }
+
+    .timeline-title {
+        font-weight: 600;
+        color: #111827;
+        font-size: 14px;
+        margin: 0;
+        margin-right: auto;
+    }
+
+    .timeline-date {
+        font-size: 12px;
+        color: #6b7280;
+        font-weight: 500;
+    }
+
+    .timeline-description {
+        font-size: 13px;
+        color: #6b7280;
+        margin: 0 0 8px 0;
+    }
+
+    .timeline-details {
+        font-size: 12px;
+    }
+
+    .timeline-remarks {
+        background: #f9fafb;
+        padding: 8px 12px;
+        border-radius: 6px;
+        border: 1px solid #e5e7eb;
+    }
+</style>
+
+<div class="container-fluid px-4">
+    <!-- Page Header -->
+    <div class="page-header">
+        <div class="d-flex justify-content-between align-items-start">
+            <div>
+                <h1 class="page-title">
+                    <i class="bi bi-credit-card text-primary me-3"></i>
+                    Refund Requests Management
+                </h1>
+                <p class="page-subtitle">
+                    Review and approve budget allocations for mobile device reimbursements
+                </p>
+            </div>
+            <div class="text-end">
+                <span class="badge bg-light text-dark px-3 py-2">
+                    <i class="bi bi-person-circle me-2"></i>
+                    <span>Budget Officer</span>
+                </span>
+            </div>
+        </div>
+    </div>
+
+    <!-- Status Messages -->
+    @if (!string.IsNullOrEmpty(Model.StatusMessage))
+    {
+        <div class="alert alert-@(Model.StatusMessageClass ?? "info") alert-dismissible fade show alert-minimal" role="alert">
+            @Model.StatusMessage
+            <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
+        </div>
+    }
+
+    <!-- Statistics Cards -->
+    <div class="row g-4 mb-5">
+        <div class="col-md-4">
+            <div class="minimal-card p-4">
+                <div class="d-flex align-items-center">
+                    <div class="stat-icon stat-pending me-4">
+                        <i class="bi bi-clock-history"></i>
+                    </div>
+                    <div>
+                        <h3 class="mb-1 fw-bold text-dark">@Model.AllBudgetRequests.Count(r => r.Status == TAB.Web.Models.RefundRequestStatus.PendingBudgetOfficer)</h3>
+                        <p class="mb-0 text-muted">Pending Review</p>
+                    </div>
+                </div>
+            </div>
+        </div>
+        <div class="col-md-4">
+            <div class="minimal-card p-4">
+                <div class="d-flex align-items-center">
+                    <div class="stat-icon stat-processed me-4">
+                        <i class="bi bi-check-circle"></i>
+                    </div>
+                    <div>
+                        <h3 class="mb-1 fw-bold text-dark">@Model.AllBudgetRequests.Count(r => r.Status == TAB.Web.Models.RefundRequestStatus.PendingStaffClaimsUnit)</h3>
+                        <p class="mb-0 text-muted">Approved & Forwarded</p>
+                    </div>
+                </div>
+            </div>
+        </div>
+        <div class="col-md-4">
+            <div class="minimal-card p-4">
+                <div class="d-flex align-items-center">
+                    <div class="stat-icon stat-rejected me-4">
+                        <i class="bi bi-x-circle"></i>
+                    </div>
+                    <div>
+                        <h3 class="mb-1 fw-bold text-dark">@Model.AllBudgetRequests.Count(r => r.Status == TAB.Web.Models.RefundRequestStatus.Cancelled)</h3>
+                        <p class="mb-0 text-muted">Rejected</p>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Navigation Tabs -->
+    <ul class="nav nav-tabs nav-tabs-minimal" id="refundTab" role="tablist">
+        <li class="nav-item" role="presentation">
+            <button class="nav-link active" id="pending-tab" data-bs-toggle="tab" data-bs-target="#pending" type="button" role="tab">
+                <i class="bi bi-clock-history me-2"></i>
+                For Review (@Model.AllBudgetRequests.Count(r => r.Status == TAB.Web.Models.RefundRequestStatus.PendingBudgetOfficer))
+            </button>
+        </li>
+        <li class="nav-item" role="presentation">
+            <button class="nav-link" id="processed-tab" data-bs-toggle="tab" data-bs-target="#processed" type="button" role="tab">
+                <i class="bi bi-check-circle me-2"></i>
+                Approved (@Model.AllBudgetRequests.Count(r => r.Status == TAB.Web.Models.RefundRequestStatus.PendingStaffClaimsUnit))
+            </button>
+        </li>
+        <li class="nav-item" role="presentation">
+            <button class="nav-link" id="rejected-tab" data-bs-toggle="tab" data-bs-target="#rejected" type="button" role="tab">
+                <i class="bi bi-x-circle me-2"></i>
+                Rejected (@Model.AllBudgetRequests.Count(r => r.Status == TAB.Web.Models.RefundRequestStatus.Cancelled))
+            </button>
+        </li>
+    </ul>
+
+    <!-- Tab Content -->
+    <div class="tab-content" id="refundTabContent">
+        <!-- Pending Requests Tab -->
+        <div class="tab-pane fade show active" id="pending" role="tabpanel">
+            @{
+                var pendingRequests = Model.AllBudgetRequests.Where(r => r.Status == TAB.Web.Models.RefundRequestStatus.PendingBudgetOfficer);
+            }
+            @if (pendingRequests.Any())
+            {
+                <div class="table-responsive">
+                    <table class="table minimal-table">
+                        <thead>
+                            <tr>
+                                <th>Request</th>
+                                <th>Staff</th>
+                                <th>Amount Details</th>
+                                <th>Priority</th>
+                                <th>Actions</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            @foreach (var request in pendingRequests)
+                            {
+                                <tr data-request-id="@request.Id">
+                                    <td>
+                                        <div class="d-flex align-items-center">
+                                            <i class="bi bi-credit-card text-primary me-3 fs-5"></i>
+                                            <div>
+                                                <div class="request-id">#@request.Id</div>
+                                                <span class="status-badge @Model.GetStatusClass(request.Status)">
+                                                    <i class="bi bi-clock-history"></i>
+                                                    @Model.GetStatusText(request.Status)
+                                                </span>
+                                            </div>
+                                        </div>
+                                    </td>
+                                    <td>
+                                        <div class="Staff-name">@request.MobileNumberAssignedTo</div>
+                                        <div class="Staff-details">
+                                            <div><i class="bi bi-telephone me-1"></i>@request.PrimaryMobileNumber</div>
+                                            <div><i class="bi bi-building me-1"></i>@request.Organization</div>
+                                            <div><i class="bi bi-person-badge me-1"></i>@request.Supervisor</div>
+                                        </div>
+                                    </td>
+                                    <td>
+                                        <div class="amount-details mb-2">
+                                            @request.DevicePurchaseCurrency @request.DevicePurchaseAmount.ToString("N2")
+                                        </div>
+                                        <div class="small text-muted">
+                                            <div><strong>Allowance:</strong> $@request.DeviceAllowance.ToString("N2")</div>
+                                            <div><strong>Mobile Service:</strong> @request.MobileService</div>
+                                            <div><strong>Class:</strong> @request.ClassOfService</div>
+                                        </div>
+                                    </td>
+                                    <td>
+                                        @{
+                                            var daysDiff = (DateTime.Now - request.RequestDate).Days;
+                                            var priorityClass = daysDiff > 7 ? "priority-high" : (daysDiff > 3 ? "priority-medium" : "priority-low");
+                                            var priority = daysDiff > 7 ? "High" : (daysDiff > 3 ? "Medium" : "Low");
+                                        }
+                                        <span class="priority-badge @priorityClass">
+                                            @priority
+                                        </span>
+                                        <div class="request-date mt-1">@request.RequestDate.ToString("MMM dd, yyyy")</div>
+                                    </td>
+                                    <td>
+                                        <div class="d-flex flex-column gap-2">
+                                            <button type="button" class="action-btn btn-view" onclick="viewRequest(@request.Id)">
+                                                <i class="bi bi-eye"></i>
+                                                View Details
+                                            </button>
+                                            <button type="button" class="action-btn btn-approve" onclick="budgetOfficerApprove(@request.Id)">
+                                                <i class="bi bi-check-lg"></i>
+                                                Approve Budget
+                                            </button>
+                                            <button type="button" class="action-btn btn-revert" onclick="budgetRevertToRequestor(@request.Id)">
+                                                <i class="bi bi-arrow-left"></i>
+                                                Revert to Requestor
+                                            </button>
+                                            <button type="button" class="action-btn btn-revert" onclick="budgetRevertToSupervisor(@request.Id)">
+                                                <i class="bi bi-arrow-counterclockwise"></i>
+                                                Revert to Supervisor
+                                            </button>
+                                            <button type="button" class="action-btn btn-reject" onclick="rejectRequest(@request.Id)">
+                                                <i class="bi bi-x-lg"></i>
+                                                Reject
+                                            </button>
+                                        </div>
+                                    </td>
+                                </tr>
+                            }
+                        </tbody>
+                    </table>
+                </div>
+            }
+            else
+            {
+                <div class="empty-state">
+                    <i class="bi bi-credit-card"></i>
+                    <h5 class="mt-3">No Pending Requests</h5>
+                    <p>All refund requests have been processed. New requests will appear here for your review.</p>
+                </div>
+            }
+        </div>
+
+        <!-- Processed Requests Tab -->
+        <div class="tab-pane fade" id="processed" role="tabpanel">
+            @{
+                var processedRequests = Model.AllBudgetRequests.Where(r => r.Status == TAB.Web.Models.RefundRequestStatus.PendingStaffClaimsUnit);
+            }
+            @if (processedRequests.Any())
+            {
+                <div class="table-responsive">
+                    <table class="table minimal-table">
+                        <thead>
+                            <tr>
+                                <th>Request</th>
+                                <th>Staff</th>
+                                <th>Amount</th>
+                                <th>Approval Date</th>
+                                <th>Status</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            @foreach (var request in processedRequests)
+                            {
+                                <tr data-request-id="@request.Id">
+                                    <td>
+                                        <div class="d-flex align-items-center">
+                                            <i class="bi bi-credit-card text-success me-3 fs-5"></i>
+                                            <span class="request-id">#@request.Id</span>
+                                        </div>
+                                    </td>
+                                    <td>
+                                        <div class="Staff-name">@request.MobileNumberAssignedTo</div>
+                                        <div class="Staff-details">@request.PrimaryMobileNumber</div>
+                                    </td>
+                                    <td>@request.DevicePurchaseCurrency @request.DevicePurchaseAmount.ToString("N2")</td>
+                                    <td>
+                                        <span class="text-muted">@request.BudgetOfficerApprovalDate?.ToString("MMM dd, yyyy HH:mm")</span>
+                                    </td>
+                                    <td>
+                                        <span class="status-badge @Model.GetStatusClass(request.Status)">
+                                            <i class="bi bi-check-circle"></i>
+                                            @Model.GetStatusText(request.Status)
+                                        </span>
+                                    </td>
+                                </tr>
+                            }
+                        </tbody>
+                    </table>
+                </div>
+            }
+            else
+            {
+                <div class="empty-state">
+                    <i class="bi bi-check-circle"></i>
+                    <h5 class="mt-3">No Approved Requests</h5>
+                    <p>Approved requests will appear here.</p>
+                </div>
+            }
+        </div>
+
+        <!-- Rejected Requests Tab -->
+        <div class="tab-pane fade" id="rejected" role="tabpanel">
+            @if (Model.AllBudgetRequests.Where(r => r.Status == TAB.Web.Models.RefundRequestStatus.Cancelled).Any())
+            {
+                <div class="table-responsive">
+                    <table class="table minimal-table">
+                        <thead>
+                            <tr>
+                                <th>Request</th>
+                                <th>Staff</th>
+                                <th>Amount</th>
+                                <th>Rejection Date</th>
+                                <th>Remarks</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            @foreach (var request in Model.AllBudgetRequests.Where(r => r.Status == TAB.Web.Models.RefundRequestStatus.Cancelled))
+                            {
+                                <tr data-request-id="@request.Id">
+                                    <td>
+                                        <div class="d-flex align-items-center">
+                                            <i class="bi bi-credit-card text-danger me-3 fs-5"></i>
+                                            <span class="request-id">#@request.Id</span>
+                                        </div>
+                                    </td>
+                                    <td>
+                                        <div class="Staff-name">@request.MobileNumberAssignedTo</div>
+                                        <div class="Staff-details">@request.PrimaryMobileNumber</div>
+                                    </td>
+                                    <td>@request.DevicePurchaseCurrency @request.DevicePurchaseAmount.ToString("N2")</td>
+                                    <td>
+                                        <span class="text-muted">@request.BudgetOfficerApprovalDate?.ToString("MMM dd, yyyy HH:mm")</span>
+                                    </td>
+                                    <td>
+                                        <span class="text-muted small">@request.BudgetOfficerRemarks</span>
+                                    </td>
+                                </tr>
+                            }
+                        </tbody>
+                    </table>
+                </div>
+            }
+            else
+            {
+                <div class="empty-state">
+                    <i class="bi bi-x-circle"></i>
+                    <h5 class="mt-3">No Rejected Requests</h5>
+                    <p>Rejected requests will appear here.</p>
+                </div>
+            }
+        </div>
+    </div>
+</div>
+
+<!-- Budget Officer Approve Modal -->
+<div class="modal fade" id="budgetOfficerApproveModal" tabindex="-1">
+    <div class="modal-dialog modal-lg modal-dialog-centered">
+        <div class="modal-content" style="border: none; border-radius: 20px; box-shadow: 0 20px 60px rgba(0,0,0,0.1);">
+            <div class="modal-header" style="border: none; padding: 32px 32px 0 32px;">
+                <div class="d-flex align-items-center">
+                    <div class="me-3" style="width: 48px; height: 48px; background: linear-gradient(135deg, #10b981, #059669); border-radius: 16px; display: flex; align-items: center; justify-content: center;">
+                        <i class="bi bi-check-circle text-white" style="font-size: 24px;"></i>
+                    </div>
+                    <div>
+                        <h4 class="mb-1" style="font-weight: 700; color: #111827; font-size: 24px;">Budget Review</h4>
+                        <p class="mb-0 text-muted" style="font-size: 14px;">Review details and provide budget information</p>
+                    </div>
+                </div>
+                <button type="button" class="btn-close" data-bs-dismiss="modal" style="margin: 0; padding: 12px;"></button>
+            </div>
+            <div class="modal-body" style="padding: 24px 32px;">
+                <!-- Cost Accounting Section -->
+                <div class="mb-4" style="font-weight: 600; color: #374151; font-size: 16px; border-bottom: 1px solid #e5e7eb; padding-bottom: 12px;">
+                    <i class="bi bi-receipt me-2"></i>Cost Accounting Details
+                </div>
+                
+                <!-- First Row: Cost Object and Cost Center -->
+                <div class="row mb-4">
+                    <div class="col-md-6">
+                        <div class="mb-3">
+                            <label class="form-label" style="font-weight: 500; color: #374151; font-size: 14px; margin-bottom: 8px;">
+                                Cost Object <span style="color: #ef4444;">*</span>
+                            </label>
+                            <input type="text" id="costObject" class="form-control" required placeholder="Enter cost object..." style="border: 1px solid #d1d5db; border-radius: 12px; padding: 12px 16px; font-size: 14px;" />
+                        </div>
+                    </div>
+                    <div class="col-md-6">
+                        <div class="mb-3">
+                            <label class="form-label" style="font-weight: 500; color: #374151; font-size: 14px; margin-bottom: 8px;">
+                                Cost Center <span style="color: #ef4444;">*</span>
+                            </label>
+                            <input type="text" id="costCenter" class="form-control" required placeholder="Enter cost center..." style="border: 1px solid #d1d5db; border-radius: 12px; padding: 12px 16px; font-size: 14px;" />
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Second Row: Fund Commitment and Action Date -->
+                <div class="row mb-4">
+                    <div class="col-md-6">
+                        <div class="mb-3">
+                            <label class="form-label" style="font-weight: 500; color: #374151; font-size: 14px; margin-bottom: 8px;">
+                                Fund Commitment <span style="color: #ef4444;">*</span>
+                            </label>
+                            <input type="text" id="fundCommitment" class="form-control" required placeholder="Enter fund commitment..." style="border: 1px solid #d1d5db; border-radius: 12px; padding: 12px 16px; font-size: 14px;" />
+                        </div>
+                    </div>
+                    <div class="col-md-6">
+                        <div class="mb-3">
+                            <label class="form-label" style="font-weight: 500; color: #374151; font-size: 14px; margin-bottom: 8px;">
+                                Budget Officer Action Date
+                            </label>
+                            <div class="position-relative">
+                                <input type="text" id="budgetActionDate" class="form-control" readonly value="@DateTime.Now.ToString("MMM dd, yyyy HH:mm")" style="border: 1px solid #d1d5db; border-radius: 12px; padding: 12px 16px 12px 40px; font-size: 14px; background-color: #f9fafb; color: #6b7280;" />
+                                <i class="bi bi-calendar3 position-absolute" style="left: 12px; top: 50%; transform: translateY(-50%); color: #9ca3af; font-size: 16px;"></i>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Divider -->
+                <div class="mb-4" style="border-top: 1px solid #f3f4f6;"></div>
+
+                <!-- Remarks Section -->
+                <div class="mb-4" style="font-weight: 600; color: #374151; font-size: 16px; border-bottom: 1px solid #e5e7eb; padding-bottom: 12px;">
+                    <i class="bi bi-chat-text me-2"></i>Additional Comments
+                </div>
+                
+                <div class="row mb-4">
+                    <div class="col-12">
+                        <div class="mb-3">
+                            <label class="form-label" style="font-weight: 500; color: #374151; font-size: 14px; margin-bottom: 8px;">
+                                Budget Officer Remarks <span class="text-muted" style="font-size: 12px;">(optional, max 200 characters)</span>
+                            </label>
+                            <textarea id="budgetOfficerRemarks" class="form-control" rows="4" maxlength="200" placeholder="Add any additional comments or notes about this approval..." style="border: 1px solid #d1d5db; border-radius: 12px; padding: 12px 16px; font-size: 14px; resize: none; background-color: #fafbfc;"></textarea>
+                            <div class="d-flex justify-content-between align-items-center mt-2">
+                                <small class="text-muted">💡 These comments will be visible to the Staff Claims Unit</small>
+                                <small class="text-muted">
+                                    <span id="budgetRemarksCount">0</span>/200 characters
+                                </small>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Action Buttons -->
+                <div class="d-flex gap-3 justify-content-end pt-3" style="border-top: 1px solid #e5e7eb;">
+                    <button type="button" class="btn btn-light" data-bs-dismiss="modal" style="border-radius: 12px; padding: 12px 24px; font-weight: 500;">
+                        Cancel
+                    </button>
+                    <button type="button" class="btn btn-outline-warning" onclick="budgetRevertToRequestor()" style="border-radius: 12px; padding: 12px 24px; font-weight: 500;">
+                        <i class="bi bi-arrow-left me-2"></i>Revert to Requestor
+                    </button>
+                    <button type="button" class="btn btn-outline-secondary" onclick="budgetRevertToSupervisor()" style="border-radius: 12px; padding: 12px 24px; font-weight: 500;">
+                        <i class="bi bi-arrow-counterclockwise me-2"></i>Revert to Supervisor
+                    </button>
+                    <button type="button" class="btn btn-success" onclick="budgetApproveAndSubmit()" style="background: linear-gradient(135deg, #10b981, #059669); border: none; border-radius: 12px; padding: 12px 24px; font-weight: 500;">
+                        <i class="bi bi-check-circle me-2"></i>Approve & Submit to Staff Claims Unit
+                    </button>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Hidden Forms for Actions -->
+<form id="budgetApproveForm" method="post" asp-page-handler="BudgetApprove" style="display: none;">
+    <input type="hidden" id="budgetApproveRequestId" name="requestId" />
+    <input type="hidden" id="budgetApproveCostObject" name="costObject" />
+    <input type="hidden" id="budgetApproveCostCenter" name="costCenter" />
+    <input type="hidden" id="budgetApproveFundCommitment" name="fundCommitment" />
+    <input type="hidden" id="budgetApproveRemarksHidden" name="budgetOfficerRemarks" />
+</form>
+
+<form id="budgetRevertRequestorForm" method="post" asp-page-handler="BudgetRevertToRequestor" style="display: none;">
+    <input type="hidden" id="budgetRevertRequestorId" name="requestId" />
+    <input type="hidden" id="budgetRevertRequestorRemarks" name="budgetOfficerRemarks" />
+</form>
+
+<form id="budgetRevertSupervisorForm" method="post" asp-page-handler="BudgetRevertToSupervisor" style="display: none;">
+    <input type="hidden" id="budgetRevertSupervisorId" name="requestId" />
+    <input type="hidden" id="budgetRevertSupervisorRemarks" name="budgetOfficerRemarks" />
+</form>
+
+<!-- Reject Modal -->
+<div class="modal fade" id="rejectModal" tabindex="-1">
+    <div class="modal-dialog modal-dialog-centered">
+        <div class="modal-content" style="border: none; border-radius: 20px; box-shadow: 0 20px 60px rgba(0,0,0,0.1);">
+            <form method="post" asp-page-handler="Reject">
+                <input type="hidden" id="rejectRequestId" name="requestId" />
+                <div class="modal-header" style="border: none; padding: 32px 32px 0 32px;">
+                    <div class="d-flex align-items-center">
+                        <div class="me-3" style="width: 48px; height: 48px; background: linear-gradient(135deg, #ef4444, #dc2626); border-radius: 16px; display: flex; align-items: center; justify-content: center;">
+                            <i class="bi bi-x-circle text-white" style="font-size: 24px;"></i>
+                        </div>
+                        <div>
+                            <h4 class="mb-1" style="font-weight: 700; color: #111827; font-size: 24px;">Reject Request</h4>
+                            <p class="mb-0 text-muted" style="font-size: 14px;">Provide reason for rejection</p>
+                        </div>
+                    </div>
+                    <button type="button" class="btn-close" data-bs-dismiss="modal" style="margin: 0; padding: 12px;"></button>
+                </div>
+                <div class="modal-body" style="padding: 24px 32px 32px 32px;">
+                    <div class="mb-4">
+                        <label class="form-label" style="font-weight: 500; color: #374151; font-size: 14px; margin-bottom: 8px;">Rejection Reason <span style="color: #ef4444;">*</span></label>
+                        <textarea name="budgetOfficerRemarks" class="form-control" rows="3" required placeholder="Please provide a clear reason for rejecting this request..." style="border: 1px solid #d1d5db; border-radius: 12px; padding: 12px 16px; font-size: 14px;"></textarea>
+                    </div>
+                    <div class="d-flex gap-3 justify-content-end">
+                        <button type="button" class="btn btn-light" data-bs-dismiss="modal" style="border-radius: 12px; padding: 12px 24px; font-weight: 500;">Cancel</button>
+                        <button type="submit" class="btn btn-danger" style="background: linear-gradient(135deg, #ef4444, #dc2626); border: none; border-radius: 12px; padding: 12px 24px; font-weight: 500;">
+                            <i class="bi bi-x-circle me-2"></i>Reject Request
+                        </button>
+                    </div>
+                </div>
+            </form>
+        </div>
+    </div>
+</div>
+
+<!-- View Details Modal -->
+<div class="modal fade" id="viewDetailsModal" tabindex="-1">
+    <div class="modal-dialog modal-xl modal-dialog-centered">
+        <div class="modal-content" style="border: none; border-radius: 20px; box-shadow: 0 20px 60px rgba(0,0,0,0.1);">
+            <div class="modal-header" style="border: none; padding: 32px 32px 0 32px;">
+                <div class="d-flex align-items-center">
+                    <div class="me-3" style="width: 48px; height: 48px; background: linear-gradient(135deg, #3b82f6, #1d4ed8); border-radius: 16px; display: flex; align-items: center; justify-content: center;">
+                        <i class="bi bi-eye text-white" style="font-size: 24px;"></i>
+                    </div>
+                    <div>
+                        <h4 class="mb-1" style="font-weight: 700; color: #111827; font-size: 24px;">Request Details <span id="viewRequestId" class="text-muted" style="font-size: 18px;">#4</span></h4>
+                        <p class="mb-0 text-muted" style="font-size: 14px;">Mobile Device Reimbursement Request Information</p>
+                    </div>
+                </div>
+                <button type="button" class="btn-close" data-bs-dismiss="modal" style="margin: 0; padding: 12px;"></button>
+            </div>
+            <div class="modal-body" style="padding: 24px 32px;">
+
+                <!-- Staff Information Section -->
+                <div class="mb-4" style="background: #eff6ff; border-radius: 16px; padding: 24px; border: 1px solid #bfdbfe;">
+                    <div class="d-flex align-items-center mb-3">
+                        <i class="bi bi-person-circle me-3" style="font-size: 20px; color: #2563eb;"></i>
+                        <h6 class="mb-0" style="font-weight: 600; color: #1e40af;">Staff Information</h6>
+                    </div>
+                    <div class="row g-3">
+                        <div class="col-md-4">
+                            <div class="mb-2">
+                                <span class="detail-label">Staff Name</span>
+                                <div id="viewStaffName" class="detail-value">Loading...</div>
+                            </div>
+                        </div>
+                        <div class="col-md-4">
+                            <div class="mb-2">
+                                <span class="detail-label">Mobile Number</span>
+                                <div id="viewMobileNumber" class="detail-value">Loading...</div>
+                            </div>
+                        </div>
+                        <div class="col-md-4">
+                            <div class="mb-2">
+                                <span class="detail-label">Index Number</span>
+                                <div id="viewIndexNo" class="detail-value">Loading...</div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Mobile Service Details Section -->
+                <div class="mb-4" style="background: #f8fafc; border-radius: 16px; padding: 24px; border: 1px solid #e2e8f0;">
+                    <div class="d-flex align-items-center mb-3">
+                        <i class="bi bi-phone me-3" style="font-size: 20px; color: #059669;"></i>
+                        <h6 class="mb-0" style="font-weight: 600; color: #047857;">Mobile Service Details</h6>
+                    </div>
+                    <div class="row g-3">
+                        <div class="col-md-3">
+                            <div class="mb-2">
+                                <span class="detail-label">Office</span>
+                                <div id="viewOffice" class="detail-value">Loading...</div>
+                            </div>
+                        </div>
+                        <div class="col-md-3">
+                            <div class="mb-2">
+                                <span class="detail-label">Organization</span>
+                                <div id="viewOrganization" class="detail-value">Loading...</div>
+                            </div>
+                        </div>
+                        <div class="col-md-3">
+                            <div class="mb-2">
+                                <span class="detail-label">Mobile Service</span>
+                                <div id="viewMobileService" class="detail-value">Loading...</div>
+                            </div>
+                        </div>
+                        <div class="col-md-3">
+                            <div class="mb-2">
+                                <span class="detail-label">Class of Service</span>
+                                <div id="viewClassOfService" class="detail-value">Loading...</div>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="row g-3 mt-2">
+                        <div class="col-md-6">
+                            <div class="mb-2">
+                                <span class="detail-label">Device Allowance</span>
+                                <div id="viewDeviceAllowance" class="detail-value">Loading...</div>
+                            </div>
+                        </div>
+                        <div class="col-md-6">
+                            <div class="mb-2">
+                                <span class="detail-label">Supervisor</span>
+                                <div id="viewSupervisor" class="detail-value">Loading...</div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Financial Information Section -->
+                <div class="mb-4" style="background: #fefce8; border-radius: 16px; padding: 24px; border: 1px solid #fde047;">
+                    <div class="d-flex align-items-center mb-3">
+                        <i class="bi bi-currency-dollar me-3" style="font-size: 20px; color: #ca8a04;"></i>
+                        <h6 class="mb-0" style="font-weight: 600; color: #713f12;">Financial Information</h6>
+                    </div>
+                    <div class="row g-3">
+                        <div class="col-md-4">
+                            <div class="mb-2">
+                                <span class="detail-label">Purchase Amount</span>
+                                <div id="viewPurchaseAmount" class="detail-value" style="font-weight: 600; color: #111827; font-size: 16px;">Loading...</div>
+                            </div>
+                        </div>
+                        <div class="col-md-4">
+                            <div class="mb-2">
+                                <span class="detail-label">Refund USD Amount</span>
+                                <div id="viewRefundAmount" class="detail-value" style="font-weight: 600; color: #111827; font-size: 16px;">Loading...</div>
+                            </div>
+                        </div>
+                        <div class="col-md-4">
+                            <div class="mb-2">
+                                <span class="detail-label">Request Date</span>
+                                <div id="viewRequestDate" class="detail-value">Loading...</div>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="row g-3 mt-2">
+                        <div class="col-md-4">
+                            <div class="mb-2">
+                                <span class="detail-label">Cost Object</span>
+                                <div id="viewCostObject" class="detail-value">Loading...</div>
+                            </div>
+                        </div>
+                        <div class="col-md-4">
+                            <div class="mb-2">
+                                <span class="detail-label">Cost Center</span>
+                                <div id="viewCostCenter" class="detail-value">Loading...</div>
+                            </div>
+                        </div>
+                        <div class="col-md-4">
+                            <div class="mb-2">
+                                <span class="detail-label">Fund Commitment</span>
+                                <div id="viewFundCommitment" class="detail-value">Loading...</div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Budget Information Section -->
+                <div class="mb-4" style="background: #f0f9ff; border-radius: 16px; padding: 24px; border: 1px solid #0ea5e9;">
+                    <div class="d-flex align-items-center mb-3">
+                        <i class="bi bi-calculator me-3" style="font-size: 20px; color: #0284c7;"></i>
+                        <h6 class="mb-0" style="font-weight: 600; color: #0369a1;">Budget Information</h6>
+                    </div>
+                    <div class="row g-3">
+                        <div class="col-md-6">
+                            <div class="mb-2">
+                                <span class="detail-label">Current Status</span>
+                                <div>
+                                    <span id="viewStatus" class="badge" style="background: #6366f1; color: white; font-size: 12px; padding: 6px 12px; border-radius: 8px; font-weight: 500;">Loading...</span>
+                                </div>
+                            </div>
+                        </div>
+                        <div class="col-md-6">
+                            <div class="mb-2">
+                                <span class="detail-label">Umoja Bank Name</span>
+                                <div id="viewBankName" class="detail-value">Loading...</div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Purchase Receipt Section -->
+                <div class="mb-4" style="background: #f0fdf4; border-radius: 16px; padding: 24px; border: 1px solid #bbf7d0;">
+                    <div class="d-flex align-items-center mb-3">
+                        <i class="bi bi-file-earmark-pdf me-3" style="font-size: 20px; color: #059669;"></i>
+                        <h6 class="mb-0" style="font-weight: 600; color: #047857;">Purchase Receipt</h6>
+                    </div>
+                    <div class="row g-3">
+                        <div class="col-md-8">
+                            <div class="mb-2">
+                                <span class="detail-label">Receipt File</span>
+                                <div id="viewReceiptInfo" class="detail-value d-flex align-items-center justify-content-between">
+                                    <span id="viewReceiptFileName">Loading...</span>
+                                    <div>
+                                        <button type="button" id="viewReceiptBtn" class="btn btn-sm btn-outline-success me-2" onclick="viewReceipt()" style="border-radius: 8px; font-size: 12px;">
+                                            <i class="bi bi-eye me-1"></i>View
+                                        </button>
+                                        <button type="button" id="downloadReceiptBtn" class="btn btn-sm btn-success" onclick="downloadReceipt()" style="border-radius: 8px; font-size: 12px;">
+                                            <i class="bi bi-download me-1"></i>Download
+                                        </button>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                        <div class="col-md-4">
+                            <div class="mb-2">
+                                <span class="detail-label">Previous Reimbursement</span>
+                                <div id="viewPreviousReimbursement" class="detail-value">Loading...</div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Processing History & Remarks Section -->
+                <div class="mb-4" style="background: #fff7ed; border-radius: 16px; padding: 24px; border: 1px solid #fed7aa;">
+                    <div class="d-flex align-items-center mb-3">
+                        <i class="bi bi-clock-history me-3" style="font-size: 20px; color: #ea580c;"></i>
+                        <h6 class="mb-0" style="font-weight: 600; color: #9a3412;">Processing History & Remarks</h6>
+                    </div>
+                    <div class="row g-3">
+                        <div class="col-md-6">
+                            <div class="mb-3">
+                                <span class="detail-label">Supervisor Remarks</span>
+                                <div id="viewSupervisorRemarks" style="color: #6b7280; font-size: 14px; background: white; padding: 12px; border-radius: 8px; border: 1px solid #e5e7eb; min-height: 60px;">
+                                    Loading...
+                                </div>
+                            </div>
+                        </div>
+                        <div class="col-md-6">
+                            <div class="mb-3">
+                                <span class="detail-label">Budget Officer Remarks</span>
+                                <div id="viewBudgetRemarks" style="color: #6b7280; font-size: 14px; background: white; padding: 12px; border-radius: 8px; border: 1px solid #e5e7eb; min-height: 60px;">
+                                    Loading...
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Workflow History Section -->
+                <div class="mb-4" style="background: #fef3f2; border-radius: 16px; padding: 24px; border: 1px solid #fecaca;">
+                    <div class="d-flex align-items-center mb-3">
+                        <i class="bi bi-diagram-3 me-3" style="font-size: 20px; color: #dc2626;"></i>
+                        <h6 class="mb-0" style="font-weight: 600; color: #991b1b;">Workflow History</h6>
+                    </div>
+                    
+                    <!-- Timeline Container -->
+                    <div class="workflow-timeline">
+                        <!-- Request Submission -->
+                        <div class="timeline-item">
+                            <div class="timeline-marker timeline-submitted">
+                                <i class="bi bi-file-plus"></i>
+                            </div>
+                            <div class="timeline-content">
+                                <div class="timeline-header">
+                                    <h6 class="timeline-title">Request Submitted</h6>
+                                    <span id="workflowRequestDate" class="timeline-date">Loading...</span>
+                                </div>
+                                <p class="timeline-description">Refund request created and submitted for approval</p>
+                                <div class="timeline-details">
+                                    <small class="text-muted">Submitted by: <span id="workflowRequestedBy">Loading...</span></small>
+                                </div>
+                            </div>
+                        </div>
+
+                        <!-- Supervisor Approval -->
+                        <div class="timeline-item" id="supervisorTimelineItem">
+                            <div class="timeline-marker timeline-pending" id="supervisorMarker">
+                                <i class="bi bi-clock"></i>
+                            </div>
+                            <div class="timeline-content">
+                                <div class="timeline-header">
+                                    <h6 class="timeline-title">Supervisor Review</h6>
+                                    <span id="workflowSupervisorDate" class="timeline-date">Pending</span>
+                                </div>
+                                <p class="timeline-description" id="workflowSupervisorDescription">Awaiting supervisor approval</p>
+                                <div class="timeline-details">
+                                    <small class="text-muted">Supervisor: <span id="workflowSupervisorName">Loading...</span></small>
+                                    <div id="workflowSupervisorRemarksTimeline" class="timeline-remarks mt-1" style="display: none;">
+                                        <small class="text-muted"><strong>Remarks:</strong> <span></span></small>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+
+                        <!-- Budget Officer Approval -->
+                        <div class="timeline-item" id="budgetTimelineItem">
+                            <div class="timeline-marker timeline-current" id="budgetMarker">
+                                <i class="bi bi-calculator"></i>
+                            </div>
+                            <div class="timeline-content">
+                                <div class="timeline-header">
+                                    <h6 class="timeline-title">Budget Officer Review</h6>
+                                    <span id="workflowBudgetDate" class="timeline-date">Current Stage</span>
+                                </div>
+                                <p class="timeline-description" id="workflowBudgetDescription">Pending budget officer approval</p>
+                                <div class="timeline-details">
+                                    <small class="text-muted">Budget Officer: <span id="workflowBudgetOfficerName">Not assigned</span></small>
+                                    <div id="workflowBudgetRemarksTimeline" class="timeline-remarks mt-1" style="display: none;">
+                                        <small class="text-muted"><strong>Remarks:</strong> <span></span></small>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+
+                        <!-- Claims Unit Processing -->
+                        <div class="timeline-item" id="claimsTimelineItem">
+                            <div class="timeline-marker timeline-pending" id="claimsMarker">
+                                <i class="bi bi-clock"></i>
+                            </div>
+                            <div class="timeline-content">
+                                <div class="timeline-header">
+                                    <h6 class="timeline-title">Claims Unit Processing</h6>
+                                    <span id="workflowClaimsDate" class="timeline-date">Pending</span>
+                                </div>
+                                <p class="timeline-description" id="workflowClaimsDescription">Awaiting claims unit processing</p>
+                                <div class="timeline-details">
+                                    <small class="text-muted">Claims Officer: <span id="workflowClaimsOfficerName">Not assigned</span></small>
+                                    <div id="workflowClaimsRemarksTimeline" class="timeline-remarks mt-1" style="display: none;">
+                                        <small class="text-muted"><strong>Remarks:</strong> <span></span></small>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+
+                        <!-- Payment Approval -->
+                        <div class="timeline-item" id="paymentTimelineItem">
+                            <div class="timeline-marker timeline-pending" id="paymentMarker">
+                                <i class="bi bi-credit-card"></i>
+                            </div>
+                            <div class="timeline-content">
+                                <div class="timeline-header">
+                                    <h6 class="timeline-title">Payment Approval</h6>
+                                    <span id="workflowPaymentDate" class="timeline-date">Pending</span>
+                                </div>
+                                <p class="timeline-description" id="workflowPaymentDescription">Awaiting payment approval</p>
+                                <div class="timeline-details">
+                                    <small class="text-muted">Payment Approver: <span id="workflowPaymentApproverName">Not assigned</span></small>
+                                    <div id="workflowPaymentRemarksTimeline" class="timeline-remarks mt-1" style="display: none;">
+                                        <small class="text-muted"><strong>Remarks:</strong> <span></span></small>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+
+                        <!-- Completion -->
+                        <div class="timeline-item" id="completionTimelineItem">
+                            <div class="timeline-marker timeline-pending" id="completionMarker">
+                                <i class="bi bi-check-circle"></i>
+                            </div>
+                            <div class="timeline-content">
+                                <div class="timeline-header">
+                                    <h6 class="timeline-title">Request Completed</h6>
+                                    <span id="workflowCompletionDate" class="timeline-date">Pending</span>
+                                </div>
+                                <p class="timeline-description" id="workflowCompletionDescription">Payment completed and request finalized</p>
+                                <div class="timeline-details">
+                                    <small class="text-muted">Payment Reference: <span id="workflowPaymentReference">Not assigned</span></small>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+            </div>
+            
+            <div class="modal-footer" style="border: none; padding: 0 32px 32px 32px; justify-content: center;">
+                <button type="button" class="btn btn-light" data-bs-dismiss="modal" style="border-radius: 12px; padding: 12px 24px; font-weight: 500;">
+                    <i class="bi bi-x-circle me-2"></i>Close
+                </button>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Revert to Requestor Modal -->
+<div class="modal fade" id="revertToRequestorModal" tabindex="-1">
+    <div class="modal-dialog modal-dialog-centered">
+        <div class="modal-content" style="border: none; border-radius: 20px; box-shadow: 0 20px 60px rgba(0,0,0,0.1);">
+            <div class="modal-header" style="border: none; padding: 32px 32px 0 32px;">
+                <div class="d-flex align-items-center">
+                    <div class="me-3" style="width: 48px; height: 48px; background: linear-gradient(135deg, #f59e0b, #d97706); border-radius: 16px; display: flex; align-items: center; justify-content: center;">
+                        <i class="bi bi-arrow-left text-white" style="font-size: 24px;"></i>
+                    </div>
+                    <div>
+                        <h4 class="mb-1" style="font-weight: 700; color: #111827; font-size: 24px;">Revert to Requestor</h4>
+                        <p class="mb-0 text-muted" style="font-size: 14px;">Send this request back to the Staff for revision</p>
+                    </div>
+                </div>
+                <button type="button" class="btn-close" data-bs-dismiss="modal" style="margin: 0; padding: 12px;"></button>
+            </div>
+            <div class="modal-body" style="padding: 24px 32px;">
+                <!-- Request Info -->
+                <div class="mb-4" style="background: #fef3c7; border-radius: 12px; padding: 16px; border: 1px solid #fde047;">
+                    <div class="d-flex align-items-center mb-2">
+                        <i class="bi bi-info-circle me-2" style="color: #d97706;"></i>
+                        <strong style="color: #92400e;">Request Information</strong>
+                    </div>
+                    <div class="row g-2">
+                        <div class="col-6">
+                            <small class="text-muted">Request ID:</small>
+                            <div id="revertRequestorRequestId" style="font-weight: 500; color: #111827;">#4</div>
+                        </div>
+                        <div class="col-6">
+                            <small class="text-muted">Staff:</small>
+                            <div id="revertRequestorStaff" style="font-weight: 500; color: #111827;">Boniface Michuki</div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Reason for Reversion -->
+                <div class="mb-4">
+                    <label class="form-label" style="font-weight: 500; color: #374151; font-size: 14px; margin-bottom: 8px;">
+                        Reason for Reversion <span style="color: #ef4444;">*</span>
+                    </label>
+                    <textarea id="revertRequestorRemarks" class="form-control" rows="4" required maxlength="200" 
+                        placeholder="Please explain why this request needs to be revised by the Staff..." 
+                        style="border: 1px solid #d1d5db; border-radius: 12px; padding: 12px 16px; font-size: 14px; resize: none;"></textarea>
+                    <div class="d-flex justify-content-between align-items-center mt-2">
+                        <small class="text-muted">💡 This message will be sent to the Staff</small>
+                        <small class="text-muted">
+                            <span id="revertRequestorCount">0</span>/200 characters
+                        </small>
+                    </div>
+                </div>
+
+                <!-- Common Reasons (Quick Select) -->
+                <div class="mb-4">
+                    <label class="form-label" style="font-weight: 500; color: #374151; font-size: 14px; margin-bottom: 8px;">
+                        Quick Reasons (Optional)
+                    </label>
+                    <div class="d-flex flex-wrap gap-2">
+                        <button type="button" class="btn btn-outline-warning btn-sm" onclick="setRevertReason('revertRequestorRemarks', 'Missing or incomplete documentation required for budget approval.')" style="border-radius: 20px; font-size: 12px;">
+                            Missing Documentation
+                        </button>
+                        <button type="button" class="btn btn-outline-warning btn-sm" onclick="setRevertReason('revertRequestorRemarks', 'Amount exceeds allowable limits. Please review and adjust.')" style="border-radius: 20px; font-size: 12px;">
+                            Amount Issues
+                        </button>
+                        <button type="button" class="btn btn-outline-warning btn-sm" onclick="setRevertReason('revertRequestorRemarks', 'Additional information required for proper budget allocation.')" style="border-radius: 20px; font-size: 12px;">
+                            Need More Info
+                        </button>
+                    </div>
+                </div>
+            </div>
+            
+            <div class="modal-footer" style="border: none; padding: 0 32px 32px 32px;">
+                <div class="d-flex gap-3 justify-content-end w-100">
+                    <button type="button" class="btn btn-light" data-bs-dismiss="modal" style="border-radius: 12px; padding: 12px 24px; font-weight: 500;">
+                        Cancel
+                    </button>
+                    <button type="button" class="btn btn-warning" onclick="confirmRevertToRequestor()" style="background: linear-gradient(135deg, #f59e0b, #d97706); border: none; border-radius: 12px; padding: 12px 24px; font-weight: 500; color: white;">
+                        <i class="bi bi-arrow-left me-2"></i>Revert to Requestor
+                    </button>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Revert to Supervisor Modal -->
+<div class="modal fade" id="revertToSupervisorModal" tabindex="-1">
+    <div class="modal-dialog modal-dialog-centered">
+        <div class="modal-content" style="border: none; border-radius: 20px; box-shadow: 0 20px 60px rgba(0,0,0,0.1);">
+            <div class="modal-header" style="border: none; padding: 32px 32px 0 32px;">
+                <div class="d-flex align-items-center">
+                    <div class="me-3" style="width: 48px; height: 48px; background: linear-gradient(135deg, #6b7280, #4b5563); border-radius: 16px; display: flex; align-items: center; justify-content: center;">
+                        <i class="bi bi-arrow-counterclockwise text-white" style="font-size: 24px;"></i>
+                    </div>
+                    <div>
+                        <h4 class="mb-1" style="font-weight: 700; color: #111827; font-size: 24px;">Revert to Supervisor</h4>
+                        <p class="mb-0 text-muted" style="font-size: 14px;">Send this request back to the supervisor for re-review</p>
+                    </div>
+                </div>
+                <button type="button" class="btn-close" data-bs-dismiss="modal" style="margin: 0; padding: 12px;"></button>
+            </div>
+            <div class="modal-body" style="padding: 24px 32px;">
+                <!-- Request Info -->
+                <div class="mb-4" style="background: #f3f4f6; border-radius: 12px; padding: 16px; border: 1px solid #d1d5db;">
+                    <div class="d-flex align-items-center mb-2">
+                        <i class="bi bi-info-circle me-2" style="color: #6b7280;"></i>
+                        <strong style="color: #374151;">Request Information</strong>
+                    </div>
+                    <div class="row g-2">
+                        <div class="col-6">
+                            <small class="text-muted">Request ID:</small>
+                            <div id="revertSupervisorRequestId" style="font-weight: 500; color: #111827;">#4</div>
+                        </div>
+                        <div class="col-6">
+                            <small class="text-muted">Supervisor:</small>
+                            <div id="revertSupervisorName" style="font-weight: 500; color: #111827;">John Doe</div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Reason for Reversion -->
+                <div class="mb-4">
+                    <label class="form-label" style="font-weight: 500; color: #374151; font-size: 14px; margin-bottom: 8px;">
+                        Reason for Reversion <span style="color: #ef4444;">*</span>
+                    </label>
+                    <textarea id="revertSupervisorRemarks" class="form-control" rows="4" required maxlength="200" 
+                        placeholder="Please explain why this request needs supervisor re-review..." 
+                        style="border: 1px solid #d1d5db; border-radius: 12px; padding: 12px 16px; font-size: 14px; resize: none;"></textarea>
+                    <div class="d-flex justify-content-between align-items-center mt-2">
+                        <small class="text-muted">💡 This message will be sent to the supervisor</small>
+                        <small class="text-muted">
+                            <span id="revertSupervisorCount">0</span>/200 characters
+                        </small>
+                    </div>
+                </div>
+
+                <!-- Common Reasons (Quick Select) -->
+                <div class="mb-4">
+                    <label class="form-label" style="font-weight: 500; color: #374151; font-size: 14px; margin-bottom: 8px;">
+                        Quick Reasons (Optional)
+                    </label>
+                    <div class="d-flex flex-wrap gap-2">
+                        <button type="button" class="btn btn-outline-secondary btn-sm" onclick="setRevertReason('revertSupervisorRemarks', 'Budget concerns require supervisor re-evaluation of this request.')" style="border-radius: 20px; font-size: 12px;">
+                            Budget Concerns
+                        </button>
+                        <button type="button" class="btn btn-outline-secondary btn-sm" onclick="setRevertReason('revertSupervisorRemarks', 'Supervisor approval may need reconsideration based on current policies.')" style="border-radius: 20px; font-size: 12px;">
+                            Policy Review
+                        </button>
+                        <button type="button" class="btn btn-outline-secondary btn-sm" onclick="setRevertReason('revertSupervisorRemarks', 'Additional supervisor validation required before budget approval.')" style="border-radius: 20px; font-size: 12px;">
+                            Need Validation
+                        </button>
+                    </div>
+                </div>
+            </div>
+            
+            <div class="modal-footer" style="border: none; padding: 0 32px 32px 32px;">
+                <div class="d-flex gap-3 justify-content-end w-100">
+                    <button type="button" class="btn btn-light" data-bs-dismiss="modal" style="border-radius: 12px; padding: 12px 24px; font-weight: 500;">
+                        Cancel
+                    </button>
+                    <button type="button" class="btn btn-secondary" onclick="confirmRevertToSupervisor()" style="background: linear-gradient(135deg, #6b7280, #4b5563); border: none; border-radius: 12px; padding: 12px 24px; font-weight: 500;">
+                        <i class="bi bi-arrow-counterclockwise me-2"></i>Revert to Supervisor
+                    </button>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<script>
+    let currentRequestId = null;
+
+    function viewRequest(requestId) {
+        // Fetch request details from the server
+        fetch(`?handler=RequestDetails&requestId=${requestId}`)
+            .then(response => response.json())
+            .then(data => {
+                if (data.success) {
+                    populateViewDetailsModal(data);
+                    new bootstrap.Modal(document.getElementById('viewDetailsModal')).show();
+                } else {
+                    alert('Error loading request details: ' + data.message);
+                }
+            })
+            .catch(error => {
+                console.error('Error:', error);
+                alert('Error loading request details');
+            });
+    }
+    
+    function getRequestDataFromRow(row) {
+        // Extract data from the table row
+        // This is a simplified version - in a real app, you'd fetch from the server
+        return {
+            id: row.getAttribute('data-request-id'),
+            Staff: row.querySelector('.Staff-name')?.textContent || 'N/A',
+            mobileNumber: row.querySelector('.Staff-details')?.textContent || 'N/A',
+            amount: row.querySelector('td:nth-child(3)')?.textContent || 'N/A',
+            status: row.querySelector('.status-badge')?.textContent?.trim() || 'N/A',
+            requestDate: row.querySelector('td:nth-child(5)')?.textContent || 'N/A'
+        };
+    }
+    
+    function populateViewDetailsModal(data) {
+        // Populate basic information
+        document.getElementById('viewRequestId').textContent = '#' + data.id;
+        
+        // Staff Information Section
+        document.getElementById('viewStaffName').textContent = data.staffName || 'N/A';
+        document.getElementById('viewMobileNumber').textContent = data.primaryMobileNumber || 'N/A';
+        document.getElementById('viewIndexNo').textContent = data.indexNo || 'N/A';
+        
+        // Mobile Service Details Section
+        document.getElementById('viewOffice').textContent = data.office || 'N/A';
+        document.getElementById('viewOrganization').textContent = data.organization || 'N/A';
+        document.getElementById('viewMobileService').textContent = data.mobileService || 'N/A';
+        document.getElementById('viewClassOfService').textContent = data.classOfService || 'N/A';
+        document.getElementById('viewDeviceAllowance').textContent = data.deviceAllowance ? `$${data.deviceAllowance.toFixed(2)}` : 'N/A';
+        document.getElementById('viewSupervisor').textContent = data.supervisor || 'N/A';
+        
+        // Financial Information Section
+        const purchaseAmount = data.devicePurchaseAmount ? 
+            `${data.devicePurchaseCurrency || ''} ${data.devicePurchaseAmount.toFixed(2)}` : 'N/A';
+        document.getElementById('viewPurchaseAmount').textContent = purchaseAmount;
+        
+        const refundAmount = data.refundUsdAmount ? `$${data.refundUsdAmount.toFixed(2)}` : 'N/A';
+        document.getElementById('viewRefundAmount').textContent = refundAmount;
+        
+        document.getElementById('viewRequestDate').textContent = data.requestDate || 'N/A';
+        document.getElementById('viewCostObject').textContent = data.costObject || 'Not assigned';
+        document.getElementById('viewCostCenter').textContent = data.costCenter || 'Not assigned';
+        document.getElementById('viewFundCommitment').textContent = data.fundCommitment || 'Not assigned';
+        
+        // Budget Information Section
+        updateStatusBadge(data.status);
+        document.getElementById('viewBankName').textContent = data.umojaBankName || 'N/A';
+        
+        // Purchase Receipt Section
+        populateReceiptSection(data);
+        
+        // Processing History & Remarks Section
+        document.getElementById('viewSupervisorRemarks').textContent = 
+            data.supervisorRemarks || 'No supervisor remarks provided.';
+        document.getElementById('viewBudgetRemarks').textContent = 
+            data.budgetOfficerRemarks || 'No budget officer remarks provided.';
+        
+        // Workflow History Section
+        populateWorkflowHistory(data);
+    }
+    
+    function updateModalServiceInfo(data) {
+        // Update service information fields
+        const serviceSection = document.querySelector('.modal-body .mb-4:nth-child(3)');
+        if (serviceSection) {
+            const fields = serviceSection.querySelectorAll('.row .col-md-4, .row .col-md-6');
+            if (fields.length >= 5) {
+                fields[0].querySelector('div:last-child').textContent = data.indexNo || 'N/A';
+                fields[1].querySelector('div:last-child').textContent = data.mobileService || 'N/A';
+                fields[2].querySelector('div:last-child').textContent = data.classOfService || 'N/A';
+                fields[3].querySelector('div:last-child').textContent = data.office || 'N/A';
+                fields[4].querySelector('div:last-child').textContent = data.organization || 'N/A';
+            }
+        }
+    }
+    
+    function updateModalFinancialInfo(data) {
+        // Update financial information
+        const financialSection = document.querySelector('.modal-body .mb-4:nth-child(4)');
+        if (financialSection) {
+            const fields = financialSection.querySelectorAll('.row .col-md-4');
+            if (fields.length >= 3) {
+                fields[0].querySelector('div:last-child').textContent = '$' + (data.deviceAllowance ? data.deviceAllowance.toFixed(2) : '0.00');
+                fields[1].querySelector('div:last-child').textContent = (data.devicePurchaseCurrency || '') + ' ' + (data.devicePurchaseAmount ? data.devicePurchaseAmount.toFixed(2) : '0.00');
+                fields[2].querySelector('div:last-child').textContent = data.umojaBankName || 'N/A';
+            }
+        }
+    }
+    
+    function updateModalComments(data) {
+        // Update comments section
+        const commentsSection = document.querySelector('.modal-body .mb-4:last-child');
+        if (commentsSection) {
+            const StaffRemarksDiv = commentsSection.querySelector('.col-md-6:first-child .mb-3 div:last-child');
+            const supervisorRemarksDiv = commentsSection.querySelector('.col-md-6:last-child .mb-3 div:last-child');
+            
+            if (StaffRemarksDiv) {
+                StaffRemarksDiv.textContent = data.remarks || 'No Staff remarks provided.';
+            }
+            if (supervisorRemarksDiv) {
+                supervisorRemarksDiv.textContent = data.supervisorRemarks || 'No supervisor remarks provided.';
+            }
+        }
+    }
+    
+    function getStatusDisplayText(status) {
+        const statusMap = {
+            'Draft': 'Draft',
+            'PendingSupervisor': 'Pending Supervisor',
+            'PendingBudgetOfficer': 'Pending Budget Officer',
+            'PendingStaffClaimsUnit': 'Pending Staff Claims Unit',
+            'PendingPaymentApproval': 'Pending Payment Approval',
+            'Completed': 'Completed',
+            'Cancelled': 'Cancelled'
+        };
+        return statusMap[status] || status;
+    }
+
+    function budgetOfficerApprove(requestId) {
+        // Reset the budget officer modal form
+        document.getElementById('costObject').value = '';
+        document.getElementById('costCenter').value = '';
+        document.getElementById('fundCommitment').value = '';
+        document.getElementById('budgetOfficerRemarks').value = '';
+        document.getElementById('budgetRemarksCount').textContent = '0';
+        
+        // Set the request ID
+        currentRequestId = requestId;
+        document.getElementById('budgetApproveRequestId').value = requestId;
+        
+        // Show the budget officer modal
+        new bootstrap.Modal(document.getElementById('budgetOfficerApproveModal')).show();
+    }
+    
+    function budgetApproveAndSubmit() {
+        const costObject = document.getElementById('costObject').value.trim();
+        const costCenter = document.getElementById('costCenter').value.trim();
+        const fundCommitment = document.getElementById('fundCommitment').value.trim();
+        const remarks = document.getElementById('budgetOfficerRemarks').value;
+        
+        // Validate required fields
+        if (!costObject) {
+            alert('Cost Object is required.');
+            document.getElementById('costObject').focus();
+            return;
+        }
+        
+        if (!costCenter) {
+            alert('Cost Center is required.');
+            document.getElementById('costCenter').focus();
+            return;
+        }
+        
+        if (!fundCommitment) {
+            alert('Fund Commitment is required.');
+            document.getElementById('fundCommitment').focus();
+            return;
+        }
+        
+        if (confirm('Are you sure you want to approve this request and submit it to Staff Claims Unit?')) {
+            // Set form values and submit
+            document.getElementById('budgetApproveCostObject').value = costObject;
+            document.getElementById('budgetApproveCostCenter').value = costCenter;
+            document.getElementById('budgetApproveFundCommitment').value = fundCommitment;
+            document.getElementById('budgetApproveRemarksHidden').value = remarks;
+            document.getElementById('budgetApproveForm').submit();
+        }
+    }
+    
+    function budgetRevertToRequestor(requestId = null) {
+        const id = requestId || currentRequestId;
+        
+        // Populate the modal with request information
+        document.getElementById('revertRequestorRequestId').textContent = '#' + id;
+        
+        // Get Staff name from the table row
+        const row = document.querySelector(`tr[data-request-id="${id}"]`);
+        const StaffName = row ? (row.querySelector('.Staff-name')?.textContent || 'N/A') : 'N/A';
+        document.getElementById('revertRequestorStaff').textContent = StaffName;
+        
+        // Clear the textarea and reset character count
+        document.getElementById('revertRequestorRemarks').value = '';
+        document.getElementById('revertRequestorCount').textContent = '0';
+        
+        // Store the request ID for later use
+        document.getElementById('revertRequestorRemarks').setAttribute('data-request-id', id);
+        
+        // Show the modal
+        new bootstrap.Modal(document.getElementById('revertToRequestorModal')).show();
+    }
+    
+    function budgetRevertToSupervisor(requestId = null) {
+        const id = requestId || currentRequestId;
+        
+        // Populate the modal with request information
+        document.getElementById('revertSupervisorRequestId').textContent = '#' + id;
+        document.getElementById('revertSupervisorName').textContent = 'Supervisor'; // You might want to fetch actual supervisor name
+        
+        // Clear the textarea and reset character count
+        document.getElementById('revertSupervisorRemarks').value = '';
+        document.getElementById('revertSupervisorCount').textContent = '0';
+        
+        // Store the request ID for later use
+        document.getElementById('revertSupervisorRemarks').setAttribute('data-request-id', id);
+        
+        // Show the modal
+        new bootstrap.Modal(document.getElementById('revertToSupervisorModal')).show();
+    }
+    
+    function setRevertReason(textareaId, reason) {
+        const textarea = document.getElementById(textareaId);
+        textarea.value = reason;
+        
+        // Update character count
+        const countElement = document.getElementById(textareaId.replace('Remarks', 'Count'));
+        if (countElement) {
+            countElement.textContent = reason.length;
+        }
+    }
+    
+    function confirmRevertToRequestor() {
+        const remarks = document.getElementById('revertRequestorRemarks').value.trim();
+        const requestId = document.getElementById('revertRequestorRemarks').getAttribute('data-request-id');
+        
+        if (!remarks) {
+            alert('Please provide a reason for reverting this request.');
+            document.getElementById('revertRequestorRemarks').focus();
+            return;
+        }
+        
+        // Submit the form
+        document.getElementById('budgetRevertRequestorId').value = requestId;
+        document.getElementById('budgetRevertRequestorRemarks').value = remarks;
+        document.getElementById('budgetRevertRequestorForm').submit();
+    }
+    
+    function confirmRevertToSupervisor() {
+        const remarks = document.getElementById('revertSupervisorRemarks').value.trim();
+        const requestId = document.getElementById('revertSupervisorRemarks').getAttribute('data-request-id');
+        
+        if (!remarks) {
+            alert('Please provide a reason for reverting this request.');
+            document.getElementById('revertSupervisorRemarks').focus();
+            return;
+        }
+        
+        // Submit the form
+        document.getElementById('budgetRevertSupervisorId').value = requestId;
+        document.getElementById('budgetRevertSupervisorRemarks').value = remarks;
+        document.getElementById('budgetRevertSupervisorForm').submit();
+    }
+
+    function rejectRequest(requestId) {
+        document.getElementById('rejectRequestId').value = requestId;
+        new bootstrap.Modal(document.getElementById('rejectModal')).show();
+    }
+
+    // Character counter for budget officer remarks
+    document.addEventListener('DOMContentLoaded', function() {
+        const budgetRemarksTextarea = document.getElementById('budgetOfficerRemarks');
+        const budgetRemarksCount = document.getElementById('budgetRemarksCount');
+        
+        if (budgetRemarksTextarea && budgetRemarksCount) {
+            budgetRemarksTextarea.addEventListener('input', function() {
+                budgetRemarksCount.textContent = this.value.length;
+            });
+        }
+        
+        // Character counter for revert to requestor modal
+        const revertRequestorTextarea = document.getElementById('revertRequestorRemarks');
+        const revertRequestorCount = document.getElementById('revertRequestorCount');
+        
+        if (revertRequestorTextarea && revertRequestorCount) {
+            revertRequestorTextarea.addEventListener('input', function() {
+                revertRequestorCount.textContent = this.value.length;
+            });
+        }
+        
+        // Character counter for revert to supervisor modal
+        const revertSupervisorTextarea = document.getElementById('revertSupervisorRemarks');
+        const revertSupervisorCount = document.getElementById('revertSupervisorCount');
+        
+        if (revertSupervisorTextarea && revertSupervisorCount) {
+            revertSupervisorTextarea.addEventListener('input', function() {
+                revertSupervisorCount.textContent = this.value.length;
+            });
+        }
+    });
+
+    // Enhanced View Details Modal Functions
+    function updateStatusBadge(status) {
+        const statusBadge = document.getElementById('viewStatus');
+        const statusConfig = {
+            'Draft': { text: 'Draft', color: '#6b7280' },
+            'PendingSupervisor': { text: 'Pending Supervisor', color: '#f59e0b' },
+            'PendingBudgetOfficer': { text: 'Pending Budget Officer', color: '#f59e0b' },
+            'PendingStaffClaimsUnit': { text: 'Pending Claims Unit', color: '#3b82f6' },
+            'PendingPaymentApproval': { text: 'Pending Payment', color: '#8b5cf6' },
+            'Completed': { text: 'Completed', color: '#10b981' },
+            'Cancelled': { text: 'Cancelled', color: '#ef4444' }
+        };
+        
+        const config = statusConfig[status] || { text: status, color: '#6b7280' };
+        statusBadge.textContent = config.text;
+        statusBadge.style.background = config.color;
+    }
+    
+    function populateReceiptSection(data) {
+        const receiptFileName = document.getElementById('viewReceiptFileName');
+        const viewReceiptBtn = document.getElementById('viewReceiptBtn');
+        const downloadReceiptBtn = document.getElementById('downloadReceiptBtn');
+        
+        if (data.purchaseReceiptPath && data.purchaseReceiptFileName) {
+            receiptFileName.textContent = data.purchaseReceiptFileName;
+            viewReceiptBtn.style.display = 'inline-block';
+            downloadReceiptBtn.style.display = 'inline-block';
+            
+            // Store the file path for later use
+            viewReceiptBtn.setAttribute('data-file-path', data.purchaseReceiptPath);
+            downloadReceiptBtn.setAttribute('data-file-path', data.purchaseReceiptPath);
+        } else {
+            receiptFileName.textContent = 'No receipt uploaded';
+            viewReceiptBtn.style.display = 'none';
+            downloadReceiptBtn.style.display = 'none';
+        }
+        
+        document.getElementById('viewPreviousReimbursement').textContent = 
+            data.previousReimbursement || 'No previous reimbursement';
+    }
+    
+    function populateWorkflowHistory(data) {
+        const currentStatus = data.status;
+        
+        // Update Request Submission (always completed)
+        document.getElementById('workflowRequestDate').textContent = data.requestDate || 'N/A';
+        document.getElementById('workflowRequestedBy').textContent = data.staffName || 'N/A';
+        
+        // Update workflow steps based on status
+        updateWorkflowStep('supervisor', data, currentStatus);
+        updateWorkflowStep('budget', data, currentStatus);
+        updateWorkflowStep('claims', data, currentStatus);
+        updateWorkflowStep('payment', data, currentStatus);
+        updateWorkflowStep('completion', data, currentStatus);
+    }
+    
+    function updateWorkflowStep(step, data, currentStatus) {
+        const stepConfig = {
+            supervisor: {
+                date: data.supervisorApprovalDate,
+                name: data.supervisorName || 'Not assigned',
+                remarks: data.supervisorRemarks,
+                statuses: ['PendingSupervisor', 'PendingBudgetOfficer', 'PendingStaffClaimsUnit', 'PendingPaymentApproval', 'Completed']
+            },
+            budget: {
+                date: data.budgetOfficerApprovalDate,
+                name: data.budgetOfficerName || 'Not assigned',
+                remarks: data.budgetOfficerRemarks,
+                statuses: ['PendingBudgetOfficer', 'PendingStaffClaimsUnit', 'PendingPaymentApproval', 'Completed']
+            },
+            claims: {
+                date: data.claimsUnitActionDate,
+                name: data.claimsUnitOfficerName || 'Not assigned',
+                remarks: data.claimsUnitRemarks,
+                statuses: ['PendingStaffClaimsUnit', 'PendingPaymentApproval', 'Completed']
+            },
+            payment: {
+                date: data.paymentApprovalDate,
+                name: data.paymentApproverName || 'Not assigned',
+                remarks: data.paymentApprovalRemarks,
+                statuses: ['PendingPaymentApproval', 'Completed']
+            },
+            completion: {
+                date: data.completionDate,
+                name: 'System',
+                remarks: null,
+                statuses: ['Completed']
+            }
+        };
+        
+        const config = stepConfig[step];
+        if (!config) return;
+        
+        const isCompleted = config.date && currentStatus !== `Pending${step.charAt(0).toUpperCase() + step.slice(1)}`;
+        const isCurrent = currentStatus === `Pending${step.charAt(0).toUpperCase() + step.slice(1)}` || 
+                         (step === 'budget' && currentStatus === 'PendingBudgetOfficer');
+        const isPending = !isCompleted && !isCurrent;
+        
+        // Update marker
+        const marker = document.getElementById(`${step}Marker`);
+        const dateElement = document.getElementById(`workflow${step.charAt(0).toUpperCase() + step.slice(1)}Date`);
+        const nameElement = document.getElementById(`workflow${step.charAt(0).toUpperCase() + step.slice(1)}Name`) ||
+                           document.getElementById(`workflow${step.charAt(0).toUpperCase() + step.slice(1)}OfficerName`);
+        const descriptionElement = document.getElementById(`workflow${step.charAt(0).toUpperCase() + step.slice(1)}Description`);
+        const remarksElement = document.getElementById(`workflow${step.charAt(0).toUpperCase() + step.slice(1)}RemarksTimeline`);
+        
+        if (marker) {
+            marker.className = 'timeline-marker';
+            if (isCompleted) {
+                marker.classList.add('timeline-approved');
+                marker.innerHTML = '<i class="bi bi-check"></i>';
+            } else if (isCurrent) {
+                marker.classList.add('timeline-current');
+                marker.innerHTML = '<i class="bi bi-clock"></i>';
+            } else {
+                marker.classList.add('timeline-pending');
+                marker.innerHTML = '<i class="bi bi-clock"></i>';
+            }
+        }
+        
+        // Update date
+        if (dateElement) {
+            if (config.date) {
+                dateElement.textContent = config.date;
+            } else if (isCurrent) {
+                dateElement.textContent = 'In Progress';
+            } else {
+                dateElement.textContent = 'Pending';
+            }
+        }
+        
+        // Update name
+        if (nameElement) {
+            nameElement.textContent = config.name;
+        }
+        
+        // Update description
+        if (descriptionElement) {
+            if (isCompleted) {
+                descriptionElement.textContent = `${step.charAt(0).toUpperCase() + step.slice(1)} completed`;
+            } else if (isCurrent) {
+                descriptionElement.textContent = `Currently being processed by ${step} team`;
+            } else {
+                descriptionElement.textContent = `Awaiting ${step} processing`;
+            }
+        }
+        
+        // Update remarks
+        if (remarksElement && config.remarks) {
+            remarksElement.style.display = 'block';
+            remarksElement.querySelector('span').textContent = config.remarks;
+        } else if (remarksElement) {
+            remarksElement.style.display = 'none';
+        }
+        
+        // Special handling for completion step
+        if (step === 'completion') {
+            const paymentRefElement = document.getElementById('workflowPaymentReference');
+            if (paymentRefElement) {
+                paymentRefElement.textContent = data.paymentReference || 'Not assigned';
+            }
+        }
+    }
+    
+    function viewReceipt() {
+        const viewBtn = document.getElementById('viewReceiptBtn');
+        const filePath = viewBtn.getAttribute('data-file-path');
+        
+        if (filePath) {
+            // Open the receipt in a new window/tab
+            window.open(`/uploads/receipts/${encodeURIComponent(filePath.split('/').pop())}`, '_blank');
+        } else {
+            alert('No receipt file available to view.');
+        }
+    }
+    
+    function downloadReceipt() {
+        const downloadBtn = document.getElementById('downloadReceiptBtn');
+        const filePath = downloadBtn.getAttribute('data-file-path');
+        
+        if (filePath) {
+            // Create a temporary link to download the file
+            const link = document.createElement('a');
+            link.href = `/uploads/receipts/${encodeURIComponent(filePath.split('/').pop())}`;
+            link.download = filePath.split('/').pop();
+            document.body.appendChild(link);
+            link.click();
+            document.body.removeChild(link);
+        } else {
+            alert('No receipt file available to download.');
+        }
+    }
+</script> 

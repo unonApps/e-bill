@@ -1,0 +1,2582 @@
+@page
+@model TAB.Web.Pages.Admin.EbillUsersModel
+@{
+    ViewData["Title"] = "Ebill Users Management";
+}
+
+<style>
+    /* Modern Form Styling */
+    .form-select-modern {
+        position: relative;
+        background-color: #f8f9fa;
+        border: 2px solid transparent;
+        border-radius: 12px;
+        height: 48px;
+        padding: 0 40px 0 16px;
+        font-size: 15px;
+        font-weight: 500;
+        color: #2d3748;
+        transition: all 0.3s ease;
+        background-image: url("data:image/svg+xml,%3csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 16 16'%3e%3cpath fill='none' stroke='%236b7280' stroke-linecap='round' stroke-linejoin='round' stroke-width='2' d='M2 5l6 6 6-6'/%3e%3c/svg%3e");
+        background-repeat: no-repeat;
+        background-position: right 12px center;
+        background-size: 16px 12px;
+        cursor: pointer;
+    }
+    
+    .form-select-modern:hover {
+        background-color: #e2e8f0;
+        border-color: #cbd5e0;
+    }
+    
+    .form-select-modern:focus {
+        background-color: #ffffff;
+        border-color: #3b82f6;
+        box-shadow: 0 0 0 4px rgba(59, 130, 246, 0.1);
+        outline: none;
+    }
+    
+    .form-select-modern option {
+        font-weight: 500;
+        padding: 8px;
+    }
+    
+    /* Custom Label Styling */
+    .form-label-modern {
+        display: block;
+        font-size: 13px;
+        font-weight: 600;
+        color: #4a5568;
+        margin-bottom: 8px;
+        text-transform: uppercase;
+        letter-spacing: 0.05em;
+    }
+    
+    /* Form Group Container */
+    .form-group-modern {
+        margin-bottom: 20px;
+    }
+    
+    /* Input Field Styling */
+    .form-control-modern {
+        background-color: #f8f9fa;
+        border: 2px solid transparent;
+        border-radius: 12px;
+        height: 48px;
+        padding: 0 16px;
+        font-size: 15px;
+        font-weight: 500;
+        color: #2d3748;
+        transition: all 0.3s ease;
+    }
+    
+    .form-control-modern:hover {
+        background-color: #e2e8f0;
+        border-color: #cbd5e0;
+    }
+    
+    .form-control-modern:focus {
+        background-color: #ffffff;
+        border-color: #3b82f6;
+        box-shadow: 0 0 0 4px rgba(59, 130, 246, 0.1);
+        outline: none;
+    }
+    
+    .form-control-modern::placeholder {
+        color: #9ca3af;
+        font-weight: 400;
+    }
+    
+    /* Checkbox Switch Styling */
+    .form-check-modern .form-check-input {
+        width: 48px;
+        height: 24px;
+        background-color: #e2e8f0;
+        border: 2px solid transparent;
+        border-radius: 24px;
+        cursor: pointer;
+        transition: all 0.3s ease;
+    }
+    
+    .form-check-modern .form-check-input:checked {
+        background-color: #3b82f6;
+        border-color: #3b82f6;
+    }
+    
+    .form-check-modern .form-check-input:focus {
+        box-shadow: 0 0 0 4px rgba(59, 130, 246, 0.1);
+    }
+    
+    .form-check-modern .form-check-label {
+        font-size: 15px;
+        font-weight: 600;
+        color: #2d3748;
+        margin-left: 8px;
+    }
+    
+    /* Table Row Hover Effects */
+    .user-row {
+        transition: all 0.2s ease;
+        border-bottom: 1px solid #f3f4f6;
+    }
+    
+    .user-row:hover {
+        background-color: #f9fafb;
+        transform: translateX(2px);
+        box-shadow: 0 2px 4px rgba(0, 0, 0, 0.05);
+    }
+    
+    /* Search Input Styling */
+    #searchUsers::placeholder {
+        color: rgba(255, 255, 255, 0.6);
+    }
+    
+    #searchUsers:focus {
+        background-color: rgba(255, 255, 255, 0.2) !important;
+        outline: none;
+        box-shadow: 0 0 0 3px rgba(255, 255, 255, 0.2);
+    }
+    
+    /* Gradient Background */
+    .bg-gradient {
+        position: relative;
+        overflow: hidden;
+    }
+    
+    .bg-gradient::after {
+        content: '';
+        position: absolute;
+        top: -50%;
+        right: -50%;
+        width: 200%;
+        height: 200%;
+        background: radial-gradient(circle, rgba(255, 255, 255, 0.1) 1px, transparent 1px);
+        background-size: 20px 20px;
+        transform: rotate(45deg);
+        opacity: 0.5;
+    }
+    
+    /* Badge Hover Effects */
+    .badge {
+        transition: all 0.2s ease;
+    }
+    
+    .badge:hover {
+        transform: translateY(-1px);
+        box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+    }
+    
+    /* Dashboard Header Styles */
+    .dashboard-header {
+        background: linear-gradient(135deg, #009EDB 0%, #0084c7 100%);
+        border-radius: 12px;
+        padding: 1.5rem 2rem;
+        margin-bottom: 2rem;
+        color: white;
+        box-shadow: 0 4px 20px rgba(0, 158, 219, 0.2);
+    }
+    
+    .header-content {
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        flex-wrap: wrap;
+        gap: 1rem;
+    }
+    
+    .welcome-section {
+        flex: 1;
+    }
+    
+    .dashboard-title {
+        font-size: 1.75rem;
+        font-weight: 600;
+        margin-bottom: 0.3rem;
+        color: white;
+    }
+    
+    .dashboard-subtitle {
+        font-size: 1rem;
+        opacity: 0.95;
+        margin: 0;
+    }
+    
+    .header-actions {
+        display: flex;
+        align-items: center;
+        gap: 1rem;
+    }
+    
+    .current-date {
+        background: rgba(255, 255, 255, 0.2);
+        backdrop-filter: blur(10px);
+        padding: 0.5rem 1rem;
+        border-radius: 8px;
+        display: flex;
+        align-items: center;
+        gap: 0.5rem;
+        font-size: 0.9rem;
+    }
+    
+    .create-user-btn {
+        background: rgba(255, 255, 255, 0.95);
+        color: #009EDB;
+        border: 2px solid rgba(255, 255, 255, 0.3);
+        padding: 10px 20px;
+        border-radius: 8px;
+        text-decoration: none;
+        font-weight: 600;
+        font-size: 14px;
+        transition: all 0.3s ease;
+        display: inline-flex;
+        align-items: center;
+        gap: 8px;
+        backdrop-filter: blur(10px);
+        cursor: pointer;
+    }
+    
+    .create-user-btn:hover {
+        background: white;
+        color: #0084c7;
+        text-decoration: none;
+        transform: translateY(-2px);
+        box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
+    }
+    
+    /* Filter Section */
+    .filter-section {
+        background: white;
+        border-radius: 12px;
+        padding: 1.5rem;
+        margin-bottom: 2rem;
+        box-shadow: 0 2px 10px rgba(0, 0, 0, 0.05);
+        border: 1px solid #e5e7eb;
+    }
+    
+    .filter-header {
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        margin-bottom: 1.5rem;
+        padding-bottom: 1rem;
+        border-bottom: 2px solid #f3f4f6;
+    }
+    
+    .filter-title {
+        font-size: 1.25rem;
+        font-weight: 600;
+        color: #1f2937;
+        display: flex;
+        align-items: center;
+        gap: 0.5rem;
+    }
+    
+    .filter-title i {
+        color: #009EDB;
+    }
+    
+    .filter-grid {
+        display: grid;
+        grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
+        gap: 1rem;
+    }
+    
+    .filter-group {
+        display: flex;
+        flex-direction: column;
+        gap: 0.5rem;
+    }
+    
+    .filter-label {
+        font-size: 0.875rem;
+        font-weight: 600;
+        color: #4b5563;
+        display: flex;
+        align-items: center;
+        gap: 0.5rem;
+    }
+    
+    .filter-label i {
+        color: #009EDB;
+        font-size: 0.875rem;
+    }
+    
+    .filter-input,
+    .filter-select {
+        padding: 0.625rem 1rem;
+        border: 2px solid #e5e7eb;
+        border-radius: 8px;
+        font-size: 0.875rem;
+        transition: all 0.2s ease;
+        background: white;
+    }
+    
+    .filter-input:focus,
+    .filter-select:focus {
+        outline: none;
+        border-color: #009EDB;
+        box-shadow: 0 0 0 3px rgba(0, 158, 219, 0.1);
+    }
+    
+    .filter-input::placeholder {
+        color: #9ca3af;
+    }
+    
+    .btn-clear-filters {
+        padding: 0.625rem 1.25rem;
+        background: #f3f4f6;
+        color: #4b5563;
+        border: none;
+        border-radius: 8px;
+        font-weight: 500;
+        font-size: 0.875rem;
+        display: inline-flex;
+        align-items: center;
+        gap: 0.5rem;
+        transition: all 0.2s ease;
+        text-decoration: none;
+    }
+    
+    .btn-clear-filters:hover {
+        background: #e5e7eb;
+        color: #1f2937;
+        text-decoration: none;
+    }
+    
+    .filter-count {
+        font-size: 0.875rem;
+        color: #6b7280;
+        padding: 0.375rem 0.75rem;
+        background: #f9fafb;
+        border-radius: 6px;
+    }
+    
+    /* Statistics Grid */
+    .stats-grid {
+        display: grid;
+        grid-template-columns: repeat(auto-fit, minmax(240px, 1fr));
+        gap: 1.25rem;
+        margin-bottom: 2rem;
+    }
+    
+    .stat-card {
+        background: white;
+        border-radius: 12px;
+        padding: 1.5rem;
+        border: 1px solid #e5e7eb;
+        transition: all 0.3s ease;
+        position: relative;
+        overflow: hidden;
+    }
+    
+    .stat-card::before {
+        content: '';
+        position: absolute;
+        top: 0;
+        left: 0;
+        right: 0;
+        height: 4px;
+        background: linear-gradient(90deg, var(--gradient-start), var(--gradient-end));
+    }
+    
+    .stat-card:nth-child(1)::before {
+        --gradient-start: #3b82f6;
+        --gradient-end: #60a5fa;
+    }
+    
+    .stat-card:nth-child(2)::before {
+        --gradient-start: #10b981;
+        --gradient-end: #34d399;
+    }
+    
+    .stat-card:nth-child(3)::before {
+        --gradient-start: #ef4444;
+        --gradient-end: #f87171;
+    }
+    
+    .stat-card:nth-child(4)::before {
+        --gradient-start: #f59e0b;
+        --gradient-end: #fbbf24;
+    }
+    
+    .stat-card:hover {
+        transform: translateY(-4px);
+        box-shadow: 0 10px 30px rgba(0, 0, 0, 0.1);
+    }
+    
+    .stat-content {
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+    }
+    
+    .stat-icon {
+        width: 50px;
+        height: 50px;
+        border-radius: 12px;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        font-size: 1.5rem;
+    }
+    
+    .stat-icon-primary {
+        background: linear-gradient(135deg, #3b82f6, #60a5fa);
+        color: white;
+    }
+    
+    .stat-icon-success {
+        background: linear-gradient(135deg, #10b981, #34d399);
+        color: white;
+    }
+    
+    .stat-icon-danger {
+        background: linear-gradient(135deg, #ef4444, #f87171);
+        color: white;
+    }
+    
+    .stat-icon-warning {
+        background: linear-gradient(135deg, #f59e0b, #fbbf24);
+        color: white;
+    }
+    
+    .stat-details {
+        text-align: right;
+    }
+    
+    .stat-number {
+        font-size: 1.75rem;
+        font-weight: 700;
+        color: #1f2937;
+        line-height: 1;
+        margin-bottom: 0.25rem;
+    }
+    
+    .stat-label {
+        font-size: 0.875rem;
+        color: #6b7280;
+        font-weight: 500;
+    }
+
+    /* Pagination Styles */
+    .pagination {
+        gap: 0.25rem;
+    }
+
+    .page-link {
+        color: #009EDB;
+        border: 1px solid #e5e7eb;
+        padding: 0.5rem 0.75rem;
+        font-size: 0.875rem;
+        font-weight: 500;
+        transition: all 0.2s ease;
+        border-radius: 8px;
+        margin: 0 2px;
+    }
+
+    .page-link:hover {
+        color: #0084c7;
+        background-color: #f9fafb;
+        border-color: #009EDB;
+        transform: translateY(-1px);
+    }
+
+    .page-item.active .page-link {
+        background-color: #009EDB;
+        border-color: #009EDB;
+        color: white;
+    }
+
+    .page-item.disabled .page-link {
+        color: #9ca3af;
+        background-color: #f9fafb;
+        border-color: #e5e7eb;
+        cursor: not-allowed;
+        opacity: 0.6;
+    }
+
+    @@media (max-width: 768px) {
+        .dashboard-header {
+            padding: 1rem;
+        }
+        
+        .header-content {
+            flex-direction: column;
+            align-items: stretch;
+        }
+        
+        .header-actions {
+            flex-direction: column;
+            align-items: stretch;
+        }
+        
+        .filter-grid {
+            grid-template-columns: 1fr;
+        }
+        
+        .stats-grid {
+            grid-template-columns: repeat(2, 1fr);
+            gap: 1rem;
+        }
+    }
+</style>
+
+<!-- Statistics Cards -->
+<div class="stats-grid mb-3">
+    <div class="stat-card">
+        <div class="stat-content">
+            <div class="stat-icon stat-icon-primary">
+                <i class="bi bi-people"></i>
+            </div>
+            <div class="stat-details">
+                <div class="stat-number">@Model.TotalUsers</div>
+                <div class="stat-label">Total Users</div>
+            </div>
+        </div>
+    </div>
+    
+    <div class="stat-card">
+        <div class="stat-content">
+            <div class="stat-icon stat-icon-success">
+                <i class="bi bi-check-circle"></i>
+            </div>
+            <div class="stat-details">
+                <div class="stat-number">@Model.ActiveUsers</div>
+                <div class="stat-label">Active Users</div>
+            </div>
+        </div>
+    </div>
+    
+    <div class="stat-card">
+        <div class="stat-content">
+            <div class="stat-icon stat-icon-danger">
+                <i class="bi bi-x-circle"></i>
+            </div>
+            <div class="stat-details">
+                <div class="stat-number">@Model.InactiveUsers</div>
+                <div class="stat-label">Inactive Users</div>
+            </div>
+        </div>
+    </div>
+    
+    <div class="stat-card">
+        <div class="stat-content">
+            <div class="stat-icon stat-icon-warning">
+                <i class="bi bi-person-check"></i>
+            </div>
+            <div class="stat-details">
+                <div class="stat-number">@Model.UsersWithSupervisors</div>
+                <div class="stat-label">With Supervisors</div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Filter Section (Collapsible) -->
+<div class="mb-3">
+    <button class="btn btn-outline-primary" type="button" data-bs-toggle="collapse" data-bs-target="#filterCollapse" aria-expanded="false" aria-controls="filterCollapse">
+        <i class="bi bi-funnel"></i> Show Filters
+    </button>
+</div>
+<div class="collapse" id="filterCollapse">
+<div class="filter-section">
+    <div class="filter-header">
+        <h2 class="filter-title">
+            <i class="bi bi-funnel"></i>
+            Filters
+        </h2>
+        <div class="filter-actions">
+            <span class="filter-count">
+                Showing @((Model.PageNumber - 1) * Model.PageSize + 1) - @Math.Min(Model.PageNumber * Model.PageSize, Model.TotalCount)
+                of @Model.TotalCount results
+            </span>
+        </div>
+    </div>
+    
+    <form method="get" class="filter-form" id="filterForm">
+        <!-- Preserve page size when filtering -->
+        <input type="hidden" name="PageSize" value="@Model.PageSize" />
+        <div class="filter-grid">
+            <div class="filter-group">
+                <label class="filter-label" for="searchFilter">
+                    <i class="bi bi-search"></i> Search
+                </label>
+                <input type="text" name="SearchTerm" id="searchFilter" class="filter-input filter-search-input" 
+                       placeholder="Name, Index, Email..." value="@Model.SearchTerm" />
+            </div>
+            <div class="filter-group">
+                <label class="filter-label" for="orgFilter">
+                    <i class="bi bi-building"></i> Organization
+                </label>
+                <select name="SelectedOrganization" id="orgFilter" class="filter-select filter-auto-submit">
+                    <option value="">All Organizations</option>
+                    @foreach (var item in Model.OrganizationList)
+                    {
+                        <option value="@item.Value" selected="@(Model.SelectedOrganization == item.Value)">@item.Text</option>
+                    }
+                </select>
+            </div>
+
+            <div class="filter-group">
+                <label class="filter-label" for="officeFilter">
+                    <i class="bi bi-geo-alt"></i> Office
+                </label>
+                <select name="SelectedOffice" id="officeFilter" class="filter-select">
+                    <option value="">All Offices</option>
+                    @foreach (var office in Model.OfficeList)
+                    {
+                        <option value="@office.Value" selected="@(office.Value == Model.SelectedOffice)">@office.Text</option>
+                    }
+                </select>
+            </div>
+
+            <div class="filter-group">
+                <label class="filter-label" for="subOfficeFilter">
+                    <i class="bi bi-diagram-2"></i> Sub Office
+                </label>
+                <select name="SelectedSubOffice" id="subOfficeFilter" class="filter-select filter-auto-submit">
+                    <option value="">All Sub Offices</option>
+                    @if (!string.IsNullOrWhiteSpace(Model.SelectedOffice))
+                    {
+                        @foreach (var subOffice in Model.SubOfficeList)
+                        {
+                            <option value="@subOffice.Value" selected="@(subOffice.Value == Model.SelectedSubOffice)">@subOffice.Text</option>
+                        }
+                    }
+                </select>
+            </div>
+
+            <div class="filter-group">
+                <label class="filter-label" for="statusFilter">
+                    <i class="bi bi-toggle-on"></i> Status
+                </label>
+                <select name="IsActive" id="statusFilter" class="filter-select filter-auto-submit">
+                    <option value="">All Status</option>
+                    <option value="true" selected="@(Model.IsActive == true)">Active</option>
+                    <option value="false" selected="@(Model.IsActive == false)">Inactive</option>
+                </select>
+            </div>
+
+            <div class="filter-group align-self-end">
+                <a href="/Admin/EbillUsers" class="btn-clear-filters">
+                    <i class="bi bi-x-circle"></i> Clear All
+                </a>
+            </div>
+        </div>
+    </form>
+</div>
+</div>
+
+<script>
+    // Auto-submit functionality
+    document.addEventListener('DOMContentLoaded', function() {
+        // Handle office change to load suboffices and submit
+        const officeFilter = document.getElementById('officeFilter');
+        const subOfficeFilter = document.getElementById('subOfficeFilter');
+
+        if (officeFilter) {
+            officeFilter.addEventListener('change', function() {
+                // Clear suboffice selection when office changes
+                if (subOfficeFilter) {
+                    subOfficeFilter.value = '';
+                }
+                // Submit form to reload with new office and get suboffices
+                document.getElementById('filterForm').submit();
+            });
+        }
+
+        // Auto-submit for select elements
+        const autoSubmitElements = document.querySelectorAll('.filter-auto-submit');
+        autoSubmitElements.forEach(element => {
+            element.addEventListener('change', function() {
+                document.getElementById('filterForm').submit();
+            });
+        });
+        
+        // Debounced auto-submit for search input
+        let searchTimeout;
+        const searchInput = document.querySelector('.filter-search-input');
+        if (searchInput) {
+            searchInput.addEventListener('input', function() {
+                clearTimeout(searchTimeout);
+                searchTimeout = setTimeout(() => {
+                    document.getElementById('filterForm').submit();
+                }, 500); // 500ms delay
+            });
+        }
+        
+        // Update button text when filters are shown/hidden
+        const filterToggle = document.querySelector('[data-bs-target="#filterCollapse"]');
+        const filterCollapse = document.getElementById('filterCollapse');
+        if (filterToggle && filterCollapse) {
+            filterCollapse.addEventListener('show.bs.collapse', function () {
+                filterToggle.innerHTML = '<i class="bi bi-funnel-fill"></i> Hide Filters';
+            });
+            filterCollapse.addEventListener('hide.bs.collapse', function () {
+                filterToggle.innerHTML = '<i class="bi bi-funnel"></i> Show Filters';
+            });
+            
+            // Check if any filters are active and show the filter section
+            const hasActiveFilters = @Html.Raw((!string.IsNullOrEmpty(Model.SearchTerm) || !string.IsNullOrEmpty(Model.SelectedOrganization) || !string.IsNullOrEmpty(Model.SelectedOffice) || !string.IsNullOrEmpty(Model.SelectedSubOffice) || Model.IsActive.HasValue).ToString().ToLower());
+            if (hasActiveFilters) {
+                filterCollapse.classList.add('show');
+                filterToggle.innerHTML = '<i class="bi bi-funnel-fill"></i> Hide Filters';
+                filterToggle.setAttribute('aria-expanded', 'true');
+            }
+        }
+    });
+</script>
+
+<!-- Status Message -->
+@if (!string.IsNullOrEmpty(Model.StatusMessage))
+{
+    <div class="alert alert-@Model.StatusMessageClass alert-dismissible fade show" role="alert">
+        @Model.StatusMessage
+        <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
+    </div>
+}
+
+<div class="row">
+    <div class="col-md-12">
+
+        <!-- Action Buttons and Page Size Selector -->
+        <div class="d-flex justify-content-between align-items-center mb-3">
+            <div class="d-flex align-items-center gap-2">
+                <label class="mb-0" style="font-size: 14px; color: #4b5563;">Show</label>
+                <form method="get" id="pageSizeForm" class="d-inline-block">
+                    <!-- Preserve filter parameters when changing page size -->
+                    <input type="hidden" name="SearchTerm" value="@Model.SearchTerm" />
+                    <input type="hidden" name="SelectedOrganization" value="@Model.SelectedOrganization" />
+                    <input type="hidden" name="SelectedOffice" value="@Model.SelectedOffice" />
+                    <input type="hidden" name="SelectedSubOffice" value="@Model.SelectedSubOffice" />
+                    <input type="hidden" name="IsActive" value="@Model.IsActive" />
+                    <select name="PageSize" class="form-select form-select-sm" style="width: auto;" onchange="document.getElementById('pageSizeForm').submit()">
+                        <option value="10" selected="@(Model.PageSize == 10)">10</option>
+                        <option value="25" selected="@(Model.PageSize == 25)">25</option>
+                        <option value="50" selected="@(Model.PageSize == 50)">50</option>
+                        <option value="100" selected="@(Model.PageSize == 100)">100</option>
+                    </select>
+                </form>
+                <label class="mb-0" style="font-size: 14px; color: #4b5563;">entries per page</label>
+            </div>
+            <div class="d-flex gap-2 align-items-center">
+                <!-- Bulk delete controls -->
+                <div id="bulkDeleteControls" class="d-none align-items-center gap-2 me-2">
+                    <span class="badge bg-primary">
+                        <span id="selectedCount">0</span> selected
+                    </span>
+                    <div class="btn-group" role="group">
+                        <button type="button" class="btn btn-warning btn-sm" id="bulkStatusBtn" data-bs-toggle="modal" data-bs-target="#bulkStatusModal">
+                            <i class="bi bi-toggle2-on me-1"></i>Change Status
+                        </button>
+                        <button type="button" class="btn btn-danger btn-sm" id="bulkDeleteBtn" data-bs-toggle="modal" data-bs-target="#bulkDeleteModal">
+                            <i class="bi bi-trash me-1"></i>Delete
+                        </button>
+                    </div>
+                    <button type="button" class="btn btn-outline-secondary btn-sm" id="clearSelectionBtn">
+                        Clear Selection
+                    </button>
+                    <div class="vr"></div>
+                </div>
+                <button type="button" class="btn btn-outline-primary" data-bs-toggle="modal" data-bs-target="#importUsersModal">
+                    <i class="bi bi-file-earmark-arrow-up"></i> Import from CSV
+                </button>
+                <button type="button" class="btn btn-primary" data-bs-toggle="modal" data-bs-target="#createUserModal">
+                    <i class="bi bi-person-plus"></i> Create New Ebill User
+                </button>
+            </div>
+        </div>
+
+        <!-- Users List Card -->
+        @if (!Model.EbillUsers.Any())
+        {
+            <div class="card border-0 shadow-sm">
+                <div class="card-body text-center py-5">
+                    <div class="bg-light rounded-circle d-inline-flex align-items-center justify-content-center mb-3" style="width: 80px; height: 80px;">
+                        <i class="bi bi-people text-muted" style="font-size: 32px;"></i>
+                    </div>
+                    <h5 class="text-muted mb-3">No Ebill Users Found</h5>
+                    <p class="text-muted mb-4">Create your first Ebill user to get started.</p>
+                    <button type="button" class="btn btn-primary" data-bs-toggle="modal" data-bs-target="#createUserModal">
+                        <i class="bi bi-person-plus"></i> Create First User
+                    </button>
+                </div>
+            </div>
+        }
+        else
+        {
+            <div class="card border-0 shadow-sm" style="border-radius: 16px;">
+                <div class="card-header bg-gradient border-0 py-4" style="background: linear-gradient(135deg, #f8f9fa 0%, #e9ecef 100%); border-radius: 16px 16px 0 0;">
+                    <div class="d-flex justify-content-between align-items-center">
+                        <div>
+                            <h5 class="card-title mb-1 text-dark fw-bold">
+                                <i class="bi bi-people-fill me-2 text-primary"></i>Ebill Users Directory
+                            </h5>
+                            <p class="text-muted mb-0">Manage and monitor E-bill service users</p>
+                        </div>
+                        <div class="input-group" style="max-width: 300px;">
+                            <span class="input-group-text bg-white border-1">
+                                <i class="bi bi-search text-muted"></i>
+                            </span>
+                            <input type="text" class="form-control bg-white border-1 text-dark"
+                                   id="searchUsers" placeholder="Search users..."
+                                   style="border-radius: 0 8px 8px 0;">
+                        </div>
+                    </div>
+                </div>
+                <div class="card-body p-0">
+                    <div class="table-responsive">
+                        <table class="table table-hover mb-0" id="usersTable">
+                            <thead style="background-color: #f8f9fa;">
+                                <tr>
+                                    <th class="border-0 px-3 py-3 text-center" style="font-weight: 600; color: #4a5568; width: 50px;">
+                                        <input type="checkbox" class="form-check-input" id="selectAllUsers" style="width: 18px; height: 18px;">
+                                    </th>
+                                    <th class="border-0 px-4 py-3" style="font-weight: 600; color: #4a5568; text-transform: uppercase; font-size: 12px; letter-spacing: 0.5px;">
+                                        <i class="bi bi-person me-2"></i>User Details
+                                    </th>
+                                    <th class="border-0 px-3 py-3" style="font-weight: 600; color: #4a5568; text-transform: uppercase; font-size: 12px; letter-spacing: 0.5px;">
+                                        <i class="bi bi-envelope me-2"></i>Contact Information
+                                    </th>
+                                    <th class="border-0 px-3 py-3" style="font-weight: 600; color: #4a5568; text-transform: uppercase; font-size: 12px; letter-spacing: 0.5px;">
+                                        <i class="bi bi-diagram-3 me-2"></i>Assignment
+                                    </th>
+                                    <th class="border-0 px-3 py-3" style="font-weight: 600; color: #4a5568; text-transform: uppercase; font-size: 12px; letter-spacing: 0.5px;">
+                                        <i class="bi bi-person-badge me-2"></i>Supervisor
+                                    </th>
+                                    <th class="border-0 px-3 py-3 text-center" style="font-weight: 600; color: #4a5568; text-transform: uppercase; font-size: 12px; letter-spacing: 0.5px;">
+                                        <i class="bi bi-toggle2-on me-2"></i>Status
+                                    </th>
+                                    <th class="border-0 px-3 py-3 text-center" style="font-weight: 600; color: #4a5568; text-transform: uppercase; font-size: 12px; letter-spacing: 0.5px; width: 120px;">
+                                        <i class="bi bi-gear me-2"></i>Actions
+                                    </th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                @foreach (var user in Model.EbillUsers)
+                                {
+                                    <tr data-user-id="@user.Id" class="user-row">
+                                        <td class="align-middle px-3 py-3 text-center">
+                                            <input type="checkbox" class="form-check-input user-checkbox"
+                                                   data-user-id="@user.Id"
+                                                   data-user-name="@user.FullName"
+                                                   style="width: 18px; height: 18px;">
+                                        </td>
+                                        <td class="align-middle px-4 py-3">
+                                            <div>
+                                                <h6 class="mb-0 fw-semibold text-dark">@user.FullName</h6>
+                                                <div class="d-flex align-items-center gap-2 mt-1">
+                                                    <span class="badge bg-light text-muted" style="font-weight: 500;">
+                                                        <i class="bi bi-person-badge me-1"></i>@user.IndexNumber
+                                                    </span>
+                                                    @if (!string.IsNullOrEmpty(user.IssuedDeviceID))
+                                                    {
+                                                        <span class="badge bg-light text-muted" style="font-weight: 500;">
+                                                            <i class="bi bi-phone me-1"></i>@user.IssuedDeviceID
+                                                        </span>
+                                                    }
+                                                </div>
+                                            </div>
+                                        </td>
+                                        <td class="align-middle px-3 py-3">
+                                            <div class="d-flex flex-column gap-1">
+                                                <div class="d-flex align-items-center">
+                                                    <i class="bi bi-envelope text-muted me-2" style="font-size: 14px;"></i>
+                                                    <a href="mailto:@user.Email" class="text-decoration-none text-dark">@user.Email</a>
+                                                </div>
+                                                @{
+                                                    var userPhones = Model.UserPhonesMap.ContainsKey(user.IndexNumber)
+                                                        ? Model.UserPhonesMap[user.IndexNumber]
+                                                        : new List<TAB.Web.Models.UserPhone>();
+                                                }
+                                                @if (userPhones.Any())
+                                                {
+                                                    <div class="d-flex flex-wrap gap-1">
+                                                        @foreach (var phone in userPhones.OrderByDescending(p => p.IsPrimary).ThenBy(p => p.PhoneType))
+                                                        {
+                                                            <span class="badge" style="background-color: @(phone.IsPrimary ? "#10b981" : "#e5e7eb"); color: @(phone.IsPrimary ? "white" : "#6b7280"); font-size: 11px;">
+                                                                @if (phone.PhoneType == "Mobile")
+                                                                {
+                                                                    <i class="bi bi-phone me-1"></i>
+                                                                }
+                                                                else if (phone.PhoneType == "Desk")
+                                                                {
+                                                                    <i class="bi bi-telephone me-1"></i>
+                                                                }
+                                                                else
+                                                                {
+                                                                    <i class="bi bi-telephone-forward me-1"></i>
+                                                                }
+                                                                @phone.PhoneNumber
+                                                                @if (phone.IsPrimary)
+                                                                {
+                                                                    <span class="ms-1">✓</span>
+                                                                }
+                                                            </span>
+                                                        }
+                                                    </div>
+                                                }
+                                                else
+                                                {
+                                                    <div class="d-flex align-items-center">
+                                                        <i class="bi bi-telephone text-muted me-2" style="font-size: 14px;"></i>
+                                                        <span class="text-muted">@user.OfficialMobileNumber</span>
+                                                    </div>
+                                                }
+                                            </div>
+                                        </td>
+                                        <td class="align-middle px-3 py-3">
+                                            <div class="d-flex flex-column gap-2">
+                                                <div class="d-flex flex-wrap gap-1">
+                                                    @if (user.OrganizationEntity != null)
+                                                    {
+                                                        <span class="badge" style="background-color: #f3f4f6; color: #374151; padding: 4px 10px;">
+                                                            <i class="bi bi-building me-1"></i>@user.OrganizationEntity.Name
+                                                        </span>
+                                                    }
+                                                    @if (user.OfficeEntity != null)
+                                                    {
+                                                        <span class="badge" style="background-color: #e0f2fe; color: #0284c7; padding: 4px 10px;">
+                                                            <i class="bi bi-geo-alt me-1"></i>@user.OfficeEntity.Name
+                                                        </span>
+                                                    }
+                                                    @if (user.SubOfficeEntity != null)
+                                                    {
+                                                        <span class="badge" style="background-color: #dcfce7; color: #166534; padding: 4px 10px;">
+                                                            <i class="bi bi-diagram-2 me-1"></i>@user.SubOfficeEntity.Name
+                                                        </span>
+                                                    }
+                                                    @if (!string.IsNullOrEmpty(user.Location))
+                                                    {
+                                                        <span class="badge" style="background-color: #fef3c7; color: #92400e; padding: 4px 10px;">
+                                                            <i class="bi bi-pin-map me-1"></i>@user.Location
+                                                        </span>
+                                                    }
+                                                </div>
+                                                
+                                                @if (user.OrganizationEntity == null && user.OfficeEntity == null)
+                                                {
+                                                    <span class="text-muted fst-italic" style="font-size: 13px;">Unassigned</span>
+                                                }
+                                            </div>
+                                        </td>
+                                        <td class="align-middle px-3 py-3">
+                                            @if (!string.IsNullOrEmpty(user.SupervisorName))
+                                            {
+                                                <div class="d-flex align-items-center">
+                                                    <div class="rounded-circle bg-light d-flex align-items-center justify-content-center me-2" 
+                                                         style="width: 32px; height: 32px;">
+                                                        <i class="bi bi-person-check text-muted" style="font-size: 14px;"></i>
+                                                    </div>
+                                                    <div>
+                                                        <div class="fw-medium text-dark" style="font-size: 14px;">@user.SupervisorName</div>
+                                                        <small class="text-muted">@user.SupervisorIndexNumber</small>
+                                                    </div>
+                                                </div>
+                                            }
+                                            else
+                                            {
+                                                <span class="text-muted fst-italic" style="font-size: 13px;">
+                                                    <i class="bi bi-dash-circle me-1"></i>No supervisor
+                                                </span>
+                                            }
+                                        </td>
+                                        <td class="align-middle text-center px-3 py-3">
+                                            @if (user.IsActive)
+                                            {
+                                                <span class="badge rounded-pill" style="background-color: #10b981; color: white; padding: 6px 16px;">
+                                                    <i class="bi bi-check-circle-fill me-1"></i>Active
+                                                </span>
+                                            }
+                                            else
+                                            {
+                                                <span class="badge rounded-pill" style="background-color: #6b7280; color: white; padding: 6px 16px;">
+                                                    <i class="bi bi-x-circle-fill me-1"></i>Inactive
+                                                </span>
+                                            }
+                                        </td>
+                                        <td class="align-middle px-3 py-3">
+                                            <div class="d-flex gap-1 justify-content-center">
+                                                <button type="button" class="btn btn-sm btn-light border-0 btn-edit-user"
+                                                        data-user-id="@user.Id"
+                                                        data-first-name="@user.FirstName"
+                                                        data-last-name="@user.LastName"
+                                                        data-index-number="@user.IndexNumber"
+                                                        data-email="@user.Email"
+                                                        data-mobile-number="@user.OfficialMobileNumber"
+                                                        data-device-id="@user.IssuedDeviceID"
+                                                        data-location="@user.Location"
+                                                        data-organization="@(user.OrganizationId?.ToString() ?? "")"
+                                                        data-office="@(user.OfficeId?.ToString() ?? "")"
+                                                        data-sub-office="@(user.SubOfficeId?.ToString() ?? "")"
+                                                        data-is-active="@user.IsActive.ToString().ToLower()"
+                                                        data-supervisor="@user.SupervisorIndexNumber"
+                                                        data-has-login="@user.HasLoginAccount"
+                                                        data-login-enabled="@user.LoginEnabled"
+                                                        title="Edit User" style="border-radius: 8px;">
+                                                    <i class="bi bi-pencil text-primary"></i>
+                                                </button>
+                                                <a href="/Admin/UserPhones?indexNumber=@user.IndexNumber" class="btn btn-sm btn-light border-0"
+                                                   title="Manage Phones" style="border-radius: 8px;">
+                                                    <i class="bi bi-telephone-plus text-success"></i>
+                                                </a>
+                                                <button type="button" class="btn btn-sm btn-light border-0" title="Delete User" style="border-radius: 8px;"
+                                                        data-bs-toggle="modal" data-bs-target="#deleteUserModal"
+                                                        data-user-id="@user.Id"
+                                                        data-user-name="@user.FirstName @user.LastName"
+                                                        data-user-index="@user.IndexNumber">
+                                                    <i class="bi bi-trash text-danger"></i>
+                                                </button>
+                                            </div>
+                                        </td>
+                                    </tr>
+                                }
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+                <!-- Pagination Controls -->
+                @if (Model.TotalPages > 1)
+                {
+                    <div class="card-footer bg-white border-0 pt-3 pb-3">
+                        <nav aria-label="Page navigation">
+                            <ul class="pagination justify-content-center mb-0">
+                                <!-- First Page -->
+                                <li class="page-item @(Model.PageNumber == 1 ? "disabled" : "")">
+                                    <a class="page-link" href="?PageNumber=1&PageSize=@Model.PageSize&SearchTerm=@Model.SearchTerm&SelectedOrganization=@Model.SelectedOrganization&IsActive=@Model.IsActive"
+                                       aria-label="First">
+                                        <span aria-hidden="true">&laquo;&laquo;</span>
+                                    </a>
+                                </li>
+
+                                <!-- Previous Page -->
+                                <li class="page-item @(!Model.HasPreviousPage ? "disabled" : "")">
+                                    <a class="page-link" href="?PageNumber=@(Model.PageNumber - 1)&PageSize=@Model.PageSize&SearchTerm=@Model.SearchTerm&SelectedOrganization=@Model.SelectedOrganization&IsActive=@Model.IsActive"
+                                       aria-label="Previous">
+                                        <span aria-hidden="true">&laquo;</span>
+                                    </a>
+                                </li>
+
+                                <!-- Page Numbers -->
+                                @{
+                                    int startPage = Math.Max(1, Model.PageNumber - 2);
+                                    int endPage = Math.Min(Model.TotalPages, Model.PageNumber + 2);
+
+                                    if (startPage > 1)
+                                    {
+                                        <li class="page-item">
+                                            <a class="page-link" href="?PageNumber=1&PageSize=@Model.PageSize&SearchTerm=@Model.SearchTerm&SelectedOrganization=@Model.SelectedOrganization&IsActive=@Model.IsActive">1</a>
+                                        </li>
+                                        if (startPage > 2)
+                                        {
+                                            <li class="page-item disabled"><span class="page-link">...</span></li>
+                                        }
+                                    }
+
+                                    for (int i = startPage; i <= endPage; i++)
+                                    {
+                                        <li class="page-item @(i == Model.PageNumber ? "active" : "")">
+                                            <a class="page-link" href="?PageNumber=@i&PageSize=@Model.PageSize&SearchTerm=@Model.SearchTerm&SelectedOrganization=@Model.SelectedOrganization&IsActive=@Model.IsActive">@i</a>
+                                        </li>
+                                    }
+
+                                    if (endPage < Model.TotalPages)
+                                    {
+                                        if (endPage < Model.TotalPages - 1)
+                                        {
+                                            <li class="page-item disabled"><span class="page-link">...</span></li>
+                                        }
+                                        <li class="page-item">
+                                            <a class="page-link" href="?PageNumber=@Model.TotalPages&PageSize=@Model.PageSize&SearchTerm=@Model.SearchTerm&SelectedOrganization=@Model.SelectedOrganization&IsActive=@Model.IsActive">@Model.TotalPages</a>
+                                        </li>
+                                    }
+                                }
+
+                                <!-- Next Page -->
+                                <li class="page-item @(!Model.HasNextPage ? "disabled" : "")">
+                                    <a class="page-link" href="?PageNumber=@(Model.PageNumber + 1)&PageSize=@Model.PageSize&SearchTerm=@Model.SearchTerm&SelectedOrganization=@Model.SelectedOrganization&IsActive=@Model.IsActive"
+                                       aria-label="Next">
+                                        <span aria-hidden="true">&raquo;</span>
+                                    </a>
+                                </li>
+
+                                <!-- Last Page -->
+                                <li class="page-item @(Model.PageNumber == Model.TotalPages ? "disabled" : "")">
+                                    <a class="page-link" href="?PageNumber=@Model.TotalPages&PageSize=@Model.PageSize&SearchTerm=@Model.SearchTerm&SelectedOrganization=@Model.SelectedOrganization&IsActive=@Model.IsActive"
+                                       aria-label="Last">
+                                        <span aria-hidden="true">&raquo;&raquo;</span>
+                                    </a>
+                                </li>
+                            </ul>
+                        </nav>
+                    </div>
+                }
+            </div>
+        }
+    </div>
+</div>
+
+<!-- Create User Modal -->
+<div class="modal fade" id="createUserModal" tabindex="-1" aria-labelledby="createUserModalLabel" aria-hidden="true">
+    <div class="modal-dialog modal-lg modal-dialog-centered">
+        <div class="modal-content border-0 shadow-lg" style="border-radius: 20px;">
+            <div class="modal-header border-0 pb-0" style="padding: 2rem 2rem 1rem 2rem;">
+                <div class="w-100 text-center">
+                    <div class="mb-3">
+                        <div class="bg-primary bg-opacity-10 rounded-circle d-inline-flex align-items-center justify-content-center" style="width: 60px; height: 60px;">
+                            <i class="bi bi-person-plus text-primary" style="font-size: 24px;"></i>
+                        </div>
+                    </div>
+                    <h4 class="modal-title fw-bold text-dark mb-1" id="createUserModalLabel">Create New Ebill User</h4>
+                    <p class="text-muted mb-0">Add a new user for E-bill services</p>
+                </div>
+                <button type="button" class="btn-close position-absolute" data-bs-dismiss="modal" aria-label="Close" style="top: 1rem; right: 1rem;"></button>
+            </div>
+            <form method="post" asp-page-handler="CreateUser" id="createUserForm">
+                @Html.AntiForgeryToken()
+                <div class="modal-body" style="padding: 1rem 2rem;">
+                    <!-- Error Alert -->
+                    <div id="createUserError" class="alert alert-danger d-none" role="alert">
+                        <i class="bi bi-exclamation-triangle-fill me-2"></i>
+                        <span id="createUserErrorMessage"></span>
+                    </div>
+                    <!-- Basic Information -->
+                    <div class="mb-4">
+                        <h6 class="text-muted text-uppercase fw-semibold mb-3" style="font-size: 0.75rem; letter-spacing: 1px;">Basic Information</h6>
+                        <div class="row g-3">
+                            <div class="col-md-6">
+                                <div class="form-group-modern">
+                                    <label asp-for="Input.FirstName" class="form-label-modern">First Name</label>
+                                    <input asp-for="Input.FirstName" class="form-control form-control-modern" placeholder="Enter first name" />
+                                    <span asp-validation-for="Input.FirstName" class="text-danger small"></span>
+                                </div>
+                            </div>
+                            <div class="col-md-6">
+                                <div class="form-group-modern">
+                                    <label asp-for="Input.LastName" class="form-label-modern">Last Name</label>
+                                    <input asp-for="Input.LastName" class="form-control form-control-modern" placeholder="Enter last name" />
+                                    <span asp-validation-for="Input.LastName" class="text-danger small"></span>
+                                </div>
+                            </div>
+                            <div class="col-md-6">
+                                <div class="form-group-modern">
+                                    <label asp-for="Input.IndexNumber" class="form-label-modern">Index Number</label>
+                                    <input asp-for="Input.IndexNumber" class="form-control form-control-modern" placeholder="Enter index number" />
+                                    <span asp-validation-for="Input.IndexNumber" class="text-danger small"></span>
+                                </div>
+                            </div>
+                            <div class="col-md-6">
+                                <div class="form-group-modern">
+                                    <label asp-for="Input.Email" class="form-label-modern">Email Address</label>
+                                    <input asp-for="Input.Email" type="email" class="form-control form-control-modern" placeholder="Enter email address" />
+                                    <span asp-validation-for="Input.Email" class="text-danger small"></span>
+                                </div>
+                            </div>
+                            <div class="col-md-6">
+                                <div class="form-group-modern">
+                                    <label asp-for="Input.OfficialMobileNumber" class="form-label-modern">Mobile Number</label>
+                                    <input asp-for="Input.OfficialMobileNumber" type="tel" class="form-control form-control-modern" placeholder="Enter mobile number" />
+                                    <span asp-validation-for="Input.OfficialMobileNumber" class="text-danger small"></span>
+                                </div>
+                            </div>
+                            <div class="col-md-6">
+                                <div class="form-group-modern">
+                                    <label asp-for="Input.IssuedDeviceID" class="form-label-modern">Device ID (Optional)</label>
+                                    <input asp-for="Input.IssuedDeviceID" class="form-control form-control-modern" placeholder="Enter device ID" />
+                                    <span asp-validation-for="Input.IssuedDeviceID" class="text-danger small"></span>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Service & Organization -->
+                    <div class="mb-4">
+                        <h6 class="text-muted text-uppercase fw-semibold mb-3" style="font-size: 0.75rem; letter-spacing: 1px;">Location & Organization</h6>
+                        <div class="row g-3">
+                            <div class="col-md-6">
+                                <div class="form-group-modern">
+                                    <label asp-for="Input.Location" class="form-label-modern">Location</label>
+                                    <input asp-for="Input.Location" class="form-control form-control-modern" placeholder="Enter location" />
+                                    <span asp-validation-for="Input.Location" class="text-danger small"></span>
+                                </div>
+                            </div>
+                            <div class="col-md-6">
+                                <div class="form-group-modern">
+                                    <label asp-for="Input.OrganizationId" class="form-label-modern">Organization</label>
+                                    <select asp-for="Input.OrganizationId" asp-items="Model.OrganizationList" class="form-select form-select-modern">
+                                        <option value="">Select organization...</option>
+                                    </select>
+                                    <span asp-validation-for="Input.OrganizationId" class="text-danger small"></span>
+                                </div>
+                            </div>
+                            <div class="col-md-6">
+                                <div class="form-group-modern">
+                                    <label asp-for="Input.OfficeId" class="form-label-modern">Office</label>
+                                    <select asp-for="Input.OfficeId" asp-items="Model.OfficeList" class="form-select form-select-modern" id="createOfficeId">
+                                        <option value="">Select office...</option>
+                                    </select>
+                                    <span asp-validation-for="Input.OfficeId" class="text-danger small"></span>
+                                </div>
+                            </div>
+                            <div class="col-md-6">
+                                <div class="form-group-modern">
+                                    <label asp-for="Input.SubOfficeId" class="form-label-modern">Sub Office</label>
+                                    <select asp-for="Input.SubOfficeId" class="form-select form-select-modern" id="createSubOfficeId">
+                                        <option value="">Select sub office...</option>
+                                    </select>
+                                    <span asp-validation-for="Input.SubOfficeId" class="text-danger small"></span>
+                                </div>
+                            </div>
+                            <div class="col-md-6">
+                                <div class="form-group-modern">
+                                    <label asp-for="Input.SupervisorIndexNumber" class="form-label-modern">Supervisor</label>
+                                    <select asp-for="Input.SupervisorIndexNumber" asp-items="Model.SupervisorList" class="form-select form-select-modern">
+                                        <option value="">Select supervisor...</option>
+                                    </select>
+                                    <span asp-validation-for="Input.SupervisorIndexNumber" class="text-danger small"></span>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Login Account -->
+                    <div class="mb-4">
+                        <h6 class="text-muted text-uppercase fw-semibold mb-3" style="font-size: 0.75rem; letter-spacing: 1px;">Login Account</h6>
+                        <div class="form-check form-check-modern mb-3">
+                            <input type="checkbox" id="createLoginAccount" name="Input.CreateLoginAccount" value="true" class="form-check-input" checked>
+                            <label for="createLoginAccount" class="form-check-label">
+                                Create Login Account
+                            </label>
+                            <small class="d-block text-muted mt-1">Allow this user to sign in to the system</small>
+                        </div>
+
+                        <div id="passwordSection">
+                            <div class="row g-3">
+                                <div class="col-md-6">
+                                    <div class="form-group-modern">
+                                        <label for="Input_Password" class="form-label-modern">Password</label>
+                                        <input type="password" id="Input_Password" name="Input.Password" class="form-control form-control-modern" placeholder="Enter password" />
+                                        <small class="text-muted">Min 8 characters, 1 uppercase, 1 lowercase, 1 number, 1 special char</small>
+                                    </div>
+                                </div>
+                                <div class="col-md-6">
+                                    <div class="form-group-modern">
+                                        <label for="Input_ConfirmPassword" class="form-label-modern">Confirm Password</label>
+                                        <input type="password" id="Input_ConfirmPassword" name="Input.ConfirmPassword" class="form-control form-control-modern" placeholder="Confirm password" />
+                                    </div>
+                                </div>
+                            </div>
+                            <div class="mt-2">
+                                <button type="button" class="btn btn-sm btn-outline-secondary" id="generatePasswordBtn" style="border-radius: 8px;">
+                                    <i class="bi bi-key"></i> Generate Strong Password
+                                </button>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Status -->
+                    <div class="mb-4">
+                        <h6 class="text-muted text-uppercase fw-semibold mb-3" style="font-size: 0.75rem; letter-spacing: 1px;">Status</h6>
+                        <div class="form-check form-check-modern">
+                            <input asp-for="Input.IsActive" class="form-check-input">
+                            <label asp-for="Input.IsActive" class="form-check-label">
+                                Active User
+                            </label>
+                            <small class="d-block text-muted mt-1">Active users can access E-bill services</small>
+                        </div>
+                    </div>
+                </div>
+                <div class="modal-footer border-0 pt-0" style="padding: 1rem 2rem 2rem 2rem;">
+                    <div class="d-grid gap-2 d-md-flex justify-content-md-end w-100">
+                        <button type="button" class="btn btn-light me-md-2 px-4 py-2" data-bs-dismiss="modal" style="border-radius: 12px; font-weight: 500;">Cancel</button>
+                        <button type="submit" class="btn btn-primary px-4 py-2" style="border-radius: 12px; font-weight: 500;">
+                            <i class="bi bi-plus-circle me-2"></i>Create User
+                        </button>
+                    </div>
+                </div>
+            </form>
+        </div>
+    </div>
+</div>
+
+<!-- Edit User Modal -->
+<div class="modal fade" id="editUserModal" tabindex="-1" aria-labelledby="editUserModalLabel" aria-hidden="true">
+    <div class="modal-dialog modal-lg modal-dialog-centered">
+        <div class="modal-content border-0 shadow-lg" style="border-radius: 20px;">
+            <div class="modal-header border-0 pb-0" style="padding: 2rem 2rem 1rem 2rem;">
+                <div class="w-100 text-center">
+                    <div class="mb-3">
+                        <div class="bg-info bg-opacity-10 rounded-circle d-inline-flex align-items-center justify-content-center" style="width: 60px; height: 60px;">
+                            <i class="bi bi-pencil text-info" style="font-size: 24px;"></i>
+                        </div>
+                    </div>
+                    <h4 class="modal-title fw-bold text-dark mb-1" id="editUserModalLabel">Edit Ebill User</h4>
+                    <p class="text-muted mb-0">Update user information and settings</p>
+                </div>
+                <button type="button" class="btn-close position-absolute" data-bs-dismiss="modal" aria-label="Close" style="top: 1rem; right: 1rem;"></button>
+            </div>
+            <form method="post" action="/Admin/EbillUsers?handler=EditUser" id="editUserForm">
+                @Html.AntiForgeryToken()
+                <input type="hidden" asp-for="EditInput.Id" id="editUserId" name="EditInput.Id" />
+                <div class="modal-body" style="padding: 1rem 2rem;">
+                    <!-- Error Alert -->
+                    <div id="editUserError" class="alert alert-danger d-none" role="alert">
+                        <i class="bi bi-exclamation-triangle-fill me-2"></i>
+                        <span id="editUserErrorMessage"></span>
+                    </div>
+                    <!-- Basic Information -->
+                    <div class="mb-4">
+                        <h6 class="text-muted text-uppercase fw-semibold mb-3" style="font-size: 0.75rem; letter-spacing: 1px;">Basic Information</h6>
+                        <div class="row g-3">
+                            <div class="col-md-6">
+                                <div class="form-group-modern">
+                                    <label for="editFirstName" class="form-label-modern">First Name</label>
+                                    <input asp-for="EditInput.FirstName" id="editFirstName" name="EditInput.FirstName" class="form-control form-control-modern" placeholder="Enter first name" />
+                                    <span asp-validation-for="EditInput.FirstName" class="text-danger small"></span>
+                                </div>
+                            </div>
+                            <div class="col-md-6">
+                                <div class="form-group-modern">
+                                    <label for="editLastName" class="form-label-modern">Last Name</label>
+                                    <input asp-for="EditInput.LastName" id="editLastName" name="EditInput.LastName" class="form-control form-control-modern" placeholder="Enter last name" />
+                                    <span asp-validation-for="EditInput.LastName" class="text-danger small"></span>
+                                </div>
+                            </div>
+                            <div class="col-md-6">
+                                <div class="form-group-modern">
+                                    <label for="editIndexNumber" class="form-label-modern">Index Number</label>
+                                    <input asp-for="EditInput.IndexNumber" id="editIndexNumber" name="EditInput.IndexNumber" class="form-control form-control-modern" placeholder="Enter index number" />
+                                    <span asp-validation-for="EditInput.IndexNumber" class="text-danger small"></span>
+                                </div>
+                            </div>
+                            <div class="col-md-6">
+                                <div class="form-group-modern">
+                                    <label for="editEmail" class="form-label-modern">Email Address</label>
+                                    <input asp-for="EditInput.Email" id="editEmail" name="EditInput.Email" class="form-control form-control-modern" placeholder="Enter email address" />
+                                    <span asp-validation-for="EditInput.Email" class="text-danger small"></span>
+                                </div>
+                            </div>
+                            <div class="col-md-6">
+                                <div class="form-group-modern">
+                                    <label for="editOfficialMobileNumber" class="form-label-modern">Mobile Number</label>
+                                    <input asp-for="EditInput.OfficialMobileNumber" id="editOfficialMobileNumber" name="EditInput.OfficialMobileNumber" class="form-control form-control-modern" placeholder="Enter mobile number" />
+                                    <span asp-validation-for="EditInput.OfficialMobileNumber" class="text-danger small"></span>
+                                </div>
+                            </div>
+                            <div class="col-md-6">
+                                <div class="form-group-modern">
+                                    <label for="editIssuedDeviceID" class="form-label-modern">Device ID (Optional)</label>
+                                    <input asp-for="EditInput.IssuedDeviceID" id="editIssuedDeviceID" name="EditInput.IssuedDeviceID" class="form-control form-control-modern" placeholder="Enter device ID" />
+                                    <span asp-validation-for="EditInput.IssuedDeviceID" class="text-danger small"></span>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Service & Organization -->
+                    <div class="mb-4">
+                        <h6 class="text-muted text-uppercase fw-semibold mb-3" style="font-size: 0.75rem; letter-spacing: 1px;">Location & Organization</h6>
+                        <div class="row g-3">
+                            <div class="col-md-6">
+                                <div class="form-group-modern">
+                                    <label asp-for="EditInput.Location" class="form-label-modern">Location</label>
+                                    <input asp-for="EditInput.Location" id="editLocation" name="EditInput.Location" class="form-control form-control-modern" placeholder="Enter location" />
+                                    <span asp-validation-for="EditInput.Location" class="text-danger small"></span>
+                                </div>
+                            </div>
+                            <div class="col-md-6">
+                                <div class="form-group-modern">
+                                    <label for="editOrganization" class="form-label-modern">Organization</label>
+                                    <select asp-for="EditInput.OrganizationId" id="editOrganization" name="EditInput.OrganizationId" asp-items="Model.OrganizationList" class="form-select form-select-modern">
+                                        <option value="">Select organization...</option>
+                                    </select>
+                                    <span asp-validation-for="EditInput.OrganizationId" class="text-danger small"></span>
+                                </div>
+                            </div>
+                            <div class="col-md-6">
+                                <div class="form-group-modern">
+                                    <label for="editOffice" class="form-label-modern">Office</label>
+                                    <select asp-for="EditInput.OfficeId" id="editOffice" name="EditInput.OfficeId" asp-items="Model.OfficeList" class="form-select form-select-modern">
+                                        <option value="">Select office...</option>
+                                    </select>
+                                    <span asp-validation-for="EditInput.OfficeId" class="text-danger small"></span>
+                                </div>
+                            </div>
+                            <div class="col-md-6">
+                                <div class="form-group-modern">
+                                    <label for="editSubOffice" class="form-label-modern">Sub Office</label>
+                                    <select asp-for="EditInput.SubOfficeId" id="editSubOffice" name="EditInput.SubOfficeId" class="form-select form-select-modern">
+                                        <option value="">Select sub office...</option>
+                                    </select>
+                                    <span asp-validation-for="EditInput.SubOfficeId" class="text-danger small"></span>
+                                </div>
+                            </div>
+                            <div class="col-md-6">
+                                <div class="form-group-modern">
+                                    <label for="editSupervisorIndexNumber" class="form-label-modern">Supervisor</label>
+                                    <select asp-for="EditInput.SupervisorIndexNumber" id="editSupervisorIndexNumber" name="EditInput.SupervisorIndexNumber" asp-items="Model.SupervisorList" class="form-select form-select-modern">
+                                        <option value="">Select supervisor...</option>
+                                    </select>
+                                    <span asp-validation-for="EditInput.SupervisorIndexNumber" class="text-danger small"></span>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Login Account Management -->
+                    <div class="mb-4">
+                        <h6 class="text-muted text-uppercase fw-semibold mb-3" style="font-size: 0.75rem; letter-spacing: 1px;">Login Account</h6>
+                        <div class="alert alert-light border d-flex align-items-center justify-content-between" style="border-radius: 12px;">
+                            <div>
+                                <div class="d-flex align-items-center gap-2 mb-1">
+                                    <i class="bi bi-shield-lock text-primary"></i>
+                                    <strong id="loginAccountStatus">Loading...</strong>
+                                </div>
+                                <small class="text-muted" id="loginAccountDetails">Checking login status...</small>
+                            </div>
+                            <div>
+                                <button type="button" class="btn btn-sm btn-outline-primary" id="resetPasswordBtn" style="border-radius: 8px; display: none;">
+                                    <i class="bi bi-key"></i> Reset Password
+                                </button>
+                                <button type="button" class="btn btn-sm btn-primary" id="createAccountBtn" style="border-radius: 8px; display: none;">
+                                    <i class="bi bi-person-plus"></i> Create Login Account
+                                </button>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Status -->
+                    <div class="mb-4">
+                        <h6 class="text-muted text-uppercase fw-semibold mb-3" style="font-size: 0.75rem; letter-spacing: 1px;">Status</h6>
+                        <div class="form-check form-check-modern">
+                            <input asp-for="EditInput.IsActive" id="editIsActive" name="EditInput.IsActive" class="form-check-input" type="checkbox">
+                            <label for="editIsActive" class="form-check-label">
+                                Active User
+                            </label>
+                            <small class="d-block text-muted mt-1">Active users can access E-bill services</small>
+                        </div>
+                    </div>
+                </div>
+                <div class="modal-footer border-0 pt-0" style="padding: 1rem 2rem 2rem 2rem;">
+                    <div class="d-grid gap-2 d-md-flex justify-content-md-end w-100">
+                        <button type="button" class="btn btn-light me-md-2 px-4 py-2" data-bs-dismiss="modal" style="border-radius: 12px; font-weight: 500;">Cancel</button>
+                        <button type="submit" class="btn btn-info px-4 py-2" style="border-radius: 12px; font-weight: 500;">
+                            <i class="bi bi-check-circle me-2"></i>Update User
+                        </button>
+                    </div>
+                </div>
+            </form>
+        </div>
+    </div>
+</div>
+
+<!-- Import Results Modal -->
+<div class="modal fade" id="importResultsModal" tabindex="-1" aria-labelledby="importResultsModalLabel" aria-hidden="true">
+    <div class="modal-dialog modal-lg modal-dialog-centered">
+        <div class="modal-content border-0 shadow-lg" style="border-radius: 20px;">
+            <div class="modal-header border-0 pb-0" style="padding: 2rem 2rem 1rem 2rem;">
+                <div class="w-100 text-center">
+                    <div class="mb-3">
+                        <div class="bg-info bg-opacity-10 rounded-circle d-inline-flex align-items-center justify-content-center" style="width: 60px; height: 60px;">
+                            <i class="bi bi-file-earmark-check text-info" style="font-size: 24px;"></i>
+                        </div>
+                    </div>
+                    <h4 class="modal-title fw-bold text-dark mb-1" id="importResultsModalLabel">Import Results</h4>
+                    <p class="text-muted mb-0">Details of the CSV import operation</p>
+                </div>
+                <button type="button" class="btn-close position-absolute" data-bs-dismiss="modal" aria-label="Close" style="top: 1rem; right: 1rem;"></button>
+            </div>
+            <div class="modal-body" style="padding: 1rem 2rem;">
+                @if (TempData["ImportResults"] != null)
+                {
+                    <div class="border rounded p-3" style="background-color: #f8f9fa; max-height: 400px; overflow-y: auto;">
+                        <pre class="mb-0" style="font-size: 12px; white-space: pre-wrap;">@TempData["ImportResults"]</pre>
+                    </div>
+                }
+            </div>
+            <div class="modal-footer border-0 pt-0" style="padding: 1rem 2rem 2rem 2rem;">
+                <button type="button" class="btn btn-primary px-4 py-2" data-bs-dismiss="modal" style="border-radius: 12px; font-weight: 500;">Close</button>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Import Users Modal -->
+<div class="modal fade" id="importUsersModal" tabindex="-1" aria-labelledby="importUsersModalLabel" aria-hidden="true">
+    <div class="modal-dialog modal-lg modal-dialog-centered">
+        <div class="modal-content border-0 shadow-lg" style="border-radius: 20px;">
+            <div class="modal-header border-0 pb-0" style="padding: 2rem 2rem 1rem 2rem;">
+                <div class="w-100 text-center">
+                    <div class="mb-3">
+                        <div class="bg-success bg-opacity-10 rounded-circle d-inline-flex align-items-center justify-content-center" style="width: 60px; height: 60px;">
+                            <i class="bi bi-file-earmark-arrow-up text-success" style="font-size: 24px;"></i>
+                        </div>
+                    </div>
+                    <h4 class="modal-title fw-bold text-dark mb-1" id="importUsersModalLabel">Import Ebill Users</h4>
+                    <p class="text-muted mb-0">Upload a CSV file to bulk import users</p>
+                </div>
+                <button type="button" class="btn-close position-absolute" data-bs-dismiss="modal" aria-label="Close" style="top: 1rem; right: 1rem;"></button>
+            </div>
+            <form method="post" asp-page-handler="ImportUsers" enctype="multipart/form-data">
+                @Html.AntiForgeryToken()
+                <div class="modal-body" style="padding: 1rem 2rem;">
+                    <!-- CSV Format Instructions -->
+                    <div class="alert alert-info border-0" style="background-color: #e0f2fe; border-radius: 12px;">
+                        <h6 class="fw-bold mb-2"><i class="bi bi-info-circle me-2"></i>CSV Format Requirements</h6>
+                        <p class="mb-2">Your CSV file should include the following columns in this exact order:</p>
+                        <code class="d-block bg-white p-2 rounded mb-2" style="font-size: 12px;">
+                            FirstName,LastName,IndexNumber,Email,OfficialMobileNumber,IssuedDeviceID,ClassOfService,Location,Organization,Office,SupervisorIndexNumber,IsActive
+                        </code>
+                        <small class="text-muted">
+                            <strong>Note:</strong> 
+                            <ul class="mb-0 mt-1">
+                                <li>The first row should contain column headers</li>
+                                <li>IsActive should be TRUE or FALSE</li>
+                                <li>Leave fields empty if not applicable (e.g., IssuedDeviceID, Organization)</li>
+                                <li><strong>Important:</strong> The following fields must match existing values in the system:
+                                    <ul>
+                                        <li><strong>ClassOfService</strong> - Must match an active service class name</li>
+                                        <li><strong>Organization</strong> - Must match an existing organization name</li>
+                                        <li><strong>Office</strong> - Must match an existing office name</li>
+                                        <li><strong>SupervisorIndexNumber</strong> - Must be the username/index number of an active supervisor</li>
+                                    </ul>
+                                </li>
+                                <li>Invalid dropdown values will cause the row to fail import</li>
+                            </ul>
+                        </small>
+                    </div>
+
+                    <!-- File Upload -->
+                    <div class="mb-4">
+                        <label class="form-label-modern">Choose CSV File</label>
+                        <div class="position-relative">
+                            <input type="file" class="form-control form-control-modern" id="csvFile" name="csvFile" accept=".csv" required 
+                                   style="padding: 12px;" />
+                            <div class="form-text">Maximum file size: 5MB</div>
+                        </div>
+                    </div>
+
+                    <!-- Download Sample -->
+                    <div class="text-center mb-3">
+                        <a href="#" onclick="downloadSampleCSV()" class="btn btn-sm btn-outline-secondary">
+                            <i class="bi bi-download me-2"></i>Download Sample CSV Template
+                        </a>
+                    </div>
+
+                    <!-- Import Options -->
+                    <div class="mb-4">
+                        <h6 class="text-muted text-uppercase fw-semibold mb-3" style="font-size: 0.75rem; letter-spacing: 1px;">Import Options</h6>
+                        <div class="form-check mb-2">
+                            <input class="form-check-input" type="checkbox" id="skipDuplicates" name="skipDuplicates" checked>
+                            <label class="form-check-label" for="skipDuplicates">
+                                Skip duplicate users (based on Index Number or Email)
+                            </label>
+                        </div>
+                        <div class="form-check">
+                            <input class="form-check-input" type="checkbox" id="updateExisting" name="updateExisting">
+                            <label class="form-check-label" for="updateExisting">
+                                Update existing users if found
+                            </label>
+                        </div>
+                    </div>
+                </div>
+                <div class="modal-footer border-0 pt-0" style="padding: 1rem 2rem 2rem 2rem;">
+                    <div class="d-grid gap-2 d-md-flex justify-content-md-end w-100">
+                        <button type="button" class="btn btn-light me-md-2 px-4 py-2" data-bs-dismiss="modal" style="border-radius: 12px; font-weight: 500;">Cancel</button>
+                        <button type="submit" class="btn btn-success px-4 py-2" style="border-radius: 12px; font-weight: 500;">
+                            <i class="bi bi-upload me-2"></i>Import Users
+                        </button>
+                    </div>
+                </div>
+            </form>
+        </div>
+    </div>
+</div>
+
+
+<!-- Bulk Status Change Modal -->
+<div class="modal fade" id="bulkStatusModal" tabindex="-1" aria-labelledby="bulkStatusModalLabel" aria-hidden="true">
+    <div class="modal-dialog modal-dialog-centered">
+        <div class="modal-content" style="border-radius: 16px; border: none; box-shadow: 0 20px 60px rgba(0,0,0,0.1);">
+            <div class="modal-header border-0 position-relative" style="padding: 2rem 2rem 1rem;">
+                <div>
+                    <div class="d-flex align-items-center mb-3">
+                        <div class="rounded-circle bg-warning bg-opacity-10 p-3 me-3">
+                            <i class="bi bi-toggle2-on text-warning fs-4"></i>
+                        </div>
+                        <div>
+                            <h4 class="modal-title fw-bold text-dark mb-1">Change User Status</h4>
+                            <p class="text-muted mb-0">Update status for selected users</p>
+                        </div>
+                    </div>
+                </div>
+                <button type="button" class="btn-close position-absolute" data-bs-dismiss="modal" aria-label="Close" style="top: 1rem; right: 1rem;"></button>
+            </div>
+            <form method="post" asp-page-handler="BulkStatusChange" id="bulkStatusForm">
+                @Html.AntiForgeryToken()
+                <div id="statusSelectedUserIds"></div>
+                <div class="modal-body" style="padding: 1rem 2rem;">
+                    <div class="alert alert-info border-0" style="background-color: #eff6ff; color: #1e40af;">
+                        <div class="d-flex">
+                            <i class="bi bi-info-circle-fill me-2 text-primary"></i>
+                            <div>
+                                <strong>You are about to change the status for <span id="bulkStatusCount">0</span> user(s)</strong>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Status Selection -->
+                    <div class="mb-3">
+                        <label class="form-label fw-semibold">Select New Status</label>
+                        <div class="d-grid gap-2">
+                            <div class="form-check border rounded p-3" style="background-color: #f0fdf4;">
+                                <input class="form-check-input" type="radio" name="newStatus" id="statusActive" value="Active" checked>
+                                <label class="form-check-label w-100" for="statusActive">
+                                    <div class="d-flex justify-content-between align-items-center">
+                                        <div>
+                                            <i class="bi bi-check-circle-fill text-success me-2"></i>
+                                            <span class="fw-semibold">Active</span>
+                                        </div>
+                                        <span class="badge bg-success">Enable Users</span>
+                                    </div>
+                                    <small class="text-muted d-block mt-1">Users will be able to access services</small>
+                                </label>
+                            </div>
+                            <div class="form-check border rounded p-3" style="background-color: #fef2f2;">
+                                <input class="form-check-input" type="radio" name="newStatus" id="statusInactive" value="Inactive">
+                                <label class="form-check-label w-100" for="statusInactive">
+                                    <div class="d-flex justify-content-between align-items-center">
+                                        <div>
+                                            <i class="bi bi-x-circle-fill text-danger me-2"></i>
+                                            <span class="fw-semibold">Inactive</span>
+                                        </div>
+                                        <span class="badge bg-danger">Disable Users</span>
+                                    </div>
+                                    <small class="text-muted d-block mt-1">Users will be temporarily disabled</small>
+                                </label>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Selected Users List -->
+                    <div class="mt-3">
+                        <label class="form-label text-muted small">Selected Users:</label>
+                        <div class="border rounded p-3" style="max-height: 150px; overflow-y: auto; background-color: #f9fafb;">
+                            <ul class="list-unstyled mb-0" id="bulkStatusUsersList" style="font-size: 14px;">
+                                <!-- User names will be populated here by JavaScript -->
+                            </ul>
+                        </div>
+                    </div>
+                </div>
+                <div class="modal-footer border-0" style="padding: 1rem 2rem 1.5rem;">
+                    <button type="button" class="btn btn-light px-4" data-bs-dismiss="modal" style="border-radius: 10px;">
+                        Cancel
+                    </button>
+                    <button type="submit" class="btn btn-warning px-4" style="border-radius: 10px;">
+                        <i class="bi bi-check-lg me-2"></i>Update Status
+                    </button>
+                </div>
+            </form>
+        </div>
+    </div>
+</div>
+
+<!-- Bulk Delete Confirmation Modal -->
+<div class="modal fade" id="bulkDeleteModal" tabindex="-1" aria-labelledby="bulkDeleteModalLabel" aria-hidden="true">
+    <div class="modal-dialog modal-dialog-centered">
+        <div class="modal-content" style="border-radius: 16px; border: none; box-shadow: 0 20px 60px rgba(0,0,0,0.1);">
+            <div class="modal-header border-0 position-relative" style="padding: 2rem 2rem 1rem;">
+                <div>
+                    <div class="d-flex align-items-center mb-3">
+                        <div class="rounded-circle bg-danger bg-opacity-10 p-3 me-3">
+                            <i class="bi bi-exclamation-triangle text-danger fs-4"></i>
+                        </div>
+                        <div>
+                            <h4 class="modal-title fw-bold text-dark mb-1">Bulk Delete Users</h4>
+                            <p class="text-muted mb-0">This action cannot be undone</p>
+                        </div>
+                    </div>
+                </div>
+                <button type="button" class="btn-close position-absolute" data-bs-dismiss="modal" aria-label="Close" style="top: 1rem; right: 1rem;"></button>
+            </div>
+            <form method="post" asp-page-handler="BulkDeleteUsers" id="bulkDeleteForm">
+                @Html.AntiForgeryToken()
+                <div id="selectedUserIds"></div>
+                <div class="modal-body" style="padding: 1rem 2rem;">
+                    <div class="alert alert-danger border-0" style="background-color: #fef2f2; color: #991b1b;">
+                        <div class="d-flex">
+                            <i class="bi bi-info-circle-fill me-2 text-danger"></i>
+                            <div>
+                                <strong>Are you sure you want to delete <span id="bulkDeleteCount">0</span> user(s)?</strong>
+                                <div class="mt-2">
+                                    <p class="mb-0">The following users will be permanently deleted:</p>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="border rounded p-3 mt-3" style="max-height: 200px; overflow-y: auto; background-color: #f9fafb;">
+                        <ul class="list-unstyled mb-0" id="bulkDeleteUsersList">
+                            <!-- User names will be populated here by JavaScript -->
+                        </ul>
+                    </div>
+                    <div class="text-muted small mt-3">
+                        <i class="bi bi-info-circle me-1"></i>
+                        This will permanently delete all selected users and their associated data including:
+                        <ul class="mt-2">
+                            <li>User profile information</li>
+                            <li>Phone assignments</li>
+                            <li>Service associations</li>
+                            <li>All related records</li>
+                        </ul>
+                    </div>
+                </div>
+                <div class="modal-footer border-0" style="padding: 1rem 2rem 1.5rem;">
+                    <button type="button" class="btn btn-light px-4" data-bs-dismiss="modal" style="border-radius: 10px;">
+                        Cancel
+                    </button>
+                    <button type="submit" class="btn btn-danger px-4" style="border-radius: 10px;">
+                        <i class="bi bi-trash me-2"></i>Delete <span id="bulkDeleteButtonCount">0</span> Users
+                    </button>
+                </div>
+            </form>
+        </div>
+    </div>
+</div>
+
+<!-- Delete Confirmation Modal -->
+<div class="modal fade" id="deleteUserModal" tabindex="-1" aria-labelledby="deleteUserModalLabel" aria-hidden="true">
+    <div class="modal-dialog modal-dialog-centered">
+        <div class="modal-content" style="border-radius: 16px; border: none; box-shadow: 0 20px 60px rgba(0,0,0,0.1);">
+            <div class="modal-header border-0 position-relative" style="padding: 2rem 2rem 1rem;">
+                <div>
+                    <div class="d-flex align-items-center mb-3">
+                        <div class="rounded-circle bg-danger bg-opacity-10 p-3 me-3">
+                            <i class="bi bi-exclamation-triangle text-danger fs-4"></i>
+                        </div>
+                        <div>
+                            <h4 class="modal-title fw-bold text-dark mb-1">Confirm Deletion</h4>
+                            <p class="text-muted mb-0">This action cannot be undone</p>
+                        </div>
+                    </div>
+                </div>
+                <button type="button" class="btn-close position-absolute" data-bs-dismiss="modal" aria-label="Close" style="top: 1rem; right: 1rem;"></button>
+            </div>
+            <form method="post" asp-page-handler="DeleteUser" id="deleteUserForm">
+                @Html.AntiForgeryToken()
+                <input type="hidden" name="id" id="deleteUserId" />
+                <div class="modal-body" style="padding: 1rem 2rem;">
+                    <div class="alert alert-warning border-0" style="background-color: #fef2f2; color: #991b1b;">
+                        <div class="d-flex">
+                            <i class="bi bi-info-circle-fill me-2 text-danger"></i>
+                            <div>
+                                <strong>Are you sure you want to delete this user?</strong>
+                                <div class="mt-2">
+                                    <p class="mb-1">User Name: <span id="deleteUserName" class="fw-semibold"></span></p>
+                                    <p class="mb-0">Index Number: <span id="deleteUserIndex" class="fw-semibold"></span></p>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="text-muted small mt-3">
+                        <i class="bi bi-info-circle me-1"></i>
+                        This will permanently delete the user and all associated data including:
+                        <ul class="mt-2">
+                            <li>User profile information</li>
+                            <li>Phone assignments</li>
+                            <li>Service associations</li>
+                        </ul>
+                    </div>
+                </div>
+                <div class="modal-footer border-0" style="padding: 1rem 2rem 1.5rem;">
+                    <button type="button" class="btn btn-light px-4" data-bs-dismiss="modal" style="border-radius: 10px;">
+                        Cancel
+                    </button>
+                    <button type="submit" class="btn btn-danger px-4" style="border-radius: 10px;">
+                        <i class="bi bi-trash me-2"></i>Delete User
+                    </button>
+                </div>
+            </form>
+        </div>
+    </div>
+</div>
+
+<!-- Password Display Modal -->
+<div class="modal fade" id="passwordModal" tabindex="-1" aria-labelledby="passwordModalLabel" aria-hidden="true">
+    <div class="modal-dialog modal-dialog-centered">
+        <div class="modal-content border-0 shadow-lg" style="border-radius: 20px;">
+            <div class="modal-header border-0 pb-0" style="padding: 2rem 2rem 1rem 2rem;">
+                <div class="w-100 text-center">
+                    <div class="mb-3">
+                        <div class="bg-success bg-opacity-10 rounded-circle d-inline-flex align-items-center justify-content-center" style="width: 60px; height: 60px;">
+                            <i class="bi bi-key text-success" style="font-size: 24px;"></i>
+                        </div>
+                    </div>
+                    <h4 class="modal-title fw-bold text-dark mb-1" id="passwordModalLabel">Login Credentials</h4>
+                    <p class="text-muted mb-0">Save these credentials securely</p>
+                </div>
+                <button type="button" class="btn-close position-absolute" data-bs-dismiss="modal" aria-label="Close" style="top: 1rem; right: 1rem;"></button>
+            </div>
+            <div class="modal-body" style="padding: 1rem 2rem;">
+                <div class="alert alert-warning border-0" style="border-radius: 12px;">
+                    <i class="bi bi-exclamation-triangle me-2"></i>
+                    <strong>Important:</strong> Copy this password now. It cannot be retrieved later.
+                </div>
+
+                <div class="mb-3">
+                    <label class="form-label fw-semibold">Username / Email</label>
+                    <div class="input-group">
+                        <input type="text" class="form-control" id="displayEmail" readonly style="border-radius: 12px 0 0 12px;">
+                        <button class="btn btn-outline-secondary" type="button" onclick="copyToClipboard('displayEmail')" style="border-radius: 0 12px 12px 0;">
+                            <i class="bi bi-clipboard"></i>
+                        </button>
+                    </div>
+                </div>
+
+                <div class="mb-3">
+                    <label class="form-label fw-semibold">Temporary Password</label>
+                    <div class="input-group">
+                        <input type="text" class="form-control font-monospace" id="displayPassword" readonly style="border-radius: 12px 0 0 12px;">
+                        <button class="btn btn-outline-secondary" type="button" onclick="copyToClipboard('displayPassword')" style="border-radius: 0 12px 12px 0;">
+                            <i class="bi bi-clipboard"></i>
+                        </button>
+                    </div>
+                    <small class="text-muted">User will be required to change password on first login</small>
+                </div>
+            </div>
+            <div class="modal-footer border-0 pt-0" style="padding: 1rem 2rem 2rem 2rem;">
+                <button type="button" class="btn btn-primary px-4 py-2" data-bs-dismiss="modal" style="border-radius: 12px; font-weight: 500;">
+                    <i class="bi bi-check-circle me-2"></i>I've Saved the Password
+                </button>
+            </div>
+        </div>
+    </div>
+</div>
+
+@section Scripts {
+    <partial name="_ValidationScriptsPartial" />
+    <script>
+        // Handle Delete Modal
+        document.addEventListener('DOMContentLoaded', function() {
+            var deleteModal = document.getElementById('deleteUserModal');
+            deleteModal.addEventListener('show.bs.modal', function(event) {
+                var button = event.relatedTarget;
+                var userId = button.getAttribute('data-user-id');
+                var userName = button.getAttribute('data-user-name');
+                var userIndex = button.getAttribute('data-user-index');
+
+                // Update modal content
+                document.getElementById('deleteUserId').value = userId;
+                document.getElementById('deleteUserName').textContent = userName || 'Unknown User';
+                document.getElementById('deleteUserIndex').textContent = userIndex || 'N/A';
+            });
+
+            // Bulk delete functionality
+            const selectAllCheckbox = document.getElementById('selectAllUsers');
+            const userCheckboxes = document.querySelectorAll('.user-checkbox');
+            const bulkDeleteControls = document.getElementById('bulkDeleteControls');
+            const selectedCountElement = document.getElementById('selectedCount');
+            const clearSelectionBtn = document.getElementById('clearSelectionBtn');
+            const bulkDeleteModal = document.getElementById('bulkDeleteModal');
+            const bulkStatusModal = document.getElementById('bulkStatusModal');
+
+            let selectedUsers = new Set();
+
+            // Update UI based on selection
+            function updateBulkDeleteUI() {
+                const count = selectedUsers.size;
+                selectedCountElement.textContent = count;
+
+                if (count > 0) {
+                    bulkDeleteControls.classList.remove('d-none');
+                    bulkDeleteControls.classList.add('d-flex');
+                } else {
+                    bulkDeleteControls.classList.add('d-none');
+                    bulkDeleteControls.classList.remove('d-flex');
+                }
+
+                // Update select all checkbox state
+                if (selectAllCheckbox) {
+                    selectAllCheckbox.checked = count === userCheckboxes.length && count > 0;
+                    selectAllCheckbox.indeterminate = count > 0 && count < userCheckboxes.length;
+                }
+            }
+
+            // Handle individual checkbox change
+            userCheckboxes.forEach(checkbox => {
+                checkbox.addEventListener('change', function() {
+                    const userId = this.getAttribute('data-user-id');
+                    const userName = this.getAttribute('data-user-name');
+
+                    if (this.checked) {
+                        // Remove any existing entry with the same ID first
+                        selectedUsers = new Set([...selectedUsers].filter(user => user.id !== userId));
+                        // Add the user
+                        selectedUsers.add({ id: userId, name: userName });
+                    } else {
+                        // Remove the user
+                        selectedUsers = new Set([...selectedUsers].filter(user => user.id !== userId));
+                    }
+                    updateBulkDeleteUI();
+                });
+            });
+
+            // Handle select all checkbox
+            if (selectAllCheckbox) {
+                selectAllCheckbox.addEventListener('change', function() {
+                    if (this.checked) {
+                        // Clear and rebuild the set with all users
+                        selectedUsers.clear();
+                        userCheckboxes.forEach(checkbox => {
+                            checkbox.checked = true;
+                            const userId = checkbox.getAttribute('data-user-id');
+                            const userName = checkbox.getAttribute('data-user-name');
+                            selectedUsers.add({ id: userId, name: userName });
+                        });
+                    } else {
+                        // Uncheck all and clear the set
+                        selectedUsers.clear();
+                        userCheckboxes.forEach(checkbox => {
+                            checkbox.checked = false;
+                        });
+                    }
+                    updateBulkDeleteUI();
+                });
+            }
+
+            // Clear selection button
+            if (clearSelectionBtn) {
+                clearSelectionBtn.addEventListener('click', function() {
+                    selectedUsers.clear();
+                    userCheckboxes.forEach(checkbox => {
+                        checkbox.checked = false;
+                    });
+                    if (selectAllCheckbox) {
+                        selectAllCheckbox.checked = false;
+                    }
+                    updateBulkDeleteUI();
+                });
+            }
+
+            // Handle bulk delete modal show
+            if (bulkDeleteModal) {
+                bulkDeleteModal.addEventListener('show.bs.modal', function() {
+                    const count = selectedUsers.size;
+                    document.getElementById('bulkDeleteCount').textContent = count;
+                    document.getElementById('bulkDeleteButtonCount').textContent = count;
+
+                    // Populate user list
+                    const usersList = document.getElementById('bulkDeleteUsersList');
+                    usersList.innerHTML = '';
+
+                    // Clear and add hidden inputs for user IDs
+                    const selectedUserIdsDiv = document.getElementById('selectedUserIds');
+                    selectedUserIdsDiv.innerHTML = '';
+
+                    selectedUsers.forEach(user => {
+                        // Add to list
+                        const li = document.createElement('li');
+                        li.className = 'mb-1';
+                        li.innerHTML = `<i class="bi bi-person-x text-danger me-2"></i>${user.name || 'Unknown User'}`;
+                        usersList.appendChild(li);
+
+                        // Add hidden input
+                        const input = document.createElement('input');
+                        input.type = 'hidden';
+                        input.name = 'userIds';
+                        input.value = user.id;
+                        selectedUserIdsDiv.appendChild(input);
+                    });
+                });
+            }
+
+            // Handle bulk status change modal show
+            if (bulkStatusModal) {
+                bulkStatusModal.addEventListener('show.bs.modal', function() {
+                    const count = selectedUsers.size;
+                    document.getElementById('bulkStatusCount').textContent = count;
+
+                    // Populate user list
+                    const usersList = document.getElementById('bulkStatusUsersList');
+                    usersList.innerHTML = '';
+
+                    // Clear and add hidden inputs for user IDs
+                    const statusSelectedUserIdsDiv = document.getElementById('statusSelectedUserIds');
+                    statusSelectedUserIdsDiv.innerHTML = '';
+
+                    selectedUsers.forEach(user => {
+                        // Add to list
+                        const li = document.createElement('li');
+                        li.className = 'mb-1';
+                        li.innerHTML = `<i class="bi bi-person me-2"></i>${user.name || 'Unknown User'}`;
+                        usersList.appendChild(li);
+
+                        // Add hidden input
+                        const input = document.createElement('input');
+                        input.type = 'hidden';
+                        input.name = 'userIds';
+                        input.value = user.id;
+                        statusSelectedUserIdsDiv.appendChild(input);
+                    });
+                });
+            }
+        });
+
+        // Helper function to show error message
+        function showError(message, isCreate) {
+            var errorDiv = document.getElementById(isCreate ? 'createUserError' : 'editUserError');
+            var errorMessage = document.getElementById(isCreate ? 'createUserErrorMessage' : 'editUserErrorMessage');
+
+            if (errorDiv && errorMessage) {
+                errorMessage.textContent = message;
+                errorDiv.classList.remove('d-none');
+
+                // Auto-hide after 5 seconds
+                setTimeout(function() {
+                    errorDiv.classList.add('d-none');
+                }, 5000);
+            }
+        }
+
+        // Helper function to hide error message
+        function hideError(isCreate) {
+            var errorDiv = document.getElementById(isCreate ? 'createUserError' : 'editUserError');
+            if (errorDiv) {
+                errorDiv.classList.add('d-none');
+            }
+        }
+
+        // Function to load offices based on selected organization
+        function loadOffices(organizationSelectId, officeSelectId, subOfficeSelectId, selectedOfficeId) {
+            var organizationId = document.getElementById(organizationSelectId).value;
+            var officeSelect = document.getElementById(officeSelectId);
+            var subOfficeSelect = document.getElementById(subOfficeSelectId);
+
+            // Clear office options
+            officeSelect.innerHTML = '<option value="">Select office...</option>';
+            // Clear sub-office options
+            subOfficeSelect.innerHTML = '<option value="">Select sub office...</option>';
+
+            if (!organizationId) {
+                return;
+            }
+
+            // Determine if this is for create or edit form
+            var isCreate = organizationSelectId.includes('Input');
+
+            // Show loading state
+            officeSelect.disabled = true;
+            officeSelect.innerHTML = '<option value="">Loading offices...</option>';
+
+            // Fetch offices for the selected organization
+            fetch(`/Admin/EbillUsers?handler=Offices&organizationId=${organizationId}`)
+                .then(response => {
+                    if (!response.ok) {
+                        throw new Error(`Failed to load offices: ${response.statusText}`);
+                    }
+                    return response.json();
+                })
+                .then(data => {
+                    officeSelect.disabled = false;
+                    officeSelect.innerHTML = '<option value="">Select office...</option>';
+
+                    if (data.length === 0) {
+                        officeSelect.innerHTML = '<option value="">No offices available for this organization</option>';
+                        return;
+                    }
+
+                    data.forEach(office => {
+                        var option = document.createElement('option');
+                        option.value = office.value;
+                        option.textContent = office.text;
+                        if (selectedOfficeId && office.value == selectedOfficeId) {
+                            option.selected = true;
+                        }
+                        officeSelect.appendChild(option);
+                    });
+
+                    // If an office was selected, load its sub-offices
+                    if (selectedOfficeId) {
+                        loadSubOffices(officeSelectId, subOfficeSelectId, null);
+                    }
+
+                    hideError(isCreate);
+                })
+                .catch(error => {
+                    officeSelect.disabled = false;
+                    officeSelect.innerHTML = '<option value="">Failed to load offices</option>';
+                    showError('Failed to load offices. Please try again or contact support if the problem persists.', isCreate);
+                    console.error('Error loading offices:', error);
+                });
+        }
+
+        // Function to load suboffices based on selected office
+        function loadSubOffices(officeSelectId, subOfficeSelectId, selectedSubOfficeId) {
+            var officeId = document.getElementById(officeSelectId).value;
+            var subOfficeSelect = document.getElementById(subOfficeSelectId);
+
+            // Clear existing options
+            subOfficeSelect.innerHTML = '<option value="">Select sub office...</option>';
+
+            if (!officeId) {
+                return;
+            }
+
+            // Determine if this is for create or edit form
+            var isCreate = officeSelectId.includes('create');
+
+            // Show loading state
+            subOfficeSelect.disabled = true;
+            subOfficeSelect.innerHTML = '<option value="">Loading sub offices...</option>';
+
+            // Fetch suboffices for the selected office
+            fetch(`/Admin/EbillUsers?handler=SubOffices&officeId=${officeId}`)
+                .then(response => {
+                    if (!response.ok) {
+                        throw new Error(`Failed to load sub offices: ${response.statusText}`);
+                    }
+                    return response.json();
+                })
+                .then(data => {
+                    subOfficeSelect.disabled = false;
+                    subOfficeSelect.innerHTML = '<option value="">Select sub office...</option>';
+
+                    if (data.length === 0) {
+                        subOfficeSelect.innerHTML = '<option value="">No sub offices available for this office</option>';
+                        return;
+                    }
+
+                    data.forEach(subOffice => {
+                        var option = document.createElement('option');
+                        option.value = subOffice.value;
+                        option.textContent = subOffice.text;
+                        if (selectedSubOfficeId && subOffice.value == selectedSubOfficeId) {
+                            option.selected = true;
+                        }
+                        subOfficeSelect.appendChild(option);
+                    });
+
+                    hideError(isCreate);
+                })
+                .catch(error => {
+                    subOfficeSelect.disabled = false;
+                    subOfficeSelect.innerHTML = '<option value="">Failed to load sub offices</option>';
+                    showError('Failed to load sub offices. Please try again or contact support if the problem persists.', isCreate);
+                    console.error('Error loading sub offices:', error);
+                });
+        }
+
+        // Add event listeners for cascading dropdowns
+        document.addEventListener('DOMContentLoaded', function() {
+            // Create form - Organization change
+            var createOrganizationSelect = document.getElementById('Input_OrganizationId');
+            if (createOrganizationSelect) {
+                createOrganizationSelect.addEventListener('change', function() {
+                    loadOffices('Input_OrganizationId', 'createOfficeId', 'createSubOfficeId', null);
+                });
+            }
+
+            // Create form - Office change
+            var createOfficeSelect = document.getElementById('createOfficeId');
+            if (createOfficeSelect) {
+                createOfficeSelect.addEventListener('change', function() {
+                    loadSubOffices('createOfficeId', 'createSubOfficeId', null);
+                });
+            }
+
+            // Edit form - Organization change
+            var editOrganizationSelect = document.getElementById('editOrganization');
+            if (editOrganizationSelect) {
+                editOrganizationSelect.addEventListener('change', function() {
+                    loadOffices('editOrganization', 'editOffice', 'editSubOffice', null);
+                });
+            }
+
+            // Edit form - Office change
+            var editOfficeSelect = document.getElementById('editOffice');
+            if (editOfficeSelect) {
+                editOfficeSelect.addEventListener('change', function() {
+                    loadSubOffices('editOffice', 'editSubOffice', null);
+                });
+            }
+        });
+        document.addEventListener('DOMContentLoaded', function() {
+            // Show modal if validation failed
+            @if (ViewData["ShowCreateModal"] != null && ViewData["ShowCreateModal"] as bool? == true)
+            {
+                <text>
+                var createModal = new bootstrap.Modal(document.getElementById('createUserModal'));
+                createModal.show();
+                </text>
+            }
+            
+            
+            // Clear the form when modal is opened fresh
+            document.getElementById('createUserModal').addEventListener('show.bs.modal', function (event) {
+                // Only clear if not showing due to validation error
+                @if (ViewData["ShowCreateModal"] == null || ViewData["ShowCreateModal"] as bool? != true)
+                {
+                    <text>
+                    var form = this.querySelector('form');
+                    if (form) {
+                        form.reset();
+                        // Clear validation messages
+                        var validationMessages = form.querySelectorAll('.text-danger');
+                        validationMessages.forEach(function(elem) {
+                            elem.textContent = '';
+                        });
+                    }
+                    </text>
+                }
+            });
+        });
+
+        // Function to populate edit user modal
+        // Handle edit user button clicks using event delegation
+        document.addEventListener('click', function(event) {
+            if (event.target.closest('.btn-edit-user')) {
+                const btn = event.target.closest('.btn-edit-user');
+                editUserFromButton(btn);
+            }
+        });
+
+        function editUserFromButton(button) {
+            try {
+                const id = button.getAttribute('data-user-id');
+                const firstName = button.getAttribute('data-first-name');
+                const lastName = button.getAttribute('data-last-name');
+                const indexNumber = button.getAttribute('data-index-number');
+                const email = button.getAttribute('data-email');
+                const mobileNumber = button.getAttribute('data-mobile-number');
+                const deviceId = button.getAttribute('data-device-id');
+                const location = button.getAttribute('data-location');
+                const organization = button.getAttribute('data-organization');
+                const office = button.getAttribute('data-office');
+                const subOffice = button.getAttribute('data-sub-office');
+                const isActive = button.getAttribute('data-is-active');
+                const supervisorIndexNumber = button.getAttribute('data-supervisor');
+                const hasLoginAccount = button.getAttribute('data-has-login') === 'True';
+                const loginEnabled = button.getAttribute('data-login-enabled') === 'True';
+
+                console.log('Edit User Data:', {
+                    id, firstName, lastName, indexNumber, email,
+                    organization, office, subOffice, isActive,
+                    hasLoginAccount, loginEnabled
+                });
+
+                // Store for password reset/create account handlers
+                window.currentEditUserId = id;
+
+                // Update login account status
+                updateLoginAccountStatus(hasLoginAccount, loginEnabled);
+
+                editUser(id, firstName, lastName, indexNumber, email, mobileNumber, deviceId, location, organization, office, subOffice, isActive, supervisorIndexNumber);
+            } catch (error) {
+                console.error('Error in editUserFromButton:', error);
+                alert('Failed to edit user. Please check the console for details.');
+            }
+        }
+
+        function updateLoginAccountStatus(hasLoginAccount, loginEnabled) {
+            const statusEl = document.getElementById('loginAccountStatus');
+            const detailsEl = document.getElementById('loginAccountDetails');
+            const resetBtn = document.getElementById('resetPasswordBtn');
+            const createBtn = document.getElementById('createAccountBtn');
+
+            if (hasLoginAccount) {
+                statusEl.textContent = loginEnabled ? 'Login Account Active' : 'Login Account Disabled';
+                statusEl.className = loginEnabled ? 'text-success' : 'text-warning';
+                detailsEl.textContent = loginEnabled ?
+                    'User can sign in with their email and password' :
+                    'Login is currently disabled for this user';
+                resetBtn.style.display = 'inline-block';
+                createBtn.style.display = 'none';
+            } else {
+                statusEl.textContent = 'No Login Account';
+                statusEl.className = 'text-muted';
+                detailsEl.textContent = 'User cannot sign in to the system';
+                resetBtn.style.display = 'none';
+                createBtn.style.display = 'inline-block';
+            }
+        }
+
+        function editUser(id, firstName, lastName, indexNumber, email, mobileNumber, deviceId, location, organization, office, subOffice, isActive, supervisorIndexNumber) {
+            try {
+                console.log('EditUser function called with ID:', id);
+
+                // Clear any previous errors
+                hideError(false);
+
+                // Set the hidden ID field
+                var idField = document.getElementById('editUserId');
+                if (!idField) {
+                    console.error('Edit user ID field not found!');
+                    return;
+                }
+                idField.value = id;
+
+                // Also set the EditInput.Id field if it exists
+                var editInputId = document.getElementById('EditInput_Id');
+                if (editInputId) {
+                    editInputId.value = id;
+                }
+
+                console.log('Setting form fields...');
+                document.getElementById('editFirstName').value = firstName || '';
+                document.getElementById('editLastName').value = lastName || '';
+                document.getElementById('editIndexNumber').value = indexNumber || '';
+                document.getElementById('editEmail').value = email || '';
+                document.getElementById('editOfficialMobileNumber').value = mobileNumber || '';
+                document.getElementById('editIssuedDeviceID').value = deviceId || '';
+                document.getElementById('editLocation').value = location || '';
+                document.getElementById('editOrganization').value = organization || '';
+
+            // Load offices for the selected organization, then load sub-offices
+            if (organization) {
+                var officeSelect = document.getElementById('editOffice');
+                officeSelect.disabled = true;
+                officeSelect.innerHTML = '<option value="">Loading offices...</option>';
+
+                // Load offices for this organization
+                fetch(`/Admin/EbillUsers?handler=Offices&organizationId=${organization}`)
+                    .then(response => {
+                        if (!response.ok) {
+                            throw new Error(`Failed to load offices: ${response.statusText}`);
+                        }
+                        return response.json();
+                    })
+                    .then(data => {
+                        officeSelect.disabled = false;
+                        officeSelect.innerHTML = '<option value="">Select office...</option>';
+
+                        if (data.length === 0) {
+                            officeSelect.innerHTML = '<option value="">No offices available for this organization</option>';
+                            return;
+                        }
+
+                        data.forEach(officeItem => {
+                            var option = document.createElement('option');
+                            option.value = officeItem.value;
+                            option.textContent = officeItem.text;
+                            if (office && officeItem.value == office) {
+                                option.selected = true;
+                            }
+                            officeSelect.appendChild(option);
+                        });
+
+                        // After offices are loaded, load sub-offices if an office is selected
+                        if (office) {
+                            loadSubOffices('editOffice', 'editSubOffice', subOffice);
+                        }
+
+                        hideError(false);
+                    })
+                    .catch(error => {
+                        officeSelect.disabled = false;
+                        officeSelect.innerHTML = '<option value="">Failed to load offices</option>';
+                        showError('Failed to load offices for editing. Please try again.', false);
+                        console.error('Error loading offices:', error);
+                    });
+            } else {
+                document.getElementById('editOffice').innerHTML = '<option value="">Select office...</option>';
+                document.getElementById('editSubOffice').innerHTML = '<option value="">Select sub office...</option>';
+            }
+
+            document.getElementById('editIsActive').checked = isActive === 'true' || isActive === true;
+            document.getElementById('editSupervisorIndexNumber').value = supervisorIndexNumber || '';
+
+            // Open the modal
+            var editModal = new bootstrap.Modal(document.getElementById('editUserModal'));
+            editModal.show();
+            } catch (error) {
+                console.error('Error opening edit modal:', error);
+                showError('Failed to open edit modal. Please check the console for details.', false);
+            }
+        }
+
+        // Clear form validation errors when modals are closed
+        document.getElementById('createUserModal').addEventListener('hidden.bs.modal', function () {
+            // Clear validation errors
+            const validationSpans = document.querySelectorAll('#createUserModal .text-danger');
+            validationSpans.forEach(span => {
+                if (span.classList.contains('small')) {
+                    span.textContent = '';
+                }
+            });
+        });
+
+        document.getElementById('editUserModal').addEventListener('hidden.bs.modal', function () {
+            // Clear validation errors
+            const validationSpans = document.querySelectorAll('#editUserModal .text-danger');
+            validationSpans.forEach(span => {
+                if (span.classList.contains('small')) {
+                    span.textContent = '';
+                }
+            });
+        });
+
+        // Function to download sample CSV
+        function downloadSampleCSV() {
+            const csvContent = `FirstName,LastName,IndexNumber,Email,OfficialMobileNumber,IssuedDeviceID,ClassOfService,Location,Organization,Office,SupervisorIndexNumber,IsActive
+John,Doe,EMP001,john.doe@example.com,+1234567890,DEV001,Local,Nairobi,UNON,Gigiri Office,SUP001,TRUE
+Jane,Smith,EMP002,jane.smith@example.com,+1234567891,DEV002,International,Geneva,UNEP,Regional Office,SUP001,TRUE
+Robert,Johnson,EMP003,robert.j@example.com,+1234567892,DEV003,Local,Mombasa,UN-Habitat,Field Office,SUP002,FALSE
+Mary,Williams,EMP004,mary.w@example.com,+1234567893,DEV004,Local,Nakuru,UNON,Main Building,SUP002,TRUE
+David,Brown,EMP005,david.brown@example.com,+1234567894,DEV005,International,Nairobi,UNEP,Satellite Office,SUP003,TRUE
+Sarah,Davis,EMP006,sarah.davis@example.com,+1234567895,DEV006,Local,Kisumu,UN-Habitat,Regional Office,SUP003,TRUE
+
+Note:
+- All 12 columns must be present in each row (use empty values for optional fields)
+- ClassOfService, Organization, Office must match existing values in your system
+- Location is a free text field for user location information
+- IsActive should be TRUE or FALSE
+- Empty values are allowed for optional fields but the comma separators must be present`;
+            
+            const blob = new Blob([csvContent], { type: 'text/csv;charset=utf-8;' });
+            const link = document.createElement('a');
+            const url = URL.createObjectURL(blob);
+            
+            link.setAttribute('href', url);
+            link.setAttribute('download', 'ebill_users_template.csv');
+            link.style.visibility = 'hidden';
+            
+            document.body.appendChild(link);
+            link.click();
+            document.body.removeChild(link);
+        }
+
+
+        // Add form submission handler for edit form
+        var editForm = document.getElementById('editUserForm');
+        if (editForm) {
+            editForm.addEventListener('submit', function(e) {
+                console.log('Edit form is being submitted');
+                console.log('Form action:', this.action);
+                console.log('Form method:', this.method);
+                console.log('Form data:', new FormData(this));
+                // Let the form submit normally
+            });
+        } else {
+            console.error('Edit form not found!');
+        }
+
+        // Show import result modal if there are results
+        @if (TempData["ImportResults"] != null)
+        {
+            <text>
+            var importModal = new bootstrap.Modal(document.getElementById('importResultsModal'));
+            importModal.show();
+            </text>
+        }
+
+        // Password generation and management
+        function generateStrongPassword() {
+            const length = 12;
+            const charset = {
+                upper: 'ABCDEFGHIJKLMNOPQRSTUVWXYZ',
+                lower: 'abcdefghijklmnopqrstuvwxyz',
+                number: '0123456789',
+                special: '!@@#$%^&*'
+            };
+
+            let password = '';
+            password += charset.upper[Math.floor(Math.random() * charset.upper.length)];
+            password += charset.lower[Math.floor(Math.random() * charset.lower.length)];
+            password += charset.number[Math.floor(Math.random() * charset.number.length)];
+            password += charset.special[Math.floor(Math.random() * charset.special.length)];
+
+            const allChars = charset.upper + charset.lower + charset.number + charset.special;
+            for (let i = password.length; i < length; i++) {
+                password += allChars[Math.floor(Math.random() * allChars.length)];
+            }
+
+            return password.split('').sort(() => Math.random() - 0.5).join('');
+        }
+
+        document.getElementById('generatePasswordBtn')?.addEventListener('click', function() {
+            const password = generateStrongPassword();
+            document.getElementById('Input_Password').value = password;
+            document.getElementById('Input_ConfirmPassword').value = password;
+            document.getElementById('Input_Password').type = 'text';
+            document.getElementById('Input_ConfirmPassword').type = 'text';
+        });
+
+        document.getElementById('createLoginAccount')?.addEventListener('change', function() {
+            document.getElementById('passwordSection').style.display = this.checked ? 'block' : 'none';
+        });
+
+        window.copyToClipboard = function(elementId) {
+            const element = document.getElementById(elementId);
+            element.select();
+            document.execCommand('copy');
+            const toast = document.createElement('div');
+            toast.className = 'position-fixed top-0 end-0 p-3';
+            toast.style.zIndex = '9999';
+            toast.innerHTML = '<div class="toast show" role="alert"><div class="toast-body bg-success text-white">Copied!</div></div>';
+            document.body.appendChild(toast);
+            setTimeout(() => toast.remove(), 2000);
+        };
+
+        document.getElementById('resetPasswordBtn')?.addEventListener('click', async function() {
+            if (!window.currentEditUserId || !confirm('Generate new password?')) return;
+            this.disabled = true;
+            try {
+                const response = await fetch(`?handler=ResetPassword&userId=${window.currentEditUserId}`, {method: 'POST', headers: {'RequestVerificationToken': document.querySelector('input[name="__RequestVerificationToken"]').value}});
+                const result = await response.json();
+                if (result.success) {
+                    document.getElementById('displayEmail').value = result.email;
+                    document.getElementById('displayPassword').value = result.tempPassword;
+                    bootstrap.Modal.getInstance(document.getElementById('editUserModal')).hide();
+                    new bootstrap.Modal(document.getElementById('passwordModal')).show();
+                } else alert('Error: ' + result.message);
+            } catch (error) {
+                alert('Error: ' + error.message);
+            } finally {
+                this.disabled = false;
+            }
+        });
+
+        document.getElementById('createAccountBtn')?.addEventListener('click', async function() {
+            if (!window.currentEditUserId) return;
+            this.disabled = true;
+            this.innerHTML = '<span class="spinner-border spinner-border-sm me-2"></span>Creating...';
+            try {
+                const response = await fetch(`?handler=CreateAccount&userId=${window.currentEditUserId}`, {method: 'POST', headers: {'RequestVerificationToken': document.querySelector('input[name="__RequestVerificationToken"]').value}});
+                const result = await response.json();
+                if (result.success) {
+                    document.getElementById('displayEmail').value = result.email;
+                    document.getElementById('displayPassword').value = result.tempPassword;
+                    bootstrap.Modal.getInstance(document.getElementById('editUserModal')).hide();
+                    const pwdModal = new bootstrap.Modal(document.getElementById('passwordModal'));
+                    pwdModal.show();
+                    pwdModal._element.addEventListener('hidden.bs.modal', () => location.reload());
+                } else alert('Error: ' + result.message);
+            } catch (error) {
+                alert('Error: ' + error.message);
+            } finally {
+                this.disabled = false;
+                this.innerHTML = '<i class="bi bi-person-plus"></i> Create Login Account';
+            }
+        });
+
+        // Search functionality
+        document.getElementById('searchUsers').addEventListener('keyup', function() {
+            const searchTerm = this.value.toLowerCase();
+            const rows = document.querySelectorAll('#usersTable tbody tr');
+
+            rows.forEach(row => {
+                const text = row.textContent.toLowerCase();
+                row.style.display = text.includes(searchTerm) ? '' : 'none';
+            });
+        });
+        
+        // Add animation to status badges
+        document.querySelectorAll('.badge').forEach(badge => {
+            badge.addEventListener('mouseenter', function() {
+                this.style.transform = 'translateY(-2px) scale(1.05)';
+            });
+            badge.addEventListener('mouseleave', function() {
+                this.style.transform = 'translateY(0) scale(1)';
+            });
+        });
+    </script>
+}

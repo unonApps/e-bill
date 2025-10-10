@@ -1,0 +1,1095 @@
+@page
+@model TAB.Web.Pages.Admin.ServiceProviderModel
+@using TAB.Web.Models
+@using System.Text.Json
+@{
+    ViewData["Title"] = "Service Providers";
+}
+
+<style>
+    /* Table Row Hover Effects */
+    .provider-row {
+        transition: all 0.2s ease;
+        border-bottom: 1px solid #f3f4f6;
+    }
+    
+    .provider-row:hover {
+        background-color: #f9fafb;
+        transform: translateX(2px);
+        box-shadow: 0 2px 4px rgba(0, 0, 0, 0.05);
+    }
+    
+    /* Search Input Styling */
+    #searchProviders::placeholder {
+        color: rgba(255, 255, 255, 0.6);
+    }
+    
+    #searchProviders:focus {
+        background-color: rgba(255, 255, 255, 0.2) !important;
+        outline: none;
+        box-shadow: 0 0 0 3px rgba(255, 255, 255, 0.2);
+    }
+    
+    /* Gradient Background */
+    .bg-gradient {
+        position: relative;
+        overflow: hidden;
+    }
+    
+    .bg-gradient::after {
+        content: '';
+        position: absolute;
+        top: -50%;
+        right: -50%;
+        width: 200%;
+        height: 200%;
+        background: radial-gradient(circle, rgba(255, 255, 255, 0.1) 1px, transparent 1px);
+        background-size: 20px 20px;
+        transform: rotate(45deg);
+        opacity: 0.5;
+    }
+    
+    /* Badge Hover Effects */
+    .badge {
+        transition: all 0.2s ease;
+    }
+    
+    .badge:hover {
+        transform: translateY(-1px);
+        box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+    }
+    
+    /* Modern Form Styling */
+    .form-control-modern, .form-select-modern {
+        background-color: #f8f9fa;
+        border: 2px solid transparent;
+        border-radius: 12px;
+        height: 48px;
+        padding: 0 16px;
+        font-size: 15px;
+        font-weight: 500;
+        color: #2d3748;
+        transition: all 0.3s ease;
+    }
+    
+    .form-control-modern:hover, .form-select-modern:hover {
+        background-color: #e2e8f0;
+        border-color: #cbd5e0;
+    }
+    
+    .form-control-modern:focus, .form-select-modern:focus {
+        background-color: #ffffff;
+        border-color: #06b6d4;
+        box-shadow: 0 0 0 4px rgba(6, 182, 212, 0.1);
+        outline: none;
+    }
+    
+    .form-control-modern::placeholder {
+        color: #9ca3af;
+        font-weight: 400;
+    }
+    
+    /* Custom Label Styling */
+    .form-label-modern {
+        display: block;
+        font-size: 13px;
+        font-weight: 600;
+        color: #4a5568;
+        margin-bottom: 8px;
+        text-transform: uppercase;
+        letter-spacing: 0.05em;
+    }
+    
+    /* Form Group Container */
+    .form-group-modern {
+        margin-bottom: 20px;
+    }
+    
+    /* Textarea specific styling */
+    textarea.form-control-modern {
+        min-height: 80px;
+        padding: 12px 16px;
+        resize: vertical;
+    }
+    
+    /* Select specific styling */
+    .form-select-modern {
+        background-image: url("data:image/svg+xml,%3csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 16 16'%3e%3cpath fill='none' stroke='%236b7280' stroke-linecap='round' stroke-linejoin='round' stroke-width='2' d='M2 5l6 6 6-6'/%3e%3c/svg%3e");
+        background-repeat: no-repeat;
+        background-position: right 12px center;
+        background-size: 16px 12px;
+        padding-right: 40px;
+    }
+    
+    /* Dashboard Header Styles */
+    .dashboard-header {
+        background: linear-gradient(135deg, #009EDB 0%, #0084c7 100%);
+        border-radius: 12px;
+        padding: 1.5rem 2rem;
+        margin-bottom: 2rem;
+        color: white;
+        box-shadow: 0 4px 20px rgba(0, 158, 219, 0.2);
+    }
+    
+    .header-content {
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        flex-wrap: wrap;
+        gap: 1rem;
+    }
+    
+    .welcome-section {
+        flex: 1;
+    }
+    
+    .dashboard-title {
+        font-size: 1.75rem;
+        font-weight: 600;
+        margin-bottom: 0.3rem;
+        color: white;
+    }
+    
+    .dashboard-subtitle {
+        font-size: 1rem;
+        opacity: 0.95;
+        margin: 0;
+    }
+    
+    .header-actions {
+        display: flex;
+        align-items: center;
+        gap: 1rem;
+    }
+    
+    .current-date {
+        background: rgba(255, 255, 255, 0.2);
+        backdrop-filter: blur(10px);
+        padding: 0.5rem 1rem;
+        border-radius: 8px;
+        display: flex;
+        align-items: center;
+        gap: 0.5rem;
+        font-size: 0.9rem;
+    }
+    
+    .create-provider-btn {
+        background: rgba(255, 255, 255, 0.95);
+        color: #009EDB;
+        border: 2px solid rgba(255, 255, 255, 0.3);
+        padding: 10px 20px;
+        border-radius: 8px;
+        text-decoration: none;
+        font-weight: 600;
+        font-size: 14px;
+        transition: all 0.3s ease;
+        display: inline-flex;
+        align-items: center;
+        gap: 8px;
+        backdrop-filter: blur(10px);
+        cursor: pointer;
+    }
+    
+    .create-provider-btn:hover {
+        background: white;
+        color: #0084c7;
+        text-decoration: none;
+        transform: translateY(-2px);
+        box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
+    }
+    
+    /* Filter Section */
+    .filter-section {
+        background: white;
+        border-radius: 12px;
+        padding: 1.5rem;
+        margin-bottom: 2rem;
+        box-shadow: 0 2px 10px rgba(0, 0, 0, 0.05);
+        border: 1px solid #e5e7eb;
+    }
+    
+    .filter-header {
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        margin-bottom: 1.5rem;
+        padding-bottom: 1rem;
+        border-bottom: 2px solid #f3f4f6;
+    }
+    
+    .filter-title {
+        font-size: 1.25rem;
+        font-weight: 600;
+        color: #1f2937;
+        display: flex;
+        align-items: center;
+        gap: 0.5rem;
+    }
+    
+    .filter-title i {
+        color: #009EDB;
+    }
+    
+    .filter-grid {
+        display: grid;
+        grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
+        gap: 1rem;
+    }
+    
+    .filter-group {
+        display: flex;
+        flex-direction: column;
+        gap: 0.5rem;
+    }
+    
+    .filter-label {
+        font-size: 0.875rem;
+        font-weight: 600;
+        color: #4b5563;
+        display: flex;
+        align-items: center;
+        gap: 0.5rem;
+    }
+    
+    .filter-label i {
+        color: #009EDB;
+        font-size: 0.875rem;
+    }
+    
+    .filter-input,
+    .filter-select {
+        padding: 0.625rem 1rem;
+        border: 2px solid #e5e7eb;
+        border-radius: 8px;
+        font-size: 0.875rem;
+        transition: all 0.2s ease;
+        background: white;
+    }
+    
+    .filter-input:focus,
+    .filter-select:focus {
+        outline: none;
+        border-color: #009EDB;
+        box-shadow: 0 0 0 3px rgba(0, 158, 219, 0.1);
+    }
+    
+    .filter-input::placeholder {
+        color: #9ca3af;
+    }
+    
+    .btn-clear-filters {
+        padding: 0.625rem 1.25rem;
+        background: #f3f4f6;
+        color: #4b5563;
+        border: none;
+        border-radius: 8px;
+        font-weight: 500;
+        font-size: 0.875rem;
+        display: inline-flex;
+        align-items: center;
+        gap: 0.5rem;
+        transition: all 0.2s ease;
+        text-decoration: none;
+    }
+    
+    .btn-clear-filters:hover {
+        background: #e5e7eb;
+        color: #1f2937;
+        text-decoration: none;
+    }
+    
+    .filter-count {
+        font-size: 0.875rem;
+        color: #6b7280;
+        padding: 0.375rem 0.75rem;
+        background: #f9fafb;
+        border-radius: 6px;
+    }
+    
+    /* Statistics Grid */
+    .stats-grid {
+        display: grid;
+        grid-template-columns: repeat(auto-fit, minmax(240px, 1fr));
+        gap: 1.25rem;
+        margin-bottom: 2rem;
+    }
+    
+    .stat-card {
+        background: white;
+        border-radius: 12px;
+        padding: 1.5rem;
+        border: 1px solid #e5e7eb;
+        transition: all 0.3s ease;
+        position: relative;
+        overflow: hidden;
+    }
+    
+    .stat-card::before {
+        content: '';
+        position: absolute;
+        top: 0;
+        left: 0;
+        right: 0;
+        height: 4px;
+        background: linear-gradient(90deg, var(--gradient-start), var(--gradient-end));
+    }
+    
+    .stat-card:nth-child(1)::before {
+        --gradient-start: #06b6d4;
+        --gradient-end: #22d3ee;
+    }
+    
+    .stat-card:nth-child(2)::before {
+        --gradient-start: #10b981;
+        --gradient-end: #34d399;
+    }
+    
+    .stat-card:nth-child(3)::before {
+        --gradient-start: #ef4444;
+        --gradient-end: #f87171;
+    }
+    
+    .stat-card:nth-child(4)::before {
+        --gradient-start: #f59e0b;
+        --gradient-end: #fbbf24;
+    }
+    
+    .stat-card:hover {
+        transform: translateY(-4px);
+        box-shadow: 0 10px 30px rgba(0, 0, 0, 0.1);
+    }
+    
+    .stat-content {
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+    }
+    
+    .stat-icon {
+        width: 50px;
+        height: 50px;
+        border-radius: 12px;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        font-size: 1.5rem;
+    }
+    
+    .stat-icon-primary {
+        background: linear-gradient(135deg, #06b6d4, #22d3ee);
+        color: white;
+    }
+    
+    .stat-icon-success {
+        background: linear-gradient(135deg, #10b981, #34d399);
+        color: white;
+    }
+    
+    .stat-icon-danger {
+        background: linear-gradient(135deg, #ef4444, #f87171);
+        color: white;
+    }
+    
+    .stat-icon-warning {
+        background: linear-gradient(135deg, #f59e0b, #fbbf24);
+        color: white;
+    }
+    
+    .stat-details {
+        text-align: right;
+    }
+    
+    .stat-number {
+        font-size: 1.75rem;
+        font-weight: 700;
+        color: #1f2937;
+        line-height: 1;
+        margin-bottom: 0.25rem;
+    }
+    
+    .stat-label {
+        font-size: 0.875rem;
+        color: #6b7280;
+        font-weight: 500;
+    }
+    
+    @@media (max-width: 768px) {
+        .dashboard-header {
+            padding: 1rem;
+        }
+        
+        .header-content {
+            flex-direction: column;
+            align-items: stretch;
+        }
+        
+        .header-actions {
+            flex-direction: column;
+            align-items: stretch;
+        }
+        
+        .filter-grid {
+            grid-template-columns: 1fr;
+        }
+        
+        .stats-grid {
+            grid-template-columns: repeat(2, 1fr);
+            gap: 1rem;
+        }
+    }
+}
+</style>
+
+<!-- Dashboard Header -->
+<div class="dashboard-header">
+    <div class="header-content">
+        <div class="welcome-section">
+            <h1 class="dashboard-title">Welcome back, @Model.CurrentUserName!</h1>
+            <p class="dashboard-subtitle">Manage service providers and contact information</p>
+        </div>
+        <div class="header-actions">
+            <div class="current-date">
+                <i class="bi bi-calendar3"></i>
+                <span>@DateTime.Now.ToString("dddd, MMMM dd, yyyy")</span>
+            </div>
+            <button type="button" class="create-provider-btn" data-bs-toggle="modal" data-bs-target="#serviceProviderModal" onclick="openCreateModal()">
+                <i class="bi bi-plus-circle"></i>
+                Add Provider
+            </button>
+        </div>
+    </div>
+</div>
+
+<!-- Statistics Cards -->
+<div class="stats-grid">
+    <div class="stat-card">
+        <div class="stat-content">
+            <div class="stat-icon stat-icon-primary">
+                <i class="bi bi-building"></i>
+            </div>
+            <div class="stat-details">
+                <div class="stat-number">@Model.TotalProviders</div>
+                <div class="stat-label">Total Providers</div>
+            </div>
+        </div>
+    </div>
+    
+    <div class="stat-card">
+        <div class="stat-content">
+            <div class="stat-icon stat-icon-success">
+                <i class="bi bi-check-circle"></i>
+            </div>
+            <div class="stat-details">
+                <div class="stat-number">@Model.ActiveProviders</div>
+                <div class="stat-label">Active Providers</div>
+            </div>
+        </div>
+    </div>
+    
+    <div class="stat-card">
+        <div class="stat-content">
+            <div class="stat-icon stat-icon-danger">
+                <i class="bi bi-x-circle"></i>
+            </div>
+            <div class="stat-details">
+                <div class="stat-number">@Model.InactiveProviders</div>
+                <div class="stat-label">Inactive Providers</div>
+            </div>
+        </div>
+    </div>
+    
+    <div class="stat-card">
+        <div class="stat-content">
+            <div class="stat-icon stat-icon-warning">
+                <i class="bi bi-person"></i>
+            </div>
+            <div class="stat-details">
+                <div class="stat-number">@Model.ContactPersons</div>
+                <div class="stat-label">Contact Persons</div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Filter Section (Collapsible) -->
+<div class="mb-3">
+    <button class="btn btn-outline-primary" type="button" data-bs-toggle="collapse" data-bs-target="#filterCollapse" aria-expanded="false" aria-controls="filterCollapse">
+        <i class="bi bi-funnel"></i> Show Filters
+    </button>
+</div>
+<div class="collapse" id="filterCollapse">
+<div class="filter-section">
+    <div class="filter-header">
+        <h2 class="filter-title">
+            <i class="bi bi-funnel"></i>
+            Filters
+        </h2>
+        <div class="filter-actions">
+            <span class="filter-count">@Model.ServiceProviders.Count results</span>
+        </div>
+    </div>
+    
+    <form method="get" class="filter-form" id="filterForm">
+        <div class="filter-grid">
+            <div class="filter-group">
+                <label class="filter-label" for="searchFilter">
+                    <i class="bi bi-search"></i> Search
+                </label>
+                <input type="text" name="SearchTerm" id="searchFilter" class="filter-input filter-search-input" 
+                       placeholder="ID, Name, Contact..." value="@Model.SearchTerm" />
+            </div>
+            
+            <div class="filter-group">
+                <label class="filter-label" for="statusFilter">
+                    <i class="bi bi-toggle-on"></i> Status
+                </label>
+                <select name="SelectedStatus" id="statusFilter" class="filter-select filter-auto-submit">
+                    <option value="">All Status</option>
+                    <option value="@((int)ServiceProviderStatus.Active)" selected="@(Model.SelectedStatus == ServiceProviderStatus.Active)">Active</option>
+                    <option value="@((int)ServiceProviderStatus.Inactive)" selected="@(Model.SelectedStatus == ServiceProviderStatus.Inactive)">Inactive</option>
+                </select>
+            </div>
+            
+            <div class="filter-group align-self-end">
+                @if (!string.IsNullOrEmpty(Model.SearchTerm) || Model.SelectedStatus != null)
+                {
+                    <a href="/Admin/ServiceProvider" class="btn-clear-filters">
+                        <i class="bi bi-x-circle"></i> Clear All
+                    </a>
+                }
+            </div>
+        </div>
+    </form>
+</div>
+</div>
+
+<!-- Status Message -->
+@if (!string.IsNullOrEmpty(Model.StatusMessage))
+{
+    <div class="alert alert-@Model.StatusMessageClass alert-dismissible fade show" role="alert">
+        @Model.StatusMessage
+        <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
+    </div>
+}
+
+<div class="row">
+    <div class="col-md-12">
+
+        <!-- Action Buttons -->
+        <div class="d-flex justify-content-end mb-3">
+            <button type="button" class="btn" style="background-color: #06b6d4; color: white;" data-bs-toggle="modal" data-bs-target="#serviceProviderModal" 
+                    onclick="openCreateModal()">
+                <i class="bi bi-building-add"></i> Create New Provider
+            </button>
+        </div>
+
+        <!-- Service Provider Table -->
+        @if (!Model.ServiceProviders.Any())
+        {
+            <div class="card border-0 shadow-sm">
+                <div class="card-body text-center py-5">
+                    <div class="bg-light rounded-circle d-inline-flex align-items-center justify-content-center mb-3" style="width: 80px; height: 80px;">
+                        <i class="bi bi-building text-muted" style="font-size: 32px;"></i>
+                    </div>
+                    <h5 class="text-muted mb-3">No Service Providers Found</h5>
+                    <p class="text-muted mb-4">Create your first service provider to manage contacts.</p>
+                    <button type="button" class="btn" style="background-color: #06b6d4; color: white;" data-bs-toggle="modal" data-bs-target="#serviceProviderModal" 
+                            onclick="openCreateModal()">
+                        <i class="bi bi-building-add"></i> Create First Provider
+                    </button>
+                </div>
+            </div>
+        }
+        else
+        {
+            <div class="card border-0 shadow-sm" style="border-radius: 16px;">
+                <div class="card-header bg-gradient border-0 py-4" style="background: linear-gradient(135deg, #06b6d4 0%, #0e7490 100%); border-radius: 16px 16px 0 0;">
+                    <div class="d-flex justify-content-between align-items-center">
+                        <div>
+                            <h5 class="card-title mb-1 text-white fw-bold">
+                                <i class="bi bi-building-fill me-2"></i>Service Providers Directory
+                            </h5>
+                            <p class="text-white-50 mb-0">Manage service provider contacts and communication</p>
+                        </div>
+                        <div class="input-group" style="max-width: 300px;">
+                            <span class="input-group-text bg-white bg-opacity-10 border-0 text-white">
+                                <i class="bi bi-search"></i>
+                            </span>
+                            <input type="text" class="form-control bg-white bg-opacity-10 border-0 text-white placeholder-white-50" 
+                                   id="searchProviders" placeholder="Search providers..." 
+                                   style="border-radius: 0 8px 8px 0;">
+                        </div>
+                    </div>
+                </div>
+                <div class="card-body p-0">
+                    <div class="table-responsive">
+                        <table class="table table-hover mb-0" id="providersTable">
+                            <thead style="background-color: #f8f9fa;">
+                                <tr>
+                                    <th class="border-0 px-4 py-3" style="font-weight: 600; color: #4a5568; text-transform: uppercase; font-size: 12px; letter-spacing: 0.5px;">
+                                        <i class="bi bi-building me-2"></i>Provider Details
+                                    </th>
+                                    <th class="border-0 px-3 py-3" style="font-weight: 600; color: #4a5568; text-transform: uppercase; font-size: 12px; letter-spacing: 0.5px;">
+                                        <i class="bi bi-person me-2"></i>Contact Person
+                                    </th>
+                                    <th class="border-0 px-3 py-3" style="font-weight: 600; color: #4a5568; text-transform: uppercase; font-size: 12px; letter-spacing: 0.5px;">
+                                        <i class="bi bi-envelope me-2"></i>Communication
+                                    </th>
+                                    <th class="border-0 px-3 py-3 text-center" style="font-weight: 600; color: #4a5568; text-transform: uppercase; font-size: 12px; letter-spacing: 0.5px;">
+                                        <i class="bi bi-toggle2-on me-2"></i>Status
+                                    </th>
+                                    <th class="border-0 px-3 py-3 text-center" style="font-weight: 600; color: #4a5568; text-transform: uppercase; font-size: 12px; letter-spacing: 0.5px; width: 120px;">
+                                        <i class="bi bi-gear me-2"></i>Actions
+                                    </th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                @foreach (var serviceProvider in Model.ServiceProviders)
+                                {
+                                    <tr class="provider-row">
+                                        <td class="align-middle px-4 py-3">
+                                            <div class="d-flex align-items-center">
+                                                <div class="position-relative">
+                                                    <div class="rounded-circle d-flex align-items-center justify-content-center" 
+                                                         style="width: 48px; height: 48px; background: linear-gradient(135deg, #06b6d4 0%, #0e7490 100%);">
+                                                        <i class="bi bi-building text-white" style="font-size: 20px;"></i>
+                                                    </div>
+                                                    @if (serviceProvider.SPStatus == ServiceProviderStatus.Active)
+                                                    {
+                                                        <span class="position-absolute bottom-0 end-0 bg-success border border-white rounded-circle" 
+                                                              style="width: 12px; height: 12px;"></span>
+                                                    }
+                                                </div>
+                                                <div class="ms-3">
+                                                    <h6 class="mb-0 fw-semibold text-dark">@serviceProvider.ServiceProviderName</h6>
+                                                    <div class="d-flex align-items-center gap-2">
+                                                        <span class="badge bg-light text-muted" style="font-weight: 500;">
+                                                            <i class="bi bi-hash me-1"></i>@serviceProvider.SPID
+                                                        </span>
+                                                    </div>
+                                                </div>
+                                            </div>
+                                        </td>
+                                        <td class="align-middle px-3 py-3">
+                                            <div class="d-flex flex-column">
+                                                <span class="text-dark fw-medium">@serviceProvider.SPMainCP</span>
+                                                <small class="text-muted">Main Contact Person</small>
+                                            </div>
+                                        </td>
+                                        <td class="align-middle px-3 py-3">
+                                            <div class="d-flex flex-column gap-2">
+                                                <div class="d-flex align-items-center">
+                                                    <i class="bi bi-envelope text-muted me-2" style="font-size: 14px;"></i>
+                                                    <a href="mailto:@serviceProvider.SPMainCPEmail" class="text-decoration-none text-dark">@serviceProvider.SPMainCPEmail</a>
+                                                </div>
+                                                @if (!string.IsNullOrEmpty(serviceProvider.SPOtherCPsEmail))
+                                                {
+                                                    <div class="d-flex align-items-center">
+                                                        <i class="bi bi-envelope-plus text-muted me-2" style="font-size: 14px;"></i>
+                                                        <small class="text-muted" style="max-width: 250px;">@serviceProvider.SPOtherCPsEmail</small>
+                                                    </div>
+                                                }
+                                                else
+                                                {
+                                                    <span class="text-muted fst-italic" style="font-size: 13px;">No additional contacts</span>
+                                                }
+                                            </div>
+                                        </td>
+                                        <td class="align-middle text-center px-3 py-3">
+                                            @if (serviceProvider.SPStatus == ServiceProviderStatus.Active)
+                                            {
+                                                <span class="badge rounded-pill" style="background-color: #10b981; color: white; padding: 6px 16px;">
+                                                    <i class="bi bi-check-circle-fill me-1"></i>Active
+                                                </span>
+                                            }
+                                            else
+                                            {
+                                                <span class="badge rounded-pill" style="background-color: #6b7280; color: white; padding: 6px 16px;">
+                                                    <i class="bi bi-x-circle-fill me-1"></i>Inactive
+                                                </span>
+                                            }
+                                        </td>
+                                        <td class="align-middle px-3 py-3">
+                                            <div class="d-flex gap-1 justify-content-center">
+                                                <button type="button" class="btn btn-sm btn-light border-0 edit-provider-btn" 
+                                                        data-id="@serviceProvider.Id"
+                                                        data-spid="@serviceProvider.SPID"
+                                                        data-name="@serviceProvider.ServiceProviderName"
+                                                        data-maincp="@serviceProvider.SPMainCP"
+                                                        data-mainemail="@serviceProvider.SPMainCPEmail"
+                                                        data-otheremail="@(serviceProvider.SPOtherCPsEmail ?? "")"
+                                                        data-status="@((int)serviceProvider.SPStatus)"
+                                                        title="Edit Service Provider" style="border-radius: 8px;">
+                                                    <i class="bi bi-pencil text-primary"></i>
+                                                </button>
+                                                <button type="button" class="btn btn-sm btn-light border-0 delete-provider-btn" 
+                                                        data-id="@serviceProvider.Id"
+                                                        data-name="@serviceProvider.ServiceProviderName"
+                                                        title="Delete Service Provider" style="border-radius: 8px;">
+                                                    <i class="bi bi-trash text-danger"></i>
+                                                </button>
+                                            </div>
+                                        </td>
+                                    </tr>
+                                }
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+            </div>
+        }
+    </div>
+</div>
+
+<!-- Service Provider Modal -->
+<div class="modal fade" id="serviceProviderModal" tabindex="-1" aria-labelledby="serviceProviderModalLabel" aria-hidden="true">
+    <div class="modal-dialog modal-lg modal-dialog-centered">
+        <div class="modal-content border-0 shadow-lg" style="border-radius: 20px;">
+            <div class="modal-header border-0 pb-0" style="padding: 2rem 2rem 1rem 2rem;">
+                <div class="w-100 text-center">
+                    <div class="mb-3">
+                        <div id="modalIcon" class="bg-info bg-opacity-10 rounded-circle d-inline-flex align-items-center justify-content-center" 
+                             style="width: 60px; height: 60px;">
+                            <i class="bi bi-building text-info" style="font-size: 24px;"></i>
+                        </div>
+                    </div>
+                    <h4 class="modal-title fw-bold text-dark mb-1" id="serviceProviderModalLabel">Add New Service Provider</h4>
+                    <p class="text-muted mb-0" id="modalDescription">Define service provider details and contact information</p>
+                </div>
+                <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close" 
+                        style="position: absolute; top: 1rem; right: 1rem;"></button>
+            </div>
+            <div class="modal-body" style="padding: 1rem 2rem 2rem 2rem;">
+                <form id="serviceProviderForm" method="post">
+                    <input type="hidden" id="serviceProviderId" name="id" value="" />
+                    
+                    <!-- Basic Information -->
+                    <div class="mb-4">
+                        <h6 class="text-muted text-uppercase fw-semibold mb-3" style="font-size: 0.75rem; letter-spacing: 1px;">Basic Information</h6>
+                        <div class="row g-3">
+                            <div class="col-md-4">
+                                <div class="form-group-modern">
+                                    <label for="spid" class="form-label-modern">SP ID</label>
+                                    <input type="text" class="form-control form-control-modern" id="spid" name="spid" placeholder="e.g., SP001" required maxlength="10" />
+                                    <small class="text-muted mt-1 d-block">Unique identifier (max 10 chars)</small>
+                                </div>
+                            </div>
+                            <div class="col-md-8">
+                                <div class="form-group-modern">
+                                    <label for="serviceProviderName" class="form-label-modern">Service Provider Name</label>
+                                    <input type="text" class="form-control form-control-modern" id="serviceProviderName" name="serviceProviderName" placeholder="Enter provider name" required maxlength="200" />
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Contact Information -->
+                    <div class="mb-4">
+                        <h6 class="text-muted text-uppercase fw-semibold mb-3" style="font-size: 0.75rem; letter-spacing: 1px;">Contact Information</h6>
+                        <div class="row g-3">
+                            <div class="col-md-6">
+                                <div class="form-group-modern">
+                                    <label for="spMainCP" class="form-label-modern">Main Contact Person</label>
+                                    <input type="text" class="form-control form-control-modern" id="spMainCP" name="spMainCP" placeholder="Enter contact name" required maxlength="200" />
+                                </div>
+                            </div>
+                            <div class="col-md-6">
+                                <div class="form-group-modern">
+                                    <label for="spMainCPEmail" class="form-label-modern">Main Contact Email</label>
+                                    <input type="email" class="form-control form-control-modern" id="spMainCPEmail" name="spMainCPEmail" placeholder="Enter email address" required maxlength="300" />
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Additional Information -->
+                    <div class="mb-4">
+                        <h6 class="text-muted text-uppercase fw-semibold mb-3" style="font-size: 0.75rem; letter-spacing: 1px;">Additional Information</h6>
+                        <div class="row g-3">
+                            <div class="col-md-8">
+                                <div class="form-group-modern">
+                                    <label for="spOtherCPsEmail" class="form-label-modern">Other Contact Emails (Optional)</label>
+                                    <textarea class="form-control form-control-modern" id="spOtherCPsEmail" name="spOtherCPsEmail" placeholder="email1@example.com; email2@example.com" maxlength="1000"></textarea>
+                                    <small class="text-muted mt-1 d-block">Separate multiple emails with semicolons</small>
+                                </div>
+                            </div>
+                            <div class="col-md-4">
+                                <div class="form-group-modern">
+                                    <label for="spStatus" class="form-label-modern">Status</label>
+                                    <select class="form-select form-select-modern" id="spStatus" name="spStatus">
+                                        <option value="1">Active</option>
+                                        <option value="0">Inactive</option>
+                                    </select>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Buttons -->
+                    <div class="d-flex gap-2 justify-content-end">
+                        <button type="button" class="btn btn-light" data-bs-dismiss="modal" style="border-radius: 12px; padding: 12px 24px;">
+                            Cancel
+                        </button>
+                        <button type="submit" class="btn px-4 py-2" id="submitBtn" style="background-color: #06b6d4; color: white; border-radius: 12px; font-weight: 500;">
+                            <i class="bi bi-plus-circle me-2"></i><span id="submitButtonText">Create Service Provider</span>
+                        </button>
+                    </div>
+                </form>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Delete Confirmation Modal -->
+<div class="modal fade" id="deleteModal" tabindex="-1" aria-labelledby="deleteModalLabel" aria-hidden="true">
+    <div class="modal-dialog modal-dialog-centered">
+        <div class="modal-content border-0 shadow-lg" style="border-radius: 20px;">
+            <div class="modal-header border-0 pb-0" style="padding: 2rem 2rem 1rem 2rem;">
+                <div class="w-100 text-center">
+                    <div class="mb-3">
+                        <div class="bg-danger bg-opacity-10 rounded-circle d-inline-flex align-items-center justify-content-center" 
+                             style="width: 60px; height: 60px;">
+                            <i class="bi bi-trash text-danger" style="font-size: 24px;"></i>
+                        </div>
+                    </div>
+                    <h4 class="modal-title fw-bold text-danger" id="deleteModalLabel">Delete Service Provider</h4>
+                    <p class="text-muted mb-0">This action cannot be undone</p>
+                </div>
+                <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close" 
+                        style="position: absolute; top: 1rem; right: 1rem;"></button>
+            </div>
+            <div class="modal-body text-center" style="padding: 1rem 2rem 2rem 2rem;">
+                <p class="mb-4">
+                    Are you sure you want to delete the service provider "<strong id="deleteServiceProviderName"></strong>"?
+                    This will permanently remove all associated data.
+                </p>
+                <form id="deleteForm" method="post">
+                    <input type="hidden" id="deleteServiceProviderId" name="id" value="" />
+                    <div class="d-flex gap-2 justify-content-center">
+                        <button type="button" class="btn btn-light" data-bs-dismiss="modal" style="border-radius: 12px; padding: 12px 24px;">
+                            Cancel
+                        </button>
+                        <button type="submit" class="btn btn-danger" style="border-radius: 12px; padding: 12px 24px;">
+                            <i class="bi bi-trash me-2"></i>
+                            Delete Service Provider
+                        </button>
+                    </div>
+                </form>
+            </div>
+        </div>
+    </div>
+</div>
+
+@section Scripts {
+    <script>
+        // Set up event listeners when document is ready
+        document.addEventListener('DOMContentLoaded', function() {
+            // Auto-submit for select elements
+            const autoSubmitElements = document.querySelectorAll('.filter-auto-submit');
+            autoSubmitElements.forEach(element => {
+                element.addEventListener('change', function() {
+                    document.getElementById('filterForm').submit();
+                });
+            });
+            
+            // Debounced auto-submit for search input
+            let searchTimeout;
+            const searchInput = document.querySelector('.filter-search-input');
+            if (searchInput) {
+                searchInput.addEventListener('input', function() {
+                    clearTimeout(searchTimeout);
+                    searchTimeout = setTimeout(() => {
+                        document.getElementById('filterForm').submit();
+                    }, 500); // 500ms delay
+                });
+                
+                // Also submit on Enter key
+                searchInput.addEventListener('keypress', function(e) {
+                    if (e.key === 'Enter') {
+                        e.preventDefault();
+                        clearTimeout(searchTimeout);
+                        document.getElementById('filterForm').submit();
+                    }
+                });
+            }
+            
+            // Update button text when filters are shown/hidden
+            const filterToggle = document.querySelector('[data-bs-target="#filterCollapse"]');
+            const filterCollapse = document.getElementById('filterCollapse');
+            if (filterToggle && filterCollapse) {
+                filterCollapse.addEventListener('show.bs.collapse', function () {
+                    filterToggle.innerHTML = '<i class="bi bi-funnel-fill"></i> Hide Filters';
+                });
+                filterCollapse.addEventListener('hide.bs.collapse', function () {
+                    filterToggle.innerHTML = '<i class="bi bi-funnel"></i> Show Filters';
+                });
+                
+                // Check if any filters are active and show the filter section
+                const hasActiveFilters = @Html.Raw((!string.IsNullOrEmpty(Model.SearchTerm) || Model.SelectedStatus != null).ToString().ToLower());
+                if (hasActiveFilters) {
+                    filterCollapse.classList.add('show');
+                    filterToggle.innerHTML = '<i class="bi bi-funnel-fill"></i> Hide Filters';
+                    filterToggle.setAttribute('aria-expanded', 'true');
+                }
+            }
+
+            // Handle edit button clicks
+            document.querySelectorAll('.edit-provider-btn').forEach(button => {
+                button.addEventListener('click', function() {
+                    const id = this.dataset.id;
+                    const spid = this.dataset.spid;
+                    const name = this.dataset.name;
+                    const maincp = this.dataset.maincp;
+                    const mainemail = this.dataset.mainemail;
+                    const otheremail = this.dataset.otheremail;
+                    const status = this.dataset.status;
+                    
+                    editServiceProvider(id, spid, name, maincp, mainemail, otheremail, status);
+                });
+            });
+            
+            // Handle delete button clicks
+            document.querySelectorAll('.delete-provider-btn').forEach(button => {
+                button.addEventListener('click', function() {
+                    const id = this.dataset.id;
+                    const name = this.dataset.name;
+                    
+                    deleteServiceProvider(id, name);
+                });
+            });
+        });
+        
+        // Function to open create modal
+        function openCreateModal() {
+            document.getElementById('serviceProviderModalLabel').textContent = 'Add New Service Provider';
+            document.getElementById('modalDescription').textContent = 'Define service provider details and contact information';
+            document.getElementById('submitBtn').innerHTML = '<i class="bi bi-plus-circle me-2"></i><span id="submitButtonText">Create Service Provider</span>';
+            document.getElementById('submitBtn').style.backgroundColor = '#06b6d4';
+            document.getElementById('modalIcon').innerHTML = '<i class="bi bi-building text-info" style="font-size: 24px;"></i>';
+            document.getElementById('modalIcon').className = 'bg-info bg-opacity-10 rounded-circle d-inline-flex align-items-center justify-content-center';
+            document.getElementById('serviceProviderForm').action = '?handler=Create';
+            
+            // Reset form
+            document.getElementById('serviceProviderForm').reset();
+            document.getElementById('serviceProviderId').value = '';
+        }
+
+        // Function to edit service provider
+        function editServiceProvider(id, spid, serviceProviderName, spMainCP, spMainCPEmail, spOtherCPsEmail, spStatus) {
+            try {
+                console.log('Edit button clicked for ID:', id);
+                
+                // Check each element before setting its properties
+                const modalLabel = document.getElementById('serviceProviderModalLabel');
+                if (!modalLabel) {
+                    console.error('serviceProviderModalLabel not found');
+                    alert('Modal label element not found');
+                    return;
+                }
+                modalLabel.textContent = 'Edit Service Provider';
+                
+                const modalDesc = document.getElementById('modalDescription');
+                if (!modalDesc) {
+                    console.error('modalDescription not found');
+                    alert('Modal description element not found');
+                    return;
+                }
+                modalDesc.textContent = 'Update service provider information';
+                
+                const submitBtn = document.getElementById('submitBtn');
+                if (submitBtn) {
+                    submitBtn.innerHTML = '<i class="bi bi-check-circle me-2"></i><span id="submitButtonText">Update Service Provider</span>';
+                    submitBtn.style.backgroundColor = '#8b5cf6';
+                }
+                
+                const modalIcon = document.getElementById('modalIcon');
+                if (modalIcon) {
+                    modalIcon.innerHTML = '<i class="bi bi-pencil text-primary" style="font-size: 24px;"></i>';
+                    modalIcon.className = 'bg-primary bg-opacity-10 rounded-circle d-inline-flex align-items-center justify-content-center';
+                }
+                
+                const form = document.getElementById('serviceProviderForm');
+                if (form) {
+                    form.action = '?handler=Edit';
+                }
+                
+                // Populate form - no need to parse JSON anymore since we're using data attributes
+                document.getElementById('serviceProviderId').value = id;
+                document.getElementById('spid').value = spid;
+                document.getElementById('serviceProviderName').value = serviceProviderName;
+                document.getElementById('spMainCP').value = spMainCP;
+                document.getElementById('spMainCPEmail').value = spMainCPEmail;
+                document.getElementById('spOtherCPsEmail').value = spOtherCPsEmail || '';
+                document.getElementById('spStatus').value = spStatus;
+                
+                console.log('Form populated, showing modal...');
+                
+                // Show modal
+                var modalElement = document.getElementById('serviceProviderModal');
+                if (!modalElement) {
+                    console.error('serviceProviderModal not found');
+                    alert('Modal element not found');
+                    return;
+                }
+                
+                // Check if modal instance already exists
+                var existingModal = bootstrap.Modal.getInstance(modalElement);
+                if (existingModal) {
+                    existingModal.show();
+                } else {
+                    var modal = new bootstrap.Modal(modalElement);
+                    modal.show();
+                }
+                
+                console.log('Modal should be visible now');
+            } catch (error) {
+                console.error('Error in editServiceProvider:', error);
+                console.error('Error stack:', error.stack);
+                alert('Error opening edit modal: ' + error.message);
+            }
+        }
+
+        // Function to delete service provider
+        function deleteServiceProvider(id, serviceProviderName) {
+            document.getElementById('deleteServiceProviderId').value = id;
+            document.getElementById('deleteServiceProviderName').textContent = serviceProviderName;
+            document.getElementById('deleteForm').action = '?handler=Delete';
+            
+            var modalElement = document.getElementById('deleteModal');
+            var existingModal = bootstrap.Modal.getInstance(modalElement);
+            if (existingModal) {
+                existingModal.show();
+            } else {
+                var modal = new bootstrap.Modal(modalElement);
+                modal.show();
+            }
+        }
+
+        // Reset modal when closed
+        document.getElementById('serviceProviderModal').addEventListener('hidden.bs.modal', function () {
+            document.getElementById('serviceProviderForm').reset();
+            document.getElementById('serviceProviderId').value = '';
+        });
+        
+        // Search functionality
+        document.getElementById('searchProviders').addEventListener('keyup', function() {
+            const searchTerm = this.value.toLowerCase();
+            const rows = document.querySelectorAll('#providersTable tbody tr');
+            
+            rows.forEach(row => {
+                const text = row.textContent.toLowerCase();
+                row.style.display = text.includes(searchTerm) ? '' : 'none';
+            });
+        });
+        
+        // Add animation to status badges
+        document.querySelectorAll('.badge').forEach(badge => {
+            badge.addEventListener('mouseenter', function() {
+                this.style.transform = 'translateY(-2px) scale(1.05)';
+            });
+            badge.addEventListener('mouseleave', function() {
+                this.style.transform = 'translateY(0) scale(1)';
+            });
+        });
+    </script>
+} 

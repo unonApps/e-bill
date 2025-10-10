@@ -1,0 +1,1001 @@
+@page
+@model TAB.Web.Pages.Admin.ClassOfServiceModel
+@using TAB.Web.Models
+@{
+    ViewData["Title"] = "Class of Service";
+}
+
+<style>
+    /* Dashboard Header Styles */
+    .dashboard-header {
+        background: linear-gradient(135deg, #009EDB 0%, #0084c7 100%);
+        border-radius: 12px;
+        padding: 1.5rem 2rem;
+        margin-bottom: 2rem;
+        color: white;
+        box-shadow: 0 4px 20px rgba(0, 158, 219, 0.2);
+    }
+    
+    .header-content {
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        flex-wrap: wrap;
+        gap: 1rem;
+    }
+    
+    .welcome-section {
+        flex: 1;
+    }
+    
+    .dashboard-title {
+        font-size: 1.75rem;
+        font-weight: 600;
+        margin-bottom: 0.3rem;
+        color: white;
+    }
+    
+    .dashboard-subtitle {
+        font-size: 1rem;
+        opacity: 0.95;
+        margin: 0;
+    }
+    
+    .header-actions {
+        display: flex;
+        align-items: center;
+        gap: 1rem;
+    }
+    
+    .current-date {
+        background: rgba(255, 255, 255, 0.2);
+        backdrop-filter: blur(10px);
+        padding: 0.5rem 1rem;
+        border-radius: 8px;
+        display: flex;
+        align-items: center;
+        gap: 0.5rem;
+        font-size: 0.9rem;
+    }
+    
+    .create-service-btn {
+        background: rgba(255, 255, 255, 0.95);
+        color: #009EDB;
+        border: 2px solid rgba(255, 255, 255, 0.3);
+        padding: 10px 20px;
+        border-radius: 8px;
+        text-decoration: none;
+        font-weight: 600;
+        font-size: 14px;
+        transition: all 0.3s ease;
+        display: inline-flex;
+        align-items: center;
+        gap: 8px;
+        backdrop-filter: blur(10px);
+        cursor: pointer;
+    }
+    
+    .create-service-btn:hover {
+        background: white;
+        color: #0084c7;
+        text-decoration: none;
+        transform: translateY(-2px);
+        box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
+    }
+    
+    /* Filter Section */
+    .filter-section {
+        background: white;
+        border-radius: 12px;
+        padding: 1.5rem;
+        margin-bottom: 2rem;
+        box-shadow: 0 2px 10px rgba(0, 0, 0, 0.05);
+        border: 1px solid #e5e7eb;
+    }
+    
+    .filter-header {
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        margin-bottom: 1.5rem;
+        padding-bottom: 1rem;
+        border-bottom: 2px solid #f3f4f6;
+    }
+    
+    .filter-title {
+        font-size: 1.25rem;
+        font-weight: 600;
+        color: #1f2937;
+        display: flex;
+        align-items: center;
+        gap: 0.5rem;
+    }
+    
+    .filter-title i {
+        color: #009EDB;
+    }
+    
+    .filter-grid {
+        display: grid;
+        grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
+        gap: 1rem;
+    }
+    
+    .filter-group {
+        display: flex;
+        flex-direction: column;
+        gap: 0.5rem;
+    }
+    
+    .filter-label {
+        font-size: 0.875rem;
+        font-weight: 600;
+        color: #4b5563;
+        display: flex;
+        align-items: center;
+        gap: 0.5rem;
+    }
+    
+    .filter-label i {
+        color: #009EDB;
+        font-size: 0.875rem;
+    }
+    
+    .filter-input,
+    .filter-select {
+        padding: 0.625rem 1rem;
+        border: 2px solid #e5e7eb;
+        border-radius: 8px;
+        font-size: 0.875rem;
+        transition: all 0.2s ease;
+        background: white;
+    }
+    
+    .filter-input:focus,
+    .filter-select:focus {
+        outline: none;
+        border-color: #009EDB;
+        box-shadow: 0 0 0 3px rgba(0, 158, 219, 0.1);
+    }
+    
+    .filter-input::placeholder {
+        color: #9ca3af;
+    }
+    
+    .btn-clear-filters {
+        padding: 0.625rem 1.25rem;
+        background: #f3f4f6;
+        color: #4b5563;
+        border: none;
+        border-radius: 8px;
+        font-weight: 500;
+        font-size: 0.875rem;
+        display: inline-flex;
+        align-items: center;
+        gap: 0.5rem;
+        transition: all 0.2s ease;
+        text-decoration: none;
+    }
+    
+    .btn-clear-filters:hover {
+        background: #e5e7eb;
+        color: #1f2937;
+        text-decoration: none;
+    }
+    
+    .filter-count {
+        font-size: 0.875rem;
+        color: #6b7280;
+        padding: 0.375rem 0.75rem;
+        background: #f9fafb;
+        border-radius: 6px;
+    }
+    
+    /* Statistics Grid */
+    .stats-grid {
+        display: grid;
+        grid-template-columns: repeat(auto-fit, minmax(240px, 1fr));
+        gap: 1.25rem;
+        margin-bottom: 2rem;
+    }
+    
+    .stat-card {
+        background: white;
+        border-radius: 12px;
+        padding: 1.5rem;
+        border: 1px solid #e5e7eb;
+        transition: all 0.3s ease;
+        position: relative;
+        overflow: hidden;
+    }
+    
+    .stat-card::before {
+        content: '';
+        position: absolute;
+        top: 0;
+        left: 0;
+        right: 0;
+        height: 4px;
+        background: linear-gradient(90deg, var(--gradient-start), var(--gradient-end));
+    }
+    
+    .stat-card:nth-child(1)::before {
+        --gradient-start: #f59e0b;
+        --gradient-end: #fbbf24;
+    }
+    
+    .stat-card:nth-child(2)::before {
+        --gradient-start: #10b981;
+        --gradient-end: #34d399;
+    }
+    
+    .stat-card:nth-child(3)::before {
+        --gradient-start: #ef4444;
+        --gradient-end: #f87171;
+    }
+    
+    .stat-card:nth-child(4)::before {
+        --gradient-start: #8b5cf6;
+        --gradient-end: #a78bfa;
+    }
+    
+    .stat-card:hover {
+        transform: translateY(-4px);
+        box-shadow: 0 10px 30px rgba(0, 0, 0, 0.1);
+    }
+    
+    .stat-content {
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+    }
+    
+    .stat-icon {
+        width: 50px;
+        height: 50px;
+        border-radius: 12px;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        font-size: 1.5rem;
+    }
+    
+    .stat-icon-primary {
+        background: linear-gradient(135deg, #f59e0b, #fbbf24);
+        color: white;
+    }
+    
+    .stat-icon-success {
+        background: linear-gradient(135deg, #10b981, #34d399);
+        color: white;
+    }
+    
+    .stat-icon-danger {
+        background: linear-gradient(135deg, #ef4444, #f87171);
+        color: white;
+    }
+    
+    .stat-icon-info {
+        background: linear-gradient(135deg, #8b5cf6, #a78bfa);
+        color: white;
+    }
+    
+    .stat-details {
+        text-align: right;
+    }
+    
+    .stat-number {
+        font-size: 1.75rem;
+        font-weight: 700;
+        color: #1f2937;
+        line-height: 1;
+        margin-bottom: 0.25rem;
+    }
+    
+    .stat-label {
+        font-size: 0.875rem;
+        color: #6b7280;
+        font-weight: 500;
+    }
+    
+    /* Table Styles */
+    .service-row {
+        transition: all 0.2s ease;
+        border-bottom: 1px solid #f3f4f6;
+    }
+    
+    .service-row:hover {
+        background-color: #f9fafb;
+        transform: translateX(2px);
+        box-shadow: 0 2px 4px rgba(0, 0, 0, 0.05);
+    }
+    
+    /* Badge Styles */
+    .badge {
+        transition: all 0.2s ease;
+    }
+    
+    .badge:hover {
+        transform: translateY(-1px);
+        box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+    }
+    
+    /* Modern Form Styling for Modals */
+    .form-control-modern, .form-select-modern {
+        background-color: #f8f9fa;
+        border: 2px solid transparent;
+        border-radius: 12px;
+        height: 48px;
+        padding: 0 16px;
+        font-size: 15px;
+        font-weight: 500;
+        color: #2d3748;
+        transition: all 0.3s ease;
+    }
+    
+    .form-control-modern:hover, .form-select-modern:hover {
+        background-color: #e2e8f0;
+        border-color: #cbd5e0;
+    }
+    
+    .form-control-modern:focus, .form-select-modern:focus {
+        background-color: #ffffff;
+        border-color: #f59e0b;
+        box-shadow: 0 0 0 4px rgba(245, 158, 11, 0.1);
+        outline: none;
+    }
+    
+    .form-control-modern::placeholder {
+        color: #9ca3af;
+        font-weight: 400;
+    }
+    
+    .form-label-modern {
+        display: block;
+        font-size: 13px;
+        font-weight: 600;
+        color: #4a5568;
+        margin-bottom: 8px;
+        text-transform: uppercase;
+        letter-spacing: 0.05em;
+    }
+    
+    .form-group-modern {
+        margin-bottom: 20px;
+    }
+    
+    textarea.form-control-modern {
+        min-height: 80px;
+        padding: 12px 16px;
+        resize: vertical;
+    }
+    
+    .form-select-modern {
+        background-image: url("data:image/svg+xml,%3csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 16 16'%3e%3cpath fill='none' stroke='%236b7280' stroke-linecap='round' stroke-linejoin='round' stroke-width='2' d='M2 5l6 6 6-6'/%3e%3c/svg%3e");
+        background-repeat: no-repeat;
+        background-position: right 12px center;
+        background-size: 16px 12px;
+        padding-right: 40px;
+    }
+    
+    @@media (max-width: 768px) {
+        .dashboard-header {
+            padding: 1rem;
+        }
+        
+        .header-content {
+            flex-direction: column;
+            align-items: stretch;
+        }
+        
+        .header-actions {
+            flex-direction: column;
+            align-items: stretch;
+        }
+        
+        .filter-grid {
+            grid-template-columns: 1fr;
+        }
+        
+        .stats-grid {
+            grid-template-columns: repeat(2, 1fr);
+            gap: 1rem;
+        }
+    }
+</style>
+
+<!-- Dashboard Header -->
+<div class="dashboard-header">
+    <div class="header-content">
+        <div class="welcome-section">
+            <h1 class="dashboard-title">Welcome back, @Model.CurrentUserName!</h1>
+            <p class="dashboard-subtitle">Manage service classes and allowances</p>
+        </div>
+        <div class="header-actions">
+            <div class="current-date">
+                <i class="bi bi-calendar3"></i>
+                <span>@DateTime.Now.ToString("dddd, MMMM dd, yyyy")</span>
+            </div>
+            <button type="button" class="create-service-btn" data-bs-toggle="modal" data-bs-target="#classOfServiceModal" onclick="openCreateModal()">
+                <i class="bi bi-plus-circle"></i>
+                Add Service Class
+            </button>
+        </div>
+    </div>
+</div>
+
+<!-- Statistics Cards -->
+<div class="stats-grid">
+    <div class="stat-card">
+        <div class="stat-content">
+            <div class="stat-icon stat-icon-primary">
+                <i class="bi bi-layers"></i>
+            </div>
+            <div class="stat-details">
+                <div class="stat-number">@Model.TotalServices</div>
+                <div class="stat-label">Total Services</div>
+            </div>
+        </div>
+    </div>
+    
+    <div class="stat-card">
+        <div class="stat-content">
+            <div class="stat-icon stat-icon-success">
+                <i class="bi bi-check-circle"></i>
+            </div>
+            <div class="stat-details">
+                <div class="stat-number">@Model.ActiveServices</div>
+                <div class="stat-label">Active Services</div>
+            </div>
+        </div>
+    </div>
+    
+    <div class="stat-card">
+        <div class="stat-content">
+            <div class="stat-icon stat-icon-danger">
+                <i class="bi bi-x-circle"></i>
+            </div>
+            <div class="stat-details">
+                <div class="stat-number">@Model.InactiveServices</div>
+                <div class="stat-label">Inactive Services</div>
+            </div>
+        </div>
+    </div>
+    
+    <div class="stat-card">
+        <div class="stat-content">
+            <div class="stat-icon stat-icon-info">
+                <i class="bi bi-diagram-3"></i>
+            </div>
+            <div class="stat-details">
+                <div class="stat-number">@Model.UniqueClasses</div>
+                <div class="stat-label">Unique Classes</div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Filter Section (Collapsible) -->
+<div class="mb-3">
+    <button class="btn btn-outline-primary" type="button" data-bs-toggle="collapse" data-bs-target="#filterCollapse" aria-expanded="false" aria-controls="filterCollapse">
+        <i class="bi bi-funnel"></i> Show Filters
+    </button>
+</div>
+<div class="collapse" id="filterCollapse">
+<div class="filter-section">
+    <div class="filter-header">
+        <h2 class="filter-title">
+            <i class="bi bi-funnel"></i>
+            Filters
+        </h2>
+        <div class="filter-actions">
+            <span class="filter-count">@Model.ClassOfServices.Count results</span>
+        </div>
+    </div>
+    
+    <form method="get" class="filter-form" id="filterForm">
+        <div class="filter-grid">
+            <div class="filter-group">
+                <label class="filter-label" for="searchFilter">
+                    <i class="bi bi-search"></i> Search
+                </label>
+                <input type="text" name="SearchTerm" id="searchFilter" class="filter-input filter-search-input" 
+                       placeholder="Class, Service, Staff..." value="@Model.SearchTerm" />
+            </div>
+            
+            <div class="filter-group">
+                <label class="filter-label" for="classFilter">
+                    <i class="bi bi-layers"></i> Class
+                </label>
+                <select name="SelectedClass" id="classFilter" class="filter-select filter-auto-submit">
+                    <option value="">All Classes</option>
+                    @foreach (var className in Model.AvailableClasses)
+                    {
+                        <option value="@className" selected="@(Model.SelectedClass == className)">@className</option>
+                    }
+                </select>
+            </div>
+            
+            <div class="filter-group">
+                <label class="filter-label" for="statusFilter">
+                    <i class="bi bi-toggle-on"></i> Status
+                </label>
+                <select name="SelectedStatus" id="statusFilter" class="filter-select filter-auto-submit">
+                    <option value="">All Status</option>
+                    <option value="@((int)ServiceStatus.Active)" selected="@(Model.SelectedStatus == ServiceStatus.Active)">Active</option>
+                    <option value="@((int)ServiceStatus.Inactive)" selected="@(Model.SelectedStatus == ServiceStatus.Inactive)">Inactive</option>
+                </select>
+            </div>
+            
+            <div class="filter-group align-self-end">
+                @if (!string.IsNullOrEmpty(Model.SearchTerm) || !string.IsNullOrEmpty(Model.SelectedClass) || Model.SelectedStatus != null)
+                {
+                    <a href="/Admin/ClassOfService" class="btn-clear-filters">
+                        <i class="bi bi-x-circle"></i> Clear All
+                    </a>
+                }
+            </div>
+        </div>
+    </form>
+</div>
+</div>
+
+<!-- Status Message -->
+@if (!string.IsNullOrEmpty(Model.StatusMessage))
+{
+    <div class="alert alert-@Model.StatusMessageClass alert-dismissible fade show" role="alert">
+        @Model.StatusMessage
+        <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
+    </div>
+}
+
+<!-- Class of Service Table -->
+@if (!Model.ClassOfServices.Any())
+{
+    <div class="card border-0 shadow-sm">
+        <div class="card-body text-center py-5">
+            <div class="bg-light rounded-circle d-inline-flex align-items-center justify-content-center mb-3" style="width: 80px; height: 80px;">
+                <i class="bi bi-layers text-muted" style="font-size: 32px;"></i>
+            </div>
+            <h5 class="text-muted mb-3">No Service Classes Found</h5>
+            <p class="text-muted mb-4">Create your first service class to define allowances and eligibility.</p>
+            <button type="button" class="btn" style="background-color: #f59e0b; color: white;" data-bs-toggle="modal" data-bs-target="#classOfServiceModal" 
+                    onclick="openCreateModal()">
+                <i class="bi bi-layers"></i> Create First Service Class
+            </button>
+        </div>
+    </div>
+}
+else
+{
+    <div class="card border-0 shadow-sm" style="border-radius: 16px;">
+        <div class="card-header bg-gradient border-0 py-4" style="background: linear-gradient(135deg, #f59e0b 0%, #dc2626 100%); border-radius: 16px 16px 0 0;">
+            <div>
+                <h5 class="card-title mb-1 text-white fw-bold">
+                    <i class="bi bi-layers me-2"></i>Service Classes Directory
+                </h5>
+                <p class="text-white-50 mb-0">Manage service allowances and eligibility criteria</p>
+            </div>
+        </div>
+        <div class="card-body p-0">
+            <div class="table-responsive">
+                <table class="table table-hover mb-0" id="servicesTable">
+                    <thead style="background-color: #f8f9fa;">
+                        <tr>
+                            <th class="border-0 px-4 py-3" style="font-weight: 600; color: #4a5568; text-transform: uppercase; font-size: 12px; letter-spacing: 0.5px;">
+                                <i class="bi bi-layers me-2"></i>Service Class
+                            </th>
+                            <th class="border-0 px-3 py-3" style="font-weight: 600; color: #4a5568; text-transform: uppercase; font-size: 12px; letter-spacing: 0.5px;">
+                                <i class="bi bi-clipboard-check me-2"></i>Service
+                            </th>
+                            <th class="border-0 px-3 py-3" style="font-weight: 600; color: #4a5568; text-transform: uppercase; font-size: 12px; letter-spacing: 0.5px;">
+                                <i class="bi bi-people me-2"></i>Eligible Staff
+                            </th>
+                            <th class="border-0 px-3 py-3" style="font-weight: 600; color: #4a5568; text-transform: uppercase; font-size: 12px; letter-spacing: 0.5px;">
+                                <i class="bi bi-telephone me-2"></i>Allowances
+                            </th>
+                            <th class="border-0 px-3 py-3" style="font-weight: 600; color: #4a5568; text-transform: uppercase; font-size: 12px; letter-spacing: 0.5px;">
+                                <i class="bi bi-toggle-on me-2"></i>Status
+                            </th>
+                            <th class="border-0 px-3 py-3 text-center" style="font-weight: 600; color: #4a5568; text-transform: uppercase; font-size: 12px; letter-spacing: 0.5px;">
+                                <i class="bi bi-gear me-2"></i>Actions
+                            </th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        @foreach (var item in Model.ClassOfServices)
+                        {
+                            <tr class="service-row">
+                                <td class="px-4 py-3">
+                                    <div class="d-flex align-items-center">
+                                        <div class="rounded-circle bg-warning bg-opacity-10 d-inline-flex align-items-center justify-content-center me-3" style="width: 40px; height: 40px;">
+                                            <i class="bi bi-layers text-warning"></i>
+                                        </div>
+                                        <div>
+                                            <div class="fw-semibold text-dark">@item.Class</div>
+                                            <small class="text-muted">Class ID: @item.Id</small>
+                                        </div>
+                                    </div>
+                                </td>
+                                <td class="px-3 py-3">
+                                    <div style="max-width: 200px;">
+                                        <div class="text-truncate" title="@item.Service">@item.Service</div>
+                                    </div>
+                                </td>
+                                <td class="px-3 py-3">
+                                    <div style="max-width: 200px;">
+                                        <div class="text-truncate" title="@item.EligibleStaff">@item.EligibleStaff</div>
+                                    </div>
+                                </td>
+                                <td class="px-3 py-3">
+                                    <div class="d-flex flex-column gap-1">
+                                        @if (!string.IsNullOrEmpty(item.AirtimeAllowance) || item.AirtimeAllowanceAmount.HasValue)
+                                        {
+                                            <span class="badge bg-primary bg-opacity-10 text-primary px-2 py-1">
+                                                <i class="bi bi-telephone-fill me-1"></i>@item.AirtimeAllowance
+                                                @if (item.AirtimeAllowanceAmount.HasValue)
+                                                {
+                                                    <small class="text-muted">($@item.AirtimeAllowanceAmount.Value.ToString("N2"))</small>
+                                                }
+                                            </span>
+                                        }
+                                        @if (!string.IsNullOrEmpty(item.DataAllowance) || item.DataAllowanceAmount.HasValue)
+                                        {
+                                            <span class="badge bg-info bg-opacity-10 text-info px-2 py-1">
+                                                <i class="bi bi-wifi me-1"></i>@item.DataAllowance
+                                                @if (item.DataAllowanceAmount.HasValue)
+                                                {
+                                                    <small class="text-muted">($@item.DataAllowanceAmount.Value.ToString("N2"))</small>
+                                                }
+                                            </span>
+                                        }
+                                        @if (!string.IsNullOrEmpty(item.HandsetAllowance) || item.HandsetAllowanceAmount.HasValue)
+                                        {
+                                            <span class="badge bg-secondary bg-opacity-10 text-secondary px-2 py-1">
+                                                <i class="bi bi-phone-fill me-1"></i>@item.HandsetAllowance
+                                                @if (item.HandsetAllowanceAmount.HasValue)
+                                                {
+                                                    <small class="text-muted">($@item.HandsetAllowanceAmount.Value.ToString("N2"))</small>
+                                                }
+                                            </span>
+                                        }
+                                    </div>
+                                </td>
+                                <td class="px-3 py-3">
+                                    @if (item.ServiceStatus == ServiceStatus.Active)
+                                    {
+                                        <span class="badge bg-success px-3 py-2" style="font-weight: 500;">
+                                            <i class="bi bi-check-circle-fill me-1"></i>Active
+                                        </span>
+                                    }
+                                    else
+                                    {
+                                        <span class="badge bg-danger px-3 py-2" style="font-weight: 500;">
+                                            <i class="bi bi-x-circle-fill me-1"></i>Inactive
+                                        </span>
+                                    }
+                                </td>
+                                <td class="px-3 py-3 text-center">
+                                    <div class="btn-group" role="group">
+                                        <button type="button" class="btn btn-sm btn-outline-primary"
+                                                onclick="editClassOfService(@item.Id, '@item.Class', '@item.Service', '@item.EligibleStaff', '@item.AirtimeAllowance', '@item.DataAllowance', '@item.HandsetAllowance', '@item.HandsetAIRemarks', @((int)item.ServiceStatus), @(item.AirtimeAllowanceAmount?.ToString() ?? "null"), @(item.DataAllowanceAmount?.ToString() ?? "null"), @(item.HandsetAllowanceAmount?.ToString() ?? "null"), '@item.BillingPeriod')"
+                                                title="Edit">
+                                            <i class="bi bi-pencil"></i>
+                                        </button>
+                                        <button type="button" class="btn btn-sm btn-outline-danger"
+                                                onclick="deleteClassOfService(@item.Id, '@item.Class')"
+                                                title="Delete">
+                                            <i class="bi bi-trash"></i>
+                                        </button>
+                                    </div>
+                                </td>
+                            </tr>
+                        }
+                    </tbody>
+                </table>
+            </div>
+        </div>
+    </div>
+}
+
+<!-- Create/Edit Modal -->
+<div class="modal fade" id="classOfServiceModal" tabindex="-1" aria-labelledby="classOfServiceModalLabel" aria-hidden="true">
+    <div class="modal-dialog modal-lg modal-dialog-centered">
+        <div class="modal-content border-0 shadow-lg" style="border-radius: 20px;">
+            <div class="modal-header border-0 pb-0" style="padding: 2rem 2rem 1rem 2rem;">
+                <div class="w-100 text-center">
+                    <div class="mb-3">
+                        <div id="modalIcon" class="bg-warning bg-opacity-10 rounded-circle d-inline-flex align-items-center justify-content-center" 
+                             style="width: 60px; height: 60px;">
+                            <i class="bi bi-layers text-warning" style="font-size: 24px;"></i>
+                        </div>
+                    </div>
+                    <h4 class="modal-title fw-bold text-dark mb-1" id="classOfServiceModalLabel">Add New Service Class</h4>
+                    <p class="text-muted mb-0" id="modalDescription">Define service class details and allowances</p>
+                </div>
+                <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close" 
+                        style="position: absolute; top: 1rem; right: 1rem;"></button>
+            </div>
+            <div class="modal-body" style="padding: 1rem 2rem 2rem 2rem;">
+                <form id="classOfServiceForm" method="post">
+                    <input type="hidden" id="classOfServiceId" name="id" value="" />
+                    
+                    <!-- Basic Information -->
+                    <div class="mb-4">
+                        <h6 class="text-muted text-uppercase fw-semibold mb-3" style="font-size: 0.75rem; letter-spacing: 1px;">Basic Information</h6>
+                        <div class="row g-3">
+                            <div class="col-md-6">
+                                <div class="form-group-modern">
+                                    <label for="classType" class="form-label-modern">Class Name</label>
+                                    <input type="text" class="form-control form-control-modern" id="classType" name="classType" placeholder="Enter class name" required />
+                                </div>
+                            </div>
+                            <div class="col-md-6">
+                                <div class="form-group-modern">
+                                    <label for="serviceStatus" class="form-label-modern">Status</label>
+                                    <select class="form-select form-select-modern" id="serviceStatus" name="serviceStatus">
+                                        <option value="1">Active</option>
+                                        <option value="0">Inactive</option>
+                                    </select>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Service Details -->
+                    <div class="mb-4">
+                        <h6 class="text-muted text-uppercase fw-semibold mb-3" style="font-size: 0.75rem; letter-spacing: 1px;">Service Details</h6>
+                        <div class="row g-3">
+                            <div class="col-12">
+                                <div class="form-group-modern">
+                                    <label for="service" class="form-label-modern">Service Description</label>
+                                    <textarea class="form-control form-control-modern" id="service" name="service" placeholder="Enter service description" required></textarea>
+                                </div>
+                            </div>
+                            <div class="col-12">
+                                <div class="form-group-modern">
+                                    <label for="eligibleStaff" class="form-label-modern">Eligible Staff</label>
+                                    <textarea class="form-control form-control-modern" id="eligibleStaff" name="eligibleStaff" placeholder="Enter eligible staff criteria" required></textarea>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Allowances -->
+                    <div class="mb-4">
+                        <h6 class="text-muted text-uppercase fw-semibold mb-3" style="font-size: 0.75rem; letter-spacing: 1px;">Allowances (Display Text)</h6>
+                        <div class="row g-3">
+                            <div class="col-md-4">
+                                <div class="form-group-modern">
+                                    <label for="airtimeAllowance" class="form-label-modern">Airtime Allowance (Text)</label>
+                                    <input type="text" class="form-control form-control-modern" id="airtimeAllowance" name="airtimeAllowance" placeholder="e.g., Unlimited, 250 minutes" />
+                                    <small class="text-muted mt-1 d-block">Display text: "Unlimited", "250 minutes", etc.</small>
+                                </div>
+                            </div>
+                            <div class="col-md-4">
+                                <div class="form-group-modern">
+                                    <label for="dataAllowance" class="form-label-modern">Data Allowance (Text)</label>
+                                    <input type="text" class="form-control form-control-modern" id="dataAllowance" name="dataAllowance" placeholder="e.g., Unlimited, 5GB" />
+                                    <small class="text-muted mt-1 d-block">Display text: "Unlimited", "5GB", etc.</small>
+                                </div>
+                            </div>
+                            <div class="col-md-4">
+                                <div class="form-group-modern">
+                                    <label for="handsetAllowance" class="form-label-modern">Handset Allowance (Text)</label>
+                                    <input type="text" class="form-control form-control-modern" id="handsetAllowance" name="handsetAllowance" placeholder="e.g., $500, $1000" />
+                                    <small class="text-muted mt-1 d-block">Display text: "$500", "$1000", etc.</small>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Numeric Allowances for Calculations -->
+                    <div class="mb-4">
+                        <h6 class="text-muted text-uppercase fw-semibold mb-3" style="font-size: 0.75rem; letter-spacing: 1px;">
+                            Allowances (Numeric - For Calculations)
+                            <i class="bi bi-info-circle ms-1" data-bs-toggle="tooltip" title="These values are used for cost calculations and overage detection"></i>
+                        </h6>
+                        <div class="row g-3">
+                            <div class="col-md-4">
+                                <div class="form-group-modern">
+                                    <label for="airtimeAllowanceAmount" class="form-label-modern">Airtime Allowance (USD)</label>
+                                    <input type="number" step="0.01" class="form-control form-control-modern" id="airtimeAllowanceAmount" name="airtimeAllowanceAmount" placeholder="e.g., 250.00" />
+                                    <small class="text-muted mt-1 d-block">Dollar amount for airtime calculations</small>
+                                </div>
+                            </div>
+                            <div class="col-md-4">
+                                <div class="form-group-modern">
+                                    <label for="dataAllowanceAmount" class="form-label-modern">Data Allowance (USD)</label>
+                                    <input type="number" step="0.01" class="form-control form-control-modern" id="dataAllowanceAmount" name="dataAllowanceAmount" placeholder="e.g., 100.00" />
+                                    <small class="text-muted mt-1 d-block">Dollar amount for data calculations</small>
+                                </div>
+                            </div>
+                            <div class="col-md-4">
+                                <div class="form-group-modern">
+                                    <label for="handsetAllowanceAmount" class="form-label-modern">Handset Allowance (USD)</label>
+                                    <input type="number" step="0.01" class="form-control form-control-modern" id="handsetAllowanceAmount" name="handsetAllowanceAmount" placeholder="e.g., 500.00" />
+                                    <small class="text-muted mt-1 d-block">Dollar amount for handset purchase</small>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Billing Period -->
+                    <div class="mb-4">
+                        <h6 class="text-muted text-uppercase fw-semibold mb-3" style="font-size: 0.75rem; letter-spacing: 1px;">Billing Configuration</h6>
+                        <div class="row g-3">
+                            <div class="col-md-6">
+                                <div class="form-group-modern">
+                                    <label for="billingPeriod" class="form-label-modern">Billing Period</label>
+                                    <select class="form-select form-select-modern" id="billingPeriod" name="billingPeriod">
+                                        <option value="Monthly" selected>Monthly</option>
+                                        <option value="Quarterly">Quarterly</option>
+                                        <option value="Yearly">Yearly</option>
+                                    </select>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Additional Information -->
+                    <div class="mb-4">
+                        <h6 class="text-muted text-uppercase fw-semibold mb-3" style="font-size: 0.75rem; letter-spacing: 1px;">Additional Information</h6>
+                        <div class="form-group-modern">
+                            <label for="handsetAIRemarks" class="form-label-modern">Handset AI Remarks (Optional)</label>
+                            <textarea class="form-control form-control-modern" id="handsetAIRemarks" name="handsetAIRemarks" placeholder="Enter additional remarks" rows="3"></textarea>
+                        </div>
+                    </div>
+
+                    <!-- Buttons -->
+                    <div class="d-flex justify-content-end gap-2 pt-3 border-top">
+                        <button type="button" class="btn btn-light px-4" data-bs-dismiss="modal">Cancel</button>
+                        <button type="submit" class="btn" style="background-color: #f59e0b; color: white;" id="submitBtn">
+                            <i class="bi bi-check-circle me-2"></i>Save Service Class
+                        </button>
+                    </div>
+                </form>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Delete Confirmation Modal -->
+<div class="modal fade" id="deleteModal" tabindex="-1" aria-labelledby="deleteModalLabel" aria-hidden="true">
+    <div class="modal-dialog modal-dialog-centered">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title" id="deleteModalLabel">Confirm Deletion</h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+            </div>
+            <div class="modal-body">
+                <p>Are you sure you want to delete the service class: <strong id="deleteClassName"></strong>?</p>
+                <p class="text-danger"><i class="bi bi-exclamation-triangle-fill"></i> This action cannot be undone.</p>
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancel</button>
+                <form id="deleteForm" method="post" style="display: inline;">
+                    <input type="hidden" id="deleteClassOfServiceId" name="id" />
+                    <button type="submit" class="btn btn-danger">Delete</button>
+                </form>
+            </div>
+        </div>
+    </div>
+</div>
+
+@section Scripts {
+    <script>
+        // Auto-submit functionality and collapsible filters
+        document.addEventListener('DOMContentLoaded', function() {
+            // Auto-submit for select elements
+            const autoSubmitElements = document.querySelectorAll('.filter-auto-submit');
+            autoSubmitElements.forEach(element => {
+                element.addEventListener('change', function() {
+                    document.getElementById('filterForm').submit();
+                });
+            });
+            
+            // Debounced auto-submit for search input
+            let searchTimeout;
+            const searchInput = document.querySelector('.filter-search-input');
+            if (searchInput) {
+                searchInput.addEventListener('input', function() {
+                    clearTimeout(searchTimeout);
+                    searchTimeout = setTimeout(() => {
+                        document.getElementById('filterForm').submit();
+                    }, 500); // 500ms delay
+                });
+                
+                // Also submit on Enter key
+                searchInput.addEventListener('keypress', function(e) {
+                    if (e.key === 'Enter') {
+                        e.preventDefault();
+                        clearTimeout(searchTimeout);
+                        document.getElementById('filterForm').submit();
+                    }
+                });
+            }
+            
+            // Update button text when filters are shown/hidden
+            const filterToggle = document.querySelector('[data-bs-target="#filterCollapse"]');
+            const filterCollapse = document.getElementById('filterCollapse');
+            if (filterToggle && filterCollapse) {
+                filterCollapse.addEventListener('show.bs.collapse', function () {
+                    filterToggle.innerHTML = '<i class="bi bi-funnel-fill"></i> Hide Filters';
+                });
+                filterCollapse.addEventListener('hide.bs.collapse', function () {
+                    filterToggle.innerHTML = '<i class="bi bi-funnel"></i> Show Filters';
+                });
+                
+                // Check if any filters are active and show the filter section
+                const hasActiveFilters = @Html.Raw((!string.IsNullOrEmpty(Model.SearchTerm) || !string.IsNullOrEmpty(Model.SelectedClass) || Model.SelectedStatus != null).ToString().ToLower());
+                if (hasActiveFilters) {
+                    filterCollapse.classList.add('show');
+                    filterToggle.innerHTML = '<i class="bi bi-funnel-fill"></i> Hide Filters';
+                    filterToggle.setAttribute('aria-expanded', 'true');
+                }
+            }
+        });
+
+        // Function to open create modal
+        function openCreateModal() {
+            document.getElementById('classOfServiceModalLabel').textContent = 'Add New Service Class';
+            document.getElementById('modalDescription').textContent = 'Define service class details and allowances';
+            document.getElementById('submitBtn').innerHTML = '<i class="bi bi-check-circle me-2"></i>Save Service Class';
+            document.getElementById('classOfServiceForm').action = '?handler=Create';
+            document.getElementById('classOfServiceForm').reset();
+            document.getElementById('classOfServiceId').value = '';
+        }
+
+        // Function to edit class of service
+        function editClassOfService(id, classType, service, eligibleStaff, airtimeAllowance, dataAllowance, handsetAllowance, handsetAIRemarks, serviceStatus, airtimeAllowanceAmount, dataAllowanceAmount, handsetAllowanceAmount, billingPeriod) {
+            document.getElementById('classOfServiceModalLabel').textContent = 'Edit Service Class';
+            document.getElementById('modalDescription').textContent = 'Update service class details and allowances';
+            document.getElementById('submitBtn').innerHTML = '<i class="bi bi-check-circle me-2"></i>Update Service Class';
+
+            document.getElementById('classOfServiceId').value = id;
+            document.getElementById('classType').value = classType;
+            document.getElementById('service').value = service;
+            document.getElementById('eligibleStaff').value = eligibleStaff;
+            document.getElementById('airtimeAllowance').value = airtimeAllowance || '';
+            document.getElementById('dataAllowance').value = dataAllowance || '';
+            document.getElementById('handsetAllowance').value = handsetAllowance || '';
+            document.getElementById('handsetAIRemarks').value = handsetAIRemarks || '';
+            document.getElementById('serviceStatus').value = serviceStatus;
+            document.getElementById('airtimeAllowanceAmount').value = airtimeAllowanceAmount !== null ? airtimeAllowanceAmount : '';
+            document.getElementById('dataAllowanceAmount').value = dataAllowanceAmount !== null ? dataAllowanceAmount : '';
+            document.getElementById('handsetAllowanceAmount').value = handsetAllowanceAmount !== null ? handsetAllowanceAmount : '';
+            document.getElementById('billingPeriod').value = billingPeriod || 'Monthly';
+
+            document.getElementById('classOfServiceForm').action = '?handler=Edit';
+
+            var modal = new bootstrap.Modal(document.getElementById('classOfServiceModal'));
+            modal.show();
+        }
+
+        // Function to delete class of service
+        function deleteClassOfService(id, className) {
+            document.getElementById('deleteClassOfServiceId').value = id;
+            document.getElementById('deleteClassName').textContent = className;
+            document.getElementById('deleteForm').action = '?handler=Delete';
+            
+            var modal = new bootstrap.Modal(document.getElementById('deleteModal'));
+            modal.show();
+        }
+
+        // Reset modal when closed
+        document.getElementById('classOfServiceModal').addEventListener('hidden.bs.modal', function () {
+            document.getElementById('classOfServiceForm').reset();
+            document.getElementById('classOfServiceId').value = '';
+        });
+        
+        // Add animation to status badges
+        document.querySelectorAll('.badge').forEach(badge => {
+            badge.addEventListener('mouseenter', function() {
+                this.style.transform = 'translateY(-2px) scale(1.05)';
+            });
+            badge.addEventListener('mouseleave', function() {
+                this.style.transform = 'translateY(0) scale(1)';
+            });
+        });
+    </script>
+}

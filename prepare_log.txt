@@ -1,0 +1,3 @@
+Changed database context to 'TABDB'.
+Msg 156, Level 15, State 1, Server Michuki\SQLEXPRESS, Line 183
+Incorrect syntax near the keyword 'off'.

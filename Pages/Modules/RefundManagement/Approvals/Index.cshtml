@@ -1,0 +1,362 @@
+@page
+@model TAB.Web.Pages.Modules.RefundManagement.Approvals.IndexModel
+@{
+    ViewData["Title"] = "Refund Request Approvals";
+    var activeTab = Request.Query["tab"].ToString();
+    if (string.IsNullOrEmpty(activeTab))
+    {
+        activeTab = "supervisor";
+    }
+}
+
+<style>
+    .page-header {
+        margin-bottom: 32px;
+        padding-bottom: 1rem;
+        border-bottom: 2px solid #E3EDF6;
+    }
+    
+    .page-title {
+        font-size: 28px;
+        font-weight: 700;
+        color: #000000;
+        margin-bottom: 8px;
+    }
+    
+    .page-title i {
+        color: #009EDB;
+    }
+
+    .page-subtitle {
+        color: #64748b;
+        font-size: 16px;
+        margin: 0;
+    }
+
+    
+    .nav-tabs {
+        border-bottom: 2px solid #e5e7eb;
+        background: white;
+        border-radius: 12px 12px 0 0;
+        padding: 1rem 1rem 0 1rem;
+        box-shadow: 0 2px 10px rgba(0, 0, 0, 0.06);
+    }
+    
+    .nav-tabs .nav-link {
+        color: #6b7280;
+        border: none;
+        border-bottom: 3px solid transparent;
+        padding: 0.75rem 1.5rem;
+        font-weight: 500;
+        transition: all 0.3s;
+        background: none;
+        cursor: pointer;
+    }
+    
+    .nav-tabs .nav-link:hover {
+        color: #009edb;
+        border-bottom-color: rgba(0, 158, 219, 0.3);
+    }
+    
+    .nav-tabs .nav-link.active {
+        color: #009edb;
+        background: none;
+        border: none;
+        border-bottom: 3px solid #009edb;
+    }
+    
+    .tab-content {
+        margin-top: 0;
+    }
+    
+    .tab-header {
+        padding: 1rem 1.5rem;
+        background: white;
+        border-radius: 12px;
+        margin-bottom: 1.5rem;
+        box-shadow: 0 2px 10px rgba(0, 0, 0, 0.06);
+    }
+    
+    .tab-title {
+        font-size: 1.25rem;
+        font-weight: 600;
+        color: #1e293b;
+        margin-bottom: 0.25rem;
+    }
+    
+    .tab-subtitle {
+        color: #64748b;
+        margin-bottom: 0;
+        font-size: 0.875rem;
+    }
+    
+    .role-badge {
+        background: #009edb;
+        color: white;
+        padding: 0.375rem 1rem;
+        border-radius: 20px;
+        font-size: 0.875rem;
+        font-weight: 500;
+    }
+    
+    .workflow-indicator {
+        display: flex;
+        align-items: center;
+        gap: 1rem;
+        margin-top: 1rem;
+        padding: 0.75rem;
+        background: #f9fafb;
+        border-radius: 8px;
+    }
+    
+    .workflow-step {
+        display: flex;
+        align-items: center;
+        gap: 0.5rem;
+        font-size: 0.85rem;
+    }
+    
+    .workflow-step.active {
+        color: #009edb;
+        font-weight: 600;
+    }
+    
+    .workflow-step.completed {
+        color: #10b981;
+    }
+    
+    .workflow-arrow {
+        color: #d1d5db;
+    }
+</style>
+
+<div class="container-fluid px-4">
+    <div class="page-header">
+        <h1 class="page-title"><i class="bi bi-cash-coin me-2"></i>Refund Request Approvals</h1>
+        <p class="page-subtitle">Process device reimbursement requests through the approval workflow</p>
+    </div>
+
+    <!-- Workflow Indicator -->
+    <div class="workflow-indicator">
+        <span class="workflow-step @(activeTab == "supervisor" ? "active" : "completed")">
+            <i class="bi bi-person-check"></i> Supervisor
+        </span>
+        <span class="workflow-arrow">→</span>
+        <span class="workflow-step @(activeTab == "budget" ? "active" : (activeTab == "supervisor" ? "" : "completed"))">
+            <i class="bi bi-calculator"></i> Budget Officer
+        </span>
+        <span class="workflow-arrow">→</span>
+        <span class="workflow-step @(activeTab == "claims" ? "active" : (activeTab == "payment" ? "completed" : ""))">
+            <i class="bi bi-check-circle"></i> Claims Unit
+        </span>
+        <span class="workflow-arrow">→</span>
+        <span class="workflow-step @(activeTab == "payment" ? "active" : "")">
+            <i class="bi bi-credit-card"></i> Payment
+        </span>
+    </div>
+
+    <!-- Tab Navigation -->
+    <ul class="nav nav-tabs mt-3" id="refundApprovalTabs" role="tablist">
+            <li class="nav-item" role="presentation">
+                <button class="nav-link @(activeTab == "supervisor" ? "active" : "")" 
+                        id="supervisor-tab"
+                        data-bs-toggle="tab"
+                        data-bs-target="#supervisor-content"
+                        type="button"
+                        role="tab"
+                        aria-controls="supervisor-content"
+                        aria-selected="@(activeTab == "supervisor" ? "true" : "false")">
+                    <i class="bi bi-person-check me-2"></i>
+                    Supervisor Approval
+                    @if (Model.SupervisorPendingCount > 0)
+                    {
+                        <span class="badge bg-danger ms-2">@Model.SupervisorPendingCount</span>
+                    }
+                </button>
+            </li>
+            @if (User.IsInRole("Budget Officer") || User.IsInRole("BudgetOfficer") || User.IsInRole("Admin"))
+            {
+                <li class="nav-item" role="presentation">
+                    <button class="nav-link @(activeTab == "budget" ? "active" : "")" 
+                            id="budget-tab"
+                            data-bs-toggle="tab"
+                            data-bs-target="#budget-content"
+                            type="button"
+                            role="tab"
+                            aria-controls="budget-content"
+                            aria-selected="@(activeTab == "budget" ? "true" : "false")">
+                        <i class="bi bi-calculator me-2"></i>
+                        Budget Review
+                        @if (Model.BudgetPendingCount > 0)
+                        {
+                            <span class="badge bg-warning text-dark ms-2">@Model.BudgetPendingCount</span>
+                        }
+                    </button>
+                </li>
+            }
+            @if (User.IsInRole("Claims Unit Approver") || User.IsInRole("Admin"))
+            {
+                <li class="nav-item" role="presentation">
+                    <button class="nav-link @(activeTab == "claims" ? "active" : "")" 
+                            id="claims-tab"
+                            data-bs-toggle="tab"
+                            data-bs-target="#claims-content"
+                            type="button"
+                            role="tab"
+                            aria-controls="claims-content"
+                            aria-selected="@(activeTab == "claims" ? "true" : "false")">
+                        <i class="bi bi-check-circle me-2"></i>
+                        Claims Unit
+                        @if (Model.ClaimsPendingCount > 0)
+                        {
+                            <span class="badge bg-info ms-2">@Model.ClaimsPendingCount</span>
+                        }
+                    </button>
+                </li>
+            }
+            @if (User.IsInRole("ICTS") || User.IsInRole("Payment Approver") || User.IsInRole("Admin"))
+            {
+                <li class="nav-item" role="presentation">
+                    <button class="nav-link @(activeTab == "payment" ? "active" : "")" 
+                            id="payment-tab"
+                            data-bs-toggle="tab"
+                            data-bs-target="#payment-content"
+                            type="button"
+                            role="tab"
+                            aria-controls="payment-content"
+                            aria-selected="@(activeTab == "payment" ? "true" : "false")">
+                        <i class="bi bi-credit-card me-2"></i>
+                        Payment Approval
+                        @if (Model.PaymentPendingCount > 0)
+                        {
+                            <span class="badge bg-success ms-2">@Model.PaymentPendingCount</span>
+                        }
+                    </button>
+                </li>
+            }
+    </ul>
+
+    <!-- Tab Content -->
+    <div class="tab-content" id="refundApprovalTabContent">
+        <!-- Supervisor Tab -->
+        <div class="tab-pane fade @(activeTab == "supervisor" ? "show active" : "")" 
+             id="supervisor-content" 
+             role="tabpanel" 
+             aria-labelledby="supervisor-tab">
+            <div class="tab-header">
+                <div class="d-flex justify-content-between align-items-center">
+                    <div>
+                        <h2 class="tab-title">Supervisor Approval Queue</h2>
+                        <p class="tab-subtitle">Review and approve refund requests from your team members</p>
+                    </div>
+                    <div>
+                        <span class="role-badge">Supervisor Role</span>
+                    </div>
+                </div>
+            </div>
+            
+            <!-- Supervisor Requests Content -->
+            <partial name="_RefundSupervisorPartial" model="Model" />
+        </div>
+        
+        <!-- Budget Officer Tab -->
+        @if (User.IsInRole("Budget Officer") || User.IsInRole("BudgetOfficer") || User.IsInRole("Admin"))
+        {
+            <div class="tab-pane fade @(activeTab == "budget" ? "show active" : "")" 
+                 id="budget-content" 
+                 role="tabpanel" 
+                 aria-labelledby="budget-tab">
+                <div class="tab-header">
+                    <div class="d-flex justify-content-between align-items-center">
+                        <div>
+                            <h2 class="tab-title">Budget Officer Review</h2>
+                            <p class="tab-subtitle">Verify budget availability and approve refund amounts</p>
+                        </div>
+                        <div>
+                            <span class="role-badge" style="background: #f59e0b;">Budget Officer Role</span>
+                        </div>
+                    </div>
+                </div>
+                
+                <!-- Budget Officer Content -->
+                <partial name="_RefundBudgetPartial" model="Model" />
+            </div>
+        }
+        
+        <!-- Claims Unit Tab -->
+        @if (User.IsInRole("Claims Unit Approver") || User.IsInRole("Admin"))
+        {
+            <div class="tab-pane fade @(activeTab == "claims" ? "show active" : "")" 
+                 id="claims-content" 
+                 role="tabpanel" 
+                 aria-labelledby="claims-tab">
+                <div class="tab-header">
+                    <div class="d-flex justify-content-between align-items-center">
+                        <div>
+                            <h2 class="tab-title">Claims Unit Processing</h2>
+                            <p class="tab-subtitle">Process and validate refund claims</p>
+                        </div>
+                        <div>
+                            <span class="role-badge" style="background: #0ea5e9;">Claims Unit Role</span>
+                        </div>
+                    </div>
+                </div>
+                
+                <!-- Claims Unit Content -->
+                <partial name="_RefundClaimsPartial" model="Model" />
+            </div>
+        }
+        
+        <!-- Payment Approver Tab -->
+        @if (User.IsInRole("ICTS") || User.IsInRole("Payment Approver") || User.IsInRole("Admin"))
+        {
+            <div class="tab-pane fade @(activeTab == "payment" ? "show active" : "")" 
+                 id="payment-content" 
+                 role="tabpanel" 
+                 aria-labelledby="payment-tab">
+                <div class="tab-header">
+                    <div class="d-flex justify-content-between align-items-center">
+                        <div>
+                            <h2 class="tab-title">Payment Approval</h2>
+                            <p class="tab-subtitle">Final approval and payment processing</p>
+                        </div>
+                        <div>
+                            <span class="role-badge" style="background: #10b981;">Payment Approver Role</span>
+                        </div>
+                    </div>
+                </div>
+                
+                <!-- Payment Approver Content -->
+                <partial name="_RefundPaymentPartial" model="Model" />
+            </div>
+        }
+    </div>
+</div>
+
+@section Scripts {
+    <script>
+        document.addEventListener('DOMContentLoaded', function() {
+            // Handle tab persistence with URL
+            var tabButtons = document.querySelectorAll('button[data-bs-toggle="tab"]');
+            tabButtons.forEach(function(button) {
+                button.addEventListener('shown.bs.tab', function (e) {
+                    var tabId = e.target.id.replace('-tab', '');
+                    var url = new URL(window.location);
+                    url.searchParams.set('tab', tabId);
+                    window.history.pushState({}, '', url);
+                });
+            });
+            
+            // Set active tab based on URL parameter
+            var urlParams = new URLSearchParams(window.location.search);
+            var activeTab = urlParams.get('tab');
+            if (activeTab) {
+                var tabButton = document.getElementById(activeTab + '-tab');
+                if (tabButton) {
+                    var tab = new bootstrap.Tab(tabButton);
+                    tab.show();
+                }
+            }
+        });
+    </script>
+}

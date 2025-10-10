@@ -1,0 +1,324 @@
+﻿@page
+@model IndexModel
+@{
+    ViewData["Title"] = "Services Dashboard";
+    ViewData["PageIcon"] = "bi-house";
+    ViewData["PageTitle"] = "Services Dashboard";
+    ViewData["Breadcrumb"] = "Dashboard";
+}
+
+<!-- Hero Section -->
+<div class="hero-section">
+    <div class="hero-content">
+        <div class="welcome-icon">
+            <i class="bi bi-house-heart"></i>
+        </div>
+        <div class="hero-text">
+            <h1 class="hero-title">Welcome to UNON Services</h1>
+            <p class="hero-subtitle">Access telecommunications and billing services quickly and efficiently</p>
+        </div>
+    </div>
+</div>
+
+<!-- Main Services Grid -->
+<div class="services-grid">
+    <!-- SIM Card Request -->
+    <div class="service-card sim-card">
+        <div class="service-card-inner">
+            <div class="service-icon-container">
+                <div class="service-icon">
+                    <i class="bi bi-phone"></i>
+                </div>
+            </div>
+            <div class="service-content">
+                <h3 class="service-title">SIM Card Request</h3>
+                <p class="service-description">Request a new SIM card.</p>
+                <a asp-page="/Modules/SimManagement/Requests/Index" class="service-btn btn-primary-custom">
+                    <i class="bi bi-plus-circle"></i>
+                    <span>New SIM Request</span>
+                    <i class="bi bi-chevron-right"></i>
+                </a>
+            </div>
+        </div>
+    </div>
+
+    <!-- Refund Request -->
+    <div class="service-card refund-card">
+        <div class="service-card-inner">
+            <div class="service-icon-container">
+                <div class="service-icon">
+                    <i class="bi bi-cash-coin"></i>
+                </div>
+            </div>
+            <div class="service-content">
+                <h3 class="service-title">Refund Request</h3>
+                <p class="service-description">Request refunds for device purchases.</p>
+                <a asp-page="/Modules/RefundManagement/Requests/Index" class="service-btn btn-primary-custom">
+                    <i class="bi bi-arrow-return-left"></i>
+                    <span>Request Refund</span>
+                    <i class="bi bi-chevron-right"></i>
+                </a>
+            </div>
+        </div>
+    </div>
+
+    <!-- E-Bill Management -->
+    <div class="service-card ebill-card">
+        <div class="service-card-inner">
+            <div class="service-icon-container">
+                <div class="service-icon">
+                    <i class="bi bi-file-text"></i>
+                </div>
+            </div>
+            <div class="service-content">
+                <h3 class="service-title">E-Bill Management</h3>
+                <p class="service-description">Verify your electronic bill.</p>
+                <a asp-page="/Modules/EBillManagement/CallRecords/MyCallLogs" class="service-btn btn-primary-custom">
+                    <i class="bi bi-check-circle"></i>
+                    <span>Verify E-Bill</span>
+                    <i class="bi bi-chevron-right"></i>
+                </a>
+            </div>
+        </div>
+    </div>
+</div>
+
+
+<style>
+/* Hero Section */
+.hero-section {
+    background: linear-gradient(135deg, #009edb 0%, #0077b5 100%);
+    border-radius: 10px;
+    padding: 1.25rem 1.5rem;
+    margin-bottom: 2rem;
+    position: relative;
+    box-shadow: 0 2px 6px rgba(0, 102, 204, 0.12);
+}
+
+.hero-content {
+    display: flex;
+    align-items: center;
+    gap: 1.25rem;
+}
+
+.welcome-icon {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    width: 45px;
+    height: 45px;
+    background: rgba(255, 255, 255, 0.25);
+    border-radius: 10px;
+    backdrop-filter: blur(10px);
+    flex-shrink: 0;
+}
+
+.welcome-icon i {
+    font-size: 1.25rem;
+    color: white;
+}
+
+.hero-text {
+    text-align: left;
+}
+
+.hero-title {
+    font-size: 1.25rem;
+    font-weight: 600;
+    color: white;
+    margin-bottom: 0.25rem;
+    letter-spacing: -0.01em;
+}
+
+.hero-subtitle {
+    font-size: 0.875rem;
+    color: rgba(255, 255, 255, 0.95);
+    margin: 0;
+    line-height: 1.3;
+}
+
+/* Services Grid */
+.services-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(350px, 1fr));
+    gap: 2rem;
+    margin-bottom: 3rem;
+}
+
+.service-card {
+    background: white;
+    border-radius: 20px;
+    padding: 2rem;
+    box-shadow: 0 4px 25px rgba(0, 0, 0, 0.08);
+    transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+    border: 1px solid rgba(0, 0, 0, 0.05);
+    position: relative;
+    overflow: hidden;
+}
+
+.service-card-inner {
+    display: flex;
+    align-items: flex-start;
+    gap: 1.5rem;
+}
+
+.service-card::before {
+    content: '';
+    position: absolute;
+    top: 0;
+    left: 0;
+    right: 0;
+    height: 3px;
+    background: #009edb;
+    transition: all 0.3s ease;
+}
+
+.service-card:hover {
+    transform: translateY(-8px);
+    box-shadow: 0 20px 40px rgba(0, 0, 0, 0.15);
+}
+
+.service-card:hover::before {
+    height: 5px;
+}
+
+.service-icon-container {
+    flex-shrink: 0;
+}
+
+.service-icon {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    width: 60px;
+    height: 60px;
+    border-radius: 15px;
+    background: #009edb;
+}
+
+.service-icon i {
+    font-size: 1.5rem;
+    color: white;
+}
+
+.service-content {
+    flex: 1;
+    text-align: left;
+}
+
+.service-title {
+    font-size: 1.25rem;
+    font-weight: 600;
+    color: #1a202c;
+    margin-bottom: 0.5rem;
+    margin-top: 0;
+    letter-spacing: -0.01em;
+}
+
+.service-description {
+    color: #718096;
+    margin-bottom: 1.5rem;
+    line-height: 1.5;
+    font-size: 0.9rem;
+}
+
+.service-btn {
+    display: inline-flex;
+    align-items: center;
+    gap: 0.5rem;
+    padding: 0.75rem 1.25rem;
+    border-radius: 8px;
+    text-decoration: none;
+    font-weight: 500;
+    font-size: 0.95rem;
+    transition: all 0.3s ease;
+    border: none;
+    cursor: pointer;
+    position: relative;
+    overflow: hidden;
+}
+
+.btn-primary-custom {
+    background: #009edb;
+    color: white;
+    border: 1px solid #009edb;
+}
+
+.btn-primary-custom:hover {
+    background: #0077b5;
+    border-color: #0077b5;
+    transform: translateY(-2px);
+    box-shadow: 0 4px 12px rgba(0, 158, 219, 0.25);
+    color: white;
+    text-decoration: none;
+}
+
+.service-btn i {
+    transition: transform 0.3s ease;
+}
+
+.service-btn:hover i {
+    transform: translateX(4px);
+}
+
+
+/* Responsive Design */
+@@media (max-width: 768px) {
+    .hero-section {
+        padding: 3rem 1.5rem;
+        margin-bottom: 2rem;
+    }
+    
+    .hero-title {
+        font-size: 2rem;
+    }
+    
+    .services-grid {
+        grid-template-columns: 1fr;
+        gap: 1.5rem;
+        margin-bottom: 2rem;
+    }
+    
+    .service-card {
+        padding: 2rem;
+    }
+    
+    .info-grid {
+        grid-template-columns: 1fr;
+        gap: 1.5rem;
+    }
+    
+    .info-card {
+        padding: 1.5rem;
+    }
+}
+
+@@media (max-width: 480px) {
+    .hero-section {
+        padding: 2rem 1rem;
+    }
+    
+    .hero-title {
+        font-size: 1.75rem;
+    }
+    
+    .service-card {
+        padding: 1.5rem;
+    }
+    
+    .service-card-inner {
+        flex-direction: row;
+        gap: 1rem;
+    }
+    
+    .service-icon {
+        width: 50px;
+        height: 50px;
+    }
+    
+    .service-icon i {
+        font-size: 1.25rem;
+    }
+}
+</style>
+

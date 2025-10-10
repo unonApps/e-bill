@@ -1,0 +1,763 @@
+@page "{id:int}"
+@model TAB.Web.Pages.Modules.SimManagement.Requests.EditModel
+@using TAB.Web.Models
+@{
+    ViewData["Title"] = "Edit SIM Request";
+    ViewData["PageIcon"] = "bi-pencil";
+    ViewData["PageTitle"] = "Edit SIM Request";
+    ViewData["Breadcrumb"] = "Services / SIM Card Requests / Edit";
+}
+
+<style>
+    /* UN Visual Identity Colors */
+    :root {
+        --un-blue: #009EDB;
+        --un-blue-dark: #0077B8;
+        --un-green: #72BF44;
+        --un-yellow: #FBB713;
+        --un-orange: #E07A00;
+        --un-red: #EB1C24;
+        --un-purple: #664F90;
+        --un-gray: #4A4A49;
+        --un-light-gray: #F5F5F5;
+    }
+
+    /* Banner Styles */
+    .page-banner {
+        background-color: var(--un-blue);
+        color: white;
+        padding: 1rem 0;
+        margin-bottom: 1.5rem;
+        box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+    }
+
+    .banner-content {
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+    }
+
+    .banner-info {
+        display: flex;
+        align-items: center;
+    }
+
+    .banner-icon {
+        width: 40px;
+        height: 40px;
+        background: rgba(255, 255, 255, 0.2);
+        border-radius: 50%;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        margin-right: 1rem;
+    }
+
+    .banner-text h5 {
+        margin-bottom: 0.25rem;
+        font-size: 1.25rem;
+        font-weight: 600;
+    }
+
+    .banner-text p {
+        margin-bottom: 0;
+        opacity: 0.9;
+        font-size: 0.875rem;
+    }
+
+    .banner-actions {
+        display: flex;
+        gap: 0.5rem;
+    }
+
+    /* Tab Styles */
+    .nav-tabs {
+        border-bottom: 2px solid var(--un-light-gray);
+        margin-bottom: 1.5rem;
+    }
+
+    .nav-tabs .nav-link {
+        color: var(--un-gray);
+        border: none;
+        padding: 0.75rem 1.5rem;
+        font-weight: 500;
+        transition: all 0.3s ease;
+        position: relative;
+    }
+
+    .nav-tabs .nav-link:hover {
+        color: var(--un-blue);
+        background-color: rgba(0, 158, 219, 0.05);
+    }
+
+    .nav-tabs .nav-link.active {
+        color: var(--un-blue);
+        background-color: transparent;
+        border: none;
+    }
+
+    .nav-tabs .nav-link.active::after {
+        content: '';
+        position: absolute;
+        bottom: -2px;
+        left: 0;
+        right: 0;
+        height: 3px;
+        background-color: var(--un-blue);
+    }
+
+    .nav-tabs .nav-link i {
+        margin-right: 0.5rem;
+    }
+
+    /* Card Styles */
+    .content-card {
+        background: white;
+        border-radius: 12px;
+        box-shadow: 0 1px 3px rgba(0,0,0,0.08);
+        padding: 1.5rem;
+        margin-bottom: 1.5rem;
+    }
+
+    /* Form Styles */
+    .section-title {
+        color: var(--un-gray);
+        font-size: 1rem;
+        font-weight: 600;
+        margin-bottom: 1rem;
+        padding-bottom: 0.5rem;
+        border-bottom: 1px solid var(--un-light-gray);
+    }
+
+    .section-title i {
+        color: var(--un-blue);
+        margin-right: 0.5rem;
+    }
+
+    .form-control, .form-select {
+        border: 1px solid #dee2e6;
+        border-radius: 8px;
+        transition: all 0.3s ease;
+    }
+
+    .form-control:focus, .form-select:focus {
+        border-color: var(--un-blue);
+        box-shadow: 0 0 0 0.2rem rgba(0, 158, 219, 0.15);
+    }
+
+    .form-floating > label {
+        color: #6c757d;
+    }
+
+    .form-control[readonly] {
+        background-color: var(--un-light-gray);
+        opacity: 0.8;
+    }
+
+    /* Radio Button Styles */
+    .sim-type-card {
+        background-color: rgba(0, 158, 219, 0.05);
+        border-radius: 8px;
+        padding: 1rem;
+    }
+
+    .form-check-input:checked {
+        background-color: var(--un-blue);
+        border-color: var(--un-blue);
+    }
+
+    /* Button Styles */
+    .btn-un-primary {
+        background-color: var(--un-blue);
+        color: white;
+        border: none;
+        border-radius: 8px;
+        padding: 0.5rem 1.5rem;
+        font-weight: 500;
+        transition: all 0.3s ease;
+    }
+
+    .btn-un-primary:hover {
+        background-color: var(--un-blue-dark);
+        color: white;
+        transform: translateY(-1px);
+        box-shadow: 0 4px 8px rgba(0, 158, 219, 0.3);
+    }
+
+    .btn-un-secondary {
+        background: white;
+        color: var(--un-blue);
+        border: 2px solid var(--un-blue);
+        border-radius: 8px;
+        padding: 0.5rem 1.5rem;
+        font-weight: 500;
+        transition: all 0.3s ease;
+    }
+
+    .btn-un-secondary:hover {
+        background: var(--un-blue);
+        color: white;
+        transform: translateY(-1px);
+    }
+
+    .btn-un-light {
+        background: white;
+        color: var(--un-gray);
+        border: 1px solid #dee2e6;
+        border-radius: 8px;
+        padding: 0.5rem 1.5rem;
+        font-weight: 500;
+        transition: all 0.3s ease;
+    }
+
+    .btn-un-light:hover {
+        background: var(--un-light-gray);
+        color: var(--un-gray);
+        border-color: #ccc;
+    }
+
+    /* Alert Styles */
+    .alert-warning {
+        background-color: rgba(251, 183, 19, 0.1);
+        border: 1px solid var(--un-yellow);
+        color: var(--un-orange);
+    }
+
+    .alert-warning i {
+        color: var(--un-orange);
+    }
+
+    /* Responsive Styles */
+    @@media (max-width: 768px) {
+        .page-banner {
+            padding: 0.75rem 0;
+        }
+
+        .banner-content {
+            flex-direction: column;
+            align-items: flex-start;
+            gap: 1rem;
+        }
+
+        .banner-actions {
+            width: 100%;
+        }
+
+        .banner-actions .btn {
+            flex: 1;
+            font-size: 0.875rem;
+            padding: 0.4rem 0.75rem;
+        }
+
+        .nav-tabs .nav-link {
+            padding: 0.5rem 1rem;
+            font-size: 0.875rem;
+        }
+
+        .nav-tabs .nav-link i {
+            display: none;
+        }
+
+        .content-card {
+            padding: 1rem;
+        }
+
+        .section-title {
+            font-size: 0.9rem;
+        }
+    }
+
+    @@media (max-width: 576px) {
+        .banner-icon {
+            width: 35px;
+            height: 35px;
+        }
+
+        .banner-text h5 {
+            font-size: 1.1rem;
+        }
+
+        .banner-text p {
+            font-size: 0.813rem;
+        }
+
+        .nav-tabs {
+            display: flex;
+            overflow-x: auto;
+            -webkit-overflow-scrolling: touch;
+            scrollbar-width: none;
+        }
+
+        .nav-tabs::-webkit-scrollbar {
+            display: none;
+        }
+
+        .nav-tabs .nav-link {
+            white-space: nowrap;
+        }
+    }
+</style>
+
+<!-- Status Message -->
+@if (!string.IsNullOrEmpty(Model.StatusMessage))
+{
+    <div class="alert alert-@(Model.StatusMessageClass ?? "info") alert-dismissible fade show" role="alert">
+        <i class="bi bi-@(Model.StatusMessageClass == "success" ? "check-circle" : Model.StatusMessageClass == "danger" ? "exclamation-triangle" : "info-circle") me-2"></i>
+        @Model.StatusMessage
+        <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
+    </div>
+}
+
+<!-- Page Banner -->
+<div class="page-banner">
+    <div class="container-fluid">
+        <div class="banner-content">
+            <div class="banner-info">
+                <div class="banner-icon">
+                    <i class="bi bi-pencil text-white"></i>
+                </div>
+                <div class="banner-text">
+                    <h5>Edit SIM Request</h5>
+                    <p>Request #@Model.SimRequest?.IndexNo - Status: @Model.SimRequest?.Status.GetDisplayName()</p>
+                </div>
+            </div>
+            <div class="banner-actions">
+                <a asp-page="Details" asp-route-id="@Model.SimRequest?.Id" class="btn btn-sm btn-light">
+                    <i class="bi bi-eye me-1"></i>View
+                </a>
+                <a asp-page="Index" class="btn btn-sm btn-outline-light text-white">
+                    <i class="bi bi-arrow-left me-1"></i>Back
+                </a>
+            </div>
+        </div>
+    </div>
+</div>
+
+@if (Model.SimRequest?.Status != RequestStatus.Draft)
+{
+    <div class="alert alert-warning" role="alert">
+        <i class="bi bi-exclamation-triangle me-2"></i>
+        <strong>Note:</strong> This request is no longer in draft status. You can only view the details but cannot make changes.
+    </div>
+}
+
+<!-- Main Content -->
+<div class="container-fluid">
+    <form method="post">
+        <input type="hidden" asp-for="SimRequest.Id" />
+        <input type="hidden" asp-for="SimRequest.RequestedBy" />
+        <input type="hidden" asp-for="SimRequest.RequestDate" />
+        <input type="hidden" asp-for="SimRequest.Status" />
+
+        <!-- Tabs Navigation -->
+        <ul class="nav nav-tabs" id="editTabs" role="tablist">
+            <li class="nav-item" role="presentation">
+                <button class="nav-link active" id="personal-tab" data-bs-toggle="tab" data-bs-target="#personal" type="button" role="tab">
+                    <i class="bi bi-person"></i>Personal Information
+                </button>
+            </li>
+            <li class="nav-item" role="presentation">
+                <button class="nav-link" id="sim-tab" data-bs-toggle="tab" data-bs-target="#sim" type="button" role="tab">
+                    <i class="bi bi-sim"></i>SIM Configuration
+                </button>
+            </li>
+            <li class="nav-item" role="presentation">
+                <button class="nav-link" id="additional-tab" data-bs-toggle="tab" data-bs-target="#additional" type="button" role="tab">
+                    <i class="bi bi-info-circle"></i>Additional Details
+                </button>
+            </li>
+        </ul>
+
+        <!-- Tab Content -->
+        <div class="tab-content" id="editTabContent">
+            <!-- Personal Information Tab -->
+            <div class="tab-pane fade show active" id="personal" role="tabpanel">
+                <div class="content-card">
+                    <div asp-validation-summary="All" class="alert alert-danger" role="alert" style="display: none;"></div>
+                    
+                    <!-- Basic Information -->
+                    <h6 class="section-title">
+                        <i class="bi bi-person-badge"></i>Basic Information
+                    </h6>
+                    <div class="row g-3 mb-4">
+                        <div class="col-md-4">
+                            <div class="form-floating">
+                                <input asp-for="SimRequest.IndexNo" class="form-control" 
+                                       readonly="@(Model.SimRequest?.Status != RequestStatus.Draft)" required />
+                                <label asp-for="SimRequest.IndexNo">
+                                    <span class="text-danger">*</span> Index No
+                                </label>
+                                <span asp-validation-for="SimRequest.IndexNo" class="text-danger"></span>
+                            </div>
+                        </div>
+                        <div class="col-md-4">
+                            <div class="form-floating">
+                                <input asp-for="SimRequest.FirstName" class="form-control" 
+                                       readonly="@(Model.SimRequest?.Status != RequestStatus.Draft)" required />
+                                <label asp-for="SimRequest.FirstName">
+                                    <span class="text-danger">*</span> First Name
+                                </label>
+                                <span asp-validation-for="SimRequest.FirstName" class="text-danger"></span>
+                            </div>
+                        </div>
+                        <div class="col-md-4">
+                            <div class="form-floating">
+                                <input asp-for="SimRequest.LastName" class="form-control" 
+                                       readonly="@(Model.SimRequest?.Status != RequestStatus.Draft)" required />
+                                <label asp-for="SimRequest.LastName">
+                                    <span class="text-danger">*</span> Last Name
+                                </label>
+                                <span asp-validation-for="SimRequest.LastName" class="text-danger"></span>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Organization Details -->
+                    <h6 class="section-title">
+                        <i class="bi bi-building"></i>Organization Details
+                    </h6>
+                    <div class="row g-3 mb-4">
+                        <div class="col-md-6">
+                            @if (Model.SimRequest?.Status == RequestStatus.Draft)
+                            {
+                                <div class="form-floating">
+                                    <select asp-for="SimRequest.Organization" class="form-select" id="organizationSelect" required>
+                                        <option value="">Select Organization</option>
+                                        @foreach (var org in Model.Organizations)
+                                        {
+                                            <option value="@org.Value" selected="@(org.Value == Model.SimRequest.Organization)">@org.Text</option>
+                                        }
+                                    </select>
+                                    <label asp-for="SimRequest.Organization">
+                                        <span class="text-danger">*</span> Organization
+                                    </label>
+                                    <span asp-validation-for="SimRequest.Organization" class="text-danger"></span>
+                                </div>
+                            }
+                            else
+                            {
+                                <div class="form-floating">
+                                    <input asp-for="SimRequest.Organization" class="form-control" readonly />
+                                    <label asp-for="SimRequest.Organization">Organization</label>
+                                </div>
+                            }
+                        </div>
+                        <div class="col-md-6">
+                            @if (Model.SimRequest?.Status == RequestStatus.Draft)
+                            {
+                                <div class="form-floating">
+                                    <select asp-for="SimRequest.Office" class="form-select" id="officeSelect" required>
+                                        <option value="">Select Office</option>
+                                        @foreach (var office in Model.Offices)
+                                        {
+                                            var orgName = office.Group?.Name ?? "Unknown";
+                                            <option value="@office.Value" data-organization="@orgName" selected="@(office.Value == Model.SimRequest.Office)">@office.Text</option>
+                                        }
+                                    </select>
+                                    <label asp-for="SimRequest.Office">
+                                        <span class="text-danger">*</span> Office
+                                    </label>
+                                    <span asp-validation-for="SimRequest.Office" class="text-danger"></span>
+                                </div>
+                            }
+                            else
+                            {
+                                <div class="form-floating">
+                                    <input asp-for="SimRequest.Office" class="form-control" readonly />
+                                    <label asp-for="SimRequest.Office">Office</label>
+                                </div>
+                            }
+                        </div>
+                    </div>
+
+                    <!-- Position Information -->
+                    <h6 class="section-title">
+                        <i class="bi bi-briefcase"></i>Position Information
+                    </h6>
+                    <div class="row g-3 mb-4">
+                        <div class="col-md-6">
+                            <div class="form-floating">
+                                <input asp-for="SimRequest.Grade" class="form-control" 
+                                       readonly="@(Model.SimRequest?.Status != RequestStatus.Draft)" required />
+                                <label asp-for="SimRequest.Grade">
+                                    <span class="text-danger">*</span> Grade
+                                </label>
+                                <span asp-validation-for="SimRequest.Grade" class="text-danger"></span>
+                            </div>
+                        </div>
+                        <div class="col-md-6">
+                            <div class="form-floating">
+                                <input asp-for="SimRequest.FunctionalTitle" class="form-control" 
+                                       readonly="@(Model.SimRequest?.Status != RequestStatus.Draft)" required />
+                                <label asp-for="SimRequest.FunctionalTitle">
+                                    <span class="text-danger">*</span> Functional Title
+                                </label>
+                                <span asp-validation-for="SimRequest.FunctionalTitle" class="text-danger"></span>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Contact Information -->
+                    <h6 class="section-title">
+                        <i class="bi bi-telephone"></i>Contact Information
+                    </h6>
+                    <div class="row g-3">
+                        <div class="col-md-6">
+                            <div class="form-floating">
+                                <input asp-for="SimRequest.OfficeExtension" class="form-control" 
+                                       readonly="@(Model.SimRequest?.Status != RequestStatus.Draft)" />
+                                <label asp-for="SimRequest.OfficeExtension">Office Extension</label>
+                                <span asp-validation-for="SimRequest.OfficeExtension" class="text-danger"></span>
+                            </div>
+                        </div>
+                        <div class="col-md-6">
+                            <div class="form-floating">
+                                <input asp-for="SimRequest.OfficialEmail" type="email" class="form-control" 
+                                       readonly="@(Model.SimRequest?.Status != RequestStatus.Draft)" required />
+                                <label asp-for="SimRequest.OfficialEmail">
+                                    <span class="text-danger">*</span> Official Email
+                                </label>
+                                <span asp-validation-for="SimRequest.OfficialEmail" class="text-danger"></span>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- SIM Configuration Tab -->
+            <div class="tab-pane fade" id="sim" role="tabpanel">
+                <div class="content-card">
+                    <h6 class="section-title">
+                        <i class="bi bi-sim"></i>SIM Type Selection
+                    </h6>
+                    <div class="row g-3 mb-4">
+                        <div class="col-md-6">
+                            <div class="sim-type-card">
+                                <label class="form-label fw-semibold mb-3">
+                                    <span class="text-danger">*</span> Select SIM Type
+                                </label>
+                                <div class="d-flex gap-3">
+                                    <div class="form-check">
+                                        <input class="form-check-input" type="radio" asp-for="SimRequest.SimType" 
+                                               value="@SimType.Physical" id="physicalSim" 
+                                               disabled="@(Model.SimRequest?.Status != RequestStatus.Draft)" />
+                                        <label class="form-check-label" for="physicalSim">
+                                            <i class="bi bi-sim me-2"></i>Physical SIM
+                                        </label>
+                                    </div>
+                                    <div class="form-check">
+                                        <input class="form-check-input" type="radio" asp-for="SimRequest.SimType" 
+                                               value="@SimType.ESim" id="esim" 
+                                               disabled="@(Model.SimRequest?.Status != RequestStatus.Draft)" />
+                                        <label class="form-check-label" for="esim">
+                                            <i class="bi bi-phone me-2"></i>eSIM
+                                        </label>
+                                    </div>
+                                </div>
+                                <span asp-validation-for="SimRequest.SimType" class="text-danger"></span>
+                            </div>
+                        </div>
+                        <div class="col-md-6">
+                            @if (Model.SimRequest?.Status == RequestStatus.Draft)
+                            {
+                                <div class="form-floating">
+                                    <select asp-for="SimRequest.ServiceProviderId" class="form-select" required>
+                                        <option value="">Select Service Provider</option>
+                                        @foreach (var provider in Model.ServiceProviders)
+                                        {
+                                            <option value="@provider.Value" selected="@(provider.Value == Model.SimRequest.ServiceProviderId.ToString())">
+                                                @provider.Text
+                                            </option>
+                                        }
+                                    </select>
+                                    <label asp-for="SimRequest.ServiceProviderId">
+                                        <span class="text-danger">*</span> Service Provider
+                                    </label>
+                                    <span asp-validation-for="SimRequest.ServiceProviderId" class="text-danger"></span>
+                                </div>
+                            }
+                            else
+                            {
+                                <div class="form-floating">
+                                    <input value="@(Model.SimRequest?.ServiceProvider?.ServiceProviderName ?? "N/A")" 
+                                           class="form-control" readonly />
+                                    <label>Service Provider</label>
+                                </div>
+                            }
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Additional Details Tab -->
+            <div class="tab-pane fade" id="additional" role="tabpanel">
+                <div class="content-card">
+                    <h6 class="section-title">
+                        <i class="bi bi-person-check"></i>Supervisor Information
+                    </h6>
+                    <div class="row g-3 mb-4">
+                        <div class="col-md-6">
+                            @if (Model.SimRequest?.Status == RequestStatus.Draft)
+                            {
+                                <div class="form-floating">
+                                    <select asp-for="SimRequest.Supervisor" class="form-select" required>
+                                        <option value="">Select Supervisor</option>
+                                        @foreach (var supervisor in Model.Supervisors)
+                                        {
+                                            <option value="@supervisor.Value" selected="@(supervisor.Value == Model.SimRequest.Supervisor)">
+                                                @supervisor.Text
+                                            </option>
+                                        }
+                                    </select>
+                                    <label asp-for="SimRequest.Supervisor">
+                                        <span class="text-danger">*</span> Supervisor
+                                    </label>
+                                    <span asp-validation-for="SimRequest.Supervisor" class="text-danger"></span>
+                                </div>
+                            }
+                            else
+                            {
+                                <div class="form-floating">
+                                    <input asp-for="SimRequest.Supervisor" class="form-control" readonly />
+                                    <label asp-for="SimRequest.Supervisor">Supervisor</label>
+                                </div>
+                            }
+                        </div>
+                        <div class="col-md-6">
+                            @if (Model.SimRequest?.Status == RequestStatus.Draft)
+                            {
+                                <div class="form-floating">
+                                    <select asp-for="SimRequest.PreviouslyAssignedLines" class="form-select" required>
+                                        <option value="">Select Option</option>
+                                        <option value="Yes" selected="@(Model.SimRequest.PreviouslyAssignedLines == "Yes")">Yes</option>
+                                        <option value="No" selected="@(Model.SimRequest.PreviouslyAssignedLines == "No")">No</option>
+                                    </select>
+                                    <label asp-for="SimRequest.PreviouslyAssignedLines">
+                                        <span class="text-danger">*</span> Previously Assigned Lines
+                                    </label>
+                                    <span asp-validation-for="SimRequest.PreviouslyAssignedLines" class="text-danger"></span>
+                                </div>
+                            }
+                            else
+                            {
+                                <div class="form-floating">
+                                    <input asp-for="SimRequest.PreviouslyAssignedLines" class="form-control" readonly />
+                                    <label asp-for="SimRequest.PreviouslyAssignedLines">Previously Assigned Lines</label>
+                                </div>
+                            }
+                        </div>
+                    </div>
+
+                    <h6 class="section-title">
+                        <i class="bi bi-chat-text"></i>Remarks
+                    </h6>
+                    <div class="row g-3">
+                        <div class="col-12">
+                            <div class="form-floating">
+                                <textarea asp-for="SimRequest.Remarks" class="form-control" style="min-height: 100px;" 
+                                          readonly="@(Model.SimRequest?.Status != RequestStatus.Draft)"></textarea>
+                                <label asp-for="SimRequest.Remarks">Remarks / Justification</label>
+                                <span asp-validation-for="SimRequest.Remarks" class="text-danger"></span>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Action Buttons -->
+                <div class="content-card">
+                    @if (Model.SimRequest?.Status == RequestStatus.Draft)
+                    {
+                        <div class="d-flex gap-2 flex-wrap">
+                            <a asp-page="Index" class="btn btn-un-light">
+                                <i class="bi bi-x-circle me-2"></i>Cancel
+                            </a>
+                            <button type="submit" name="action" value="draft" class="btn btn-un-secondary">
+                                <i class="bi bi-save me-2"></i>Save Changes
+                            </button>
+                            <button type="submit" name="action" value="submit" class="btn btn-un-primary">
+                                <i class="bi bi-send me-2"></i>Submit Request
+                            </button>
+                        </div>
+                    }
+                    else
+                    {
+                        <div class="d-flex gap-2">
+                            <a asp-page="Index" class="btn btn-un-light">
+                                <i class="bi bi-arrow-left me-2"></i>Back to List
+                            </a>
+                            <a asp-page="Details" asp-route-id="@Model.SimRequest?.Id" class="btn btn-un-primary">
+                                <i class="bi bi-eye me-2"></i>View Full Details
+                            </a>
+                        </div>
+                    }
+                </div>
+            </div>
+        </div>
+    </form>
+</div>
+
+@section Scripts {
+    <partial name="_ValidationScriptsPartial" />
+    
+    <script>
+        // Office filtering based on organization
+        document.addEventListener('DOMContentLoaded', function() {
+            const organizationSelect = document.getElementById('organizationSelect');
+            const officeSelect = document.getElementById('officeSelect');
+            
+            if (organizationSelect && officeSelect) {
+                // Store all office options
+                const allOfficeOptions = Array.from(officeSelect.options).map(option => ({
+                    value: option.value,
+                    text: option.textContent,
+                    organization: option.getAttribute('data-organization'),
+                    selected: option.selected,
+                    element: option.cloneNode(true)
+                }));
+                
+                function filterOffices() {
+                    const selectedOrg = organizationSelect.value;
+                    const currentValue = officeSelect.value;
+                    
+                    // Clear current options
+                    officeSelect.innerHTML = '';
+                    
+                    // Add default option
+                    const defaultOption = document.createElement('option');
+                    defaultOption.value = '';
+                    defaultOption.textContent = 'Select Office';
+                    officeSelect.appendChild(defaultOption);
+                    
+                    if (selectedOrg) {
+                        // Add filtered options
+                        allOfficeOptions
+                            .filter(opt => opt.value === '' || opt.organization === selectedOrg)
+                            .forEach(opt => {
+                                if (opt.value) {
+                                    const option = opt.element.cloneNode(true);
+                                    option.selected = (option.value === currentValue);
+                                    officeSelect.appendChild(option);
+                                }
+                            });
+                    } else {
+                        // Add all options when no organization selected
+                        allOfficeOptions.forEach(opt => {
+                            if (opt.value) {
+                                const option = opt.element.cloneNode(true);
+                                option.selected = (option.value === currentValue);
+                                officeSelect.appendChild(option);
+                            }
+                        });
+                    }
+                }
+                
+                organizationSelect.addEventListener('change', filterOffices);
+                
+                // Initial filter if organization is pre-selected
+                if (organizationSelect.value) {
+                    filterOffices();
+                }
+            }
+        });
+    </script>
+}

@@ -1,0 +1,1510 @@
+@page
+@model TAB.Web.Pages.Modules.RefundManagement.Approvals.PaymentApprover.IndexModel
+@{
+    ViewData["Title"] = "Payment Approval Management";
+}
+
+<style>
+    .minimal-card {
+        background: #ffffff;
+        border: none;
+        border-radius: 12px;
+        box-shadow: 0 2px 12px rgba(0, 0, 0, 0.04);
+        transition: all 0.3s ease;
+    }
+    
+    .minimal-card:hover {
+        box-shadow: 0 4px 20px rgba(0, 0, 0, 0.08);
+        transform: translateY(-2px);
+    }
+    
+    .stat-icon {
+        width: 48px;
+        height: 48px;
+        border-radius: 12px;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        font-size: 20px;
+        color: white;
+    }
+    
+    .stat-pending { background: linear-gradient(135deg, #6366f1, #4f46e5); }
+    .stat-completed { background: linear-gradient(135deg, #10b981, #059669); }
+    .stat-rejected { background: linear-gradient(135deg, #ef4444, #dc2626); }
+    
+    .minimal-table {
+        background: white;
+        border-radius: 12px;
+        overflow: hidden;
+        box-shadow: 0 2px 12px rgba(0, 0, 0, 0.04);
+        border: none;
+    }
+    
+    .minimal-table thead th {
+        background: #f8fafc;
+        border: none;
+        padding: 20px 16px;
+        font-weight: 600;
+        font-size: 14px;
+        color: #475569;
+        text-transform: uppercase;
+        letter-spacing: 0.5px;
+    }
+    
+    .minimal-table tbody td {
+        border: none;
+        padding: 20px 16px;
+        border-bottom: 1px solid #f1f5f9;
+        vertical-align: middle;
+    }
+    
+    .minimal-table tbody tr:last-child td {
+        border-bottom: none;
+    }
+    
+    .minimal-table tbody tr:hover {
+        background: #f8fafc;
+    }
+    
+    .request-id {
+        font-weight: 600;
+        color: #1e293b;
+        font-size: 16px;
+    }
+    
+    .Staff-name {
+        font-weight: 600;
+        color: #1e293b;
+        margin-bottom: 4px;
+    }
+    
+    .Staff-details {
+        color: #64748b;
+        font-size: 13px;
+        line-height: 1.4;
+    }
+    
+    .status-badge {
+        padding: 8px 16px;
+        border-radius: 20px;
+        font-size: 12px;
+        font-weight: 600;
+        display: inline-flex;
+        align-items: center;
+        gap: 6px;
+    }
+    
+    .status-pending {
+        background: linear-gradient(135deg, #6366f1, #4f46e5);
+        color: white;
+    }
+    
+    .status-completed {
+        background: linear-gradient(135deg, #10b981, #059669);
+        color: white;
+    }
+    
+    .status-cancelled {
+        background: linear-gradient(135deg, #ef4444, #dc2626);
+        color: white;
+    }
+    
+    .action-btn {
+        padding: 8px 16px;
+        border-radius: 8px;
+        font-size: 12px;
+        font-weight: 500;
+        border: 1px solid;
+        transition: all 0.2s ease;
+        display: flex;
+        align-items: center;
+        gap: 6px;
+        justify-content: center;
+        min-width: 100px;
+    }
+    
+    .action-btn:hover {
+        transform: translateY(-1px);
+        box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
+    }
+    
+    .btn-approve {
+        background: #dcfce7;
+        border-color: #16a34a;
+        color: #15803d;
+    }
+    
+    .btn-approve:hover {
+        background: #16a34a;
+        color: white;
+    }
+    
+    .btn-view {
+        background: #f0f9ff;
+        border-color: #0ea5e9;
+        color: #0c4a6e;
+    }
+    
+    .btn-view:hover {
+        background: #0ea5e9;
+        color: white;
+    }
+    
+    .btn-reject {
+        background: #fef2f2;
+        border-color: #ef4444;
+        color: #dc2626;
+    }
+    
+    .btn-reject:hover {
+        background: #ef4444;
+        color: white;
+    }
+    
+    .btn-revert {
+        background: #fef3c7;
+        border-color: #f59e0b;
+        color: #d97706;
+    }
+    
+    .btn-revert:hover {
+        background: #f59e0b;
+        color: white;
+    }
+    
+    .page-header {
+        margin-bottom: 32px;
+    }
+    
+    .page-title {
+        font-size: 28px;
+        font-weight: 700;
+        color: #1e293b;
+        margin-bottom: 8px;
+    }
+    
+    .page-subtitle {
+        color: #64748b;
+        font-size: 16px;
+        margin: 0;
+    }
+    
+    .nav-tabs-minimal {
+        border: none;
+        background: #f8fafc;
+        border-radius: 12px;
+        padding: 4px;
+        margin-bottom: 24px;
+    }
+    
+    .nav-tabs-minimal .nav-link {
+        border: none;
+        border-radius: 8px;
+        padding: 12px 20px;
+        font-weight: 500;
+        color: #64748b;
+        transition: all 0.2s ease;
+    }
+    
+    .nav-tabs-minimal .nav-link.active {
+        background: white;
+        color: #1e293b;
+        box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
+    }
+    
+    .empty-state {
+        text-align: center;
+        padding: 80px 20px;
+        color: #64748b;
+    }
+    
+    .empty-state i {
+        font-size: 64px;
+        color: #cbd5e1;
+        margin-bottom: 20px;
+    }
+    
+    .empty-state h5 {
+        color: #475569;
+        margin-bottom: 12px;
+    }
+    
+    .alert-minimal {
+        border: none;
+        border-radius: 12px;
+        padding: 16px 20px;
+        margin-bottom: 24px;
+    }
+    
+    .amount-highlight {
+        background: linear-gradient(135deg, #6366f1, #4f46e5);
+        color: white;
+        padding: 4px 8px;
+        border-radius: 6px;
+        font-weight: 600;
+        font-size: 14px;
+    }
+    
+    .detail-label {
+        font-weight: 600;
+        font-size: 12px;
+        color: #6b7280;
+        text-transform: uppercase;
+        letter-spacing: 0.5px;
+        margin-bottom: 4px;
+        display: block;
+    }
+    
+    .detail-value {
+        font-weight: 500;
+        font-size: 14px;
+        color: #374151;
+        background: #f9fafb;
+        padding: 8px 12px;
+        border-radius: 8px;
+        border: 1px solid #e5e7eb;
+    }
+    
+    /* Timeline Styles */
+    .workflow-timeline {
+        position: relative;
+        padding-left: 30px;
+    }
+    
+    .workflow-timeline::before {
+        content: '';
+        position: absolute;
+        left: 15px;
+        top: 0;
+        bottom: 0;
+        width: 2px;
+        background: #e5e7eb;
+    }
+    
+    .timeline-item {
+        position: relative;
+        margin-bottom: 30px;
+    }
+    
+    .timeline-marker {
+        position: absolute;
+        left: -22px;
+        top: 8px;
+        width: 32px;
+        height: 32px;
+        border-radius: 50%;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        font-size: 14px;
+        color: white;
+        border: 3px solid white;
+        box-shadow: 0 2px 8px rgba(0,0,0,0.1);
+    }
+    
+    .timeline-submitted { background: #10b981; }
+    .timeline-approved { background: #059669; }
+    .timeline-current { background: #3b82f6; }
+    .timeline-pending { background: #9ca3af; }
+    .timeline-rejected { background: #ef4444; }
+    
+    .timeline-content {
+        background: white;
+        border-radius: 12px;
+        padding: 20px;
+        border: 1px solid #e5e7eb;
+        box-shadow: 0 2px 4px rgba(0,0,0,0.05);
+    }
+    
+    .timeline-header {
+        display: flex;
+        justify-content: between;
+        align-items: center;
+        margin-bottom: 8px;
+    }
+    
+    .timeline-title {
+        font-weight: 600;
+        color: #111827;
+        margin: 0;
+        font-size: 16px;
+    }
+    
+    .timeline-date {
+        font-size: 12px;
+        color: #6b7280;
+        font-weight: 500;
+        margin-left: auto;
+    }
+    
+    .timeline-description {
+        color: #6b7280;
+        margin-bottom: 8px;
+        font-size: 14px;
+    }
+    
+    .timeline-remarks {
+        background: #f9fafb;
+        padding: 8px 12px;
+        border-radius: 6px;
+        border: 1px solid #e5e7eb;
+    }
+</style>
+
+<div class="container-fluid px-4">
+    <!-- Page Header -->
+    <div class="page-header">
+        <div class="d-flex justify-content-between align-items-start">
+            <div>
+                <h1 class="page-title">
+                    <i class="bi bi-credit-card-fill text-primary me-3"></i>
+                    Payment Approval Management
+                </h1>
+                <p class="page-subtitle">
+                    Review and process mobile device reimbursement payments for completion
+                </p>
+            </div>
+            <div class="text-end">
+                <span class="badge bg-light text-dark px-3 py-2">
+                    <i class="bi bi-shield-check me-2"></i>
+                    <span>ICTS Payment Approver</span>
+                </span>
+            </div>
+        </div>
+    </div>
+
+    <!-- Status Messages -->
+    @if (!string.IsNullOrEmpty(Model.StatusMessage))
+    {
+        <div class="alert alert-@(Model.StatusMessageClass ?? "info") alert-dismissible fade show alert-minimal" role="alert">
+            @Model.StatusMessage
+            <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
+        </div>
+    }
+
+    <!-- Statistics Cards -->
+    <div class="row g-4 mb-5">
+        <div class="col-md-4">
+            <div class="minimal-card p-4">
+                <div class="d-flex align-items-center">
+                    <div class="stat-icon stat-pending me-4">
+                        <i class="bi bi-clock-history"></i>
+                    </div>
+                    <div>
+                        <h3 class="mb-1 fw-bold text-dark">@Model.PendingRequests.Count(r => r.Status == TAB.Web.Models.RefundRequestStatus.PendingPaymentApproval)</h3>
+                        <p class="mb-0 text-muted">Pending Payment</p>
+                    </div>
+                </div>
+            </div>
+        </div>
+        <div class="col-md-4">
+            <div class="minimal-card p-4">
+                <div class="d-flex align-items-center">
+                    <div class="stat-icon stat-completed me-4">
+                        <i class="bi bi-check-circle"></i>
+                    </div>
+                    <div>
+                        <h3 class="mb-1 fw-bold text-dark">@Model.PendingRequests.Count(r => r.Status == TAB.Web.Models.RefundRequestStatus.Completed)</h3>
+                        <p class="mb-0 text-muted">Completed</p>
+                    </div>
+                </div>
+            </div>
+        </div>
+        <div class="col-md-4">
+            <div class="minimal-card p-4">
+                <div class="d-flex align-items-center">
+                    <div class="stat-icon stat-rejected me-4">
+                        <i class="bi bi-x-circle"></i>
+                    </div>
+                    <div>
+                        <h3 class="mb-1 fw-bold text-dark">@Model.PendingRequests.Count(r => r.Status == TAB.Web.Models.RefundRequestStatus.Cancelled)</h3>
+                        <p class="mb-0 text-muted">Rejected</p>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Navigation Tabs -->
+    <ul class="nav nav-tabs nav-tabs-minimal" id="paymentTab" role="tablist">
+        <li class="nav-item" role="presentation">
+            <button class="nav-link active" id="pending-tab" data-bs-toggle="tab" data-bs-target="#pending" type="button" role="tab">
+                <i class="bi bi-clock-history me-2"></i>
+                Pending Payment (@Model.PendingRequests.Count(r => r.Status == TAB.Web.Models.RefundRequestStatus.PendingPaymentApproval))
+            </button>
+        </li>
+        <li class="nav-item" role="presentation">
+            <button class="nav-link" id="completed-tab" data-bs-toggle="tab" data-bs-target="#completed" type="button" role="tab">
+                <i class="bi bi-check-circle me-2"></i>
+                Completed (@Model.PendingRequests.Count(r => r.Status == TAB.Web.Models.RefundRequestStatus.Completed))
+            </button>
+        </li>
+        <li class="nav-item" role="presentation">
+            <button class="nav-link" id="rejected-tab" data-bs-toggle="tab" data-bs-target="#rejected" type="button" role="tab">
+                <i class="bi bi-x-circle me-2"></i>
+                Rejected (@Model.PendingRequests.Count(r => r.Status == TAB.Web.Models.RefundRequestStatus.Cancelled))
+            </button>
+        </li>
+    </ul>
+
+    <!-- Tab Content -->
+    <div class="tab-content" id="paymentTabContent">
+        <!-- Pending Payment Tab -->
+        <div class="tab-pane fade show active" id="pending" role="tabpanel">
+            @{
+                var pendingPayments = Model.PendingRequests.Where(r => r.Status == TAB.Web.Models.RefundRequestStatus.PendingPaymentApproval);
+            }
+            @if (pendingPayments.Any())
+            {
+                <div class="table-responsive">
+                    <table class="table minimal-table">
+                        <thead>
+                            <tr>
+                                <th>Request</th>
+                                <th>Staff</th>
+                                <th>Payment Details</th>
+                                <th>Amount</th>
+                                <th>Claims Data</th>
+                                <th>Actions</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            @foreach (var request in pendingPayments)
+                            {
+                                <tr>
+                                    <td>
+                                        <div class="d-flex align-items-center">
+                                            <i class="bi bi-credit-card text-primary me-3 fs-5"></i>
+                                            <div>
+                                                <div class="request-id">#@request.Id</div>
+                                                <div class="text-muted small">@request.RequestDate.ToString("MMM dd, yyyy")</div>
+                                            </div>
+                                        </div>
+                                    </td>
+                                    <td>
+                                        <div class="Staff-name">@request.MobileNumberAssignedTo</div>
+                                        <div class="Staff-details">
+                                            @request.PrimaryMobileNumber<br/>
+                                            <small class="text-muted">@request.Organization</small>
+                                        </div>
+                                    </td>
+                                    <td>
+                                        <div class="mb-2">
+                                            <small class="text-muted d-block">Purchase Currency</small>
+                                            <strong>@request.DevicePurchaseCurrency</strong>
+                                        </div>
+                                        @if (!string.IsNullOrEmpty(request.UmojaPaymentDocumentId))
+                                        {
+                                            <div class="mb-2">
+                                                <small class="text-muted d-block">Umoja Doc ID</small>
+                                                <code class="small">@request.UmojaPaymentDocumentId</code>
+                                            </div>
+                                        }
+                                    </td>
+                                    <td>
+                                        <div class="mb-2">
+                                            <small class="text-muted d-block">Purchase Amount</small>
+                                            <strong>@request.DevicePurchaseCurrency @request.DevicePurchaseAmount.ToString("N2")</strong>
+                                        </div>
+                                        @if (request.RefundUsdAmount.HasValue)
+                                        {
+                                            <div class="amount-highlight">
+                                                USD @request.RefundUsdAmount.Value.ToString("N2")
+                                            </div>
+                                        }
+                                    </td>
+                                    <td>
+                                        <div class="small">
+                                            <div class="mb-1"><strong>Cost Object:</strong> @(request.CostObject ?? "N/A")</div>
+                                            <div class="mb-1"><strong>Cost Center:</strong> @(request.CostCenter ?? "N/A")</div>
+                                            <div class="mb-1"><strong>Fund Commitment:</strong> @(request.FundCommitment ?? "N/A")</div>
+                                            @if (request.ClaimsActionDate.HasValue)
+                                            {
+                                                <div class="text-muted"><strong>Claims Date:</strong> @request.ClaimsActionDate.Value.ToString("MMM dd, yyyy")</div>
+                                            }
+                                        </div>
+                                    </td>
+                                    <td>
+                                        <div class="d-flex flex-column gap-2">
+                                            <button type="button" class="action-btn btn-view" onclick="viewRequest(@request.Id)">
+                                                <i class="bi bi-eye"></i>
+                                                View Details
+                                            </button>
+                                            <button type="button" class="action-btn btn-approve" onclick="approvePayment(@request.Id)">
+                                                <i class="bi bi-check-lg"></i>
+                                                Approve Payment
+                                            </button>
+                                            <button type="button" class="action-btn btn-revert" onclick="revertToClaims(@request.Id)">
+                                                <i class="bi bi-arrow-left"></i>
+                                                Revert to Claims
+                                            </button>
+                                            <button type="button" class="action-btn btn-reject" onclick="rejectPayment(@request.Id)">
+                                                <i class="bi bi-x-lg"></i>
+                                                Reject
+                                            </button>
+                                        </div>
+                                    </td>
+                                </tr>
+                            }
+                        </tbody>
+                    </table>
+                </div>
+            }
+            else
+            {
+                <div class="empty-state">
+                    <i class="bi bi-credit-card-2-front"></i>
+                    <h5 class="mt-3">No Pending Payments</h5>
+                    <p>All payment requests have been processed. New requests will appear here for your approval.</p>
+                </div>
+            }
+        </div>
+
+        <!-- Completed Payments Tab -->
+        <div class="tab-pane fade" id="completed" role="tabpanel">
+            @{
+                var completedPayments = Model.PendingRequests.Where(r => r.Status == TAB.Web.Models.RefundRequestStatus.Completed);
+            }
+            @if (completedPayments.Any())
+            {
+                <div class="table-responsive">
+                    <table class="table minimal-table">
+                        <thead>
+                            <tr>
+                                <th>Request</th>
+                                <th>Staff</th>
+                                <th>Payment Amount</th>
+                                <th>Completion Date</th>
+                                <th>Payment Reference</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            @foreach (var request in completedPayments)
+                            {
+                                <tr>
+                                    <td>
+                                        <div class="d-flex align-items-center">
+                                            <i class="bi bi-check-circle text-success me-3 fs-5"></i>
+                                            <span class="request-id">#@request.Id</span>
+                                        </div>
+                                    </td>
+                                    <td>
+                                        <div class="Staff-name">@request.MobileNumberAssignedTo</div>
+                                        <div class="Staff-details">@request.PrimaryMobileNumber</div>
+                                    </td>
+                                    <td>
+                                        <div class="amount-highlight">
+                                            @if (request.RefundUsdAmount.HasValue)
+                                            {
+                                                <span>USD @request.RefundUsdAmount.Value.ToString("N2")</span>
+                                            }
+                                            else
+                                            {
+                                                <span>@request.DevicePurchaseCurrency @request.DevicePurchaseAmount.ToString("N2")</span>
+                                            }
+                                        </div>
+                                    </td>
+                                    <td>
+                                        <span class="text-muted">@request.CompletionDate?.ToString("MMM dd, yyyy HH:mm")</span>
+                                    </td>
+                                    <td>
+                                        @if (!string.IsNullOrEmpty(request.PaymentReference))
+                                        {
+                                            <code class="small">@request.PaymentReference</code>
+                                        }
+                                        else
+                                        {
+                                            <span class="text-muted">-</span>
+                                        }
+                                    </td>
+                                </tr>
+                            }
+                        </tbody>
+                    </table>
+                </div>
+            }
+            else
+            {
+                <div class="empty-state">
+                    <i class="bi bi-check-circle"></i>
+                    <h5 class="mt-3">No Completed Payments</h5>
+                    <p>Completed payments will appear here.</p>
+                </div>
+            }
+        </div>
+
+        <!-- Rejected Payments Tab -->
+        <div class="tab-pane fade" id="rejected" role="tabpanel">
+            @{
+                var rejectedPayments = Model.PendingRequests.Where(r => r.Status == TAB.Web.Models.RefundRequestStatus.Cancelled);
+            }
+            @if (rejectedPayments.Any())
+            {
+                <div class="table-responsive">
+                    <table class="table minimal-table">
+                        <thead>
+                            <tr>
+                                <th>Request</th>
+                                <th>Staff</th>
+                                <th>Amount</th>
+                                <th>Rejection Date</th>
+                                <th>Reason</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            @foreach (var request in rejectedPayments)
+                            {
+                                <tr>
+                                    <td>
+                                        <div class="d-flex align-items-center">
+                                            <i class="bi bi-x-circle text-danger me-3 fs-5"></i>
+                                            <span class="request-id">#@request.Id</span>
+                                        </div>
+                                    </td>
+                                    <td>
+                                        <div class="Staff-name">@request.MobileNumberAssignedTo</div>
+                                        <div class="Staff-details">@request.PrimaryMobileNumber</div>
+                                    </td>
+                                    <td>@request.DevicePurchaseCurrency @request.DevicePurchaseAmount.ToString("N2")</td>
+                                    <td>
+                                        <span class="text-muted">@request.CancellationDate?.ToString("MMM dd, yyyy HH:mm")</span>
+                                    </td>
+                                    <td>
+                                        <span class="text-muted small">@(request.CancellationReason ?? "No reason provided")</span>
+                                    </td>
+                                </tr>
+                            }
+                        </tbody>
+                    </table>
+                </div>
+            }
+            else
+            {
+                <div class="empty-state">
+                    <i class="bi bi-x-circle"></i>
+                    <h5 class="mt-3">No Rejected Payments</h5>
+                    <p>Rejected payments will appear here.</p>
+                </div>
+            }
+        </div>
+    </div>
+</div>
+
+<!-- View Details Modal -->
+<div class="modal fade" id="viewDetailsModal" tabindex="-1">
+    <div class="modal-dialog modal-xl modal-dialog-centered">
+        <div class="modal-content" style="border: none; border-radius: 20px; box-shadow: 0 20px 60px rgba(0,0,0,0.1);">
+            <div class="modal-header" style="border: none; padding: 32px 32px 0 32px;">
+                <div class="d-flex align-items-center">
+                    <div class="me-3" style="width: 48px; height: 48px; background: linear-gradient(135deg, #6366f1, #4f46e5); border-radius: 16px; display: flex; align-items: center; justify-content: center;">
+                        <i class="bi bi-eye text-white" style="font-size: 24px;"></i>
+                    </div>
+                    <div>
+                        <h4 class="mb-1" style="font-weight: 700; color: #111827; font-size: 24px;">
+                            Payment Request Details
+                            <span id="viewRequestId" class="text-primary" style="font-weight: 600;">#Loading...</span>
+                        </h4>
+                        <p class="mb-0 text-muted" style="font-size: 14px;">Payment Approval Request Information</p>
+                    </div>
+                </div>
+                <button type="button" class="btn-close" data-bs-dismiss="modal" style="margin: 0; padding: 12px;"></button>
+            </div>
+            <div class="modal-body" style="padding: 24px 32px;">
+                
+                <!-- Staff Information Section -->
+                <div class="mb-4" style="background: linear-gradient(135deg, #eef2ff, #e0e7ff); border-radius: 16px; padding: 24px; border: 1px solid #c7d2fe;">
+                    <div class="d-flex align-items-center mb-3">
+                        <i class="bi bi-person-circle me-3" style="font-size: 20px; color: #0c4a6e;"></i>
+                        <h6 class="mb-0" style="font-weight: 600; color: #0c4a6e;">Staff Information</h6>
+                    </div>
+                    <div class="row g-3">
+                        <div class="col-md-4">
+                            <div class="mb-2">
+                                <span class="detail-label">Staff Name</span>
+                                <div id="viewStaffName" class="detail-value">Loading...</div>
+                            </div>
+                        </div>
+                        <div class="col-md-4">
+                            <div class="mb-2">
+                                <span class="detail-label">Mobile Number</span>
+                                <div id="viewMobileNumber" class="detail-value">Loading...</div>
+                            </div>
+                        </div>
+                        <div class="col-md-4">
+                            <div class="mb-2">
+                                <span class="detail-label">Index Number</span>
+                                <div id="viewIndexNo" class="detail-value">Loading...</div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Mobile Service Details Section -->
+                <div class="mb-4" style="background: #f8fafc; border-radius: 16px; padding: 24px; border: 1px solid #e2e8f0;">
+                    <div class="d-flex align-items-center mb-3">
+                        <i class="bi bi-phone me-3" style="font-size: 20px; color: #059669;"></i>
+                        <h6 class="mb-0" style="font-weight: 600; color: #047857;">Mobile Service Details</h6>
+                    </div>
+                    <div class="row g-3">
+                        <div class="col-md-3">
+                            <div class="mb-2">
+                                <span class="detail-label">Office</span>
+                                <div id="viewOffice" class="detail-value">Loading...</div>
+                            </div>
+                        </div>
+                        <div class="col-md-3">
+                            <div class="mb-2">
+                                <span class="detail-label">Organization</span>
+                                <div id="viewOrganization" class="detail-value">Loading...</div>
+                            </div>
+                        </div>
+                        <div class="col-md-3">
+                            <div class="mb-2">
+                                <span class="detail-label">Mobile Service</span>
+                                <div id="viewMobileService" class="detail-value">Loading...</div>
+                            </div>
+                        </div>
+                        <div class="col-md-3">
+                            <div class="mb-2">
+                                <span class="detail-label">Class of Service</span>
+                                <div id="viewClassOfService" class="detail-value">Loading...</div>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="row g-3 mt-2">
+                        <div class="col-md-6">
+                            <div class="mb-2">
+                                <span class="detail-label">Device Allowance</span>
+                                <div id="viewDeviceAllowance" class="detail-value">Loading...</div>
+                            </div>
+                        </div>
+                        <div class="col-md-6">
+                            <div class="mb-2">
+                                <span class="detail-label">Supervisor</span>
+                                <div id="viewSupervisor" class="detail-value">Loading...</div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Financial Information Section -->
+                <div class="mb-4" style="background: #fefce8; border-radius: 16px; padding: 24px; border: 1px solid #fde047;">
+                    <div class="d-flex align-items-center mb-3">
+                        <i class="bi bi-currency-dollar me-3" style="font-size: 20px; color: #ca8a04;"></i>
+                        <h6 class="mb-0" style="font-weight: 600; color: #713f12;">Financial Information</h6>
+                    </div>
+                    <div class="row g-3">
+                        <div class="col-md-4">
+                            <div class="mb-2">
+                                <span class="detail-label">Purchase Amount</span>
+                                <div id="viewPurchaseAmount" class="detail-value" style="font-weight: 600; color: #111827; font-size: 16px;">Loading...</div>
+                            </div>
+                        </div>
+                        <div class="col-md-4">
+                            <div class="mb-2">
+                                <span class="detail-label">Refund USD Amount</span>
+                                <div id="viewRefundAmount" class="detail-value" style="font-weight: 600; color: #111827; font-size: 16px;">Loading...</div>
+                            </div>
+                        </div>
+                        <div class="col-md-4">
+                            <div class="mb-2">
+                                <span class="detail-label">Request Date</span>
+                                <div id="viewRequestDate" class="detail-value">Loading...</div>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="row g-3 mt-2">
+                        <div class="col-md-4">
+                            <div class="mb-2">
+                                <span class="detail-label">Cost Object</span>
+                                <div id="viewCostObject" class="detail-value">Loading...</div>
+                            </div>
+                        </div>
+                        <div class="col-md-4">
+                            <div class="mb-2">
+                                <span class="detail-label">Cost Center</span>
+                                <div id="viewCostCenter" class="detail-value">Loading...</div>
+                            </div>
+                        </div>
+                        <div class="col-md-4">
+                            <div class="mb-2">
+                                <span class="detail-label">Fund Commitment</span>
+                                <div id="viewFundCommitment" class="detail-value">Loading...</div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Payment Information Section -->
+                <div class="mb-4" style="background: #f0f9ff; border-radius: 16px; padding: 24px; border: 1px solid #0ea5e9;">
+                    <div class="d-flex align-items-center mb-3">
+                        <i class="bi bi-credit-card me-3" style="font-size: 20px; color: #0284c7;"></i>
+                        <h6 class="mb-0" style="font-weight: 600; color: #0369a1;">Payment Information</h6>
+                    </div>
+                    <div class="row g-3">
+                        <div class="col-md-4">
+                            <div class="mb-2">
+                                <span class="detail-label">Current Status</span>
+                                <div>
+                                    <span id="viewStatus" class="badge" style="background: #6366f1; color: white; font-size: 12px; padding: 6px 12px; border-radius: 8px; font-weight: 500;">Loading...</span>
+                                </div>
+                            </div>
+                        </div>
+                        <div class="col-md-4">
+                            <div class="mb-2">
+                                <span class="detail-label">Umoja Document ID</span>
+                                <div id="viewUmojaDocId" class="detail-value">Loading...</div>
+                            </div>
+                        </div>
+                        <div class="col-md-4">
+                            <div class="mb-2">
+                                <span class="detail-label">Payment Reference</span>
+                                <div id="viewPaymentReference" class="detail-value">Loading...</div>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="row g-3 mt-2">
+                        <div class="col-md-6">
+                            <div class="mb-2">
+                                <span class="detail-label">Claims Action Date</span>
+                                <div id="viewClaimsActionDate" class="detail-value">Loading...</div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Purchase Receipt Section -->
+                <div class="mb-4" style="background: #f0fdf4; border-radius: 16px; padding: 24px; border: 1px solid #bbf7d0;">
+                    <div class="d-flex align-items-center mb-3">
+                        <i class="bi bi-file-earmark-pdf me-3" style="font-size: 20px; color: #059669;"></i>
+                        <h6 class="mb-0" style="font-weight: 600; color: #047857;">Purchase Receipt</h6>
+                    </div>
+                    <div class="row g-3">
+                        <div class="col-md-8">
+                            <div class="mb-2">
+                                <span class="detail-label">Receipt File</span>
+                                <div id="viewReceiptInfo" class="detail-value d-flex align-items-center justify-content-between">
+                                    <span id="viewReceiptFileName">Loading...</span>
+                                    <div>
+                                        <button type="button" id="viewReceiptBtn" class="btn btn-sm btn-outline-success me-2" onclick="viewReceipt()" style="border-radius: 8px; font-size: 12px;">
+                                            <i class="bi bi-eye me-1"></i>View
+                                        </button>
+                                        <button type="button" id="downloadReceiptBtn" class="btn btn-sm btn-success" onclick="downloadReceipt()" style="border-radius: 8px; font-size: 12px;">
+                                            <i class="bi bi-download me-1"></i>Download
+                                        </button>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                        <div class="col-md-4">
+                            <div class="mb-2">
+                                <span class="detail-label">Bank Details</span>
+                                <div id="viewBankName" class="detail-value">Loading...</div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Processing History & Remarks Section -->
+                <div class="mb-4" style="background: #fff7ed; border-radius: 16px; padding: 24px; border: 1px solid #fed7aa;">
+                    <div class="d-flex align-items-center mb-3">
+                        <i class="bi bi-clock-history me-3" style="font-size: 20px; color: #ea580c;"></i>
+                        <h6 class="mb-0" style="font-weight: 600; color: #9a3412;">Processing History & Remarks</h6>
+                    </div>
+                    <div class="row g-3">
+                        <div class="col-md-6">
+                            <div class="mb-3">
+                                <span class="detail-label">Budget Officer Remarks</span>
+                                <div id="viewBudgetRemarks" style="color: #6b7280; font-size: 14px; background: white; padding: 12px; border-radius: 8px; border: 1px solid #e5e7eb; min-height: 60px;">
+                                    Loading...
+                                </div>
+                            </div>
+                        </div>
+                        <div class="col-md-6">
+                            <div class="mb-3">
+                                <span class="detail-label">Claims Unit Remarks</span>
+                                <div id="viewClaimsRemarks" style="color: #6b7280; font-size: 14px; background: white; padding: 12px; border-radius: 8px; border: 1px solid #e5e7eb; min-height: 60px;">
+                                    Loading...
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="row g-3">
+                        <div class="col-md-12">
+                            <div class="mb-2">
+                                <span class="detail-label">Payment Approval Remarks</span>
+                                <div id="viewPaymentRemarks" style="color: #6b7280; font-size: 14px; background: white; padding: 12px; border-radius: 8px; border: 1px solid #e5e7eb; min-height: 60px;">
+                                    Loading...
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Workflow History Section -->
+                <div class="mb-4" style="background: #fef3f2; border-radius: 16px; padding: 24px; border: 1px solid #fecaca;">
+                    <div class="d-flex align-items-center mb-3">
+                        <i class="bi bi-diagram-3 me-3" style="font-size: 20px; color: #dc2626;"></i>
+                        <h6 class="mb-0" style="font-weight: 600; color: #991b1b;">Workflow History</h6>
+                    </div>
+                    
+                    <!-- Timeline Container -->
+                    <div class="workflow-timeline">
+                        <!-- Request Submission -->
+                        <div class="timeline-item">
+                            <div class="timeline-marker timeline-submitted">
+                                <i class="bi bi-file-plus"></i>
+                            </div>
+                            <div class="timeline-content">
+                                <div class="timeline-header">
+                                    <h6 class="timeline-title">Request Submitted</h6>
+                                    <span id="workflowRequestDate" class="timeline-date">Loading...</span>
+                                </div>
+                                <p class="timeline-description">Refund request created and submitted for approval</p>
+                                <div class="timeline-details">
+                                    <small class="text-muted">Submitted by: <span id="workflowRequestedBy">Loading...</span></small>
+                                </div>
+                            </div>
+                        </div>
+
+                        <!-- Supervisor Approval -->
+                        <div class="timeline-item" id="supervisorTimelineItem">
+                            <div class="timeline-marker timeline-pending" id="supervisorMarker">
+                                <i class="bi bi-clock"></i>
+                            </div>
+                            <div class="timeline-content">
+                                <div class="timeline-header">
+                                    <h6 class="timeline-title">Supervisor Review</h6>
+                                    <span id="workflowSupervisorDate" class="timeline-date">Pending</span>
+                                </div>
+                                <p class="timeline-description" id="workflowSupervisorDescription">Awaiting supervisor approval</p>
+                                <div class="timeline-details">
+                                    <small class="text-muted">Supervisor: <span id="workflowSupervisorName">Loading...</span></small>
+                                    <div id="workflowSupervisorRemarks" class="timeline-remarks mt-1" style="display: none;">
+                                        <small class="text-muted"><strong>Remarks:</strong> <span></span></small>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+
+                        <!-- Budget Officer Approval -->
+                        <div class="timeline-item" id="budgetTimelineItem">
+                            <div class="timeline-marker timeline-pending" id="budgetMarker">
+                                <i class="bi bi-clock"></i>
+                            </div>
+                            <div class="timeline-content">
+                                <div class="timeline-header">
+                                    <h6 class="timeline-title">Budget Officer Review</h6>
+                                    <span id="workflowBudgetDate" class="timeline-date">Pending</span>
+                                </div>
+                                <p class="timeline-description" id="workflowBudgetDescription">Awaiting budget officer approval</p>
+                                <div class="timeline-details">
+                                    <small class="text-muted">Budget Officer: <span id="workflowBudgetOfficerName">Not assigned</span></small>
+                                    <div id="workflowBudgetRemarks" class="timeline-remarks mt-1" style="display: none;">
+                                        <small class="text-muted"><strong>Remarks:</strong> <span></span></small>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+
+                        <!-- Claims Unit Processing -->
+                        <div class="timeline-item" id="claimsTimelineItem">
+                            <div class="timeline-marker timeline-pending" id="claimsMarker">
+                                <i class="bi bi-clock"></i>
+                            </div>
+                            <div class="timeline-content">
+                                <div class="timeline-header">
+                                    <h6 class="timeline-title">Claims Unit Processing</h6>
+                                    <span id="workflowClaimsDate" class="timeline-date">Pending</span>
+                                </div>
+                                <p class="timeline-description" id="workflowClaimsDescription">Awaiting claims unit processing</p>
+                                <div class="timeline-details">
+                                    <small class="text-muted">Claims Officer: <span id="workflowClaimsOfficerName">Not assigned</span></small>
+                                    <div id="workflowClaimsRemarks" class="timeline-remarks mt-1" style="display: none;">
+                                        <small class="text-muted"><strong>Remarks:</strong> <span></span></small>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+
+                        <!-- Payment Approval -->
+                        <div class="timeline-item" id="paymentTimelineItem">
+                            <div class="timeline-marker timeline-current" id="paymentMarker">
+                                <i class="bi bi-credit-card"></i>
+                            </div>
+                            <div class="timeline-content">
+                                <div class="timeline-header">
+                                    <h6 class="timeline-title">Payment Approval</h6>
+                                    <span id="workflowPaymentDate" class="timeline-date">Current Stage</span>
+                                </div>
+                                <p class="timeline-description" id="workflowPaymentDescription">Pending payment approval</p>
+                                <div class="timeline-details">
+                                    <small class="text-muted">Payment Approver: <span id="workflowPaymentApproverName">Not assigned</span></small>
+                                    <div id="workflowPaymentRemarks" class="timeline-remarks mt-1" style="display: none;">
+                                        <small class="text-muted"><strong>Remarks:</strong> <span></span></small>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+
+                        <!-- Completion -->
+                        <div class="timeline-item" id="completionTimelineItem">
+                            <div class="timeline-marker timeline-pending" id="completionMarker">
+                                <i class="bi bi-check-circle"></i>
+                            </div>
+                            <div class="timeline-content">
+                                <div class="timeline-header">
+                                    <h6 class="timeline-title">Request Completed</h6>
+                                    <span id="workflowCompletionDate" class="timeline-date">Pending</span>
+                                </div>
+                                <p class="timeline-description" id="workflowCompletionDescription">Payment completed and request finalized</p>
+                                <div class="timeline-details">
+                                    <small class="text-muted">Payment Reference: <span id="workflowPaymentReference">Not assigned</span></small>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+            </div>
+            
+            <div class="modal-footer" style="border: none; padding: 0 32px 32px 32px; justify-content: center;">
+                <button type="button" class="btn btn-light" data-bs-dismiss="modal" style="border-radius: 12px; padding: 12px 24px; font-weight: 500;">
+                    <i class="bi bi-x-circle me-2"></i>Close
+                </button>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Approve Payment Modal -->
+<div class="modal fade" id="approvePaymentModal" tabindex="-1">
+    <div class="modal-dialog modal-lg modal-dialog-centered">
+        <div class="modal-content" style="border: none; border-radius: 20px; box-shadow: 0 20px 60px rgba(0,0,0,0.1);">
+            <div class="modal-header" style="border: none; padding: 32px 32px 0 32px;">
+                <div class="d-flex align-items-center">
+                    <div class="me-3" style="width: 48px; height: 48px; background: linear-gradient(135deg, #10b981, #059669); border-radius: 16px; display: flex; align-items: center; justify-content: center;">
+                        <i class="bi bi-check-circle text-white" style="font-size: 24px;"></i>
+                    </div>
+                    <div>
+                        <h4 class="mb-1" style="font-weight: 700; color: #111827; font-size: 24px;">Approve Payment</h4>
+                        <p class="mb-0 text-muted" style="font-size: 14px;">Complete the payment approval process</p>
+                    </div>
+                </div>
+                <button type="button" class="btn-close" data-bs-dismiss="modal" style="margin: 0; padding: 12px;"></button>
+            </div>
+            <div class="modal-body" style="padding: 24px 32px;">
+                <!-- Payment Reference Section -->
+                <div class="row mb-4">
+                    <div class="col-12">
+                        <div class="mb-3">
+                            <label class="form-label" style="font-weight: 500; color: #374151; font-size: 14px; margin-bottom: 8px;">
+                                Payment Reference Number
+                            </label>
+                            <input type="text" id="paymentReference" class="form-control" placeholder="Enter payment reference or transaction ID..." style="border: 1px solid #d1d5db; border-radius: 12px; padding: 12px 16px; font-size: 14px;" />
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Payment Remarks Section -->
+                <div class="row mb-4">
+                    <div class="col-12">
+                        <div class="mb-3">
+                            <label class="form-label" style="font-weight: 500; color: #374151; font-size: 14px; margin-bottom: 8px;">
+                                Payment Remarks <span class="text-muted">(max 200 characters)</span>
+                            </label>
+                            <textarea id="paymentRemarks" class="form-control" rows="3" maxlength="200" placeholder="Enter payment completion remarks..." style="border: 1px solid #d1d5db; border-radius: 12px; padding: 12px 16px; font-size: 14px; resize: none;"></textarea>
+                            <div class="text-end text-muted small mt-1">
+                                <span id="paymentRemarksCount">0</span>/200 characters
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Action Buttons -->
+                <div class="d-flex gap-3 justify-content-end pt-3" style="border-top: 1px solid #e5e7eb;">
+                    <button type="button" class="btn btn-light" data-bs-dismiss="modal" style="border-radius: 12px; padding: 12px 24px; font-weight: 500;">Cancel</button>
+                    <button type="button" class="btn btn-success" onclick="confirmPaymentApproval()" style="background: linear-gradient(135deg, #10b981, #059669); border: none; border-radius: 12px; padding: 12px 24px; font-weight: 500;">
+                        <i class="bi bi-check-circle me-2"></i>Complete Payment
+                    </button>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Reject Payment Modal -->
+<div class="modal fade" id="rejectPaymentModal" tabindex="-1">
+    <div class="modal-dialog modal-dialog-centered">
+        <div class="modal-content" style="border: none; border-radius: 20px; box-shadow: 0 20px 60px rgba(0,0,0,0.1);">
+            <form method="post" asp-page-handler="Reject">
+                <input type="hidden" id="rejectRequestId" name="requestId" />
+                <div class="modal-header" style="border: none; padding: 32px 32px 0 32px;">
+                    <div class="d-flex align-items-center">
+                        <div class="me-3" style="width: 48px; height: 48px; background: linear-gradient(135deg, #ef4444, #dc2626); border-radius: 16px; display: flex; align-items: center; justify-content: center;">
+                            <i class="bi bi-x-circle text-white" style="font-size: 24px;"></i>
+                        </div>
+                        <div>
+                            <h4 class="mb-1" style="font-weight: 700; color: #111827; font-size: 24px;">Reject Payment</h4>
+                            <p class="mb-0 text-muted" style="font-size: 14px;">Provide reason for payment rejection</p>
+                        </div>
+                    </div>
+                    <button type="button" class="btn-close" data-bs-dismiss="modal" style="margin: 0; padding: 12px;"></button>
+                </div>
+                <div class="modal-body" style="padding: 24px 32px 32px 32px;">
+                    <div class="mb-4">
+                        <label class="form-label" style="font-weight: 500; color: #374151; font-size: 14px; margin-bottom: 8px;">Rejection Reason <span style="color: #ef4444;">*</span></label>
+                        <textarea name="paymentRemarks" class="form-control" rows="3" required placeholder="Please provide a clear reason for rejecting this payment..." style="border: 1px solid #d1d5db; border-radius: 12px; padding: 12px 16px; font-size: 14px;"></textarea>
+                    </div>
+                    <div class="d-flex gap-3 justify-content-end">
+                        <button type="button" class="btn btn-light" data-bs-dismiss="modal" style="border-radius: 12px; padding: 12px 24px; font-weight: 500;">Cancel</button>
+                        <button type="submit" class="btn btn-danger" style="background: linear-gradient(135deg, #ef4444, #dc2626); border: none; border-radius: 12px; padding: 12px 24px; font-weight: 500;">
+                            <i class="bi bi-x-circle me-2"></i>Reject Payment
+                        </button>
+                    </div>
+                </div>
+            </form>
+        </div>
+    </div>
+</div>
+
+<!-- Revert to Claims Modal -->
+<div class="modal fade" id="revertToClaimsModal" tabindex="-1">
+    <div class="modal-dialog modal-dialog-centered">
+        <div class="modal-content" style="border: none; border-radius: 20px; box-shadow: 0 20px 60px rgba(0,0,0,0.1);">
+            <form method="post" asp-page-handler="RevertToClaimsUnit">
+                <input type="hidden" id="revertRequestId" name="requestId" />
+                <div class="modal-header" style="border: none; padding: 32px 32px 0 32px;">
+                    <div class="d-flex align-items-center">
+                        <div class="me-3" style="width: 48px; height: 48px; background: linear-gradient(135deg, #f59e0b, #d97706); border-radius: 16px; display: flex; align-items: center; justify-content: center;">
+                            <i class="bi bi-arrow-left text-white" style="font-size: 24px;"></i>
+                        </div>
+                        <div>
+                            <h4 class="mb-1" style="font-weight: 700; color: #111827; font-size: 24px;">Revert to Claims Unit</h4>
+                            <p class="mb-0 text-muted" style="font-size: 14px;">Send this request back to Claims Unit for review</p>
+                        </div>
+                    </div>
+                    <button type="button" class="btn-close" data-bs-dismiss="modal" style="margin: 0; padding: 12px;"></button>
+                </div>
+                <div class="modal-body" style="padding: 24px 32px 32px 32px;">
+                    <div class="mb-4">
+                        <label class="form-label" style="font-weight: 500; color: #374151; font-size: 14px; margin-bottom: 8px;">Reason for Reversion <span style="color: #ef4444;">*</span></label>
+                        <textarea name="paymentRemarks" class="form-control" rows="3" required placeholder="Please explain why this request needs Claims Unit review..." style="border: 1px solid #d1d5db; border-radius: 12px; padding: 12px 16px; font-size: 14px;"></textarea>
+                    </div>
+                    <div class="d-flex gap-3 justify-content-end">
+                        <button type="button" class="btn btn-light" data-bs-dismiss="modal" style="border-radius: 12px; padding: 12px 24px; font-weight: 500;">Cancel</button>
+                        <button type="submit" class="btn btn-warning" style="background: linear-gradient(135deg, #f59e0b, #d97706); border: none; border-radius: 12px; padding: 12px 24px; font-weight: 500; color: white;">
+                            <i class="bi bi-arrow-left me-2"></i>Revert to Claims
+                        </button>
+                    </div>
+                </div>
+            </form>
+        </div>
+    </div>
+</div>
+
+<!-- Hidden Forms for Actions -->
+<form id="approvePaymentForm" method="post" asp-page-handler="Approve" style="display: none;">
+    <input type="hidden" id="approvePaymentRequestId" name="requestId" />
+    <input type="hidden" id="approvePaymentRemarks" name="paymentRemarks" />
+</form>
+
+<script>
+    let currentRequestId = null;
+
+    function viewRequest(requestId) {
+        // Fetch request details from the server
+        fetch(`/PaymentApprover/RefundRequests?handler=RequestDetails&requestId=${requestId}`)
+            .then(response => response.json())
+            .then(data => {
+                if (data.success) {
+                    populateViewDetailsModal(data);
+                    new bootstrap.Modal(document.getElementById('viewDetailsModal')).show();
+                } else {
+                    alert('Error loading request details: ' + (data.message || 'Unknown error'));
+                }
+            })
+            .catch(error => {
+                console.error('Error fetching request details:', error);
+                alert('Error loading request details');
+            });
+    }
+
+    function populateViewDetailsModal(data) {
+        // Populate the modal with comprehensive request data
+        document.getElementById('viewRequestId').textContent = '#' + data.id;
+        
+        // Staff Information
+        document.getElementById('viewStaffName').textContent = data.mobileNumberAssignedTo || 'N/A';
+        document.getElementById('viewMobileNumber').textContent = data.primaryMobileNumber || 'N/A';
+        document.getElementById('viewIndexNo').textContent = data.indexNo || 'N/A';
+        
+        // Mobile Service Details
+        document.getElementById('viewOffice').textContent = data.office || 'N/A';
+        document.getElementById('viewOrganization').textContent = data.organization || 'N/A';
+        document.getElementById('viewMobileService').textContent = data.mobileService || 'N/A';
+        document.getElementById('viewClassOfService').textContent = data.classOfService || 'N/A';
+        document.getElementById('viewDeviceAllowance').textContent = data.deviceAllowance ? 
+            ('$' + data.deviceAllowance.toFixed(2)) : 'N/A';
+        document.getElementById('viewSupervisor').textContent = data.supervisor || 'N/A';
+        
+        // Financial Information
+        document.getElementById('viewPurchaseAmount').textContent = (data.devicePurchaseCurrency || '') + ' ' + 
+            (data.devicePurchaseAmount ? data.devicePurchaseAmount.toFixed(2) : '0.00');
+        document.getElementById('viewRefundAmount').textContent = data.refundUsdAmount ? 
+            ('USD ' + data.refundUsdAmount.toFixed(2)) : 'N/A';
+        document.getElementById('viewRequestDate').textContent = data.requestDate || 'N/A';
+        document.getElementById('viewCostObject').textContent = data.costObject || 'N/A';
+        document.getElementById('viewCostCenter').textContent = data.costCenter || 'N/A';
+        document.getElementById('viewFundCommitment').textContent = data.fundCommitment || 'N/A';
+        
+        // Payment Information
+        document.getElementById('viewStatus').textContent = getStatusDisplayText(data.status);
+        document.getElementById('viewUmojaDocId').textContent = data.umojaPaymentDocumentId || 'N/A';
+        document.getElementById('viewPaymentReference').textContent = data.paymentReference || 'Not yet assigned';
+        document.getElementById('viewClaimsActionDate').textContent = data.claimsActionDate || 'N/A';
+        
+        // Purchase Receipt Information
+        populateReceiptSection(data);
+        
+        // Workflow History
+        populateWorkflowHistory(data);
+        
+        // Processing History & Remarks
+        document.getElementById('viewBudgetRemarks').textContent = data.budgetOfficerRemarks || 'No budget officer remarks provided.';
+        document.getElementById('viewClaimsRemarks').textContent = data.staffClaimsRemarks || 'No claims unit remarks provided.';
+        document.getElementById('viewPaymentRemarks').textContent = data.paymentApprovalRemarks || 'No payment approval remarks provided.';
+        
+        // Update status badge color based on actual status
+        updateStatusBadge(data.status);
+    }
+    
+    function populateReceiptSection(data) {
+        const receiptFileName = document.getElementById('viewReceiptFileName');
+        const viewReceiptBtn = document.getElementById('viewReceiptBtn');
+        const downloadReceiptBtn = document.getElementById('downloadReceiptBtn');
+        const bankName = document.getElementById('viewBankName');
+        
+        if (data.purchaseReceiptPath) {
+            const fileName = data.purchaseReceiptPath.split('/').pop() || 'receipt.pdf';
+            receiptFileName.textContent = fileName;
+            viewReceiptBtn.style.display = 'inline-block';
+            downloadReceiptBtn.style.display = 'inline-block';
+            
+            // Store receipt path for functions
+            window.currentReceiptPath = data.purchaseReceiptPath;
+        } else {
+            receiptFileName.textContent = 'No receipt uploaded';
+            viewReceiptBtn.style.display = 'none';
+            downloadReceiptBtn.style.display = 'none';
+        }
+        
+        bankName.textContent = data.umojaBankName || 'Not specified';
+    }
+    
+    function populateWorkflowHistory(data) {
+        // Request Submission
+        document.getElementById('workflowRequestDate').textContent = data.requestDate || 'N/A';
+        document.getElementById('workflowRequestedBy').textContent = data.requestedBy || 'System';
+        
+        // Supervisor Review
+        updateWorkflowStep('supervisor', data);
+        
+        // Budget Officer Review
+        updateWorkflowStep('budget', data);
+        
+        // Claims Unit Processing
+        updateWorkflowStep('claims', data);
+        
+        // Payment Approval
+        updateWorkflowStep('payment', data);
+        
+        // Completion
+        updateWorkflowStep('completion', data);
+    }
+    
+    function updateWorkflowStep(step, data) {
+        const status = data.status;
+        let stepData = {};
+        
+        switch(step) {
+            case 'supervisor':
+                stepData = {
+                    date: data.supervisorApprovalDate,
+                    name: data.supervisorName || data.supervisor,
+                    remarks: data.supervisorRemarks,
+                    isCompleted: ['PendingBudgetOfficer', 'PendingStaffClaimsUnit', 'PendingPaymentApproval', 'Completed'].includes(status),
+                    isCurrent: status === 'PendingSupervisor'
+                };
+                break;
+            case 'budget':
+                stepData = {
+                    date: data.budgetOfficerApprovalDate,
+                    name: data.budgetOfficerName,
+                    remarks: data.budgetOfficerRemarks,
+                    isCompleted: ['PendingStaffClaimsUnit', 'PendingPaymentApproval', 'Completed'].includes(status),
+                    isCurrent: status === 'PendingBudgetOfficer'
+                };
+                break;
+            case 'claims':
+                stepData = {
+                    date: data.staffClaimsApprovalDate,
+                    name: data.staffClaimsOfficerName,
+                    remarks: data.staffClaimsRemarks,
+                    isCompleted: ['PendingPaymentApproval', 'Completed'].includes(status),
+                    isCurrent: status === 'PendingStaffClaimsUnit'
+                };
+                break;
+            case 'payment':
+                stepData = {
+                    date: data.paymentApprovalDate,
+                    name: data.paymentApproverName,
+                    remarks: data.paymentApprovalRemarks,
+                    isCompleted: status === 'Completed',
+                    isCurrent: status === 'PendingPaymentApproval'
+                };
+                break;
+            case 'completion':
+                stepData = {
+                    date: data.completionDate,
+                    name: data.paymentApproverName,
+                    remarks: data.paymentReference,
+                    isCompleted: status === 'Completed',
+                    isCurrent: false
+                };
+                break;
+        }
+        
+        // Update the UI elements
+        const marker = document.getElementById(`${step}Marker`);
+        const dateElement = document.getElementById(`workflow${step.charAt(0).toUpperCase() + step.slice(1)}Date`);
+        const nameElement = document.getElementById(`workflow${step.charAt(0).toUpperCase() + step.slice(1)}${step === 'completion' ? 'PaymentReference' : step === 'budget' ? 'OfficerName' : step === 'claims' ? 'OfficerName' : step === 'payment' ? 'ApproverName' : 'Name'}`);
+        const remarksElement = document.getElementById(`workflow${step.charAt(0).toUpperCase() + step.slice(1)}Remarks`);
+        
+        if (stepData.isCompleted) {
+            marker.className = 'timeline-marker timeline-approved';
+            marker.innerHTML = '<i class="bi bi-check"></i>';
+            dateElement.textContent = stepData.date ? new Date(stepData.date).toLocaleDateString() : 'Completed';
+        } else if (stepData.isCurrent) {
+            marker.className = 'timeline-marker timeline-current';
+            marker.innerHTML = '<i class="bi bi-clock"></i>';
+            dateElement.textContent = 'In Progress';
+        }
+        
+        if (nameElement && stepData.name) {
+            nameElement.textContent = stepData.name;
+        }
+        
+        if (remarksElement && stepData.remarks) {
+            remarksElement.style.display = 'block';
+            remarksElement.querySelector('span').textContent = stepData.remarks;
+        }
+    }
+    
+    // Receipt viewing functions
+    function viewReceipt() {
+        if (window.currentReceiptPath) {
+            window.open(`/uploads/receipts/${window.currentReceiptPath}`, '_blank');
+        }
+    }
+    
+    function downloadReceipt() {
+        if (window.currentReceiptPath) {
+            const link = document.createElement('a');
+            link.href = `/uploads/receipts/${window.currentReceiptPath}`;
+            link.download = window.currentReceiptPath.split('/').pop() || 'receipt.pdf';
+            document.body.appendChild(link);
+            link.click();
+            document.body.removeChild(link);
+        }
+    }
+
+    function getStatusDisplayText(status) {
+        const statusMap = {
+            'Draft': 'Draft',
+            'PendingSupervisor': 'Pending Supervisor',
+            'PendingBudgetOfficer': 'Pending Budget Officer',
+            'PendingStaffClaimsUnit': 'Pending Staff Claims Unit',
+            'PendingPaymentApproval': 'Pending Payment Approval',
+            'Completed': 'Completed',
+            'Cancelled': 'Cancelled'
+        };
+        return statusMap[status] || status;
+    }
+    
+    function updateStatusBadge(status) {
+        const statusBadge = document.getElementById('viewStatus');
+        if (statusBadge) {
+            statusBadge.className = 'badge';
+            
+            switch(status) {
+                case 'PendingPaymentApproval':
+                    statusBadge.style.background = '#6366f1';
+                    statusBadge.style.color = 'white';
+                    break;
+                case 'Completed':
+                    statusBadge.style.background = '#10b981';
+                    statusBadge.style.color = 'white';
+                    break;
+                case 'Cancelled':
+                    statusBadge.style.background = '#ef4444';
+                    statusBadge.style.color = 'white';
+                    break;
+                default:
+                    statusBadge.style.background = '#6b7280';
+                    statusBadge.style.color = 'white';
+            }
+        }
+    }
+
+    function approvePayment(requestId) {
+        currentRequestId = requestId;
+        document.getElementById('paymentReference').value = '';
+        document.getElementById('paymentRemarks').value = '';
+        document.getElementById('paymentRemarksCount').textContent = '0';
+        document.getElementById('approvePaymentRequestId').value = requestId;
+        new bootstrap.Modal(document.getElementById('approvePaymentModal')).show();
+    }
+
+    function confirmPaymentApproval() {
+        const paymentReference = document.getElementById('paymentReference').value;
+        const paymentRemarks = document.getElementById('paymentRemarks').value;
+        
+        if (confirm('Are you sure you want to approve this payment and mark it as completed?')) {
+            // Collect all form data
+            const formData = {
+                requestId: currentRequestId,
+                paymentReference: paymentReference,
+                paymentRemarks: paymentRemarks
+            };
+            
+            // Set hidden form values
+            document.getElementById('approvePaymentRemarks').value = JSON.stringify(formData);
+            document.getElementById('approvePaymentForm').submit();
+        }
+    }
+
+    function rejectPayment(requestId) {
+        document.getElementById('rejectRequestId').value = requestId;
+        new bootstrap.Modal(document.getElementById('rejectPaymentModal')).show();
+    }
+
+    function revertToClaims(requestId) {
+        document.getElementById('revertRequestId').value = requestId;
+        new bootstrap.Modal(document.getElementById('revertToClaimsModal')).show();
+    }
+
+    // Character counter for payment remarks
+    document.addEventListener('DOMContentLoaded', function() {
+        const paymentRemarksTextarea = document.getElementById('paymentRemarks');
+        const paymentRemarksCount = document.getElementById('paymentRemarksCount');
+        
+        if (paymentRemarksTextarea && paymentRemarksCount) {
+            paymentRemarksTextarea.addEventListener('input', function() {
+                paymentRemarksCount.textContent = this.value.length;
+            });
+        }
+    });
+</script>
+

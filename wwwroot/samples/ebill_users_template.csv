@@ -1,0 +1,19 @@
+FirstName,LastName,IndexNumber,Email,OfficialMobileNumber,IssuedDeviceID,ClassOfService,Organization,Office,SupervisorIndexNumber,IsActive
+John,Doe,EMP001,john.doe@example.com,+1234567890,DEV001,,,,,TRUE
+Jane,Smith,EMP002,jane.smith@example.com,+1234567891,,,,,,TRUE
+Robert,Johnson,EMP003,robert.j@example.com,+1234567892,DEV003,,,,,FALSE
+Mary,Williams,EMP004,mary.w@example.com,+1234567893,,,,,,TRUE
+David,Brown,EMP005,david.brown@example.com,+1234567894,DEV005,,,,,TRUE
+Sarah,Davis,EMP006,sarah.davis@example.com,+1234567895,,,,,,TRUE
+Michael,Miller,EMP007,michael.m@example.com,+1234567896,DEV007,,,,,TRUE
+Emily,Wilson,EMP008,emily.w@example.com,+1234567897,,,,,,FALSE
+James,Moore,EMP009,james.moore@example.com,+1234567898,DEV009,,,,,TRUE
+Lisa,Taylor,EMP010,lisa.taylor@example.com,+1234567899,,,,,,TRUE
+
+# IMPORTANT NOTES:
+# 1. The ClassOfService field must match an existing active service class in your system
+# 2. The Organization field must match an existing organization name in your system  
+# 3. The Office field must match an existing office name in your system
+# 4. The SupervisorIndexNumber must be the username of an active supervisor in your system
+# 5. Leave these fields empty if you don't want to assign them during import
+# 6. You can view valid values by checking the dropdown menus in the Create User form

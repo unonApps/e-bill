@@ -1,0 +1,785 @@
+@page
+@model TAB.Web.Pages.Admin.CallLogStagingModel
+@{
+    ViewData["Title"] = "Call Logs Staging & Verification";
+}
+
+<style>
+    /* UN Visual Identity Colors */
+    :root {
+        --un-blue: #009EDB;
+        --un-blue-light: #C5DFEF;
+        --un-blue-extra-light: #E3EDF6;
+        --un-blue-dark: #004987;
+        --un-green: #72BF44;
+        --un-green-light: #CEE3A0;
+        --un-green-dark: #006747;
+        --un-yellow: #FFC800;
+        --un-yellow-light: #F8E66B;
+        --un-orange: #F58220;
+        --un-orange-light: #FEDCBD;
+        --un-red: #ED1847;
+        --un-red-light: #F9C0C5;
+        --un-gray: #AEA29A;
+        --un-gray-light: #DED9D5;
+        --un-gray-extra-light: #EBEAE6;
+    }
+
+    .anomaly-badge {
+        cursor: pointer;
+        transition: all 0.2s ease;
+    }
+
+    .anomaly-badge:hover {
+        transform: scale(1.05);
+        box-shadow: 0 2px 8px rgba(0,0,0,0.15);
+    }
+
+    .status-badge {
+        padding: 4px 12px;
+        border-radius: 12px;
+        font-size: 12px;
+        font-weight: 600;
+        text-transform: uppercase;
+        letter-spacing: 0.5px;
+    }
+
+    /* UN Color Scheme Status Badges */
+    .status-pending {
+        background-color: var(--un-yellow-light);
+        color: #B16D03;
+    }
+
+    .status-verified {
+        background-color: var(--un-green-light);
+        color: var(--un-green-dark);
+    }
+
+    .status-rejected {
+        background-color: var(--un-red-light);
+        color: #A71F36;
+    }
+
+    .status-requires-review {
+        background-color: var(--un-blue-light);
+        color: var(--un-blue-dark);
+    }
+
+    .batch-card {
+        transition: all 0.3s ease;
+        cursor: pointer;
+        border: 2px solid transparent;
+    }
+
+    .batch-card:hover {
+        transform: translateY(-2px);
+        box-shadow: 0 8px 16px rgba(0,0,0,0.1);
+        border-color: var(--un-blue);
+    }
+
+    .batch-card.active {
+        border-color: var(--un-blue);
+        background-color: var(--un-blue-extra-light);
+    }
+
+    .table-hover tbody tr {
+        cursor: pointer;
+    }
+
+    .table-hover tbody tr.selected {
+        background-color: var(--un-blue-extra-light) !important;
+    }
+
+    /* UN Blue gradient for header */
+    .dashboard-header.bg-gradient {
+        background: linear-gradient(135deg, var(--un-blue) 0%, var(--un-blue-dark) 100%) !important;
+    }
+
+    /* Button overrides with UN colors */
+    .btn-primary {
+        background-color: var(--un-blue);
+        border-color: var(--un-blue);
+    }
+
+    .btn-primary:hover {
+        background-color: var(--un-blue-dark);
+        border-color: var(--un-blue-dark);
+    }
+
+    .btn-success {
+        background-color: var(--un-green);
+        border-color: var(--un-green);
+    }
+
+    .btn-success:hover {
+        background-color: var(--un-green-dark);
+        border-color: var(--un-green-dark);
+    }
+
+    .btn-danger {
+        background-color: var(--un-red);
+        border-color: var(--un-red);
+    }
+
+    .btn-danger:hover {
+        background-color: #A71F36;
+        border-color: #A71F36;
+    }
+
+    .btn-warning {
+        background-color: var(--un-orange);
+        border-color: var(--un-orange);
+        color: white;
+    }
+
+    .btn-warning:hover {
+        background-color: #D4582A;
+        border-color: #D4582A;
+        color: white;
+    }
+
+    /* Badge colors */
+    .badge.bg-info {
+        background-color: var(--un-blue) !important;
+    }
+
+    .badge.bg-warning {
+        background-color: var(--un-orange) !important;
+    }
+
+    .badge.bg-success {
+        background-color: var(--un-green) !important;
+    }
+
+    .badge.bg-danger {
+        background-color: var(--un-red) !important;
+    }
+
+    .badge.bg-secondary {
+        background-color: var(--un-gray) !important;
+    }
+
+    /* Text colors */
+    .text-primary {
+        color: var(--un-blue) !important;
+    }
+
+    .text-success {
+        color: var(--un-green) !important;
+    }
+
+    .text-danger {
+        color: var(--un-red) !important;
+    }
+
+    .text-warning {
+        color: var(--un-orange) !important;
+    }
+
+    .text-info {
+        color: var(--un-blue) !important;
+    }
+
+    /* Alert colors */
+    .alert-success {
+        background-color: var(--un-green-light);
+        border-color: var(--un-green);
+        color: var(--un-green-dark);
+    }
+
+    .alert-danger {
+        background-color: var(--un-red-light);
+        border-color: var(--un-red);
+        color: #A71F36;
+    }
+
+    .alert-warning {
+        background-color: var(--un-orange-light);
+        border-color: var(--un-orange);
+        color: #D4582A;
+    }
+
+    .alert-info {
+        background-color: var(--un-blue-light);
+        border-color: var(--un-blue);
+        color: var(--un-blue-dark);
+    }
+</style>
+
+<!-- Header Section -->
+<div class="dashboard-header bg-gradient text-white p-4 rounded-3 mb-4">
+    <div class="d-flex justify-content-between align-items-center">
+        <div>
+            <h1 class="h3 mb-2">
+                <i class="bi bi-clipboard-check me-2"></i>Call Logs Staging & Verification
+            </h1>
+            <p class="mb-0 opacity-90">Review and verify call logs before pushing to production</p>
+        </div>
+        <button type="button" class="btn btn-light" data-bs-toggle="modal" data-bs-target="#consolidateModal">
+            <i class="bi bi-arrow-repeat me-2"></i>Consolidate New Batch
+        </button>
+    </div>
+</div>
+
+<!-- Status Message -->
+@if (!string.IsNullOrEmpty(Model.StatusMessage))
+{
+    <div class="alert alert-@Model.StatusMessageClass alert-dismissible fade show" role="alert">
+        @Model.StatusMessage
+        <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
+    </div>
+}
+
+@if (TempData["DebugMessage"] != null)
+{
+    <div class="alert alert-info alert-dismissible fade show" role="alert">
+        <strong>Debug Info:</strong> @TempData["DebugMessage"]
+        <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
+    </div>
+}
+
+<!-- Recent Batches -->
+<div class="mb-4">
+    <h5 class="mb-3">
+        <i class="bi bi-collection me-2"></i>Recent Batches
+    </h5>
+    <div class="row g-3">
+        @foreach (var batch in Model.RecentBatches)
+        {
+            <div class="col-md-4 col-lg-3">
+                <div class="card batch-card @(Model.BatchId == batch.Id ? "active" : "")"
+                     onclick="window.location.href='?BatchId=@batch.Id'">
+                    <div class="card-body">
+                        <div class="d-flex justify-content-between align-items-start mb-2">
+                            <h6 class="card-title mb-0 text-truncate" title="@batch.BatchName">
+                                @batch.BatchName
+                            </h6>
+                            <span class="badge @batch.GetStatusBadgeClass()">
+                                @batch.GetStatusDisplayName()
+                            </span>
+                        </div>
+                        <p class="text-muted small mb-2">
+                            <i class="bi bi-calendar me-1"></i>@batch.CreatedDate.ToString("MMM dd, yyyy")
+                        </p>
+                        <div class="d-flex justify-content-between small">
+                            <span><i class="bi bi-files me-1"></i>@batch.TotalRecords</span>
+                            @if (batch.RecordsWithAnomalies > 0)
+                            {
+                                <span class="text-warning">
+                                    <i class="bi bi-exclamation-triangle me-1"></i>@batch.RecordsWithAnomalies
+                                </span>
+                            }
+                        </div>
+                    </div>
+                </div>
+            </div>
+        }
+        @if (!Model.RecentBatches.Any())
+        {
+            <div class="col-12">
+                <div class="text-center py-5 bg-light rounded">
+                    <i class="bi bi-inbox text-muted" style="font-size: 3rem;"></i>
+                    <p class="mt-3 text-muted">No batches found. Create a new batch to get started.</p>
+                </div>
+            </div>
+        }
+    </div>
+</div>
+
+@if (Model.CurrentBatch != null)
+{
+    <!-- Batch Statistics -->
+    <div class="row mb-4">
+        <div class="col-12">
+            <div class="card">
+                <div class="card-body">
+                    <h5 class="card-title mb-3">
+                        <i class="bi bi-graph-up me-2"></i>Batch Statistics: @Model.CurrentBatch.BatchName
+                    </h5>
+                    <div class="row g-3">
+                        <div class="col-md-2">
+                            <div class="text-center">
+                                <div class="fs-2 fw-bold text-primary">@Model.BatchStatistics["Total"]</div>
+                                <div class="text-muted small">Total Records</div>
+                            </div>
+                        </div>
+                        <div class="col-md-2">
+                            <div class="text-center">
+                                <div class="fs-2 fw-bold text-warning">@Model.BatchStatistics["Pending"]</div>
+                                <div class="text-muted small">Pending</div>
+                            </div>
+                        </div>
+                        <div class="col-md-2">
+                            <div class="text-center">
+                                <div class="fs-2 fw-bold text-success">@Model.BatchStatistics["Verified"]</div>
+                                <div class="text-muted small">Verified</div>
+                            </div>
+                        </div>
+                        <div class="col-md-2">
+                            <div class="text-center">
+                                <div class="fs-2 fw-bold text-danger">@Model.BatchStatistics["Rejected"]</div>
+                                <div class="text-muted small">Rejected</div>
+                            </div>
+                        </div>
+                        <div class="col-md-2">
+                            <div class="text-center">
+                                <div class="fs-2 fw-bold text-info">@Model.BatchStatistics["WithAnomalies"]</div>
+                                <div class="text-muted small">With Anomalies</div>
+                            </div>
+                        </div>
+                        <div class="col-md-2">
+                            <div class="text-center">
+                                <div class="d-grid gap-2">
+                                    @if (Model.CurrentBatch.CanBePublished())
+                                    {
+                                        <form method="post" asp-page-handler="PushToProduction" asp-route-batchId="@Model.CurrentBatch.Id"
+                                              onsubmit="return confirm('Push @Model.BatchStatistics["Verified"] verified records to production?');">
+                                            <button type="submit" class="btn btn-success w-100">
+                                                <i class="bi bi-cloud-upload me-2"></i>Push to Production
+                                            </button>
+                                        </form>
+                                    }
+                                    else
+                                    {
+                                        <button class="btn btn-secondary" disabled>
+                                            <i class="bi bi-lock me-2"></i>Not Ready
+                                        </button>
+                                    }
+
+                                    @if (Model.CurrentBatch.BatchStatus != BatchStatus.Published)
+                                    {
+                                        <button type="button" class="btn btn-danger btn-sm"
+                                                data-bs-toggle="modal"
+                                                data-bs-target="#deleteBatchModal"
+                                                data-batch-id="@Model.CurrentBatch.Id"
+                                                data-batch-name="@Model.CurrentBatch.BatchName">
+                                            <i class="bi bi-trash me-1"></i>Delete Batch
+                                        </button>
+                                    }
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Filters -->
+    <div class="card mb-4">
+        <div class="card-body">
+            <form method="get" class="row g-3">
+                <input type="hidden" name="BatchId" value="@Model.BatchId" />
+
+                <div class="col-md-3">
+                    <label class="form-label">Status</label>
+                    <select name="Status" class="form-select" onchange="this.form.submit()">
+                        <option value="">All Status</option>
+                        @foreach (var item in Model.StatusList)
+                        {
+                            <option value="@item.Value" selected="@(Model.Status?.ToString() == item.Value)">@item.Text</option>
+                        }
+                    </select>
+                </div>
+
+                <div class="col-md-3">
+                    <label class="form-label">Anomalies</label>
+                    <select name="HasAnomalies" class="form-select" onchange="this.form.submit()">
+                        <option value="">All Records</option>
+                        <option value="true" selected="@(Model.HasAnomalies == true)">With Anomalies</option>
+                        <option value="false" selected="@(Model.HasAnomalies == false)">No Anomalies</option>
+                    </select>
+                </div>
+
+                <div class="col-md-4">
+                    <label class="form-label">Search</label>
+                    <input type="text" name="SearchTerm" class="form-control" placeholder="Extension, number, destination..."
+                           value="@Model.SearchTerm" />
+                </div>
+
+                <div class="col-md-2">
+                    <label class="form-label">&nbsp;</label>
+                    <div class="d-grid gap-2">
+                        <button type="submit" class="btn btn-primary">
+                            <i class="bi bi-search me-2"></i>Search
+                        </button>
+                        <a href="?BatchId=@Model.BatchId" class="btn btn-outline-secondary">Clear</a>
+                    </div>
+                </div>
+            </form>
+        </div>
+    </div>
+
+    <!-- Staged Logs Table -->
+    <div class="card">
+        <div class="card-body">
+            <form method="post" id="bulkActionForm">
+                <input type="hidden" name="BatchId" value="@Model.BatchId" />
+
+                <div class="d-flex justify-content-between align-items-center mb-3">
+                    <h5 class="card-title mb-0">
+                        <i class="bi bi-table me-2"></i>Call Log Records
+                    </h5>
+                    <div class="btn-group" role="group">
+                        <button type="submit" asp-page-handler="VerifySelected" class="btn btn-success"
+                                onclick="return confirm('Verify selected records?');">
+                            <i class="bi bi-check-circle me-2"></i>Verify Selected
+                        </button>
+                        <button type="button" class="btn btn-danger" onclick="showRejectModal()">
+                            <i class="bi bi-x-circle me-2"></i>Reject Selected
+                        </button>
+                    </div>
+                </div>
+
+                <div class="table-responsive">
+                    <table class="table table-hover">
+                        <thead>
+                            <tr>
+                                <th>
+                                    <input type="checkbox" class="form-check-input" id="selectAll" />
+                                </th>
+                                <th>Status</th>
+                                <th>Extension</th>
+                                <th>Call Date</th>
+                                <th>Destination</th>
+                                <th>Duration</th>
+                                <th>Cost (USD)</th>
+                                <th>Type</th>
+                                <th>User</th>
+                                <th>Anomalies</th>
+                                <th>Source</th>
+                                <th>Actions</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            @foreach (var log in Model.StagedLogs.Items)
+                            {
+                                <tr data-id="@log.Id" class="@(log.HasAnomalies ? "table-warning" : "")">
+                                    <td>
+                                        <input type="checkbox" class="form-check-input record-checkbox"
+                                               name="SelectedIds" value="@log.Id" />
+                                    </td>
+                                    <td>
+                                        <span class="status-badge status-@log.VerificationStatus.ToString().ToLower()">
+                                            @log.VerificationStatus
+                                        </span>
+                                    </td>
+                                    <td>@log.ExtensionNumber</td>
+                                    <td>@log.CallDate.ToString("yyyy-MM-dd HH:mm")</td>
+                                    <td title="@log.CallDestination">
+                                        @(log.CallDestination.Length > 20 ? log.CallDestination.Substring(0, 20) + "..." : log.CallDestination)
+                                    </td>
+                                    <td>@TimeSpan.FromSeconds(log.CallDuration).ToString(@"hh\:mm\:ss")</td>
+                                    <td>$@log.CallCostUSD.ToString("F2")</td>
+                                    <td>
+                                        <span class="badge bg-info">@log.CallType</span>
+                                    </td>
+                                    <td>
+                                        @if (log.ResponsibleUser != null)
+                                        {
+                                            <span title="@log.ResponsibleUser.FullName">
+                                                @log.ResponsibleIndexNumber
+                                            </span>
+                                        }
+                                        else if (!string.IsNullOrEmpty(log.ResponsibleIndexNumber))
+                                        {
+                                            <span class="text-danger" title="User not found">
+                                                <i class="bi bi-exclamation-triangle"></i> @log.ResponsibleIndexNumber
+                                            </span>
+                                        }
+                                        else
+                                        {
+                                            <span class="text-muted">-</span>
+                                        }
+                                    </td>
+                                    <td>
+                                        @if (log.HasAnomalies)
+                                        {
+                                            <span class="badge bg-warning anomaly-badge"
+                                                  onclick="showAnomalies(@log.Id)" title="Click to view details">
+                                                <i class="bi bi-exclamation-triangle"></i>
+                                                @(log.GetAnomalyTypesList().Count) Issues
+                                            </span>
+                                        }
+                                        else
+                                        {
+                                            <span class="badge bg-success">
+                                                <i class="bi bi-check"></i> Clean
+                                            </span>
+                                        }
+                                    </td>
+                                    <td>
+                                        <span class="badge bg-secondary">@log.SourceSystem</span>
+                                    </td>
+                                    <td>
+                                        <div class="btn-group btn-group-sm" role="group">
+                                            @if (log.VerificationStatus == VerificationStatus.Pending ||
+                                                 log.VerificationStatus == VerificationStatus.RequiresReview)
+                                            {
+                                                <button type="button" class="btn btn-success"
+                                                        onclick="verifyRecord(@log.Id)" title="Verify">
+                                                    <i class="bi bi-check"></i>
+                                                </button>
+                                                <button type="button" class="btn btn-danger"
+                                                        onclick="rejectRecord(@log.Id)" title="Reject">
+                                                    <i class="bi bi-x"></i>
+                                                </button>
+                                            }
+                                            <button type="button" class="btn btn-info"
+                                                    onclick="viewDetails(@log.Id)" title="View Details">
+                                                <i class="bi bi-eye"></i>
+                                            </button>
+                                        </div>
+                                    </td>
+                                </tr>
+                            }
+                        </tbody>
+                    </table>
+                </div>
+
+                <!-- Pagination -->
+                @if (Model.StagedLogs.TotalPages > 1)
+                {
+                    <nav class="mt-3">
+                        <ul class="pagination justify-content-center">
+                            @for (int i = 1; i <= Model.StagedLogs.TotalPages; i++)
+                            {
+                                <li class="page-item @(i == Model.PageNumber ? "active" : "")">
+                                    <a class="page-link" href="?BatchId=@Model.BatchId&PageNumber=@i&PageSize=@Model.PageSize&Status=@Model.Status&HasAnomalies=@Model.HasAnomalies&SearchTerm=@Model.SearchTerm">
+                                        @i
+                                    </a>
+                                </li>
+                            }
+                        </ul>
+                    </nav>
+                }
+            </form>
+        </div>
+    </div>
+}
+
+<!-- Consolidate Modal -->
+<div class="modal fade" id="consolidateModal" tabindex="-1">
+    <div class="modal-dialog">
+        <div class="modal-content">
+            <form method="post" asp-page-handler="Consolidate">
+                <div class="modal-header">
+                    <h5 class="modal-title">Consolidate Call Logs</h5>
+                    <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+                </div>
+                <div class="modal-body">
+                    <div class="mb-3">
+                        <label class="form-label">Select Billing Period</label>
+                        <input type="month" name="BillingMonth" class="form-control" required
+                               value="@DateTime.Today.AddMonths(-1).ToString("yyyy-MM")"
+                               max="@DateTime.Today.ToString("yyyy-MM")" />
+                        <small class="text-muted">Select the month and year for the billing period</small>
+                    </div>
+                    <div class="alert alert-info">
+                        <i class="bi bi-info-circle me-2"></i>
+                        This will consolidate call logs from all telecom providers (Safaricom, Airtel, PSTN, PrivateWire)
+                        for the selected month. Make sure you have imported data for this month in all provider tables.
+                    </div>
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancel</button>
+                    <button type="submit" class="btn btn-primary">
+                        <i class="bi bi-arrow-repeat me-2"></i>Consolidate
+                    </button>
+                </div>
+            </form>
+        </div>
+    </div>
+</div>
+
+<!-- Reject Modal -->
+<div class="modal fade" id="rejectModal" tabindex="-1">
+    <div class="modal-dialog">
+        <div class="modal-content">
+            <form method="post" asp-page-handler="RejectSelected">
+                <input type="hidden" name="BatchId" value="@Model.BatchId" />
+                <div id="rejectSelectedIds"></div>
+                <div class="modal-header">
+                    <h5 class="modal-title">Reject Selected Records</h5>
+                    <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+                </div>
+                <div class="modal-body">
+                    <div class="mb-3">
+                        <label class="form-label">Reason for Rejection</label>
+                        <textarea name="reason" class="form-control" rows="3" required
+                                  placeholder="Enter reason for rejection..."></textarea>
+                    </div>
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancel</button>
+                    <button type="submit" class="btn btn-danger">
+                        <i class="bi bi-x-circle me-2"></i>Reject Records
+                    </button>
+                </div>
+            </form>
+        </div>
+    </div>
+</div>
+
+<!-- Delete Batch Confirmation Modal -->
+<div class="modal fade" id="deleteBatchModal" tabindex="-1" aria-labelledby="deleteBatchModalLabel" aria-hidden="true">
+    <div class="modal-dialog modal-dialog-centered">
+        <div class="modal-content">
+            <div class="modal-header bg-danger text-white">
+                <h5 class="modal-title" id="deleteBatchModalLabel">
+                    <i class="bi bi-exclamation-triangle-fill me-2"></i>Confirm Batch Deletion
+                </h5>
+                <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal" aria-label="Close"></button>
+            </div>
+            <div class="modal-body">
+                <div class="alert alert-danger">
+                    <i class="bi bi-exclamation-triangle me-2"></i>
+                    <strong>Warning:</strong> This action cannot be undone!
+                </div>
+                <p>You are about to delete the batch: <strong id="batchNameToDelete"></strong></p>
+                <p>This will:</p>
+                <ul>
+                    <li>Remove the batch from the system</li>
+                    <li>Delete all staging records associated with this batch</li>
+                    <li>Log this action in the audit trail</li>
+                </ul>
+                <p class="text-muted">Note: Only batches that haven't been published to production can be deleted.</p>
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">
+                    <i class="bi bi-x-circle me-2"></i>Cancel
+                </button>
+                <form method="post" asp-page-handler="DeleteBatch" id="deleteBatchForm" style="display: inline;">
+                    <input type="hidden" name="batchId" id="batchIdToDelete" />
+                    <button type="submit" class="btn btn-danger">
+                        <i class="bi bi-trash me-2"></i>Delete Batch
+                    </button>
+                </form>
+            </div>
+        </div>
+    </div>
+</div>
+
+@section Scripts {
+    <script>
+        // Handle delete batch modal
+        const deleteBatchModal = document.getElementById('deleteBatchModal');
+        if (deleteBatchModal) {
+            deleteBatchModal.addEventListener('show.bs.modal', function (event) {
+                const button = event.relatedTarget;
+                const batchId = button.getAttribute('data-batch-id');
+                const batchName = button.getAttribute('data-batch-name');
+
+                document.getElementById('batchIdToDelete').value = batchId;
+                document.getElementById('batchNameToDelete').textContent = batchName;
+            });
+        }
+
+        // Select all checkbox
+        document.getElementById('selectAll')?.addEventListener('change', function() {
+            const checkboxes = document.querySelectorAll('.record-checkbox');
+            checkboxes.forEach(cb => cb.checked = this.checked);
+        });
+
+        // Verify single record
+        async function verifyRecord(id) {
+            if (!confirm('Verify this record?')) return;
+
+            try {
+                const response = await fetch(`?handler=Verify&id=${id}`, {
+                    method: 'GET',
+                    headers: {
+                        'X-Requested-With': 'XMLHttpRequest'
+                    }
+                });
+
+                const result = await response.json();
+                if (result.success) {
+                    location.reload();
+                } else {
+                    alert('Error: ' + result.error);
+                }
+            } catch (error) {
+                alert('Error verifying record');
+            }
+        }
+
+        // Reject single record
+        async function rejectRecord(id) {
+            const reason = prompt('Enter rejection reason:');
+            if (!reason) return;
+
+            try {
+                const response = await fetch(`?handler=Reject&id=${id}&reason=${encodeURIComponent(reason)}`, {
+                    method: 'GET',
+                    headers: {
+                        'X-Requested-With': 'XMLHttpRequest'
+                    }
+                });
+
+                const result = await response.json();
+                if (result.success) {
+                    location.reload();
+                } else {
+                    alert('Error: ' + result.error);
+                }
+            } catch (error) {
+                alert('Error rejecting record');
+            }
+        }
+
+        // Show reject modal for bulk action
+        function showRejectModal() {
+            const selectedIds = Array.from(document.querySelectorAll('.record-checkbox:checked'))
+                .map(cb => cb.value);
+
+            if (selectedIds.length === 0) {
+                alert('Please select records to reject');
+                return;
+            }
+
+            // Add selected IDs to form
+            const container = document.getElementById('rejectSelectedIds');
+            container.innerHTML = '';
+            selectedIds.forEach(id => {
+                const input = document.createElement('input');
+                input.type = 'hidden';
+                input.name = 'SelectedIds';
+                input.value = id;
+                container.appendChild(input);
+            });
+
+            new bootstrap.Modal(document.getElementById('rejectModal')).show();
+        }
+
+        // Show anomalies
+        async function showAnomalies(id) {
+            try {
+                const response = await fetch(`?handler=Anomalies&id=${id}`, {
+                    method: 'GET',
+                    headers: {
+                        'X-Requested-With': 'XMLHttpRequest'
+                    }
+                });
+
+                const anomalies = await response.json();
+
+                let html = '<h6>Detected Anomalies:</h6><ul>';
+                anomalies.forEach(a => {
+                    html += `<li><strong>${a.name}:</strong> ${a.description} (${a.severity})</li>`;
+                });
+                html += '</ul>';
+
+                // You can replace this with a modal for better UX
+                alert(html.replace(/<[^>]*>/g, '')); // Simple text version for now
+            } catch (error) {
+                alert('Error loading anomalies');
+            }
+        }
+
+        // View details (placeholder)
+        function viewDetails(id) {
+            alert('View details for record ' + id + ' - Feature coming soon!');
+        }
+    </script>
+}

@@ -1,0 +1,2186 @@
+@page
+@model TAB.Web.Pages.Admin.CallLogStagingModel
+@{
+    ViewData["Title"] = "Call Logs Staging & Verification";
+}
+
+<style>
+    /* Statistics Grid */
+    .stats-grid {
+        display: grid;
+        grid-template-columns: repeat(auto-fit, minmax(240px, 1fr));
+        gap: 1.25rem;
+        margin-bottom: 2rem;
+    }
+
+    .stat-card {
+        background: white;
+        border-radius: 12px;
+        padding: 1.5rem;
+        border: 1px solid #e5e7eb;
+        transition: all 0.3s ease;
+        position: relative;
+        overflow: hidden;
+    }
+
+    .stat-card::before {
+        content: '';
+        position: absolute;
+        top: 0;
+        left: 0;
+        right: 0;
+        height: 4px;
+        background: linear-gradient(90deg, var(--gradient-start), var(--gradient-end));
+    }
+
+    .stat-card:nth-child(1)::before {
+        --gradient-start: #009EDB;
+        --gradient-end: #0084c7;
+    }
+
+    .stat-card:nth-child(2)::before {
+        --gradient-start: #f59e0b;
+        --gradient-end: #fbbf24;
+    }
+
+    .stat-card:nth-child(3)::before {
+        --gradient-start: #10b981;
+        --gradient-end: #34d399;
+    }
+
+    .stat-card:nth-child(4)::before {
+        --gradient-start: #ef4444;
+        --gradient-end: #f87171;
+    }
+
+    .stat-card:hover {
+        transform: translateY(-4px);
+        box-shadow: 0 10px 30px rgba(0, 0, 0, 0.1);
+    }
+
+    .stat-content {
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+    }
+
+    .stat-icon {
+        width: 50px;
+        height: 50px;
+        border-radius: 12px;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        font-size: 1.5rem;
+    }
+
+    .stat-icon-primary {
+        background: linear-gradient(135deg, #009EDB, #0084c7);
+        color: white;
+    }
+
+    .stat-icon-warning {
+        background: linear-gradient(135deg, #f59e0b, #fbbf24);
+        color: white;
+    }
+
+    .stat-icon-success {
+        background: linear-gradient(135deg, #10b981, #34d399);
+        color: white;
+    }
+
+    .stat-icon-danger {
+        background: linear-gradient(135deg, #ef4444, #f87171);
+        color: white;
+    }
+
+    .stat-details {
+        text-align: right;
+    }
+
+    .stat-number {
+        font-size: 1.75rem;
+        font-weight: 700;
+        color: #1f2937;
+        line-height: 1;
+        margin-bottom: 0.25rem;
+    }
+
+    .stat-label {
+        font-size: 0.875rem;
+        color: #6b7280;
+        font-weight: 500;
+    }
+
+    /* Filter Section */
+    .filter-section {
+        background: white;
+        border-radius: 12px;
+        padding: 1.5rem;
+        margin-bottom: 2rem;
+        box-shadow: 0 2px 10px rgba(0, 0, 0, 0.05);
+        border: 1px solid #e5e7eb;
+    }
+
+    .filter-header {
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        margin-bottom: 1.5rem;
+        padding-bottom: 1rem;
+        border-bottom: 2px solid #f3f4f6;
+    }
+
+    .filter-title {
+        font-size: 1.25rem;
+        font-weight: 600;
+        color: #1f2937;
+        display: flex;
+        align-items: center;
+        gap: 0.5rem;
+    }
+
+    .filter-title i {
+        color: #009EDB;
+    }
+
+    .filter-grid {
+        display: grid;
+        grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
+        gap: 1rem;
+    }
+
+    .filter-group {
+        display: flex;
+        flex-direction: column;
+        gap: 0.5rem;
+    }
+
+    .filter-label {
+        font-size: 0.875rem;
+        font-weight: 600;
+        color: #4b5563;
+        display: flex;
+        align-items: center;
+        gap: 0.5rem;
+    }
+
+    .filter-label i {
+        color: #009EDB;
+        font-size: 0.875rem;
+    }
+
+    .filter-input,
+    .filter-select {
+        padding: 0.625rem 1rem;
+        border: 2px solid #e5e7eb;
+        border-radius: 8px;
+        font-size: 0.875rem;
+        transition: all 0.2s ease;
+        background: white;
+    }
+
+    .filter-input:focus,
+    .filter-select:focus {
+        outline: none;
+        border-color: #009EDB;
+        box-shadow: 0 0 0 3px rgba(0, 158, 219, 0.1);
+    }
+
+    .btn-clear-filters {
+        padding: 0.625rem 1.25rem;
+        background: #f3f4f6;
+        color: #4b5563;
+        border: none;
+        border-radius: 8px;
+        font-weight: 500;
+        font-size: 0.875rem;
+        display: inline-flex;
+        align-items: center;
+        gap: 0.5rem;
+        transition: all 0.2s ease;
+        text-decoration: none;
+    }
+
+    .btn-clear-filters:hover {
+        background: #e5e7eb;
+        color: #1f2937;
+        text-decoration: none;
+    }
+
+    /* Batch Cards */
+    .batch-card {
+        background: white;
+        border: 2px solid #e5e7eb;
+        border-radius: 12px;
+        padding: 1.25rem;
+        cursor: pointer;
+        transition: all 0.3s ease;
+        height: 100%;
+    }
+
+    .batch-card:hover {
+        transform: translateY(-4px);
+        box-shadow: 0 8px 20px rgba(0, 0, 0, 0.08);
+        border-color: #009EDB;
+    }
+
+    .batch-card.active {
+        background: linear-gradient(135deg, #f0f9ff 0%, #e0f2fe 100%);
+        border-color: #009EDB;
+        box-shadow: 0 4px 12px rgba(0, 158, 219, 0.15);
+    }
+
+    /* Status Badges */
+    .status-badge {
+        padding: 0.25rem 0.75rem;
+        border-radius: 9999px;
+        font-size: 0.75rem;
+        font-weight: 600;
+        text-transform: uppercase;
+        letter-spacing: 0.5px;
+    }
+
+    /* Table Row Effects */
+    .staging-row {
+        transition: all 0.2s ease;
+        border-bottom: 1px solid #f3f4f6;
+    }
+
+    .staging-row:hover {
+        background-color: #f9fafb;
+        transform: translateX(2px);
+        box-shadow: 0 2px 4px rgba(0, 0, 0, 0.05);
+    }
+
+    .staging-row.selected {
+        background-color: #e0f2fe !important;
+    }
+
+    /* Pagination Styles */
+    .pagination {
+        gap: 0.25rem;
+    }
+
+    .page-link {
+        color: #009EDB;
+        border: 1px solid #e5e7eb;
+        padding: 0.5rem 0.75rem;
+        font-size: 0.875rem;
+        font-weight: 500;
+        transition: all 0.2s ease;
+        border-radius: 8px;
+        margin: 0 2px;
+    }
+
+    .page-link:hover {
+        color: #0084c7;
+        background-color: #f9fafb;
+        border-color: #009EDB;
+        transform: translateY(-1px);
+    }
+
+    .page-item.active .page-link {
+        background-color: #009EDB;
+        border-color: #009EDB;
+        color: white;
+    }
+
+    .page-item.disabled .page-link {
+        color: #9ca3af;
+        background-color: #f9fafb;
+        border-color: #e5e7eb;
+        cursor: not-allowed;
+        opacity: 0.6;
+    }
+
+    @@media (max-width: 768px) {
+        .filter-grid {
+            grid-template-columns: 1fr;
+        }
+
+        .stats-grid {
+            grid-template-columns: repeat(2, 1fr);
+            gap: 1rem;
+        }
+    }
+</style>
+
+<!-- Statistics Cards -->
+<div class="stats-grid mb-3">
+    <div class="stat-card">
+        <div class="stat-content">
+            <div class="stat-icon stat-icon-primary">
+                <i class="bi bi-collection"></i>
+            </div>
+            <div class="stat-details">
+                <div class="stat-number">@Model.TotalBatches</div>
+                <div class="stat-label">Total Batches</div>
+            </div>
+        </div>
+    </div>
+
+    <div class="stat-card">
+        <div class="stat-content">
+            <div class="stat-icon stat-icon-warning">
+                <i class="bi bi-clock-history"></i>
+            </div>
+            <div class="stat-details">
+                <div class="stat-number">@Model.TotalPendingRecords.ToString("N0")</div>
+                <div class="stat-label">Pending Review</div>
+            </div>
+        </div>
+    </div>
+
+    <div class="stat-card">
+        <div class="stat-content">
+            <div class="stat-icon stat-icon-success">
+                <i class="bi bi-check-circle"></i>
+            </div>
+            <div class="stat-details">
+                <div class="stat-number">@Model.TotalVerifiedToday</div>
+                <div class="stat-label">Verified Today</div>
+            </div>
+        </div>
+    </div>
+
+    <div class="stat-card">
+        <div class="stat-content">
+            <div class="stat-icon stat-icon-danger">
+                <i class="bi bi-exclamation-triangle"></i>
+            </div>
+            <div class="stat-details">
+                <div class="stat-number">@Model.TotalAnomaliesDetected.ToString("N0")</div>
+                <div class="stat-label">Anomalies Detected</div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Status Message -->
+@if (!string.IsNullOrEmpty(Model.StatusMessage))
+{
+    <div class="alert alert-@Model.StatusMessageClass alert-dismissible fade show mb-3" role="alert">
+        <i class="bi @(Model.StatusMessageClass == "success" ? "bi-check-circle" : Model.StatusMessageClass == "danger" ? "bi-x-circle" : "bi-info-circle") me-2"></i>
+        @Model.StatusMessage
+        <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
+    </div>
+}
+
+<!-- Action Bar -->
+<div class="d-flex justify-content-between align-items-center mb-3">
+    <h4 class="mb-0">
+        <i class="bi bi-clipboard-check me-2 text-primary"></i>Call Logs Staging
+    </h4>
+    <button type="button" class="btn btn-primary" data-bs-toggle="modal" data-bs-target="#consolidateModal">
+        <i class="bi bi-arrow-repeat me-2"></i>Consolidate New Batch
+    </button>
+</div>
+
+<!-- Recent Batches -->
+<div class="mb-4">
+    <div class="d-flex justify-content-between align-items-center mb-3">
+        <h5 class="mb-0">
+            <i class="bi bi-clock-history me-2"></i>Recent Batches
+        </h5>
+        <button class="btn btn-sm btn-outline-primary" type="button" data-bs-toggle="collapse" data-bs-target="#batchesCollapse" aria-expanded="true">
+            <i class="bi bi-chevron-down"></i>
+        </button>
+    </div>
+    <div class="collapse show" id="batchesCollapse">
+        <div class="row g-3">
+            @if (Model.RecentBatches.Any())
+            {
+                @foreach (var batch in Model.RecentBatches)
+                {
+                    <div class="col-md-6 col-lg-4 col-xl-3">
+                        <div class="batch-card @(Model.BatchId == batch.Id ? "active" : "")"
+                             onclick="window.location.href='?BatchId=@batch.Id'">
+                            <div class="d-flex justify-content-between align-items-start mb-3">
+                                <h6 class="mb-0 text-truncate" style="max-width: 70%;" title="@batch.BatchName">
+                                    @batch.BatchName
+                                </h6>
+                                <span class="badge @GetBatchStatusBadgeClass(batch.BatchStatus)">
+                                    @batch.BatchStatus
+                                </span>
+                            </div>
+                            <div class="text-muted small mb-2">
+                                <i class="bi bi-calendar3 me-1"></i>@batch.CreatedDate.ToString("MMM dd, yyyy")
+                            </div>
+                            <div class="d-flex justify-content-between align-items-center">
+                                <span class="small">
+                                    <i class="bi bi-files me-1"></i>@batch.TotalRecords.ToString("N0") records
+                                </span>
+                                @if (batch.RecordsWithAnomalies > 0)
+                                {
+                                    <span class="small text-warning">
+                                        <i class="bi bi-exclamation-triangle me-1"></i>@batch.RecordsWithAnomalies
+                                    </span>
+                                }
+                            </div>
+                            @if (batch.BatchStatus == BatchStatus.Processing)
+                            {
+                                <div class="progress mt-2" style="height: 4px;">
+                                    @{
+                                        var progress = batch.TotalRecords > 0 ?
+                                            (batch.VerifiedRecords * 100.0 / batch.TotalRecords) : 0;
+                                    }
+                                    <div class="progress-bar bg-success" style="width: @progress%"></div>
+                                </div>
+                            }
+                        </div>
+                    </div>
+                }
+            }
+            else
+            {
+                <div class="col-12">
+                    <div class="text-center py-5 bg-light rounded-3">
+                        <div class="bg-white rounded-circle d-inline-flex align-items-center justify-content-center mb-3"
+                             style="width: 80px; height: 80px;">
+                            <i class="bi bi-inbox text-muted" style="font-size: 32px;"></i>
+                        </div>
+                        <h5 class="text-muted mb-2">No Batches Found</h5>
+                        <p class="text-muted mb-0">Create a new batch to get started with call log staging.</p>
+                    </div>
+                </div>
+            }
+        </div>
+    </div>
+</div>
+
+<!-- Filter Section (Collapsible) -->
+<div class="mb-3">
+    <button class="btn btn-outline-primary" type="button" data-bs-toggle="collapse" data-bs-target="#filterCollapse" aria-expanded="false" aria-controls="filterCollapse">
+        <i class="bi bi-funnel"></i> Show Filters
+    </button>
+</div>
+<div class="collapse" id="filterCollapse">
+    <div class="filter-section">
+        <div class="filter-header">
+            <h2 class="filter-title">
+                <i class="bi bi-funnel"></i>
+                Filters
+            </h2>
+            <div class="filter-actions">
+                <span class="badge bg-light text-dark">
+                    @if (Model.StagedLogs.Items.Any())
+                    {
+                        <text>Showing @((Model.PageNumber - 1) * Model.PageSize + 1) - @Math.Min(Model.PageNumber * Model.PageSize, Model.TotalCount) of @Model.TotalCount</text>
+                    }
+                    else
+                    {
+                        <text>No results</text>
+                    }
+                </span>
+            </div>
+        </div>
+
+        <form method="get" class="filter-form" id="filterForm">
+            <input type="hidden" name="PageSizeParam" value="@Model.PageSize" />
+            <input type="hidden" name="BatchId" value="@Model.BatchId" />
+            <div class="filter-grid">
+                <div class="filter-group">
+                    <label class="filter-label" for="searchFilter">
+                        <i class="bi bi-search"></i> Search
+                    </label>
+                    <input type="text" name="SearchTerm" id="searchFilter" class="filter-input filter-search-input"
+                           placeholder="Phone number, user..." value="@Model.SearchTerm" />
+                </div>
+
+                <div class="filter-group">
+                    <label class="filter-label" for="statusFilter">
+                        <i class="bi bi-flag"></i> Status
+                    </label>
+                    <select name="Status" id="statusFilter" class="filter-select filter-auto-submit">
+                        <option value="">All Status</option>
+                        @foreach (var status in Model.StatusList)
+                        {
+                            <option value="@status.Value" selected="@(Model.Status?.ToString() == status.Value)">@status.Text</option>
+                        }
+                    </select>
+                </div>
+
+                <div class="filter-group">
+                    <label class="filter-label" for="anomaliesFilter">
+                        <i class="bi bi-exclamation-triangle"></i> Anomalies
+                    </label>
+                    <select name="HasAnomalies" id="anomaliesFilter" class="filter-select filter-auto-submit">
+                        <option value="">All Records</option>
+                        <option value="true" selected="@(Model.HasAnomalies == true)">With Anomalies</option>
+                        <option value="false" selected="@(Model.HasAnomalies == false)">No Anomalies</option>
+                    </select>
+                </div>
+
+                <div class="filter-group">
+                    <label class="filter-label" for="startDate">
+                        <i class="bi bi-calendar-minus"></i> Start Date
+                    </label>
+                    <input type="date" name="StartDate" id="startDate" class="filter-input filter-auto-submit"
+                           value="@Model.StartDate?.ToString("yyyy-MM-dd")" />
+                </div>
+
+                <div class="filter-group">
+                    <label class="filter-label" for="endDate">
+                        <i class="bi bi-calendar-plus"></i> End Date
+                    </label>
+                    <input type="date" name="EndDate" id="endDate" class="filter-input filter-auto-submit"
+                           value="@Model.EndDate?.ToString("yyyy-MM-dd")" />
+                </div>
+
+                <div class="filter-group align-self-end">
+                    <a href="/Admin/CallLogStaging@(Model.BatchId.HasValue ? $"?BatchId={Model.BatchId}" : "")"
+                       class="btn-clear-filters">
+                        <i class="bi bi-x-circle"></i> Clear Filters
+                    </a>
+                </div>
+            </div>
+        </form>
+    </div>
+</div>
+
+<!-- Current Batch Details -->
+@if (Model.CurrentBatch != null)
+{
+    <div class="card border-0 shadow-sm mb-4" style="border-radius: 12px;">
+        <div class="card-body p-3">
+            <div class="d-flex justify-content-between align-items-start mb-3">
+                <div>
+                    <h6 class="mb-1 fw-bold d-flex align-items-center">
+                        <i class="bi bi-folder2-open me-2 text-primary"></i>@Model.CurrentBatch.BatchName
+                    </h6>
+                    <small class="text-muted">Created by @Model.CurrentBatch.CreatedBy on @Model.CurrentBatch.CreatedDate.ToString("MMM dd, yyyy HH:mm")</small>
+                </div>
+                <div class="d-flex gap-2">
+                    @if ((Model.CurrentBatch.BatchStatus == BatchStatus.Processing || Model.CurrentBatch.BatchStatus == BatchStatus.PartiallyVerified || Model.CurrentBatch.BatchStatus == BatchStatus.Verified) && Model.BatchStatistics.GetValueOrDefault("Verified") > 0)
+                    {
+                        <button type="button" class="btn btn-success btn-sm" onclick="openVerificationPeriodModal('@Model.CurrentBatch.Id')">
+                            <i class="bi bi-cloud-upload me-1"></i>Push to Production
+                        </button>
+                    }
+                    @if (Model.CurrentBatch.BatchStatus != BatchStatus.Published)
+                    {
+                        <button type="button" class="btn btn-danger btn-sm"
+                                data-bs-toggle="modal"
+                                data-bs-target="#deleteBatchModal"
+                                data-batch-id="@Model.CurrentBatch.Id"
+                                data-batch-name="@Model.CurrentBatch.BatchName">
+                            <i class="bi bi-trash me-1"></i>Delete Batch
+                        </button>
+                    }
+                </div>
+            </div>
+            <div class="d-flex flex-wrap gap-3">
+                @foreach (var stat in Model.BatchStatistics)
+                {
+                    <div class="d-flex align-items-center">
+                        <span class="fw-bold me-1 @GetStatColorClass(stat.Key)">@stat.Value.ToString("N0")</span>
+                        <span class="text-muted small">@stat.Key</span>
+                    </div>
+                }
+            </div>
+        </div>
+    </div>
+}
+
+<!-- Staged Logs Table -->
+<div class="card border-0 shadow-sm" style="border-radius: 16px;">
+    <div class="card-header bg-gradient border-0 py-4"
+         style="background: linear-gradient(135deg, #f8f9fa 0%, #e9ecef 100%); border-radius: 16px 16px 0 0;">
+        <div class="d-flex justify-content-between align-items-center">
+            <div class="d-flex align-items-center gap-2">
+                <label class="mb-0" style="font-size: 14px; color: #4b5563;">Show</label>
+                <form method="get" id="pageSizeForm" class="d-inline-block">
+                    <!-- Preserve all filter parameters -->
+                    <input type="hidden" name="BatchId" value="@Model.BatchId" />
+                    <input type="hidden" name="SearchTerm" value="@Model.SearchTerm" />
+                    <input type="hidden" name="Status" value="@Model.Status" />
+                    <input type="hidden" name="HasAnomalies" value="@Model.HasAnomalies" />
+                    <input type="hidden" name="StartDate" value="@Model.StartDate?.ToString("yyyy-MM-dd")" />
+                    <input type="hidden" name="EndDate" value="@Model.EndDate?.ToString("yyyy-MM-dd")" />
+                    <select name="PageSizeParam" class="form-select form-select-sm" style="width: auto;"
+                            onchange="document.getElementById('pageSizeForm').submit()">
+                        <option value="10" selected="@(Model.PageSize == 10)">10</option>
+                        <option value="25" selected="@(Model.PageSize == 25)">25</option>
+                        <option value="50" selected="@(Model.PageSize == 50)">50</option>
+                        <option value="100" selected="@(Model.PageSize == 100)">100</option>
+                    </select>
+                </form>
+                <label class="mb-0" style="font-size: 14px; color: #4b5563;">entries per page</label>
+            </div>
+            <div class="input-group" style="max-width: 300px;">
+                <span class="input-group-text bg-white border-1">
+                    <i class="bi bi-search text-muted"></i>
+                </span>
+                <input type="text" class="form-control bg-white border-1 text-dark"
+                       id="quickSearch" placeholder="Quick search..."
+                       style="border-radius: 0 8px 8px 0;">
+            </div>
+        </div>
+    </div>
+    <div class="card-body p-0">
+        <form method="post" asp-page-handler="VerifySelected" id="bulkActionsForm">
+            <div class="table-responsive">
+                <table class="table table-hover mb-0" id="stagingTable">
+                    <thead style="background-color: #f8f9fa;">
+                        <tr>
+                            <th class="border-0 px-3 py-3" style="width: 40px;">
+                                <input type="checkbox" class="form-check-input" id="selectAll" />
+                            </th>
+                            <th class="border-0 px-3 py-3" style="font-weight: 600; color: #4a5568; text-transform: uppercase; font-size: 12px; letter-spacing: 0.5px;">
+                                <i class="bi bi-calendar3 me-2"></i>Call Date
+                            </th>
+                            <th class="border-0 px-3 py-3" style="font-weight: 600; color: #4a5568; text-transform: uppercase; font-size: 12px; letter-spacing: 0.5px;">
+                                <i class="bi bi-telephone me-2"></i>Phone Number
+                            </th>
+                            <th class="border-0 px-3 py-3" style="font-weight: 600; color: #4a5568; text-transform: uppercase; font-size: 12px; letter-spacing: 0.5px;">
+                                <i class="bi bi-person me-2"></i>User
+                            </th>
+                            <th class="border-0 px-3 py-3" style="font-weight: 600; color: #4a5568; text-transform: uppercase; font-size: 12px; letter-spacing: 0.5px;">
+                                <i class="bi bi-building me-2"></i>Provider
+                            </th>
+                            <th class="border-0 px-3 py-3 text-end" style="font-weight: 600; color: #4a5568; text-transform: uppercase; font-size: 12px; letter-spacing: 0.5px;">
+                                <i class="bi bi-cash me-2"></i>Amount
+                            </th>
+                            <th class="border-0 px-3 py-3 text-center" style="font-weight: 600; color: #4a5568; text-transform: uppercase; font-size: 12px; letter-spacing: 0.5px;">
+                                <i class="bi bi-flag me-2"></i>Status
+                            </th>
+                            <th class="border-0 px-3 py-3 text-center" style="font-weight: 600; color: #4a5568; text-transform: uppercase; font-size: 12px; letter-spacing: 0.5px;">
+                                <i class="bi bi-exclamation-triangle me-2"></i>Anomalies
+                            </th>
+                            <th class="border-0 px-3 py-3 text-center" style="font-weight: 600; color: #4a5568; text-transform: uppercase; font-size: 12px; letter-spacing: 0.5px;">
+                                <i class="bi bi-gear me-2"></i>Actions
+                            </th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        @if (Model.StagedLogs.Items.Any())
+                        {
+                            @foreach (var log in Model.StagedLogs.Items)
+                            {
+                                <tr class="staging-row">
+                                    <td class="px-3">
+                                        <input type="checkbox" class="form-check-input row-checkbox"
+                                               name="SelectedIds" value="@log.Id"
+                                               @(log.ProcessingStatus == TAB.Web.Models.ProcessingStatus.Completed ? "disabled" : "") />
+                                    </td>
+                                    <td class="px-3">@log.CallDate.ToString("MMM dd, yyyy")</td>
+                                    <td class="px-3 fw-medium">@log.CallNumber</td>
+                                    <td class="px-3">
+                                        @if (log.UserPhone?.EbillUser != null)
+                                        {
+                                            <div class="d-flex flex-column">
+                                                <span class="fw-semibold">@log.UserPhone.EbillUser.FullName</span>
+                                                <small class="text-muted">@log.UserPhone.EbillUser.IndexNumber</small>
+                                            </div>
+                                        }
+                                        else if (log.ResponsibleUser != null)
+                                        {
+                                            <div class="d-flex flex-column">
+                                                <span class="fw-semibold">@log.ResponsibleUser.FullName</span>
+                                                <small class="text-muted">@log.ResponsibleUser.IndexNumber</small>
+                                            </div>
+                                        }
+                                        else
+                                        {
+                                            <span class="text-muted">@(log.ResponsibleIndexNumber ?? "Unknown")</span>
+                                        }
+                                    </td>
+                                    <td class="px-3">
+                                        <span class="badge bg-secondary">@log.SourceSystem</span>
+                                    </td>
+                                    <td class="px-3 text-end fw-medium">$@log.CallCostUSD.ToString("N2")</td>
+                                    <td class="px-3 text-center">
+                                        <span class="badge rounded-pill @GetStatusBadgeClass(log.VerificationStatus)">
+                                            @log.VerificationStatus
+                                        </span>
+                                    </td>
+                                    <td class="px-3 text-center">
+                                        @if (log.HasAnomalies)
+                                        {
+                                            <button type="button" class="btn btn-sm btn-warning rounded-pill"
+                                                    onclick="viewAnomalies(@log.Id)">
+                                                <i class="bi bi-exclamation-triangle"></i> View
+                                            </button>
+                                        }
+                                        else
+                                        {
+                                            <span class="text-muted">-</span>
+                                        }
+                                    </td>
+                                    <td class="px-3">
+                                        <div class="d-flex gap-1 justify-content-center">
+                                            @if (log.VerificationStatus == VerificationStatus.Pending)
+                                            {
+                                                <button type="button" class="btn btn-sm btn-success"
+                                                        onclick="verifyRecord(@log.Id)" title="Verify">
+                                                    <i class="bi bi-check"></i>
+                                                </button>
+                                                <button type="button" class="btn btn-sm btn-danger"
+                                                        onclick="rejectRecord(@log.Id)" title="Reject">
+                                                    <i class="bi bi-x"></i>
+                                                </button>
+                                            }
+                                            <button type="button" class="btn btn-sm btn-info"
+                                                    onclick="viewDetails(@log.Id)" title="View Details">
+                                                <i class="bi bi-eye"></i>
+                                            </button>
+                                        </div>
+                                    </td>
+                                </tr>
+                            }
+                        }
+                        else
+                        {
+                            <tr>
+                                <td colspan="9" class="text-center py-5">
+                                    <div class="bg-light rounded-circle d-inline-flex align-items-center justify-content-center mb-3"
+                                         style="width: 80px; height: 80px;">
+                                        <i class="bi bi-search-x text-muted" style="font-size: 32px;"></i>
+                                    </div>
+                                    <h5 class="text-muted mb-2">No Records Found</h5>
+                                    <p class="text-muted mb-0">Try adjusting your filters or select a different batch.</p>
+                                </td>
+                            </tr>
+                        }
+                    </tbody>
+                </table>
+            </div>
+            <!-- Bulk Actions Bar -->
+            @if (Model.StagedLogs.Items.Any())
+            {
+                <div class="p-3 bg-light border-top">
+                    <div class="d-flex justify-content-between align-items-center">
+                        <div>
+                            <span class="text-muted me-3">With selected:</span>
+                            <button type="submit" class="btn btn-sm btn-success me-2">
+                                <i class="bi bi-check-all me-1"></i>Verify Selected
+                            </button>
+                            <button type="button" class="btn btn-sm btn-danger"
+                                    onclick="rejectSelected()">
+                                <i class="bi bi-x-circle me-1"></i>Reject Selected
+                            </button>
+                        </div>
+                        <span class="badge bg-secondary">
+                            <span id="selectedCount">0</span> selected
+                        </span>
+                    </div>
+                </div>
+            }
+        </form>
+    </div>
+
+    <!-- Pagination -->
+    @if (Model.TotalPages > 1)
+    {
+        <div class="card-footer bg-white border-0 pt-3 pb-3">
+            <nav aria-label="Page navigation">
+                <ul class="pagination justify-content-center mb-0">
+                    <!-- First Page -->
+                    <li class="page-item @(Model.PageNumber == 1 ? "disabled" : "")">
+                        <a class="page-link" href="?PageNumber=1&BatchId=@Model.BatchId&PageSizeParam=@Model.PageSize&SearchTerm=@Model.SearchTerm&Status=@Model.Status&HasAnomalies=@Model.HasAnomalies&StartDate=@Model.StartDate?.ToString("yyyy-MM-dd")&EndDate=@Model.EndDate?.ToString("yyyy-MM-dd")"
+                           aria-label="First">
+                            <span aria-hidden="true">&laquo;&laquo;</span>
+                        </a>
+                    </li>
+
+                    <!-- Previous Page -->
+                    <li class="page-item @(!Model.HasPreviousPage ? "disabled" : "")">
+                        <a class="page-link" href="?PageNumber=@(Model.PageNumber - 1)&BatchId=@Model.BatchId&PageSizeParam=@Model.PageSize&SearchTerm=@Model.SearchTerm&Status=@Model.Status&HasAnomalies=@Model.HasAnomalies&StartDate=@Model.StartDate?.ToString("yyyy-MM-dd")&EndDate=@Model.EndDate?.ToString("yyyy-MM-dd")"
+                           aria-label="Previous">
+                            <span aria-hidden="true">&laquo;</span>
+                        </a>
+                    </li>
+
+                    <!-- Page Numbers -->
+                    @{
+                        int startPage = Math.Max(1, Model.PageNumber - 2);
+                        int endPage = Math.Min(Model.TotalPages, Model.PageNumber + 2);
+
+                        if (startPage > 1)
+                        {
+                            <li class="page-item">
+                                <a class="page-link" href="?PageNumber=1&BatchId=@Model.BatchId&PageSizeParam=@Model.PageSize&SearchTerm=@Model.SearchTerm&Status=@Model.Status&HasAnomalies=@Model.HasAnomalies&StartDate=@Model.StartDate?.ToString("yyyy-MM-dd")&EndDate=@Model.EndDate?.ToString("yyyy-MM-dd")">1</a>
+                            </li>
+                            if (startPage > 2)
+                            {
+                                <li class="page-item disabled"><span class="page-link">...</span></li>
+                            }
+                        }
+
+                        for (int i = startPage; i <= endPage; i++)
+                        {
+                            <li class="page-item @(i == Model.PageNumber ? "active" : "")">
+                                <a class="page-link" href="?PageNumber=@i&BatchId=@Model.BatchId&PageSizeParam=@Model.PageSize&SearchTerm=@Model.SearchTerm&Status=@Model.Status&HasAnomalies=@Model.HasAnomalies&StartDate=@Model.StartDate?.ToString("yyyy-MM-dd")&EndDate=@Model.EndDate?.ToString("yyyy-MM-dd")">@i</a>
+                            </li>
+                        }
+
+                        if (endPage < Model.TotalPages)
+                        {
+                            if (endPage < Model.TotalPages - 1)
+                            {
+                                <li class="page-item disabled"><span class="page-link">...</span></li>
+                            }
+                            <li class="page-item">
+                                <a class="page-link" href="?PageNumber=@Model.TotalPages&BatchId=@Model.BatchId&PageSizeParam=@Model.PageSize&SearchTerm=@Model.SearchTerm&Status=@Model.Status&HasAnomalies=@Model.HasAnomalies&StartDate=@Model.StartDate?.ToString("yyyy-MM-dd")&EndDate=@Model.EndDate?.ToString("yyyy-MM-dd")">@Model.TotalPages</a>
+                            </li>
+                        }
+                    }
+
+                    <!-- Next Page -->
+                    <li class="page-item @(!Model.HasNextPage ? "disabled" : "")">
+                        <a class="page-link" href="?PageNumber=@(Model.PageNumber + 1)&BatchId=@Model.BatchId&PageSizeParam=@Model.PageSize&SearchTerm=@Model.SearchTerm&Status=@Model.Status&HasAnomalies=@Model.HasAnomalies&StartDate=@Model.StartDate?.ToString("yyyy-MM-dd")&EndDate=@Model.EndDate?.ToString("yyyy-MM-dd")"
+                           aria-label="Next">
+                            <span aria-hidden="true">&raquo;</span>
+                        </a>
+                    </li>
+
+                    <!-- Last Page -->
+                    <li class="page-item @(Model.PageNumber == Model.TotalPages ? "disabled" : "")">
+                        <a class="page-link" href="?PageNumber=@Model.TotalPages&BatchId=@Model.BatchId&PageSizeParam=@Model.PageSize&SearchTerm=@Model.SearchTerm&Status=@Model.Status&HasAnomalies=@Model.HasAnomalies&StartDate=@Model.StartDate?.ToString("yyyy-MM-dd")&EndDate=@Model.EndDate?.ToString("yyyy-MM-dd")"
+                           aria-label="Last">
+                            <span aria-hidden="true">&raquo;&raquo;</span>
+                        </a>
+                    </li>
+                </ul>
+            </nav>
+        </div>
+    }
+</div>
+
+<!-- Consolidation Modal -->
+<div class="modal fade" id="consolidateModal" tabindex="-1" aria-hidden="true">
+    <div class="modal-dialog modal-dialog-centered modal-lg">
+        <div class="modal-content" style="border-radius: 20px; border: none; box-shadow: 0 10px 40px rgba(0, 0, 0, 0.1);">
+            <div class="modal-body p-0">
+                <!-- Icon and Title Section -->
+                <div class="text-center pt-4 pb-3" style="background: linear-gradient(135deg, #f8f9fa 0%, #e9ecef 100%); border-radius: 20px 20px 0 0;">
+                    <div class="d-inline-flex align-items-center justify-content-center mb-3"
+                         style="width: 64px; height: 64px; background: linear-gradient(135deg, #009EDB 0%, #0084c7 100%); border-radius: 16px;">
+                        <i class="bi bi-arrow-repeat text-white" style="font-size: 28px;"></i>
+                    </div>
+                    <h5 class="modal-title mb-1 fw-bold">Consolidate Call Logs</h5>
+                    <p class="text-muted mb-0 small">Import and stage call logs for verification</p>
+                </div>
+
+                <!-- Content Section -->
+                <form method="post" asp-page-handler="Consolidate" class="p-4" id="consolidationForm">
+                    <!-- Pending Verification Summary (Always Visible) -->
+                    <div id="pendingVerificationSummary" class="mb-4">
+                        <!-- Loading State -->
+                        <div id="pendingVerificationLoading" class="text-center py-3">
+                            <div class="spinner-border spinner-border-sm text-primary" role="status">
+                                <span class="visually-hidden">Loading...</span>
+                            </div>
+                            <p class="text-muted mt-2 mb-0 small">Loading pending verification summary...</p>
+                        </div>
+
+                        <!-- Summary Display -->
+                        <div id="pendingVerificationContent" class="d-none">
+                            <!-- Alert for unverified records -->
+                            <div id="unverifiedAlert" class="alert alert-warning d-none">
+                                <div class="d-flex align-items-start">
+                                    <i class="bi bi-exclamation-triangle-fill me-3 fs-4"></i>
+                                    <div class="flex-grow-1">
+                                        <h6 class="alert-heading mb-2">Unverified Records Require Attention</h6>
+                                        <div class="row g-3 mb-2">
+                                            <div class="col-md-4">
+                                                <div class="d-flex justify-content-between align-items-center">
+                                                    <span class="text-dark small">Total Unverified:</span>
+                                                    <span class="badge bg-danger" id="totalUnverifiedCount">0</span>
+                                                </div>
+                                            </div>
+                                            <div class="col-md-4">
+                                                <div class="d-flex justify-content-between align-items-center">
+                                                    <span class="text-dark small">Pending:</span>
+                                                    <span class="badge bg-warning text-dark" id="totalPendingCount">0</span>
+                                                </div>
+                                            </div>
+                                            <div class="col-md-4">
+                                                <div class="d-flex justify-content-between align-items-center">
+                                                    <span class="text-dark small">Needs Review:</span>
+                                                    <span class="badge bg-info" id="totalReviewCount">0</span>
+                                                </div>
+                                            </div>
+                                        </div>
+                                        <div class="small">
+                                            <strong>Total Amount:</strong> $<span id="totalUnverifiedAmount">0.00</span> |
+                                            <strong>Aging Records (>7 days):</strong> <span id="agingRecordsCount">0</span>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+
+                            <!-- No unverified records message -->
+                            <div id="noUnverifiedMessage" class="alert alert-success d-none">
+                                <i class="bi bi-check-circle-fill me-2"></i>
+                                <strong>All Clear!</strong> There are no unverified records pending. You can proceed with new consolidation.
+                            </div>
+
+                            <!-- Batch breakdown -->
+                            <div id="batchBreakdown" class="d-none">
+                                <h6 class="text-muted mb-3">
+                                    <i class="bi bi-list-task me-2"></i>Batches with Unverified Records
+                                </h6>
+                                <div id="batchList" class="mb-3">
+                                    <!-- Batch items will be inserted here dynamically -->
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+
+                    <hr class="my-3">
+
+                    <!-- Consolidation Type Selection -->
+                    <div class="btn-group w-100 mb-4" role="group" aria-label="Consolidation type">
+                        <input type="radio" class="btn-check" name="ConsolidationType" id="monthlyConsolidation" value="MONTHLY" checked>
+                        <label class="btn btn-outline-primary" for="monthlyConsolidation">
+                            <i class="bi bi-calendar-month me-2"></i>Monthly Consolidation
+                        </label>
+
+                        <input type="radio" class="btn-check" name="ConsolidationType" id="interimConsolidation" value="INTERIM">
+                        <label class="btn btn-outline-primary" for="interimConsolidation">
+                            <i class="bi bi-person-x me-2"></i>Staff Separation (Interim)
+                        </label>
+                    </div>
+
+                    <!-- Monthly Consolidation Section -->
+                    <div id="monthlySection">
+                        <div class="mb-3">
+                            <label for="billingMonth" class="form-label fw-medium">
+                                <i class="bi bi-calendar3 me-2 text-primary"></i>Billing Month
+                            </label>
+                            <input type="month" class="form-control" id="billingMonth" name="BillingMonth"
+                                   required max="@DateTime.Now.ToString("yyyy-MM")" />
+                            <div class="form-text">Select the month for which to consolidate call logs</div>
+                        </div>
+                    </div>
+
+                    <!-- Staff Separation Section (Initially Hidden) -->
+                    <div id="staffSeparationSection" class="d-none">
+                        <div class="alert alert-info mb-3">
+                            <i class="bi bi-info-circle me-2"></i>
+                            Import interim bills for staff members separating from the organization. These bills will be processed separately from monthly consolidations.
+                        </div>
+
+                        <div class="row g-3">
+                            <div class="col-md-6">
+                                <label for="staffIndexNumber" class="form-label fw-medium">
+                                    <i class="bi bi-person-badge me-2 text-primary"></i>Staff Index Number
+                                </label>
+                                <input type="text" class="form-control" id="staffIndexNumber" name="StaffIndexNumber"
+                                       placeholder="Enter staff index number">
+                                <div class="form-text">The unique identifier of the separating staff member</div>
+                            </div>
+
+                            <div class="col-md-6">
+                                <label for="staffName" class="form-label fw-medium">
+                                    <i class="bi bi-person me-2 text-primary"></i>Staff Name
+                                </label>
+                                <input type="text" class="form-control" id="staffName" name="StaffName"
+                                       placeholder="Enter staff full name">
+                            </div>
+                        </div>
+
+                        <div class="row g-3 mt-2">
+                            <div class="col-md-6">
+                                <label for="separationDate" class="form-label fw-medium">
+                                    <i class="bi bi-calendar-x me-2 text-danger"></i>Separation Date
+                                </label>
+                                <input type="date" class="form-control" id="separationDate" name="SeparationDate"
+                                       max="@DateTime.Now.ToString("yyyy-MM-dd")">
+                            </div>
+
+                            <div class="col-md-6">
+                                <label for="separationReason" class="form-label fw-medium">
+                                    <i class="bi bi-card-text me-2 text-primary"></i>Separation Reason
+                                </label>
+                                <select class="form-control" id="separationReason" name="SeparationReason">
+                                    <option value="">Select reason...</option>
+                                    <option value="RESIGNATION">Resignation</option>
+                                    <option value="RETIREMENT">Retirement</option>
+                                    <option value="TERMINATION">Termination</option>
+                                    <option value="END_OF_CONTRACT">End of Contract</option>
+                                    <option value="OTHER">Other</option>
+                                </select>
+                            </div>
+                        </div>
+
+                        <div class="row g-3 mt-2">
+                            <div class="col-md-6">
+                                <label for="interimStartDate" class="form-label fw-medium">
+                                    <i class="bi bi-calendar-range me-2 text-primary"></i>Billing Start Date
+                                </label>
+                                <input type="date" class="form-control" id="interimStartDate" name="InterimStartDate">
+                                <div class="form-text">Start of the interim billing period</div>
+                            </div>
+
+                            <div class="col-md-6">
+                                <label for="interimEndDate" class="form-label fw-medium">
+                                    <i class="bi bi-calendar-range-fill me-2 text-primary"></i>Billing End Date
+                                </label>
+                                <input type="date" class="form-control" id="interimEndDate" name="InterimEndDate">
+                                <div class="form-text">End of the interim billing period</div>
+                            </div>
+                        </div>
+
+                        <!-- Staff Verification Section -->
+                        <div id="staffVerification" class="mt-3 d-none">
+                            <div class="alert alert-warning">
+                                <i class="bi bi-exclamation-triangle me-2"></i>
+                                <strong>Staff Verification:</strong> <span id="staffVerificationMessage"></span>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Consolidation Information Panel -->
+                    <div id="consolidationInfo" class="d-none">
+                        <!-- Loading State -->
+                        <div id="consolidationLoading" class="text-center py-3">
+                            <div class="spinner-border spinner-border-sm text-primary" role="status">
+                                <span class="visually-hidden">Loading...</span>
+                            </div>
+                            <p class="text-muted mt-2 mb-0 small">Fetching consolidation information...</p>
+                        </div>
+
+                        <!-- Statistics Display -->
+                        <div id="consolidationStats" class="d-none">
+                            <!-- Existing Batch Warning -->
+                            <div id="existingBatchWarning" class="alert alert-warning d-none">
+                                <i class="bi bi-exclamation-triangle me-2"></i>
+                                <strong>Warning:</strong> <span id="existingBatchMessage"></span>
+                            </div>
+
+                            <!-- Current Status Overview -->
+                            <div class="card border-0 shadow-sm mb-3" style="background: #f8f9fa;">
+                                <div class="card-body">
+                                    <h6 class="card-title text-primary mb-3">
+                                        <i class="bi bi-clipboard-data me-2"></i>Current Status
+                                    </h6>
+
+                                    <div class="row g-3">
+                                        <div class="col-md-6">
+                                            <div class="d-flex justify-content-between align-items-center p-2 bg-white rounded">
+                                                <span class="text-muted small">Unverified Records:</span>
+                                                <span class="badge bg-warning" id="unverifiedCount">0</span>
+                                            </div>
+                                        </div>
+                                        <div class="col-md-6">
+                                            <div class="d-flex justify-content-between align-items-center p-2 bg-white rounded">
+                                                <span class="text-muted small">Pending Batches:</span>
+                                                <span class="badge bg-info" id="pendingBatchesCount">0</span>
+                                            </div>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+
+                            <!-- Records to Import -->
+                            <div class="card border-0 shadow-sm mb-3" style="background: #e8f5e9;">
+                                <div class="card-body">
+                                    <h6 class="card-title text-success mb-3">
+                                        <i class="bi bi-download me-2"></i>Records to Import
+                                    </h6>
+
+                                    <div class="row g-2 mb-3">
+                                        <div class="col-6">
+                                            <div class="d-flex justify-content-between align-items-center">
+                                                <span class="text-muted small">Safaricom:</span>
+                                                <span class="fw-bold" id="safaricomCount">0</span>
+                                            </div>
+                                        </div>
+                                        <div class="col-6">
+                                            <div class="d-flex justify-content-between align-items-center">
+                                                <span class="text-muted small">Airtel:</span>
+                                                <span class="fw-bold" id="airtelCount">0</span>
+                                            </div>
+                                        </div>
+                                        <div class="col-6">
+                                            <div class="d-flex justify-content-between align-items-center">
+                                                <span class="text-muted small">PSTN:</span>
+                                                <span class="fw-bold" id="pstnCount">0</span>
+                                            </div>
+                                        </div>
+                                        <div class="col-6">
+                                            <div class="d-flex justify-content-between align-items-center">
+                                                <span class="text-muted small">Private Wire:</span>
+                                                <span class="fw-bold" id="privateWireCount">0</span>
+                                            </div>
+                                        </div>
+                                    </div>
+
+                                    <div class="border-top pt-2">
+                                        <div class="d-flex justify-content-between align-items-center">
+                                            <span class="text-success fw-bold">Total Records:</span>
+                                            <span class="badge bg-success fs-6" id="totalSourceRecords">0</span>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+
+                            <!-- Already Processed Warning -->
+                            <div id="alreadyProcessedWarning" class="alert alert-info d-none">
+                                <i class="bi bi-info-circle me-2"></i>
+                                <span id="alreadyProcessedMessage"></span>
+                            </div>
+                        </div>
+                    </div>
+
+                    <div class="alert alert-info small">
+                        <i class="bi bi-info-circle me-2"></i>
+                        This will import call logs from all configured sources (Safaricom, Airtel, PSTN, PrivateWire) for the selected month.
+                    </div>
+
+                    <div class="d-flex gap-2 justify-content-end">
+                        <button type="button" class="btn btn-light px-4" data-bs-dismiss="modal">
+                            <i class="bi bi-x-circle me-2"></i>Cancel
+                        </button>
+                        <button type="submit" class="btn btn-primary px-4" id="consolidateBtn">
+                            <i class="bi bi-arrow-repeat me-2"></i>Consolidate
+                        </button>
+                    </div>
+                </form>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Delete Batch Modal -->
+<div class="modal fade" id="deleteBatchModal" tabindex="-1" aria-hidden="true">
+    <div class="modal-dialog modal-dialog-centered">
+        <div class="modal-content" style="border-radius: 20px; border: none; box-shadow: 0 10px 40px rgba(0, 0, 0, 0.1);">
+            <div class="modal-body p-0">
+                <!-- Icon and Title Section -->
+                <div class="text-center pt-4 pb-3" style="background: linear-gradient(135deg, #fee2e2 0%, #fecaca 100%); border-radius: 20px 20px 0 0;">
+                    <div class="d-inline-flex align-items-center justify-content-center mb-3"
+                         style="width: 64px; height: 64px; background: linear-gradient(135deg, #ef4444 0%, #dc2626 100%); border-radius: 16px;">
+                        <i class="bi bi-trash text-white" style="font-size: 28px;"></i>
+                    </div>
+                    <h5 class="modal-title mb-1 fw-bold text-danger">Delete Batch</h5>
+                    <p class="text-muted mb-0 small">This action cannot be undone</p>
+                </div>
+
+                <!-- Content Section -->
+                <div class="p-4">
+                    <p class="mb-3">Are you sure you want to delete the batch:</p>
+                    <p class="fw-bold text-center mb-3" id="deleteBatchName"></p>
+
+                    <div class="alert alert-warning small">
+                        <i class="bi bi-exclamation-triangle me-2"></i>
+                        This will permanently delete the batch and all associated staging records.
+                    </div>
+
+                    <form method="post" asp-page-handler="DeleteBatch">
+                        <input type="hidden" id="deleteBatchId" name="batchId" value="" />
+                        <div class="d-flex gap-2 justify-content-end">
+                            <button type="button" class="btn btn-light px-4" data-bs-dismiss="modal">
+                                <i class="bi bi-x-circle me-2"></i>Cancel
+                            </button>
+                            <button type="submit" class="btn btn-danger px-4">
+                                <i class="bi bi-trash me-2"></i>Delete Batch
+                            </button>
+                        </div>
+                    </form>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Rejection Reason Modal -->
+<div class="modal fade" id="rejectionModal" tabindex="-1" aria-hidden="true">
+    <div class="modal-dialog modal-dialog-centered">
+        <div class="modal-content" style="border-radius: 16px; border: none; overflow: hidden;">
+            <div class="modal-header" style="background: linear-gradient(135deg, #ef4444, #dc2626); border: none; padding: 1.5rem;">
+                <h5 class="modal-title text-white d-flex align-items-center">
+                    <i class="bi bi-x-circle me-2"></i>
+                    Reject Record
+                </h5>
+                <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal"></button>
+            </div>
+            <div class="modal-body" style="padding: 2rem;">
+                <div class="text-center mb-4">
+                    <div class="d-inline-flex align-items-center justify-content-center rounded-circle"
+                         style="width: 64px; height: 64px; background-color: #fee2e2;">
+                        <i class="bi bi-clipboard-x text-danger" style="font-size: 28px;"></i>
+                    </div>
+                </div>
+
+                <h6 class="text-center mb-4">Please provide a reason for rejection</h6>
+
+                <div class="form-group">
+                    <label for="rejectionReason" class="form-label" style="font-weight: 600; color: #374151;">
+                        <i class="bi bi-chat-text me-1"></i>Rejection Reason
+                    </label>
+                    <textarea class="form-control" id="rejectionReason" rows="4"
+                              placeholder="Enter detailed reason for rejection..."
+                              style="border: 2px solid #e5e7eb; border-radius: 8px;"></textarea>
+                    <small class="text-muted mt-1">This reason will be recorded in the audit log.</small>
+                </div>
+            </div>
+            <div class="modal-footer" style="background-color: #f8f9fa; border: none; padding: 1.5rem;">
+                <button type="button" class="btn btn-light px-4" data-bs-dismiss="modal"
+                        style="border-radius: 8px; font-weight: 500;">
+                    Cancel
+                </button>
+                <button type="button" class="btn btn-danger px-4" onclick="submitRejection()"
+                        style="background: linear-gradient(135deg, #ef4444, #dc2626); border: none; border-radius: 8px; font-weight: 500;">
+                    <i class="bi bi-x-circle me-2"></i>Reject Record
+                </button>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Verification Period Modal -->
+<div class="modal fade" id="verificationPeriodModal" tabindex="-1" aria-hidden="true">
+    <div class="modal-dialog modal-dialog-centered">
+        <div class="modal-content" style="border-radius: 16px; border: none; overflow: hidden;">
+            <div class="modal-header" style="background: linear-gradient(135deg, #10b981, #059669); border: none; padding: 1.5rem;">
+                <h5 class="modal-title text-white d-flex align-items-center">
+                    <i class="bi bi-calendar-check me-2"></i>
+                    Set Verification Period
+                </h5>
+                <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal"></button>
+            </div>
+            <div class="modal-body" style="padding: 2rem;">
+                <div class="text-center mb-4">
+                    <div class="d-inline-flex align-items-center justify-content-center rounded-circle"
+                         style="width: 64px; height: 64px; background-color: #d1fae5;">
+                        <i class="bi bi-cloud-upload text-success" style="font-size: 28px;"></i>
+                    </div>
+                </div>
+
+                <h6 class="text-center mb-4">Configure verification deadline for production records</h6>
+
+                <form id="verificationPeriodForm">
+                    <input type="hidden" id="verificationBatchId" name="batchId" value="" />
+
+                    <!-- Period Type Selection -->
+                    <div class="mb-4">
+                        <label class="form-label" style="font-weight: 600; color: #374151;">
+                            <i class="bi bi-clock-history me-1"></i>Period Type
+                        </label>
+                        <div class="btn-group w-100" role="group">
+                            <input type="radio" class="btn-check" name="periodType" id="periodTypeDays" value="days" checked />
+                            <label class="btn btn-outline-primary" for="periodTypeDays">
+                                <i class="bi bi-calendar3 me-1"></i>Days
+                            </label>
+                            <input type="radio" class="btn-check" name="periodType" id="periodTypeDate" value="date" />
+                            <label class="btn btn-outline-primary" for="periodTypeDate">
+                                <i class="bi bi-calendar-event me-1"></i>Specific Date
+                            </label>
+                        </div>
+                    </div>
+
+                    <!-- Days Input -->
+                    <div class="mb-3" id="daysInputGroup">
+                        <label for="verificationDays" class="form-label" style="font-weight: 600; color: #374151;">
+                            <i class="bi bi-hourglass-split me-1"></i>Number of Days
+                        </label>
+                        <div class="input-group">
+                            <input type="number" class="form-control" id="verificationDays" name="verificationDays"
+                                   min="1" max="365" value="30"
+                                   style="border: 2px solid #e5e7eb; border-radius: 8px;">
+                            <span class="input-group-text bg-light" style="border: 2px solid #e5e7eb; border-left: none; border-radius: 0 8px 8px 0;">
+                                days
+                            </span>
+                        </div>
+                        <small class="text-muted mt-1">Records must be verified within this period</small>
+                    </div>
+
+                    <!-- Date Picker -->
+                    <div class="mb-3 d-none" id="dateInputGroup">
+                        <label for="verificationDate" class="form-label" style="font-weight: 600; color: #374151;">
+                            <i class="bi bi-calendar-date me-1"></i>Verification Deadline
+                        </label>
+                        <input type="date" class="form-control" id="verificationDate" name="verificationDate"
+                               style="border: 2px solid #e5e7eb; border-radius: 8px;">
+                        <small class="text-muted mt-1">Select the deadline for verification</small>
+                    </div>
+
+                    <div class="alert alert-info d-flex align-items-start" style="background-color: #dbeafe; border: none; border-radius: 8px;">
+                        <i class="bi bi-info-circle me-2 mt-1"></i>
+                        <div>
+                            <strong>Note:</strong> This verification period will be saved with all records pushed to production.
+                        </div>
+                    </div>
+                </form>
+            </div>
+            <div class="modal-footer" style="background-color: #f8f9fa; border: none; padding: 1.5rem;">
+                <button type="button" class="btn btn-light px-4" data-bs-dismiss="modal"
+                        style="border-radius: 8px; font-weight: 500;">
+                    Cancel
+                </button>
+                <button type="button" class="btn btn-success px-4" onclick="submitPushToProduction()"
+                        style="background: linear-gradient(135deg, #10b981, #059669); border: none; border-radius: 8px; font-weight: 500;">
+                    <i class="bi bi-cloud-upload me-2"></i>Push to Production
+                </button>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- View Details Modal -->
+<div class="modal fade" id="detailsModal" tabindex="-1" aria-hidden="true">
+    <div class="modal-dialog modal-dialog-centered modal-lg">
+        <div class="modal-content" style="border-radius: 16px; border: none; overflow: hidden;">
+            <div class="modal-header" style="background: linear-gradient(135deg, #009EDB, #0077B5); border: none; padding: 1.5rem;">
+                <h5 class="modal-title text-white d-flex align-items-center">
+                    <i class="bi bi-info-circle me-2"></i>
+                    Record Details
+                </h5>
+                <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal"></button>
+            </div>
+            <div class="modal-body" style="padding: 2rem; max-height: 600px; overflow-y: auto;">
+                <div id="detailsContent">
+                    <!-- Content will be loaded dynamically -->
+                    <div class="text-center">
+                        <div class="spinner-border text-primary" role="status">
+                            <span class="visually-hidden">Loading...</span>
+                        </div>
+                    </div>
+                </div>
+            </div>
+            <div class="modal-footer" style="background-color: #f8f9fa; border: none; padding: 1.5rem;">
+                <button type="button" class="btn btn-secondary px-4" data-bs-dismiss="modal"
+                        style="border-radius: 8px; font-weight: 500;">
+                    Close
+                </button>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Anomalies Modal -->
+<div class="modal fade" id="anomaliesModal" tabindex="-1" aria-hidden="true">
+    <div class="modal-dialog modal-dialog-centered modal-lg">
+        <div class="modal-content" style="border-radius: 16px; border: none; overflow: hidden;">
+            <div class="modal-header" style="background: linear-gradient(135deg, #f59e0b, #d97706); border: none; padding: 1.5rem;">
+                <h5 class="modal-title text-white d-flex align-items-center">
+                    <i class="bi bi-exclamation-triangle me-2"></i>
+                    Anomalies Detected
+                </h5>
+                <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal"></button>
+            </div>
+            <div class="modal-body" style="padding: 2rem; max-height: 600px; overflow-y: auto;">
+                <div id="anomaliesContent">
+                    <!-- Content will be loaded dynamically -->
+                    <div class="text-center">
+                        <div class="spinner-border text-warning" role="status">
+                            <span class="visually-hidden">Loading...</span>
+                        </div>
+                    </div>
+                </div>
+            </div>
+            <div class="modal-footer" style="background-color: #f8f9fa; border: none; padding: 1.5rem;">
+                <button type="button" class="btn btn-warning px-4" onclick="markReviewRequired()"
+                        style="border-radius: 8px; font-weight: 500;">
+                    <i class="bi bi-flag me-2"></i>Mark for Review
+                </button>
+                <button type="button" class="btn btn-secondary px-4" data-bs-dismiss="modal"
+                        style="border-radius: 8px; font-weight: 500;">
+                    Close
+                </button>
+            </div>
+        </div>
+    </div>
+</div>
+
+@section Scripts {
+<script>
+    // Auto-submit functionality for filters
+    document.addEventListener('DOMContentLoaded', function() {
+        // Auto-submit for select elements and date inputs
+        const autoSubmitElements = document.querySelectorAll('.filter-auto-submit');
+        autoSubmitElements.forEach(element => {
+            element.addEventListener('change', function() {
+                document.getElementById('filterForm').submit();
+            });
+        });
+
+        // Debounced auto-submit for search input
+        let searchTimeout;
+        const searchInput = document.querySelector('.filter-search-input');
+        if (searchInput) {
+            searchInput.addEventListener('input', function() {
+                clearTimeout(searchTimeout);
+                searchTimeout = setTimeout(() => {
+                    document.getElementById('filterForm').submit();
+                }, 500); // 500ms delay
+            });
+        }
+
+        // Filter toggle
+        const filterToggle = document.querySelector('[data-bs-target="#filterCollapse"]');
+        const filterCollapse = document.getElementById('filterCollapse');
+        if (filterToggle && filterCollapse) {
+            filterCollapse.addEventListener('show.bs.collapse', function () {
+                filterToggle.innerHTML = '<i class="bi bi-funnel-fill"></i> Hide Filters';
+            });
+            filterCollapse.addEventListener('hide.bs.collapse', function () {
+                filterToggle.innerHTML = '<i class="bi bi-funnel"></i> Show Filters';
+            });
+
+            // Check if any filters are active
+            const hasActiveFilters = @Html.Raw((!string.IsNullOrEmpty(Model.SearchTerm) || Model.Status.HasValue ||
+                                                Model.HasAnomalies.HasValue || Model.StartDate.HasValue ||
+                                                Model.EndDate.HasValue).ToString().ToLower());
+            if (hasActiveFilters) {
+                filterCollapse.classList.add('show');
+                filterToggle.innerHTML = '<i class="bi bi-funnel-fill"></i> Hide Filters';
+                filterToggle.setAttribute('aria-expanded', 'true');
+            }
+        }
+
+        // Checkbox functionality
+        const selectAll = document.getElementById('selectAll');
+        const checkboxes = document.querySelectorAll('.row-checkbox');
+        const selectedCount = document.getElementById('selectedCount');
+
+        if (selectAll) {
+            selectAll.addEventListener('change', function() {
+                checkboxes.forEach(cb => {
+                    // Only check/uncheck if not disabled
+                    if (!cb.disabled) {
+                        cb.checked = this.checked;
+                    }
+                });
+                updateSelectedCount();
+            });
+        }
+
+        checkboxes.forEach(cb => {
+            cb.addEventListener('change', updateSelectedCount);
+        });
+
+        function updateSelectedCount() {
+            const count = document.querySelectorAll('.row-checkbox:checked').length;
+            if (selectedCount) {
+                selectedCount.textContent = count;
+            }
+        }
+
+        // Quick search
+        document.getElementById('quickSearch')?.addEventListener('keyup', function() {
+            const searchTerm = this.value.toLowerCase();
+            const rows = document.querySelectorAll('#stagingTable tbody tr');
+
+            rows.forEach(row => {
+                const text = row.textContent.toLowerCase();
+                row.style.display = text.includes(searchTerm) ? '' : 'none';
+            });
+        });
+
+        // Delete batch modal
+        const deleteBatchModal = document.getElementById('deleteBatchModal');
+        if (deleteBatchModal) {
+            deleteBatchModal.addEventListener('show.bs.modal', function (event) {
+                const button = event.relatedTarget;
+                const batchId = button.getAttribute('data-batch-id');
+                const batchName = button.getAttribute('data-batch-name');
+
+                document.getElementById('deleteBatchId').value = batchId;
+                document.getElementById('deleteBatchName').textContent = batchName;
+            });
+        }
+    });
+
+    // Action functions
+    function verifyRecord(id) {
+        fetch(`/Admin/CallLogStaging?handler=Verify&id=${id}`)
+            .then(response => response.json())
+            .then(data => {
+                if (data.success) {
+                    location.reload();
+                } else {
+                    alert('Error: ' + data.error);
+                }
+            });
+    }
+
+    // Modal variables
+    let currentRejectId = null;
+    let currentRejectType = null;
+    let currentAnomalyId = null;
+
+    function rejectRecord(id) {
+        currentRejectId = id;
+        currentRejectType = 'single';
+        document.getElementById('rejectionReason').value = '';
+        const modal = new bootstrap.Modal(document.getElementById('rejectionModal'));
+        modal.show();
+    }
+
+    function rejectSelected() {
+        const selectedCount = document.querySelectorAll('.row-checkbox:checked').length;
+        if (selectedCount === 0) {
+            showErrorAlert('Please select at least one record to reject.');
+            return;
+        }
+        currentRejectType = 'bulk';
+        document.getElementById('rejectionReason').value = '';
+        const modal = new bootstrap.Modal(document.getElementById('rejectionModal'));
+        modal.show();
+    }
+
+    function submitRejection() {
+        const reason = document.getElementById('rejectionReason').value.trim();
+        if (!reason) {
+            document.getElementById('rejectionReason').classList.add('is-invalid');
+            return;
+        }
+
+        const modal = bootstrap.Modal.getInstance(document.getElementById('rejectionModal'));
+        modal.hide();
+
+        if (currentRejectType === 'single') {
+            fetch(`/Admin/CallLogStaging?handler=Reject&id=${currentRejectId}&reason=${encodeURIComponent(reason)}`)
+                .then(response => response.json())
+                .then(data => {
+                    if (data.success) {
+                        location.reload();
+                    } else {
+                        showErrorAlert('Error: ' + data.error);
+                    }
+                });
+        } else if (currentRejectType === 'bulk') {
+            const form = document.getElementById('bulkActionsForm');
+            const input = document.createElement('input');
+            input.type = 'hidden';
+            input.name = 'reason';
+            input.value = reason;
+            form.appendChild(input);
+            form.action = '?handler=RejectSelected';
+            form.submit();
+        }
+    }
+
+    function viewAnomalies(id) {
+        currentAnomalyId = id;
+        const modal = new bootstrap.Modal(document.getElementById('anomaliesModal'));
+        modal.show();
+
+        fetch(`/Admin/CallLogStaging?handler=Anomalies&id=${id}`)
+            .then(response => response.json())
+            .then(data => {
+                const content = document.getElementById('anomaliesContent');
+                if (data && data.length > 0) {
+                    let html = '<div class="anomaly-list">';
+                    data.forEach((anomaly, index) => {
+                        const alertClass = anomaly.severity === 'High' ? 'danger' : anomaly.severity === 'Medium' ? 'warning' : 'info';
+                        html += `
+                            <div class="alert alert-${alertClass} d-flex align-items-start mb-3" style="border-radius: 10px;">
+                                <i class="bi bi-exclamation-triangle-fill me-3 mt-1"></i>
+                                <div class="flex-grow-1">
+                                    <h6 class="mb-1">${anomaly.type || 'Anomaly ' + (index + 1)}</h6>
+                                    <p class="mb-0">${anomaly.description || JSON.stringify(anomaly)}</p>
+                                    ${anomaly.recommendation ? `<small class="d-block mt-2"><strong>Recommendation:</strong> ${anomaly.recommendation}</small>` : ''}
+                                </div>
+                            </div>
+                        `;
+                    });
+                    html += '</div>';
+                    content.innerHTML = html;
+                } else {
+                    content.innerHTML = '<div class="text-center text-muted">No anomalies data available.</div>';
+                }
+            })
+            .catch(error => {
+                document.getElementById('anomaliesContent').innerHTML =
+                    '<div class="alert alert-danger">Error loading anomalies: ' + error.message + '</div>';
+            });
+    }
+
+    function viewDetails(id) {
+        const modal = new bootstrap.Modal(document.getElementById('detailsModal'));
+        modal.show();
+
+        // For now, show a placeholder while the API is being implemented
+        const content = document.getElementById('detailsContent');
+        content.innerHTML = `
+            <div class="text-center">
+                <i class="bi bi-info-circle text-primary" style="font-size: 3rem;"></i>
+                <h5 class="mt-3">Record Details</h5>
+                <p class="text-muted">Viewing details for Record ID: <strong>${id}</strong></p>
+                <div class="mt-4">
+                    <div class="row g-3">
+                        <div class="col-md-6">
+                            <div class="text-start p-3 bg-light rounded">
+                                <label class="text-muted small d-block">Record ID</label>
+                                <div class="fw-semibold">#${id}</div>
+                            </div>
+                        </div>
+                        <div class="col-md-6">
+                            <div class="text-start p-3 bg-light rounded">
+                                <label class="text-muted small d-block">Status</label>
+                                <span class="badge bg-warning">Pending Verification</span>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+                <small class="text-muted d-block mt-3">Full details will be available once the API endpoint is implemented.</small>
+            </div>
+        `;
+    }
+
+    function markReviewRequired() {
+        if (currentAnomalyId) {
+            console.log('Marking record ' + currentAnomalyId + ' for review');
+            const modal = bootstrap.Modal.getInstance(document.getElementById('anomaliesModal'));
+            modal.hide();
+            // Implement the actual mark for review functionality
+            showSuccessAlert('Record marked for review successfully.');
+        }
+    }
+
+    function showErrorAlert(message) {
+        showAlert(message, 'danger', 'exclamation-triangle-fill');
+    }
+
+    function showSuccessAlert(message) {
+        showAlert(message, 'success', 'check-circle-fill');
+    }
+
+    function showAlert(message, type, icon) {
+        const alertDiv = document.createElement('div');
+        alertDiv.className = `alert alert-${type} alert-dismissible fade show position-fixed top-0 start-50 translate-middle-x mt-3`;
+        alertDiv.style.zIndex = '9999';
+        alertDiv.style.minWidth = '300px';
+        alertDiv.innerHTML = `
+            <i class="bi bi-${icon} me-2"></i>
+            ${message}
+            <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
+        `;
+        document.body.appendChild(alertDiv);
+
+        setTimeout(() => {
+            alertDiv.remove();
+        }, 5000);
+    }
+
+    // Clear rejection modal on hide
+    document.getElementById('rejectionModal').addEventListener('hidden.bs.modal', function () {
+        document.getElementById('rejectionReason').value = '';
+        document.getElementById('rejectionReason').classList.remove('is-invalid');
+        currentRejectId = null;
+        currentRejectType = null;
+    });
+
+    // Consolidation Modal Enhancement
+    const billingMonthInput = document.getElementById('billingMonth');
+    const consolidationModal = document.getElementById('consolidateModal');
+    let consolidationInfoLoaded = false;
+
+    // Event listener for billing month change
+    if (billingMonthInput) {
+        billingMonthInput.addEventListener('change', function() {
+            if (this.value) {
+                loadConsolidationInfo(this.value);
+            } else {
+                hideConsolidationInfo();
+            }
+        });
+    }
+
+    // Event listener for modal show
+    if (consolidationModal) {
+        consolidationModal.addEventListener('show.bs.modal', function() {
+            // Reset the form when modal opens
+            document.getElementById('consolidationForm').reset();
+            hideConsolidationInfo();
+            consolidationInfoLoaded = false;
+
+            // Load pending verification summary immediately
+            loadPendingVerificationSummary();
+
+            // Reset to monthly consolidation
+            document.getElementById('monthlyConsolidation').checked = true;
+            showMonthlySection();
+        });
+    }
+
+    // Handle consolidation type toggle
+    document.getElementById('monthlyConsolidation')?.addEventListener('change', function() {
+        if (this.checked) {
+            showMonthlySection();
+        }
+    });
+
+    document.getElementById('interimConsolidation')?.addEventListener('change', function() {
+        if (this.checked) {
+            showInterimSection();
+        }
+    });
+
+    // Staff index number validation
+    document.getElementById('staffIndexNumber')?.addEventListener('blur', function() {
+        if (this.value) {
+            validateStaffMember(this.value);
+        }
+    });
+
+    function showMonthlySection() {
+        document.getElementById('monthlySection').classList.remove('d-none');
+        document.getElementById('staffSeparationSection').classList.add('d-none');
+
+        // Update required attributes
+        document.getElementById('billingMonth').setAttribute('required', 'required');
+        document.getElementById('staffIndexNumber').removeAttribute('required');
+        document.getElementById('staffName').removeAttribute('required');
+        document.getElementById('separationDate').removeAttribute('required');
+        document.getElementById('separationReason').removeAttribute('required');
+        document.getElementById('interimStartDate').removeAttribute('required');
+        document.getElementById('interimEndDate').removeAttribute('required');
+    }
+
+    function showInterimSection() {
+        document.getElementById('monthlySection').classList.add('d-none');
+        document.getElementById('staffSeparationSection').classList.remove('d-none');
+
+        // Update required attributes
+        document.getElementById('billingMonth').removeAttribute('required');
+        document.getElementById('staffIndexNumber').setAttribute('required', 'required');
+        document.getElementById('staffName').setAttribute('required', 'required');
+        document.getElementById('separationDate').setAttribute('required', 'required');
+        document.getElementById('separationReason').setAttribute('required', 'required');
+        document.getElementById('interimStartDate').setAttribute('required', 'required');
+        document.getElementById('interimEndDate').setAttribute('required', 'required');
+    }
+
+    function validateStaffMember(indexNumber) {
+        const verificationDiv = document.getElementById('staffVerification');
+        const messageSpan = document.getElementById('staffVerificationMessage');
+
+        // Show loading
+        verificationDiv.classList.remove('d-none');
+        messageSpan.textContent = 'Verifying staff member...';
+
+        // Fetch staff details
+        fetch(`/Admin/CallLogStaging?handler=ValidateStaff&indexNumber=${indexNumber}`)
+            .then(response => response.json())
+            .then(data => {
+                if (data.found) {
+                    verificationDiv.className = 'alert alert-success mt-3';
+                    messageSpan.textContent = `Staff member found: ${data.name} (${data.organization})`;
+
+                    // Auto-fill name if empty
+                    const staffNameInput = document.getElementById('staffName');
+                    if (staffNameInput && !staffNameInput.value) {
+                        staffNameInput.value = data.name;
+                    }
+                } else {
+                    verificationDiv.className = 'alert alert-danger mt-3';
+                    messageSpan.textContent = 'Staff member not found in the system. Please verify the index number.';
+                }
+            })
+            .catch(error => {
+                verificationDiv.className = 'alert alert-danger mt-3';
+                messageSpan.textContent = 'Error verifying staff member.';
+            });
+    }
+
+    // Override form submission for interim consolidation
+    document.getElementById('consolidationForm')?.addEventListener('submit', function(e) {
+        if (document.getElementById('interimConsolidation').checked) {
+            e.preventDefault();
+            submitInterimConsolidation();
+        }
+    });
+
+    function submitInterimConsolidation() {
+        const formData = {
+            ConsolidationType: 'INTERIM',
+            StaffIndexNumber: document.getElementById('staffIndexNumber').value,
+            StaffName: document.getElementById('staffName').value,
+            SeparationDate: document.getElementById('separationDate').value,
+            SeparationReason: document.getElementById('separationReason').value,
+            InterimStartDate: document.getElementById('interimStartDate').value,
+            InterimEndDate: document.getElementById('interimEndDate').value
+        };
+
+        // Show loading state
+        const submitBtn = document.getElementById('consolidateBtn');
+        const originalBtnText = submitBtn.innerHTML;
+        submitBtn.disabled = true;
+        submitBtn.innerHTML = '<span class="spinner-border spinner-border-sm me-2"></span>Processing...';
+
+        fetch('/Admin/CallLogStaging?handler=ConsolidateInterim', {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json',
+                'RequestVerificationToken': document.querySelector('input[name="__RequestVerificationToken"]').value
+            },
+            body: JSON.stringify(formData)
+        })
+        .then(response => response.json())
+        .then(data => {
+            if (data.success) {
+                // Success - redirect to the new batch
+                window.location.href = `/Admin/CallLogStaging?BatchId=${data.batchId}`;
+            } else {
+                showErrorAlert(data.error || 'Error creating interim batch');
+                submitBtn.disabled = false;
+                submitBtn.innerHTML = originalBtnText;
+            }
+        })
+        .catch(error => {
+            showErrorAlert('Failed to create interim batch');
+            submitBtn.disabled = false;
+            submitBtn.innerHTML = originalBtnText;
+        });
+    }
+
+    function loadPendingVerificationSummary() {
+        const loadingDiv = document.getElementById('pendingVerificationLoading');
+        const contentDiv = document.getElementById('pendingVerificationContent');
+
+        // Show loading
+        loadingDiv.classList.remove('d-none');
+        contentDiv.classList.add('d-none');
+
+        // Fetch pending verification summary
+        fetch('/Admin/CallLogStaging?handler=PendingVerificationSummary')
+            .then(response => response.json())
+            .then(data => {
+                loadingDiv.classList.add('d-none');
+                contentDiv.classList.remove('d-none');
+
+                if (data.error) {
+                    showErrorAlert('Error loading verification summary: ' + data.error);
+                    return;
+                }
+
+                if (data.summary) {
+                    const summary = data.summary;
+
+                    if (summary.totalUnverified > 0) {
+                        // Show unverified alert
+                        document.getElementById('unverifiedAlert').classList.remove('d-none');
+                        document.getElementById('noUnverifiedMessage').classList.add('d-none');
+
+                        // Update counts
+                        document.getElementById('totalUnverifiedCount').textContent = summary.totalUnverified.toLocaleString();
+                        document.getElementById('totalPendingCount').textContent = summary.totalPending.toLocaleString();
+                        document.getElementById('totalReviewCount').textContent = summary.totalRequiresReview.toLocaleString();
+                        document.getElementById('totalUnverifiedAmount').textContent = summary.totalUnverifiedAmount.toFixed(2).toLocaleString();
+                        document.getElementById('agingRecordsCount').textContent = summary.agingRecords.toLocaleString();
+
+                        // Show batch breakdown if there are batches
+                        if (data.batches && data.batches.length > 0) {
+                            document.getElementById('batchBreakdown').classList.remove('d-none');
+                            const batchList = document.getElementById('batchList');
+                            batchList.innerHTML = '';
+
+                            data.batches.forEach(batch => {
+                                const batchCard = document.createElement('div');
+                                batchCard.className = 'card mb-2 border-warning';
+                                batchCard.innerHTML = `
+                                    <div class="card-body p-3">
+                                        <div class="d-flex justify-content-between align-items-start mb-2">
+                                            <div>
+                                                <h6 class="card-title mb-1">${batch.BatchName}</h6>
+                                                <small class="text-muted">Created: ${new Date(batch.BatchCreatedDate).toLocaleDateString()}</small>
+                                            </div>
+                                            <span class="badge bg-${batch.BatchStatus === 'Processing' ? 'warning' : 'info'}">${batch.BatchStatus}</span>
+                                        </div>
+                                        <div class="row g-2 small">
+                                            <div class="col-6">
+                                                <span class="text-muted">Unverified:</span>
+                                                <strong class="text-danger ms-1">${batch.TotalUnverified} / ${batch.TotalBatchRecords}</strong>
+                                                <span class="text-muted ms-1">(${batch.PercentageUnverified.toFixed(1)}%)</span>
+                                            </div>
+                                            <div class="col-6">
+                                                <span class="text-muted">Amount:</span>
+                                                <strong class="ms-1">$${batch.TotalUnverifiedAmount.toFixed(2)}</strong>
+                                            </div>
+                                            <div class="col-6">
+                                                <span class="text-muted">Pending:</span>
+                                                <span class="badge bg-warning text-dark ms-1">${batch.PendingCount}</span>
+                                            </div>
+                                            <div class="col-6">
+                                                <span class="text-muted">Review:</span>
+                                                <span class="badge bg-info ms-1">${batch.RequiresReviewCount}</span>
+                                            </div>
+                                        </div>
+                                        <div class="mt-2">
+                                            <a href="/Admin/CallLogStaging?BatchId=${batch.BatchId}" class="btn btn-sm btn-outline-warning">
+                                                <i class="bi bi-arrow-right-circle me-1"></i>Go to Batch
+                                            </a>
+                                        </div>
+                                    </div>
+                                `;
+                                batchList.appendChild(batchCard);
+                            });
+                        }
+                    } else {
+                        // Show all clear message
+                        document.getElementById('unverifiedAlert').classList.add('d-none');
+                        document.getElementById('noUnverifiedMessage').classList.remove('d-none');
+                        document.getElementById('batchBreakdown').classList.add('d-none');
+                    }
+                }
+            })
+            .catch(error => {
+                console.error('Error fetching verification summary:', error);
+                loadingDiv.classList.add('d-none');
+                contentDiv.classList.remove('d-none');
+                showErrorAlert('Failed to load verification summary');
+            });
+    }
+
+    function loadConsolidationInfo(billingMonth) {
+        // Show the consolidation info section
+        const infoSection = document.getElementById('consolidationInfo');
+        const loadingDiv = document.getElementById('consolidationLoading');
+        const statsDiv = document.getElementById('consolidationStats');
+
+        if (!infoSection) return;
+
+        infoSection.classList.remove('d-none');
+        loadingDiv.classList.remove('d-none');
+        statsDiv.classList.add('d-none');
+
+        // Fetch consolidation information
+        fetch(`/Admin/CallLogStaging?handler=ConsolidationInfo&billingMonth=${billingMonth}`)
+            .then(response => response.json())
+            .then(data => {
+                loadingDiv.classList.add('d-none');
+
+                if (data.error) {
+                    showErrorAlert('Error loading consolidation info: ' + data.error);
+                    hideConsolidationInfo();
+                    return;
+                }
+
+                // Display the statistics
+                statsDiv.classList.remove('d-none');
+
+                // Update statistics
+                if (data.statistics) {
+                    document.getElementById('unverifiedCount').textContent = data.statistics.unverifiedCount.toLocaleString();
+                    document.getElementById('pendingBatchesCount').textContent = data.statistics.pendingBatches.toLocaleString();
+                    document.getElementById('safaricomCount').textContent = data.statistics.safaricomCount.toLocaleString();
+                    document.getElementById('airtelCount').textContent = data.statistics.airtelCount.toLocaleString();
+                    document.getElementById('pstnCount').textContent = data.statistics.pstnCount.toLocaleString();
+                    document.getElementById('privateWireCount').textContent = data.statistics.privateWireCount.toLocaleString();
+                    document.getElementById('totalSourceRecords').textContent = data.statistics.totalSourceRecords.toLocaleString();
+
+                    // Show unverified records warning if any exist
+                    if (data.statistics.unverifiedCount > 0) {
+                        const warningBadge = document.getElementById('unverifiedCount');
+                        warningBadge.classList.remove('bg-warning');
+                        warningBadge.classList.add('bg-danger');
+                    }
+
+                    // Show already processed warning if any
+                    if (data.statistics.alreadyProcessedCount > 0) {
+                        const warningDiv = document.getElementById('alreadyProcessedWarning');
+                        const warningMessage = document.getElementById('alreadyProcessedMessage');
+                        warningDiv.classList.remove('d-none');
+                        warningMessage.textContent = `${data.statistics.alreadyProcessedCount.toLocaleString()} records have already been processed in production for ${data.statistics.billingMonth}.`;
+                    }
+                }
+
+                // Handle existing batch warning
+                if (data.existingBatch) {
+                    const warningDiv = document.getElementById('existingBatchWarning');
+                    const warningMessage = document.getElementById('existingBatchMessage');
+                    const consolidateBtn = document.getElementById('consolidateBtn');
+
+                    warningDiv.classList.remove('d-none');
+                    warningMessage.textContent = `A batch "${data.existingBatch.BatchName}" already exists for this period with status "${data.existingBatch.BatchStatus}". You must complete or delete the existing batch before creating a new one.`;
+
+                    // Disable consolidate button if batch exists
+                    consolidateBtn.disabled = true;
+                    consolidateBtn.innerHTML = '<i class="bi bi-x-circle me-2"></i>Cannot Consolidate';
+                    consolidateBtn.classList.remove('btn-primary');
+                    consolidateBtn.classList.add('btn-secondary');
+                } else {
+                    // Enable consolidate button
+                    const consolidateBtn = document.getElementById('consolidateBtn');
+                    consolidateBtn.disabled = false;
+                    consolidateBtn.innerHTML = '<i class="bi bi-arrow-repeat me-2"></i>Consolidate';
+                    consolidateBtn.classList.remove('btn-secondary');
+                    consolidateBtn.classList.add('btn-primary');
+                }
+
+                // Show no records warning if total is 0
+                if (data.statistics && data.statistics.totalSourceRecords === 0) {
+                    const totalBadge = document.getElementById('totalSourceRecords');
+                    totalBadge.classList.remove('bg-success');
+                    totalBadge.classList.add('bg-secondary');
+
+                    // Add a warning message
+                    const existingWarning = document.querySelector('#consolidationStats .alert-warning:not(#existingBatchWarning)');
+                    if (!existingWarning) {
+                        const noRecordsWarning = document.createElement('div');
+                        noRecordsWarning.className = 'alert alert-warning mb-3';
+                        noRecordsWarning.innerHTML = '<i class="bi bi-exclamation-triangle me-2"></i>No records found for the selected billing month. Please check if data has been imported into the source tables.';
+                        document.getElementById('consolidationStats').insertBefore(noRecordsWarning, document.getElementById('consolidationStats').firstChild);
+                    }
+                }
+
+                consolidationInfoLoaded = true;
+            })
+            .catch(error => {
+                console.error('Error fetching consolidation info:', error);
+                loadingDiv.classList.add('d-none');
+                showErrorAlert('Failed to load consolidation information');
+                hideConsolidationInfo();
+            });
+    }
+
+    function hideConsolidationInfo() {
+        const infoSection = document.getElementById('consolidationInfo');
+        if (infoSection) {
+            infoSection.classList.add('d-none');
+        }
+
+        // Reset any warnings
+        document.getElementById('existingBatchWarning').classList.add('d-none');
+        document.getElementById('alreadyProcessedWarning').classList.add('d-none');
+
+        // Reset button state
+        const consolidateBtn = document.getElementById('consolidateBtn');
+        consolidateBtn.disabled = false;
+        consolidateBtn.innerHTML = '<i class="bi bi-arrow-repeat me-2"></i>Consolidate';
+        consolidateBtn.classList.remove('btn-secondary');
+        consolidateBtn.classList.add('btn-primary');
+    }
+
+    // Verification Period Modal Functions
+    function openVerificationPeriodModal(batchId) {
+        document.getElementById('verificationBatchId').value = batchId;
+
+        // Set default date to 30 days from now
+        const defaultDate = new Date();
+        defaultDate.setDate(defaultDate.getDate() + 30);
+        document.getElementById('verificationDate').value = defaultDate.toISOString().split('T')[0];
+
+        const modal = new bootstrap.Modal(document.getElementById('verificationPeriodModal'));
+        modal.show();
+    }
+
+    // Toggle between days and date inputs
+    document.querySelectorAll('input[name="periodType"]').forEach(radio => {
+        radio.addEventListener('change', function() {
+            const daysGroup = document.getElementById('daysInputGroup');
+            const dateGroup = document.getElementById('dateInputGroup');
+
+            if (this.value === 'days') {
+                daysGroup.classList.remove('d-none');
+                dateGroup.classList.add('d-none');
+            } else {
+                daysGroup.classList.add('d-none');
+                dateGroup.classList.remove('d-none');
+            }
+        });
+    });
+
+    function submitPushToProduction() {
+        const batchId = document.getElementById('verificationBatchId').value;
+        const periodType = document.querySelector('input[name="periodType"]:checked').value;
+
+        let verificationPeriod = null;
+
+        if (periodType === 'days') {
+            const days = parseInt(document.getElementById('verificationDays').value);
+            if (!days || days < 1) {
+                showErrorAlert('Please enter a valid number of days (minimum 1)');
+                return;
+            }
+            // Calculate date from days
+            const date = new Date();
+            date.setDate(date.getDate() + days);
+            verificationPeriod = date.toISOString().split('T')[0];
+        } else {
+            verificationPeriod = document.getElementById('verificationDate').value;
+            if (!verificationPeriod) {
+                showErrorAlert('Please select a verification deadline date');
+                return;
+            }
+
+            // Validate that date is in the future
+            const selectedDate = new Date(verificationPeriod);
+            const today = new Date();
+            today.setHours(0, 0, 0, 0);
+
+            if (selectedDate < today) {
+                showErrorAlert('Verification deadline must be in the future');
+                return;
+            }
+        }
+
+        // Create form and submit
+        const form = document.createElement('form');
+        form.method = 'POST';
+        form.action = '?handler=PushToProduction';
+
+        const batchIdInput = document.createElement('input');
+        batchIdInput.type = 'hidden';
+        batchIdInput.name = 'batchId';
+        batchIdInput.value = batchId;
+        form.appendChild(batchIdInput);
+
+        const periodInput = document.createElement('input');
+        periodInput.type = 'hidden';
+        periodInput.name = 'verificationPeriod';
+        periodInput.value = verificationPeriod;
+        form.appendChild(periodInput);
+
+        // Add anti-forgery token
+        const tokenInput = document.querySelector('input[name="__RequestVerificationToken"]');
+        if (tokenInput) {
+            const token = tokenInput.cloneNode();
+            form.appendChild(token);
+        }
+
+        document.body.appendChild(form);
+        form.submit();
+    }
+</script>
+}
+
+@functions {
+    private string GetBatchStatusBadgeClass(BatchStatus status)
+    {
+        return status switch
+        {
+            BatchStatus.Created => "bg-info",
+            BatchStatus.Processing => "bg-warning",
+            BatchStatus.PartiallyVerified => "bg-info",
+            BatchStatus.Verified => "bg-success",
+            BatchStatus.Published => "bg-primary",
+            BatchStatus.Failed => "bg-danger",
+            _ => "bg-secondary"
+        };
+    }
+
+    private string GetStatusBadgeClass(VerificationStatus status)
+    {
+        return status switch
+        {
+            VerificationStatus.Pending => "bg-warning",
+            VerificationStatus.Verified => "bg-success",
+            VerificationStatus.Rejected => "bg-danger",
+            VerificationStatus.RequiresReview => "bg-info",
+            _ => "bg-secondary"
+        };
+    }
+
+    private string GetStatColorClass(string statKey)
+    {
+        return statKey.ToLower() switch
+        {
+            "total" => "text-primary",
+            "pending" => "text-warning",
+            "verified" => "text-success",
+            "rejected" => "text-danger",
+            "requiresreview" => "text-info",
+            "withanomalies" => "text-danger",
+            "processed" => "text-success",
+            _ => "text-dark"
+        };
+    }
+}

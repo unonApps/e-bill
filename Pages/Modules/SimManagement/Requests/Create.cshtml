@@ -1,0 +1,1243 @@
+@page
+@model TAB.Web.Pages.Modules.SimManagement.Requests.CreateModel
+@using TAB.Web.Models
+@{
+    ViewData["Title"] = "Create SIM Request";
+    ViewData["PageIcon"] = "bi-plus-circle";
+    ViewData["PageTitle"] = "Create SIM Request";
+    ViewData["Breadcrumb"] = "Services / SIM Card Requests / Create";
+}
+
+<style>
+    /* Container and Layout */
+    .form-container {
+        max-width: 1200px;
+        margin: 0 auto;
+        padding: 0 1rem;
+    }
+    
+    .form-card {
+        background: #ffffff;
+        border: none;
+        border-radius: 12px;
+        box-shadow: 0 1px 3px 0 rgba(0, 0, 0, 0.1), 0 1px 2px 0 rgba(0, 0, 0, 0.06);
+        overflow: hidden;
+    }
+    
+    .form-header {
+        background-color: #009EDB; /* UN Blue */
+        color: white;
+        padding: 1rem 1.25rem;
+        position: relative;
+        border-radius: 12px 12px 0 0;
+        margin-bottom: 0;
+        box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+    }
+    
+    .form-header h1 {
+        font-size: 1.25rem;
+        font-weight: 600;
+        margin: 0;
+        position: relative;
+        z-index: 1;
+        display: flex;
+        align-items: center;
+        gap: 0.5rem;
+    }
+    
+    .form-header h1 i {
+        font-size: 1.1rem;
+    }
+    
+    .form-body {
+        padding: 0;
+    }
+    
+    /* Tab Styles */
+    .nav-tabs {
+        background: #f8fafc;
+        padding: 0.75rem 1.25rem 0;
+        border-bottom: 2px solid #e2e8f0;
+        border-radius: 0;
+        margin-bottom: 0;
+    }
+    
+    .nav-tabs .nav-link {
+        color: #64748b;
+        background: transparent;
+        border: none;
+        border-bottom: 3px solid transparent;
+        padding: 0.75rem 1.5rem;
+        font-weight: 500;
+        font-size: 0.875rem;
+        transition: all 0.3s ease;
+        border-radius: 8px 8px 0 0;
+        margin-right: 0.5rem;
+        position: relative;
+    }
+    
+    .nav-tabs .nav-link:hover {
+        color: #009EDB; /* UN Blue */
+        background: rgba(59, 130, 246, 0.05);
+        border-bottom-color: rgba(59, 130, 246, 0.3);
+    }
+    
+    .nav-tabs .nav-link.active {
+        color: #009EDB; /* UN Blue */
+        background: white;
+        border-bottom-color: #3b82f6;
+        font-weight: 600;
+    }
+    
+    .nav-tabs .nav-link i {
+        margin-right: 0.5rem;
+        font-size: 1rem;
+    }
+    
+    .tab-content {
+        background: white;
+        padding: 1.5rem;
+        min-height: 400px;
+    }
+    
+    .tab-pane {
+        animation: fadeIn 0.3s ease;
+    }
+    
+    @@keyframes fadeIn {
+        from {
+            opacity: 0;
+            transform: translateY(10px);
+        }
+        to {
+            opacity: 1;
+            transform: translateY(0);
+        }
+    }
+    
+    .form-section {
+        margin-bottom: 1.25rem;
+    }
+    
+    .section-header {
+        font-size: 0.875rem;
+        font-weight: 600;
+        color: #4a5568;
+        margin-bottom: 1rem;
+        padding-bottom: 0.5rem;
+        border-bottom: 2px solid #e2e8f0;
+        display: flex;
+        align-items: center;
+    }
+    
+    .section-icon {
+        color: #009EDB; /* UN Blue */
+        margin-right: 0.5rem;
+        font-size: 1rem;
+    }
+    
+    .form-floating {
+        position: relative;
+        margin-bottom: 1rem;
+    }
+    
+    .form-control, .form-select {
+        border: 1px solid #e2e8f0 !important;
+        border-radius: 8px !important;
+        padding: 0.875rem !important;
+        font-size: 0.8125rem !important;
+        transition: all 0.3s ease !important;
+        background: #ffffff !important;
+        height: 52px !important;
+        line-height: 1.4 !important;
+        cursor: pointer;
+    }
+    
+    .form-select option {
+        padding: 0.5rem;
+        background: #ffffff;
+        color: #374151;
+    }
+    
+    .form-select option:hover {
+        background: #f3f4f6;
+    }
+    
+    .form-control:focus, .form-select:focus {
+        border-color: #009EDB !important; /* UN Blue */
+        box-shadow: 0 0 0 0.15rem rgba(0, 158, 219, 0.2) !important;
+        outline: none !important;
+        background-color: #ffffff !important;
+    }
+    
+    .form-floating > label {
+        color: #6b7280 !important;
+        font-weight: 500 !important;
+        font-size: 11px !important;
+        padding: 6px 14px !important;
+        top: 0 !important;
+        left: 0 !important;
+        transform: none !important;
+        background: transparent !important;
+    }
+    
+    .form-floating > .form-control:focus ~ label,
+    .form-floating > .form-control:not(:placeholder-shown) ~ label,
+    .form-floating > .form-select ~ label {
+        color: #009EDB !important; /* UN Blue */
+        font-weight: 600 !important;
+        font-size: 10px !important;
+        top: 0 !important;
+        transform: none !important;
+    }
+    
+    .form-floating > textarea {
+        padding-top: 20px !important;
+        min-height: 100px !important;
+    }
+    
+    .sim-type-card {
+        border: 2px solid #e2e8f0;
+        border-radius: 10px;
+        padding: 1rem;
+        transition: all 0.3s ease;
+        cursor: pointer;
+        background: #ffffff;
+        position: relative;
+        display: flex;
+        flex-direction: column;
+        align-items: center;
+        justify-content: center;
+        min-height: 80px;
+    }
+    
+    .sim-type-card:hover {
+        border-color: #3b82f6;
+        box-shadow: 0 2px 8px rgba(59, 130, 246, 0.15);
+        transform: translateY(-1px);
+    }
+    
+    .sim-type-card.selected {
+        border-color: #009EDB !important; /* UN Blue */
+        background-color: rgba(0, 158, 219, 0.08) !important; /* UN Blue with transparency */
+        box-shadow: 0 2px 12px rgba(59, 130, 246, 0.2) !important;
+    }
+    
+    .sim-type-card.selected::after {
+        content: '✓';
+        position: absolute;
+        top: 6px;
+        right: 6px;
+        background: #3b82f6;
+        color: white;
+        border-radius: 50%;
+        width: 18px;
+        height: 18px;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        font-size: 10px;
+        font-weight: bold;
+    }
+    
+    .sim-type-card .sim-icon {
+        font-size: 24px;
+        margin-bottom: 6px;
+        transition: all 0.3s ease;
+    }
+    
+    .sim-type-card.selected .sim-icon {
+        transform: scale(1.05);
+    }
+    
+    .sim-type-card .sim-label {
+        font-weight: 600;
+        font-size: 0.8125rem;
+        color: #374151;
+        transition: all 0.3s ease;
+    }
+    
+    .sim-type-card.selected .sim-label {
+        color: #009EDB; /* UN Blue */
+    }
+    
+    /* Enhanced dropdown styling */
+    .dropdown-field {
+        position: relative;
+    }
+    
+    .dropdown-field::after {
+        content: '▼';
+        position: absolute;
+        right: 16px;
+        top: 50%;
+        transform: translateY(-50%);
+        color: #6b7280;
+        font-size: 12px;
+        pointer-events: none;
+        z-index: 0;
+    }
+    
+    .dropdown-field .form-select {
+        appearance: none;
+        background-image: none;
+        padding-right: 40px !important;
+        position: relative;
+        z-index: 1;
+        cursor: pointer;
+    }
+    
+    .dropdown-field:hover::after {
+        color: #009EDB; /* UN Blue */
+    }
+    
+    .dropdown-field .form-select:focus ~ .dropdown-icon {
+        color: #009EDB; /* UN Blue */
+    }
+    
+    /* Searchable dropdown styles */
+    .searchable-dropdown {
+        position: relative;
+    }
+    
+    .searchable-dropdown .search-input {
+        border: 1px solid #e2e8f0 !important;
+        border-radius: 8px !important;
+        padding: 0.875rem !important;
+        padding-right: 35px !important;
+        font-size: 0.8125rem !important;
+        transition: all 0.3s ease !important;
+        background: #ffffff !important;
+        height: 52px !important;
+        line-height: 1.4 !important;
+        width: 100%;
+        cursor: pointer;
+    }
+    
+    .searchable-dropdown .search-input:focus {
+        border-color: #009EDB !important; /* UN Blue */
+        box-shadow: 0 0 0 0.15rem rgba(0, 158, 219, 0.2) !important;
+        outline: none !important;
+        cursor: text;
+    }
+    
+    .searchable-dropdown .dropdown-icon {
+        position: absolute;
+        right: 16px;
+        top: 50%;
+        transform: translateY(-50%);
+        color: #6b7280;
+        font-size: 12px;
+        pointer-events: none;
+        z-index: 2;
+        transition: all 0.3s ease;
+    }
+    
+    .searchable-dropdown .dropdown-icon.rotated {
+        transform: translateY(-50%) rotate(180deg);
+        color: #667eea;
+    }
+    
+    .searchable-dropdown .dropdown-menu {
+        position: absolute;
+        top: 100%;
+        left: 0;
+        right: 0;
+        background: white;
+        border: 1px solid #e2e8f0;
+        border-radius: 8px;
+        box-shadow: 0 4px 16px rgba(0,0,0,0.1);
+        max-height: 180px;
+        overflow-y: auto;
+        z-index: 1000;
+        margin-top: 4px;
+        display: none;
+    }
+    
+    .searchable-dropdown .dropdown-menu.show {
+        display: block;
+    }
+    
+    .searchable-dropdown .dropdown-item {
+        padding: 0.625rem 0.875rem;
+        cursor: pointer;
+        border: none;
+        background: none;
+        width: 100%;
+        text-align: left;
+        font-size: 0.8125rem;
+        color: #374151;
+        transition: all 0.2s ease;
+    }
+    
+    .searchable-dropdown .dropdown-item:hover {
+        background: #f3f4f6;
+        color: #009EDB; /* UN Blue */
+    }
+    
+    .searchable-dropdown .dropdown-item.selected {
+        background: #3b82f6;
+        color: white;
+    }
+    
+    .searchable-dropdown .dropdown-item.highlighted {
+        background: #f3f4f6;
+        color: #009EDB; /* UN Blue */
+    }
+    
+    .searchable-dropdown .no-results {
+        padding: 12px 16px;
+        color: #6b7280;
+        font-style: italic;
+        text-align: center;
+    }
+    
+    .searchable-dropdown .form-floating > label {
+        color: #6b7280 !important;
+        font-weight: 500 !important;
+        font-size: 11px !important;
+        padding: 6px 14px !important;
+        top: 0 !important;
+        left: 0 !important;
+        transform: none !important;
+        background: transparent !important;
+        z-index: 1;
+    }
+    
+    .searchable-dropdown .search-input:focus ~ label,
+    .searchable-dropdown .search-input:not(:placeholder-shown) ~ label {
+        color: #009EDB !important; /* UN Blue */
+        font-weight: 600 !important;
+        font-size: 10px !important;
+    }
+    
+    .form-actions {
+        background: #f8fafc;
+        padding: 1rem 1.25rem;
+        border-top: 2px solid #e2e8f0;
+        border-radius: 0 0 12px 12px;
+        margin-top: 0;
+    }
+    
+    .btn-modern {
+        padding: 0.625rem 1.25rem;
+        border-radius: 8px;
+        font-weight: 500;
+        font-size: 0.8125rem;
+        border: none;
+        transition: all 0.3s ease;
+        min-width: 100px;
+    }
+    
+    .btn-cancel {
+        background: #ffffff;
+        color: #6b7280;
+        border: 1px solid #d1d5db;
+    }
+    
+    .btn-cancel:hover {
+        background: #f9fafb;
+        color: #374151;
+        transform: translateY(-1px);
+    }
+    
+    .btn-draft {
+        background: #f3f4f6;
+        color: #4b5563;
+        border: 1px solid #d1d5db;
+    }
+    
+    .btn-draft:hover {
+        background: #e5e7eb;
+        color: #1f2937;
+        transform: translateY(-1px);
+    }
+    
+    .btn-submit {
+        background-color: #009EDB; /* UN Blue */
+        color: white;
+        border: none;
+        box-shadow: 0 2px 8px rgba(59, 130, 246, 0.25);
+    }
+    
+    .btn-submit:hover {
+        transform: translateY(-1px);
+        box-shadow: 0 4px 12px rgba(59, 130, 246, 0.35);
+        background-color: #0077B8; /* UN Blue Dark */
+        color: white;
+    }
+    
+    .btn-nav-tab {
+        background: #ffffff;
+        color: #009EDB; /* UN Blue */
+        border: 1px solid #3b82f6;
+    }
+    
+    .btn-nav-tab:hover {
+        background: #3b82f6;
+        color: white;
+        transform: translateY(-1px);
+        border-color: #3b82f6;
+    }
+    
+    .btn-nav-tab:disabled {
+        opacity: 0.5;
+        cursor: not-allowed;
+    }
+    
+    .status-alert {
+        margin: 0 0 24px 0;
+        border: none;
+        border-radius: 12px;
+        padding: 16px 20px;
+    }
+    
+    .back-button {
+        margin-bottom: 1rem;
+        display: inline-block;
+        background: white;
+        border: 1px solid #e2e8f0;
+        border-radius: 8px;
+        padding: 0.5rem 1rem;
+        color: #6b7280;
+        text-decoration: none;
+        font-weight: 500;
+        box-shadow: 0 2px 6px rgba(0,0,0,0.08);
+        transition: all 0.3s ease;
+        font-size: 0.8125rem;
+    }
+    
+    /* Validation Summary */
+    .validation-summary {
+        margin: 1rem 1.25rem;
+    }
+    
+    /* Tab validation indicators */
+    .nav-link.has-error {
+        color: #ef4444 !important;
+    }
+    
+    .nav-link.has-error::after {
+        content: '!';
+        position: absolute;
+        top: 5px;
+        right: 5px;
+        background: #ef4444;
+        color: white;
+        width: 16px;
+        height: 16px;
+        border-radius: 50%;
+        font-size: 10px;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        font-weight: bold;
+    }
+    
+    .back-button:hover {
+        background: #f9fafb;
+        color: #374151;
+        transform: translateY(-2px);
+        box-shadow: 0 8px 20px rgba(0,0,0,0.15);
+        text-decoration: none;
+    }
+    
+    /* Responsive Design for Laptops and Smaller Screens */
+    @@media (max-width: 1366px) {
+        .form-container {
+            max-width: 100%;
+            padding: 0 0.75rem;
+        }
+        
+        .form-body {
+            padding: 1rem;
+        }
+        
+        .form-header {
+            padding: 1.25rem;
+        }
+        
+        .form-header h1 {
+            font-size: 1.25rem;
+        }
+        
+        .section-header {
+            font-size: 0.8125rem;
+        }
+        
+        .row.g-3 {
+            --bs-gutter-x: 0.75rem;
+            --bs-gutter-y: 0.75rem;
+        }
+    }
+    
+    @@media (max-width: 1024px) {
+        .col-12.col-md-4,
+        .col-12.col-md-6 {
+            flex: 0 0 auto;
+            width: 100%;
+        }
+        
+        .form-actions .d-flex {
+            flex-direction: column-reverse;
+            align-items: stretch;
+        }
+        
+        .btn-modern {
+            width: 100%;
+            margin-bottom: 0.5rem;
+        }
+        
+        .btn-submit {
+            order: -1;
+            margin-bottom: 0.75rem;
+        }
+    }
+    
+    @@media (max-width: 768px) {
+        .form-header {
+            padding: 1rem;
+            border-radius: 0;
+        }
+        
+        .form-card {
+            border-radius: 0;
+            box-shadow: none;
+            border: none;
+        }
+        
+        .form-container {
+            padding: 0;
+        }
+        
+        .back-button {
+            position: static;
+            margin-bottom: 1rem;
+            display: inline-block;
+        }
+    }
+    
+    /* High DPI/Retina Display Optimization */
+    @@media (-webkit-min-device-pixel-ratio: 2), (min-resolution: 192dpi) {
+        .form-control, .form-select {
+            font-size: 0.875rem !important;
+        }
+    }
+    
+    /* Smooth scrolling for better UX */
+    html {
+        scroll-behavior: smooth;
+    }
+    
+    /* Better tap targets for touch devices */
+    @@media (hover: none) and (pointer: coarse) {
+        .form-control, .form-select, .btn-modern {
+            min-height: 44px;
+        }
+        
+        .sim-type-card {
+            min-height: 60px;
+        }
+    }
+</style>
+
+<!-- Status Message -->
+@if (!string.IsNullOrEmpty(Model.StatusMessage))
+{
+    <div class="alert alert-@(Model.StatusMessageClass ?? "info") alert-dismissible fade show status-alert" role="alert">
+        <i class="bi bi-@(Model.StatusMessageClass == "success" ? "check-circle" : Model.StatusMessageClass == "danger" ? "exclamation-triangle" : "info-circle") me-2"></i>
+        @Model.StatusMessage
+        <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
+    </div>
+}
+
+<!-- Form Container -->
+<div class="form-container">
+    <div class="form-card">
+        <!-- Compact Form Header -->
+        <div class="form-header">
+            <h1><i class="bi bi-sim"></i> Create New SIM Request</h1>
+        </div>
+
+        <form method="post">
+            <!-- Tab Navigation -->
+            <ul class="nav nav-tabs" id="simRequestTabs" role="tablist">
+                <li class="nav-item" role="presentation">
+                    <button class="nav-link active" id="personal-tab" data-bs-toggle="tab" data-bs-target="#personal" 
+                            type="button" role="tab" aria-controls="personal" aria-selected="true">
+                        <i class="bi bi-person-circle"></i>Personal Information
+                    </button>
+                </li>
+                <li class="nav-item" role="presentation">
+                    <button class="nav-link" id="sim-config-tab" data-bs-toggle="tab" data-bs-target="#sim-config" 
+                            type="button" role="tab" aria-controls="sim-config" aria-selected="false">
+                        <i class="bi bi-sim"></i>SIM Configuration
+                    </button>
+                </li>
+            </ul>
+
+            <!-- Tab Content -->
+            <div class="tab-content" id="simRequestTabContent">
+                <!-- Personal Information Tab -->
+                <div class="tab-pane fade show active" id="personal" role="tabpanel" aria-labelledby="personal-tab">
+                    <div asp-validation-summary="All" class="alert alert-danger validation-summary" role="alert" style="display: none;"></div>
+            
+                    <!-- Personal Information Section -->
+                    <div class="form-section">
+                        <h6 class="section-header">
+                            <i class="bi bi-person section-icon"></i>Personal Information
+                        </h6>
+                        <div class="row g-3">
+                            <div class="col-12 col-md-4">
+                                <div class="form-floating">
+                                    <input asp-for="SimRequest.IndexNo" class="form-control" placeholder="Index No" required />
+                                    <label asp-for="SimRequest.IndexNo">
+                                        <span class="text-danger">*</span> Index No
+                                    </label>
+                                    <span asp-validation-for="SimRequest.IndexNo" class="text-danger"></span>
+                                </div>
+                            </div>
+                            <div class="col-12 col-md-4">
+                                <div class="form-floating">
+                                    <input asp-for="SimRequest.FirstName" class="form-control" placeholder="First Name" required />
+                                    <label asp-for="SimRequest.FirstName">
+                                        <span class="text-danger">*</span> First Name
+                                    </label>
+                                    <span asp-validation-for="SimRequest.FirstName" class="text-danger"></span>
+                                </div>
+                            </div>
+                            <div class="col-12 col-md-4">
+                                <div class="form-floating">
+                                    <input asp-for="SimRequest.LastName" class="form-control" placeholder="Last Name" required />
+                                    <label asp-for="SimRequest.LastName">
+                                        <span class="text-danger">*</span> Last Name
+                                    </label>
+                                    <span asp-validation-for="SimRequest.LastName" class="text-danger"></span>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Organization & Office Section -->
+                    <div class="form-section">
+                        <h6 class="section-header">
+                            <i class="bi bi-building section-icon"></i>Organization & Office
+                        </h6>
+                        <div class="row g-3">
+                            <div class="col-12 col-md-6">
+                                <div class="form-floating dropdown-field">
+                                    <select asp-for="SimRequest.Organization" class="form-select" required>
+                                        <option value="">Select Organization</option>
+                                        @foreach (var org in Model.Organizations)
+                                        {
+                                            <option value="@org.Value">@org.Text</option>
+                                        }
+                                    </select>
+                                    <label asp-for="SimRequest.Organization">
+                                        <span class="text-danger">*</span> Organization
+                                    </label>
+                                    <span asp-validation-for="SimRequest.Organization" class="text-danger"></span>
+                                </div>
+                            </div>
+                            <div class="col-12 col-md-6">
+                                <div class="form-floating dropdown-field">
+                                    <select asp-for="SimRequest.Office" class="form-select" required>
+                                        <option value="">Select Office</option>
+                                        @foreach (var office in Model.Offices)
+                                        {
+                                            <option value="@office.Value" data-organization="@office.Group?.Name">@office.Text</option>
+                                        }
+                                    </select>
+                                    <label asp-for="SimRequest.Office">
+                                        <span class="text-danger">*</span> Office
+                                    </label>
+                                    <span asp-validation-for="SimRequest.Office" class="text-danger"></span>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Position Information Section -->
+                    <div class="form-section">
+                        <h6 class="section-header">
+                            <i class="bi bi-briefcase section-icon"></i>Position Information
+                        </h6>
+                        <div class="row g-3">
+                            <div class="col-12 col-md-6">
+                                <div class="form-floating">
+                                    <input asp-for="SimRequest.Grade" class="form-control" placeholder="Grade" required />
+                                    <label asp-for="SimRequest.Grade">
+                                        <span class="text-danger">*</span> Grade
+                                    </label>
+                                    <span asp-validation-for="SimRequest.Grade" class="text-danger"></span>
+                                </div>
+                            </div>
+                            <div class="col-12 col-md-6">
+                                <div class="form-floating">
+                                    <input asp-for="SimRequest.FunctionalTitle" class="form-control" placeholder="Functional Title" required />
+                                    <label asp-for="SimRequest.FunctionalTitle">
+                                        <span class="text-danger">*</span> Functional Title
+                                    </label>
+                                    <span asp-validation-for="SimRequest.FunctionalTitle" class="text-danger"></span>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Contact Information Section -->
+                    <div class="form-section">
+                        <h6 class="section-header">
+                            <i class="bi bi-telephone section-icon"></i>Contact Information
+                        </h6>
+                        <div class="row g-3">
+                            <div class="col-12 col-md-6">
+                                <div class="form-floating">
+                                    <input asp-for="SimRequest.OfficeExtension" class="form-control" placeholder="Office Extension" />
+                                    <label asp-for="SimRequest.OfficeExtension">Office Extension</label>
+                                    <span asp-validation-for="SimRequest.OfficeExtension" class="text-danger"></span>
+                                </div>
+                            </div>
+                            <div class="col-12 col-md-6">
+                                <div class="form-floating">
+                                    <input asp-for="SimRequest.OfficialEmail" type="email" class="form-control" placeholder="Official Email" required />
+                                    <label asp-for="SimRequest.OfficialEmail">
+                                        <span class="text-danger">*</span> Official Email
+                                    </label>
+                                    <span asp-validation-for="SimRequest.OfficialEmail" class="text-danger"></span>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- SIM Configuration Tab -->
+                <div class="tab-pane fade" id="sim-config" role="tabpanel" aria-labelledby="sim-config-tab">
+                    <!-- SIM Type Section -->
+                    <div class="form-section">
+                        <h6 class="section-header">
+                            <i class="bi bi-sim section-icon"></i>SIM Type Selection
+                        </h6>
+                        <div class="row g-3">
+                            <div class="col-12">
+                                <label class="form-label fw-semibold mb-3">
+                                    <span class="text-danger">*</span> Choose SIM Type
+                                </label>
+                                <div class="row g-3">
+                                    <div class="col-6 col-md-3">
+                                        <input class="form-check-input d-none" type="radio" asp-for="SimRequest.SimType" 
+                                                   value="@SimType.Physical" id="physicalSim" />
+                                        <label class="sim-type-card w-100" for="physicalSim" id="physicalCard">
+                                            <i class="bi bi-sim text-primary sim-icon"></i>
+                                            <div class="sim-label">Physical SIM</div>
+                                        </label>
+                                    </div>
+                                    <div class="col-6 col-md-3">
+                                        <input class="form-check-input d-none" type="radio" asp-for="SimRequest.SimType" 
+                                                   value="@SimType.ESim" id="esim" />
+                                        <label class="sim-type-card w-100" for="esim" id="esimCard">
+                                            <i class="bi bi-phone text-info sim-icon"></i>
+                                            <div class="sim-label">eSIM</div>
+                                        </label>
+                                    </div>
+                                </div>
+                                <span asp-validation-for="SimRequest.SimType" class="text-danger"></span>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Service Provider Section -->
+                    <div class="form-section">
+                        <h6 class="section-header">
+                            <i class="bi bi-broadcast section-icon"></i>Service Provider
+                        </h6>
+                        <div class="row g-3">
+                            <div class="col-12 col-md-8">
+                                <div class="form-floating dropdown-field">
+                                    <select asp-for="SimRequest.ServiceProviderId" class="form-select" id="serviceProviderSelect" required>
+                                        <option value="">-- Select Service Provider --</option>
+                                        @foreach (var provider in Model.ServiceProviders)
+                                        {
+                                            <option value="@provider.Value">@provider.Text</option>
+                                        }
+                                    </select>
+                                    <label asp-for="SimRequest.ServiceProviderId">
+                                        <span class="text-danger">*</span> Service Provider
+                                    </label>
+                                    <span asp-validation-for="SimRequest.ServiceProviderId" class="text-danger"></span>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Additional Information Section -->
+                    <div class="form-section">
+                        <h6 class="section-header">
+                            <i class="bi bi-info-circle section-icon"></i>Additional Information
+                        </h6>
+                        <div class="row g-3">
+                            <div class="col-12 col-md-6">
+                                <div class="form-floating searchable-dropdown">
+                                    <input type="text" class="search-input" id="supervisorSearch" placeholder="Search supervisors..." autocomplete="off" />
+                                    <input type="hidden" asp-for="SimRequest.Supervisor" id="supervisorValue" />
+                                    <label for="supervisorSearch">
+                                        <span class="text-danger">*</span> Supervisor
+                                    </label>
+                                    <div class="dropdown-icon">▼</div>
+                                    <div class="dropdown-menu" id="supervisorDropdown">
+                                        @foreach (var supervisor in Model.Supervisors)
+                                        {
+                                            <div class="dropdown-item" data-value="@supervisor.Value">@supervisor.Text</div>
+                                        }
+                                    </div>
+                                    <span asp-validation-for="SimRequest.Supervisor" class="text-danger"></span>
+                                </div>
+                            </div>
+                            <div class="col-12 col-md-6">
+                                <div class="form-floating dropdown-field">
+                                    <select asp-for="SimRequest.PreviouslyAssignedLines" class="form-select" required>
+                                        <option value="">Select Option</option>
+                                        <option value="Yes">Yes</option>
+                                        <option value="No">No</option>
+                                    </select>
+                                    <label asp-for="SimRequest.PreviouslyAssignedLines">
+                                        <span class="text-danger">*</span> Previously Assigned Lines
+                                    </label>
+                                    <span asp-validation-for="SimRequest.PreviouslyAssignedLines" class="text-danger"></span>
+                                </div>
+                            </div>
+                            <div class="col-12">
+                                <div class="form-floating">
+                                    <textarea asp-for="SimRequest.Remarks" class="form-control" placeholder="Remarks / Justification" rows="4" style="min-height: 100px;"></textarea>
+                                    <label asp-for="SimRequest.Remarks">Remarks / Justification</label>
+                                    <span asp-validation-for="SimRequest.Remarks" class="text-danger"></span>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        
+            <!-- Form Actions -->
+            <div class="form-actions">
+                <div class="d-flex gap-3 justify-content-between flex-wrap">
+                    <button type="button" class="btn btn-modern btn-nav-tab" onclick="switchToTab('personal')">
+                        <i class="bi bi-arrow-left me-2"></i>Previous
+                    </button>
+                    <div class="d-flex gap-2">
+                        <a asp-page="Index" class="btn btn-modern btn-cancel">
+                            <i class="bi bi-x-circle me-2"></i>Cancel
+                        </a>
+                        <button type="submit" name="action" value="draft" class="btn btn-modern btn-draft">
+                            <i class="bi bi-file-earmark me-2"></i>Save as Draft
+                        </button>
+                        <button type="submit" name="action" value="submit" class="btn btn-modern btn-submit">
+                            <i class="bi bi-send me-2"></i>Submit Request
+                        </button>
+                    </div>
+                    <button type="button" class="btn btn-modern btn-nav-tab" onclick="switchToTab('sim-config')">
+                        Next<i class="bi bi-arrow-right ms-2"></i>
+                    </button>
+                </div>
+            </div>
+        </form>
+    </div>
+</div>
+
+<script>
+    // Tab switching function
+    function switchToTab(tabName) {
+        var tabTrigger = null;
+        if (tabName === 'personal') {
+            tabTrigger = document.querySelector('#personal-tab');
+        } else if (tabName === 'sim-config') {
+            tabTrigger = document.querySelector('#sim-config-tab');
+        }
+        
+        if (tabTrigger) {
+            var tab = new bootstrap.Tab(tabTrigger);
+            tab.show();
+            updateNavigationButtons();
+        }
+    }
+    
+    // Update navigation buttons based on active tab
+    function updateNavigationButtons() {
+        var activeTab = document.querySelector('.nav-link.active');
+        var prevBtn = document.querySelector('.btn-nav-tab:first-child');
+        var nextBtn = document.querySelector('.btn-nav-tab:last-child');
+        
+        if (activeTab) {
+            if (activeTab.id === 'personal-tab') {
+                prevBtn.style.display = 'none';
+                nextBtn.style.display = 'inline-flex';
+            } else if (activeTab.id === 'sim-config-tab') {
+                prevBtn.style.display = 'inline-flex';
+                nextBtn.style.display = 'none';
+            }
+        }
+    }
+    
+    // Check for validation errors and mark tabs
+    function checkTabValidation() {
+        var personalTab = document.querySelector('#personal-tab');
+        var simConfigTab = document.querySelector('#sim-config-tab');
+        
+        // Check for errors in Personal Information tab
+        var personalErrors = document.querySelectorAll('#personal .text-danger:not(:empty), #personal .is-invalid');
+        if (personalErrors.length > 0) {
+            personalTab.classList.add('has-error');
+        } else {
+            personalTab.classList.remove('has-error');
+        }
+        
+        // Check for errors in SIM Configuration tab
+        var simErrors = document.querySelectorAll('#sim-config .text-danger:not(:empty), #sim-config .is-invalid');
+        if (simErrors.length > 0) {
+            simConfigTab.classList.add('has-error');
+        } else {
+            simConfigTab.classList.remove('has-error');
+        }
+    }
+    
+    // Auto-populate user information
+    document.addEventListener('DOMContentLoaded', function() {
+        // Initialize navigation buttons visibility
+        updateNavigationButtons();
+        
+        // Update navigation buttons when tabs change
+        document.querySelectorAll('button[data-bs-toggle="tab"]').forEach(function(tabEl) {
+            tabEl.addEventListener('shown.bs.tab', function() {
+                updateNavigationButtons();
+            });
+        });
+        // Filter offices based on selected organization
+        const organizationSelect = document.querySelector('select[name="SimRequest.Organization"]');
+        const officeSelect = document.querySelector('select[name="SimRequest.Office"]');
+        
+        if (organizationSelect && officeSelect) {
+            // Store all office options initially
+            const allOfficeOptions = Array.from(officeSelect.options).map(option => ({
+                value: option.value,
+                text: option.textContent,
+                organization: option.getAttribute('data-organization'),
+                element: option.cloneNode(true)
+            }));
+            
+            // Function to filter offices
+            function filterOffices() {
+                const selectedOrg = organizationSelect.value;
+                
+                // Clear current options
+                officeSelect.innerHTML = '';
+                
+                // Add back filtered options
+                allOfficeOptions.forEach(optionData => {
+                    if (optionData.value === '') {
+                        // Always add the empty option
+                        officeSelect.appendChild(optionData.element.cloneNode(true));
+                    } else if (!selectedOrg || optionData.organization === selectedOrg) {
+                        // Add options that match the selected organization
+                        officeSelect.appendChild(optionData.element.cloneNode(true));
+                    }
+                });
+                
+                // Reset selection
+                officeSelect.value = '';
+            }
+            
+            // Initial filter on page load (in case organization is pre-selected)
+            filterOffices();
+            
+            // Filter when organization changes
+            organizationSelect.addEventListener('change', filterOffices);
+        }
+
+        // Ensure Service Provider dropdown works
+        const serviceProviderSelect = document.getElementById('serviceProviderSelect');
+        if (serviceProviderSelect) {
+            // Remove any disabled state
+            serviceProviderSelect.disabled = false;
+            
+            // Log selection for debugging
+            serviceProviderSelect.addEventListener('change', function() {
+                console.log('Service Provider selected:', this.value);
+            });
+            
+            // Ensure dropdown is clickable
+            serviceProviderSelect.addEventListener('click', function(e) {
+                e.stopPropagation();
+            });
+        }
+        
+        // Enhanced SIM type selection
+        const physicalSimInput = document.getElementById('physicalSim');
+        const esimInput = document.getElementById('esim');
+        const physicalCard = document.getElementById('physicalCard');
+        const esimCard = document.getElementById('esimCard');
+        
+        if (physicalSimInput && esimInput && physicalCard && esimCard) {
+            physicalSimInput.addEventListener('change', function() {
+                if (this.checked) {
+                    physicalCard.classList.add('selected');
+                    esimCard.classList.remove('selected');
+                }
+            });
+            
+            esimInput.addEventListener('change', function() {
+                if (this.checked) {
+                    esimCard.classList.add('selected');
+                    physicalCard.classList.remove('selected');
+                }
+            });
+            
+            // Check if any option is pre-selected
+            if (physicalSimInput.checked) {
+                physicalCard.classList.add('selected');
+            }
+            if (esimInput.checked) {
+                esimCard.classList.add('selected');
+            }
+        }
+
+        // Form animation on load
+        const sections = document.querySelectorAll('.form-section');
+        sections.forEach((section, index) => {
+            section.style.opacity = '0';
+            section.style.transform = 'translateY(20px)';
+            setTimeout(() => {
+                section.style.transition = 'all 0.6s ease';
+                section.style.opacity = '1';
+                section.style.transform = 'translateY(0)';
+            }, index * 100);
+        });
+
+        // Searchable Supervisor Dropdown
+        const supervisorSearch = document.getElementById('supervisorSearch');
+        const supervisorValue = document.getElementById('supervisorValue');
+        const supervisorDropdown = document.getElementById('supervisorDropdown');
+        const supervisorIcon = document.querySelector('.searchable-dropdown .dropdown-icon');
+        
+        if (supervisorSearch && supervisorValue && supervisorDropdown) {
+            let supervisorOptions = Array.from(supervisorDropdown.querySelectorAll('.dropdown-item'));
+            
+            // Show dropdown when input is focused or clicked
+            supervisorSearch.addEventListener('focus', function() {
+                supervisorDropdown.classList.add('show');
+                supervisorIcon.classList.add('rotated');
+                filterSupervisors('');
+            });
+            
+            // Hide dropdown when clicking outside
+            document.addEventListener('click', function(e) {
+                if (!e.target.closest('.searchable-dropdown')) {
+                    supervisorDropdown.classList.remove('show');
+                    supervisorIcon.classList.remove('rotated');
+                }
+            });
+            
+            // Filter supervisors based on search input
+            supervisorSearch.addEventListener('input', function() {
+                const searchTerm = this.value.toLowerCase();
+                filterSupervisors(searchTerm);
+            });
+            
+            // Handle supervisor selection
+            supervisorDropdown.addEventListener('click', function(e) {
+                if (e.target.classList.contains('dropdown-item')) {
+                    const selectedValue = e.target.getAttribute('data-value');
+                    const selectedText = e.target.textContent;
+                    
+                    supervisorSearch.value = selectedText;
+                    supervisorValue.value = selectedValue;
+                    supervisorDropdown.classList.remove('show');
+                    supervisorIcon.classList.remove('rotated');
+                    
+                    // Remove previous selections
+                    supervisorOptions.forEach(item => item.classList.remove('selected'));
+                    e.target.classList.add('selected');
+                }
+            });
+            
+            // Filter function
+            function filterSupervisors(searchTerm) {
+                let hasResults = false;
+                
+                supervisorOptions.forEach(option => {
+                    const text = option.textContent.toLowerCase();
+                    if (text.includes(searchTerm)) {
+                        option.style.display = 'block';
+                        hasResults = true;
+                    } else {
+                        option.style.display = 'none';
+                    }
+                });
+                
+                // Show/hide no results message
+                let noResultsMsg = supervisorDropdown.querySelector('.no-results');
+                if (!hasResults && searchTerm) {
+                    if (!noResultsMsg) {
+                        noResultsMsg = document.createElement('div');
+                        noResultsMsg.className = 'no-results';
+                        noResultsMsg.textContent = 'No supervisors found';
+                        supervisorDropdown.appendChild(noResultsMsg);
+                    }
+                    noResultsMsg.style.display = 'block';
+                } else if (noResultsMsg) {
+                    noResultsMsg.style.display = 'none';
+                }
+            }
+            
+            // Keyboard navigation
+            supervisorSearch.addEventListener('keydown', function(e) {
+                const visibleItems = supervisorOptions.filter(item => item.style.display !== 'none');
+                const currentSelected = supervisorDropdown.querySelector('.dropdown-item.highlighted');
+                let selectedIndex = currentSelected ? visibleItems.indexOf(currentSelected) : -1;
+                
+                switch(e.key) {
+                    case 'ArrowDown':
+                        e.preventDefault();
+                        if (!supervisorDropdown.classList.contains('show')) {
+                            supervisorDropdown.classList.add('show');
+                            supervisorIcon.classList.add('rotated');
+                        }
+                        selectedIndex = Math.min(selectedIndex + 1, visibleItems.length - 1);
+                        highlightItem(visibleItems, selectedIndex);
+                        break;
+                        
+                    case 'ArrowUp':
+                        e.preventDefault();
+                        selectedIndex = Math.max(selectedIndex - 1, 0);
+                        highlightItem(visibleItems, selectedIndex);
+                        break;
+                        
+                    case 'Enter':
+                        e.preventDefault();
+                        if (currentSelected) {
+                            currentSelected.click();
+                        }
+                        break;
+                        
+                    case 'Escape':
+                        supervisorDropdown.classList.remove('show');
+                        supervisorIcon.classList.remove('rotated');
+                        supervisorSearch.blur();
+                        break;
+                }
+            });
+            
+            function highlightItem(items, index) {
+                // Remove previous highlight
+                supervisorOptions.forEach(item => item.classList.remove('highlighted'));
+                
+                if (items[index]) {
+                    items[index].classList.add('highlighted');
+                    items[index].scrollIntoView({ block: 'nearest' });
+                }
+            }
+        }
+    });
+</script>
+
+@section Scripts {
+    <partial name="_ValidationScriptsPartial" />
+}

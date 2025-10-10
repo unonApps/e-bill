@@ -1,0 +1,1793 @@
+@page
+@model TAB.Web.Pages.Admin.CallLogsUploadModel
+@{
+    ViewData["Title"] = "Upload Call Logs";
+}
+
+<style>
+    /* Call Type Card Styles */
+    .call-type-card {
+        display: flex;
+        align-items: center;
+        gap: 1rem;
+        padding: 1.25rem;
+        background: white;
+        border: 2px solid #e5e7eb;
+        border-radius: 12px;
+        cursor: pointer;
+        transition: all 0.3s ease;
+        height: 100%;
+        position: relative;
+    }
+
+    .call-type-card:hover {
+        border-color: #009EDB;
+        background: #f8fafc;
+        transform: translateY(-2px);
+        box-shadow: 0 4px 12px rgba(0, 158, 219, 0.15);
+    }
+
+    .btn-check:checked + .call-type-card {
+        border-color: #009EDB;
+        background: linear-gradient(135deg, #f0f9ff 0%, #e0f2fe 100%);
+        box-shadow: 0 4px 12px rgba(0, 158, 219, 0.2);
+    }
+
+    .call-type-icon {
+        width: 50px;
+        height: 50px;
+        border-radius: 12px;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        font-size: 1.5rem;
+        color: white;
+        flex-shrink: 0;
+    }
+
+    .call-type-content {
+        flex: 1;
+    }
+
+    .call-type-title {
+        font-size: 1rem;
+        font-weight: 600;
+        color: #1f2937;
+        margin-bottom: 0.25rem;
+    }
+
+    .call-type-desc {
+        font-size: 0.875rem;
+        color: #6b7280;
+        margin: 0;
+        line-height: 1.4;
+    }
+
+    .call-type-check {
+        font-size: 1.5rem;
+        color: #e5e7eb;
+        transition: all 0.3s ease;
+        flex-shrink: 0;
+    }
+
+    .btn-check:checked + .call-type-card .call-type-check {
+        color: #009EDB;
+    }
+
+    .call-type-card-compact {
+        padding: 1rem 1.25rem;
+    }
+
+    .call-type-card-compact .call-type-icon {
+        width: 40px;
+        height: 40px;
+        font-size: 1.25rem;
+    }
+
+    .call-type-card-compact .call-type-title {
+        font-size: 0.9375rem;
+    }
+
+    .call-type-card-compact .call-type-desc {
+        font-size: 0.8125rem;
+    }
+
+    @@media (max-width: 768px) {
+        .call-type-card {
+            padding: 1rem;
+        }
+
+        .call-type-icon {
+            width: 45px;
+            height: 45px;
+            font-size: 1.25rem;
+        }
+
+        .call-type-title {
+            font-size: 0.9375rem;
+        }
+
+        .call-type-desc {
+            font-size: 0.8125rem;
+        }
+    }
+
+    /* Billing Period Input Styles */
+    .billing-input-group {
+        margin-bottom: 0;
+    }
+
+    .billing-label {
+        display: flex;
+        align-items: center;
+        font-weight: 600;
+        font-size: 0.9375rem;
+        color: #1f2937;
+        margin-bottom: 0.5rem;
+    }
+
+    .billing-select {
+        width: 100%;
+        padding: 0.75rem 1rem;
+        font-size: 0.9375rem;
+        color: #1f2937;
+        background: white;
+        border: 2px solid #e5e7eb;
+        border-radius: 12px;
+        transition: all 0.3s ease;
+        appearance: none;
+        background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='12' height='12' viewBox='0 0 12 12'%3E%3Cpath fill='%236b7280' d='M6 9L1 4h10z'/%3E%3C/svg%3E");
+        background-repeat: no-repeat;
+        background-position: right 1rem center;
+        padding-right: 2.5rem;
+    }
+
+    .billing-select:hover {
+        border-color: #009EDB;
+        background-color: #f8fafc;
+    }
+
+    .billing-select:focus {
+        outline: none;
+        border-color: #009EDB;
+        box-shadow: 0 0 0 3px rgba(0, 158, 219, 0.1);
+        background-color: white;
+    }
+
+    .billing-select option:first-child {
+        color: #9ca3af;
+    }
+
+    /* File Upload Styles */
+    .file-upload-container {
+        position: relative;
+    }
+
+    .file-upload-label {
+        display: flex;
+        align-items: center;
+        gap: 1.5rem;
+        padding: 2rem;
+        background: white;
+        border: 2px dashed #d1d5db;
+        border-radius: 12px;
+        cursor: pointer;
+        transition: all 0.3s ease;
+        margin-bottom: 0.5rem;
+    }
+
+    .file-upload-label:hover {
+        border-color: #009EDB;
+        background: #f8fafc;
+    }
+
+    .file-upload-input {
+        position: absolute;
+        width: 0.1px;
+        height: 0.1px;
+        opacity: 0;
+        overflow: hidden;
+        z-index: -1;
+    }
+
+    .file-upload-input:focus + .file-upload-label {
+        border-color: #009EDB;
+        box-shadow: 0 0 0 3px rgba(0, 158, 219, 0.1);
+    }
+
+    .file-upload-icon {
+        width: 60px;
+        height: 60px;
+        border-radius: 12px;
+        background: linear-gradient(135deg, #009EDB 0%, #0084c7 100%);
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        font-size: 2rem;
+        color: white;
+        flex-shrink: 0;
+    }
+
+    .file-upload-content {
+        display: flex;
+        flex-direction: column;
+        gap: 0.25rem;
+        flex: 1;
+    }
+
+    .file-upload-title {
+        font-size: 1rem;
+        font-weight: 600;
+        color: #1f2937;
+    }
+
+    .file-upload-subtitle {
+        font-size: 0.875rem;
+        color: #6b7280;
+    }
+
+    .file-upload-filename {
+        font-size: 0.875rem;
+        color: #009EDB;
+        font-weight: 500;
+        margin-top: 0.25rem;
+    }
+
+    /* Import Options Card Styles */
+    .option-card {
+        position: relative;
+    }
+
+    .option-checkbox {
+        position: absolute;
+        opacity: 0;
+        cursor: pointer;
+    }
+
+    .option-label {
+        display: flex;
+        align-items: center;
+        gap: 1rem;
+        padding: 1.25rem;
+        background: white;
+        border: 2px solid #e5e7eb;
+        border-radius: 12px;
+        cursor: pointer;
+        transition: all 0.3s ease;
+        height: 100%;
+        margin-bottom: 0;
+    }
+
+    .option-label:hover {
+        border-color: #009EDB;
+        background: #f8fafc;
+        transform: translateY(-2px);
+        box-shadow: 0 4px 12px rgba(0, 158, 219, 0.15);
+    }
+
+    .option-checkbox:checked + .option-label {
+        border-color: #009EDB;
+        background: linear-gradient(135deg, #f0f9ff 0%, #e0f2fe 100%);
+        box-shadow: 0 4px 12px rgba(0, 158, 219, 0.2);
+    }
+
+    .option-icon {
+        width: 50px;
+        height: 50px;
+        border-radius: 12px;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        font-size: 1.5rem;
+        flex-shrink: 0;
+    }
+
+    .option-content {
+        display: flex;
+        flex-direction: column;
+        gap: 0.25rem;
+        flex: 1;
+    }
+
+    .option-title {
+        font-size: 0.9375rem;
+        font-weight: 600;
+        color: #1f2937;
+    }
+
+    .option-desc {
+        font-size: 0.8125rem;
+        color: #6b7280;
+        line-height: 1.4;
+    }
+
+    .option-check {
+        font-size: 1.5rem;
+        color: #e5e7eb;
+        transition: all 0.3s ease;
+        flex-shrink: 0;
+    }
+
+    .option-checkbox:checked + .option-label .option-check {
+        color: #009EDB;
+    }
+
+    /* Preview Statistics Card Styles */
+    .preview-stat-card {
+        display: flex;
+        align-items: center;
+        gap: 1rem;
+        padding: 1.25rem;
+        background: white;
+        border: 2px solid #e5e7eb;
+        border-radius: 12px;
+        transition: all 0.3s ease;
+        height: 100%;
+    }
+
+    .preview-stat-card:hover {
+        border-color: #009EDB;
+        transform: translateY(-2px);
+        box-shadow: 0 4px 12px rgba(0, 158, 219, 0.15);
+    }
+
+    .preview-stat-icon {
+        width: 50px;
+        height: 50px;
+        border-radius: 12px;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        font-size: 1.5rem;
+        flex-shrink: 0;
+    }
+
+    .preview-stat-content {
+        display: flex;
+        flex-direction: column;
+        gap: 0.25rem;
+        flex: 1;
+    }
+
+    .preview-stat-label {
+        font-size: 0.8125rem;
+        color: #6b7280;
+        font-weight: 500;
+        text-transform: uppercase;
+        letter-spacing: 0.05em;
+    }
+
+    .preview-stat-value {
+        font-size: 1.75rem;
+        font-weight: 700;
+        line-height: 1;
+    }
+
+    /* Preview Table Styles */
+    .preview-table-container {
+        background: white;
+        border: 2px solid #e5e7eb;
+        border-radius: 12px;
+        overflow: hidden;
+    }
+
+    .preview-table-container .table-responsive {
+        max-height: 500px;
+        overflow-y: auto;
+    }
+
+    .preview-table {
+        width: 100%;
+        margin-bottom: 0;
+        border-collapse: separate;
+        border-spacing: 0;
+    }
+
+    .preview-table thead {
+        position: sticky;
+        top: 0;
+        z-index: 10;
+        background: linear-gradient(135deg, #009EDB 0%, #0084c7 100%);
+    }
+
+    .preview-table thead tr th {
+        padding: 1rem;
+        font-size: 0.8125rem;
+        font-weight: 600;
+        text-transform: uppercase;
+        letter-spacing: 0.05em;
+        color: white;
+        border-bottom: 2px solid #0084c7;
+        white-space: nowrap;
+    }
+
+    .preview-table tbody tr {
+        transition: background-color 0.2s ease;
+    }
+
+    .preview-table tbody tr:hover {
+        background-color: #f0f9ff;
+    }
+
+    .preview-table tbody tr:nth-child(even) {
+        background-color: #f8fafc;
+    }
+
+    .preview-table tbody tr:nth-child(even):hover {
+        background-color: #f0f9ff;
+    }
+
+    .preview-table tbody tr td {
+        padding: 0.875rem 1rem;
+        font-size: 0.875rem;
+        color: #1f2937;
+        border-bottom: 1px solid #e5e7eb;
+    }
+
+    .preview-table tbody tr:last-child td {
+        border-bottom: none;
+    }
+
+    /* Step Indicator Styles */
+    .step-indicator {
+        display: flex;
+        flex-direction: column;
+        align-items: center;
+        gap: 0.25rem;
+        opacity: 0.5;
+        transition: all 0.3s ease;
+    }
+
+    .step-indicator.active {
+        opacity: 1;
+    }
+
+    .step-indicator.completed {
+        opacity: 1;
+    }
+
+    .step-number {
+        width: 40px;
+        height: 40px;
+        border-radius: 50%;
+        background: #e5e7eb;
+        color: #6b7280;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        font-weight: 600;
+        font-size: 1rem;
+        transition: all 0.3s ease;
+    }
+
+    .step-indicator.active .step-number {
+        background: #009EDB;
+        color: white;
+    }
+
+    .step-indicator.completed .step-number {
+        background: #10b981;
+        color: white;
+    }
+
+    .step-label {
+        font-size: 0.875rem;
+        color: #6b7280;
+        font-weight: 500;
+    }
+
+    .step-indicator.active .step-label,
+    .step-indicator.completed .step-label {
+        color: #1f2937;
+    }
+
+    .step-line {
+        width: 80px;
+        height: 2px;
+        background: #e5e7eb;
+        margin: 0 0.5rem;
+    }
+
+    /* Form styling */
+    .form-group-modern {
+        margin-bottom: 1.5rem;
+    }
+
+    .form-label-modern {
+        display: block;
+        font-size: 0.875rem;
+        font-weight: 600;
+        color: #4a5568;
+        margin-bottom: 0.5rem;
+        text-transform: uppercase;
+        letter-spacing: 0.05em;
+    }
+
+    .form-control-modern {
+        width: 100%;
+        padding: 0.75rem 1rem;
+        font-size: 1rem;
+        border: 1px solid #d1d5db;
+        border-radius: 8px;
+        transition: all 0.3s ease;
+    }
+
+    .form-control-modern:focus {
+        outline: none;
+        border-color: #009EDB;
+        box-shadow: 0 0 0 3px rgba(0, 158, 219, 0.1);
+    }
+
+    .upload-card {
+        background: white;
+        border-radius: 16px;
+        box-shadow: 0 1px 3px rgba(0, 0, 0, 0.1);
+        overflow: hidden;
+    }
+
+    .section-header {
+        background: linear-gradient(135deg, #009EDB 0%, #0084c7 100%);
+        color: white;
+        padding: 1rem 2rem;
+        text-align: center;
+    }
+</style>
+
+<div class="container-fluid py-4">
+    <!-- Header -->
+    <div class="upload-card mb-4">
+        <div class="section-header">
+            <div class="d-flex align-items-center justify-content-between">
+                <div class="d-flex align-items-center">
+                    <div class="bg-white bg-opacity-20 rounded-circle d-inline-flex align-items-center justify-content-center me-3"
+                         style="width: 48px; height: 48px;">
+                        <i class="bi bi-cloud-upload text-white" style="font-size: 24px;"></i>
+                    </div>
+                    <div class="text-start">
+                        <h4 class="fw-bold mb-0">Upload Call Logs</h4>
+                        <small class="opacity-90">Import telecom data from CSV files</small>
+                    </div>
+                </div>
+                <a href="/Admin/CallLogs" class="btn btn-light btn-sm">
+                    <i class="bi bi-arrow-left me-1"></i>Back to Call Logs
+                </a>
+            </div>
+        </div>
+    </div>
+
+    @if (!string.IsNullOrEmpty(Model.StatusMessage))
+    {
+        <div class="alert alert-@Model.StatusMessageClass alert-dismissible fade show" role="alert">
+            @Model.StatusMessage
+            <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
+        </div>
+    }
+
+    <!-- Step Indicator -->
+    <div class="upload-card mb-4">
+        <div class="card-body py-4">
+            <div class="d-flex justify-content-center align-items-center">
+                <div class="step-indicator active" id="step1Indicator">
+                    <span class="step-number">1</span>
+                    <span class="step-label">Setup</span>
+                </div>
+                <div class="step-line"></div>
+                <div class="step-indicator" id="step2Indicator">
+                    <span class="step-number">2</span>
+                    <span class="step-label">Preview</span>
+                </div>
+                <div class="step-line"></div>
+                <div class="step-indicator" id="step3Indicator">
+                    <span class="step-number">3</span>
+                    <span class="step-label">Import</span>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <form method="post" enctype="multipart/form-data" id="uploadForm">
+        <!-- Step 1: Upload Configuration -->
+        <div id="uploadStep">
+            <div class="row">
+                <div class="col-lg-8 mx-auto">
+                    <div class="upload-card">
+                        <div class="card-body p-4">
+                            <!-- Call Log Type Selection -->
+                            <div class="mb-4">
+                                <h5 class="text-muted text-uppercase fw-semibold mb-3" style="font-size: 0.875rem; letter-spacing: 1px;">
+                                    <i class="bi bi-tag me-2"></i>Call Log Type
+                                </h5>
+                                <div class="row g-3">
+                                    <!-- Mobile Networks -->
+                                    <div class="col-md-6">
+                                        <input type="radio" class="btn-check" name="callLogType" id="typeSafaricom" value="Safaricom" checked>
+                                        <label class="call-type-card" for="typeSafaricom">
+                                            <div class="call-type-icon bg-success">
+                                                <i class="bi bi-sim-fill"></i>
+                                            </div>
+                                            <div class="call-type-content">
+                                                <h6 class="call-type-title">Safaricom</h6>
+                                                <p class="call-type-desc">Mobile call records from Safaricom network</p>
+                                            </div>
+                                            <div class="call-type-check">
+                                                <i class="bi bi-check-circle-fill"></i>
+                                            </div>
+                                        </label>
+                                    </div>
+
+                                    <div class="col-md-6">
+                                        <input type="radio" class="btn-check" name="callLogType" id="typeAirtel" value="Airtel">
+                                        <label class="call-type-card" for="typeAirtel">
+                                            <div class="call-type-icon bg-danger">
+                                                <i class="bi bi-sim"></i>
+                                            </div>
+                                            <div class="call-type-content">
+                                                <h6 class="call-type-title">Airtel</h6>
+                                                <p class="call-type-desc">Mobile call records from Airtel network</p>
+                                            </div>
+                                            <div class="call-type-check">
+                                                <i class="bi bi-check-circle-fill"></i>
+                                            </div>
+                                        </label>
+                                    </div>
+
+                                    <!-- Fixed Lines -->
+                                    <div class="col-md-6">
+                                        <input type="radio" class="btn-check" name="callLogType" id="typePSTN" value="PSTN">
+                                        <label class="call-type-card" for="typePSTN">
+                                            <div class="call-type-icon bg-primary">
+                                                <i class="bi bi-telephone"></i>
+                                            </div>
+                                            <div class="call-type-content">
+                                                <h6 class="call-type-title">PSTN</h6>
+                                                <p class="call-type-desc">Fixed-line telephone call records</p>
+                                            </div>
+                                            <div class="call-type-check">
+                                                <i class="bi bi-check-circle-fill"></i>
+                                            </div>
+                                        </label>
+                                    </div>
+
+                                    <div class="col-md-6">
+                                        <input type="radio" class="btn-check" name="callLogType" id="typePrivateWire" value="PrivateWire">
+                                        <label class="call-type-card" for="typePrivateWire">
+                                            <div class="call-type-icon bg-info">
+                                                <i class="bi bi-ethernet"></i>
+                                            </div>
+                                            <div class="call-type-content">
+                                                <h6 class="call-type-title">Private Wire</h6>
+                                                <p class="call-type-desc">Dedicated private line call records</p>
+                                            </div>
+                                            <div class="call-type-check">
+                                                <i class="bi bi-check-circle-fill"></i>
+                                            </div>
+                                        </label>
+                                    </div>
+                                </div>
+                                <small class="text-muted mt-3 d-block">
+                                    <i class="bi bi-info-circle me-1"></i>
+                                    <span id="typeDescription">Choose the call log type that matches your import file</span>
+                                </small>
+                            </div>
+
+                            <hr class="my-4">
+
+                            <!-- Billing Period Section -->
+                            <div class="mb-4">
+                                <h5 class="text-muted text-uppercase fw-semibold mb-3" style="font-size: 0.875rem; letter-spacing: 1px;">
+                                    <i class="bi bi-calendar-range me-2"></i>Billing Period & Date Format
+                                </h5>
+                                <div class="row g-3">
+                                    <div class="col-md-4">
+                                        <div class="billing-input-group">
+                                            <label for="billingMonth" class="billing-label">
+                                                <i class="bi bi-calendar-month text-primary me-2"></i>
+                                                Billing Month
+                                            </label>
+                                            <select class="billing-select" id="billingMonth" name="billingMonth" required>
+                                                <option value="">Choose month...</option>
+                                                <option value="1">January</option>
+                                                <option value="2">February</option>
+                                                <option value="3">March</option>
+                                                <option value="4">April</option>
+                                                <option value="5">May</option>
+                                                <option value="6">June</option>
+                                                <option value="7">July</option>
+                                                <option value="8">August</option>
+                                                <option value="9">September</option>
+                                                <option value="10">October</option>
+                                                <option value="11">November</option>
+                                                <option value="12">December</option>
+                                            </select>
+                                        </div>
+                                    </div>
+                                    <div class="col-md-4">
+                                        <div class="billing-input-group">
+                                            <label for="billingYear" class="billing-label">
+                                                <i class="bi bi-calendar text-primary me-2"></i>
+                                                Billing Year
+                                            </label>
+                                            <select class="billing-select" id="billingYear" name="billingYear" required>
+                                                <option value="">Choose year...</option>
+                                            </select>
+                                        </div>
+                                    </div>
+                                    <div class="col-md-4">
+                                        <div class="billing-input-group">
+                                            <label for="dateFormat" class="billing-label">
+                                                <i class="bi bi-calendar-date text-primary me-2"></i>
+                                                Date Format
+                                                <span class="badge bg-info ms-2" style="font-size: 0.7rem; font-weight: 500;">Optional</span>
+                                            </label>
+                                            <select class="billing-select" id="dateFormat" name="dateFormat">
+                                                <option value="">Auto-detect format...</option>
+                                                <option value="dd/MM/yyyy">DD/MM/YYYY (25/08/2025)</option>
+                                                <option value="MM/dd/yyyy">MM/DD/YYYY (08/25/2025)</option>
+                                                <option value="d/M/yyyy">D/M/YYYY (8/8/2025)</option>
+                                                <option value="M/d/yyyy">M/D/YYYY (8/8/2025)</option>
+                                                <option value="yyyy-MM-dd">YYYY-MM-DD (2025-08-25)</option>
+                                                <option value="dd-MM-yyyy">DD-MM-YYYY (25-08-2025)</option>
+                                                <option value="dd/MM/yy">DD/MM/YY (25/08/25)</option>
+                                                <option value="MM/dd/yy">MM/DD/YY (08/25/25)</option>
+                                                <option value="d/M/yy">D/M/YY (8/8/25)</option>
+                                            </select>
+                                        </div>
+                                    </div>
+                                </div>
+                                <div class="alert alert-warning border-0 mt-3" style="background-color: #fff3cd; border-radius: 8px;">
+                                    <div class="d-flex">
+                                        <i class="bi bi-exclamation-triangle-fill text-warning me-2"></i>
+                                        <div>
+                                            <strong>Important:</strong> Select the date format that matches your CSV file.
+                                            <br><small>Incorrect format selection may result in failed imports or incorrect dates.</small>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+
+                            <hr class="my-4">
+
+                            <!-- File Upload Section -->
+                            <div class="mb-4">
+                                <h5 class="text-muted text-uppercase fw-semibold mb-3" style="font-size: 0.875rem; letter-spacing: 1px;">
+                                    <i class="bi bi-file-earmark-arrow-up me-2"></i>CSV File
+                                </h5>
+                                <div class="file-upload-container">
+                                    <label for="callLogFile" class="file-upload-label">
+                                        <div class="file-upload-icon">
+                                            <i class="bi bi-cloud-arrow-up"></i>
+                                        </div>
+                                        <div class="file-upload-content">
+                                            <span class="file-upload-title">Choose CSV File</span>
+                                            <span class="file-upload-subtitle">or drag and drop here</span>
+                                            <span class="file-upload-filename" id="fileNameDisplay">No file chosen</span>
+                                        </div>
+                                    </label>
+                                    <input type="file" class="file-upload-input" id="callLogFile" name="callLogFile" accept=".csv" required />
+                                    <small class="text-muted mt-2 d-block">
+                                        <i class="bi bi-info-circle me-1"></i>
+                                        <span id="fileUploadHelpText">Upload a CSV file containing call log data (Max 10MB)</span>
+                                    </small>
+                                </div>
+                            </div>
+
+                            <hr class="my-4">
+
+                            <!-- Import Options -->
+                            <div class="mb-4">
+                                <h5 class="text-muted text-uppercase fw-semibold mb-3" style="font-size: 0.875rem; letter-spacing: 1px;">
+                                    <i class="bi bi-gear me-2"></i>Import Options
+                                </h5>
+                                <div class="row g-3">
+                                    <div class="col-md-6">
+                                        <div class="option-card">
+                                            <input class="option-checkbox" type="checkbox" id="updateExisting" name="updateExisting" value="true">
+                                            <label class="option-label" for="updateExisting">
+                                                <div class="option-icon bg-warning bg-opacity-10">
+                                                    <i class="bi bi-arrow-repeat text-warning"></i>
+                                                </div>
+                                                <div class="option-content">
+                                                    <span class="option-title">Update existing records</span>
+                                                    <span class="option-desc">Replace existing call logs with matching invoice numbers</span>
+                                                </div>
+                                                <div class="option-check">
+                                                    <i class="bi bi-check-circle-fill"></i>
+                                                </div>
+                                            </label>
+                                        </div>
+                                    </div>
+                                    <div class="col-md-6">
+                                        <div class="option-card">
+                                            <input class="option-checkbox" type="checkbox" id="skipUnmatched" name="skipUnmatched" value="true" checked>
+                                            <label class="option-label" for="skipUnmatched">
+                                                <div class="option-icon bg-info bg-opacity-10">
+                                                    <i class="bi bi-funnel text-info"></i>
+                                                </div>
+                                                <div class="option-content">
+                                                    <span class="option-title">Skip unmatched records</span>
+                                                    <span class="option-desc">Skip call logs that don't match any E-bill user</span>
+                                                </div>
+                                                <div class="option-check">
+                                                    <i class="bi bi-check-circle-fill"></i>
+                                                </div>
+                                            </label>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+
+                            <hr class="my-4">
+
+                            <!-- Template Download -->
+                            <div class="alert alert-info border-0" style="background-color: #e0f2fe; border-radius: 12px;">
+                                <div class="d-flex align-items-start">
+                                    <i class="bi bi-lightbulb-fill text-info me-3" style="font-size: 24px;"></i>
+                                    <div class="flex-grow-1">
+                                        <h6 class="mb-2 fw-bold">Need a template?</h6>
+                                        <p class="mb-2 small">Download a CSV template for the selected call log type</p>
+                                        <p class="mb-3 small text-warning">
+                                            <i class="bi bi-exclamation-triangle me-1"></i>
+                                            <strong>Important:</strong> Replace "REPLACE_WITH_REAL_INDEX" with actual IndexNumber values from the <a href="/Admin/EbillUsers" class="text-warning text-decoration-underline">EbillUsers</a> table to link records to users.
+                                        </p>
+                                        <button type="button" class="btn btn-info btn-sm" onclick="downloadTemplate()">
+                                            <i class="bi bi-download me-1"></i>Download Template
+                                        </button>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Step 2: Date Format Detection -->
+        <div id="formatDetectionStep" style="display: none;">
+            <div class="row">
+                <div class="col-lg-10 mx-auto">
+                    <div class="upload-card">
+                        <div class="card-body p-4">
+                            <h5 class="text-muted text-uppercase fw-semibold mb-4" style="font-size: 0.875rem; letter-spacing: 1px;">
+                                <i class="bi bi-search me-2"></i>Automatic Date Format Detection
+                            </h5>
+
+                            <div id="dateFormatResults">
+                                <!-- Detection results will be inserted here by JavaScript -->
+                            </div>
+
+                            <div class="alert alert-info border-0 mt-4">
+                                <div class="d-flex">
+                                    <i class="bi bi-lightbulb me-2"></i>
+                                    <div>
+                                        <strong>How it works:</strong> We automatically analyze your CSV file to detect date columns and their formats.
+                                        You can accept our recommendations or manually override the format for any column.
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Step 3: Preview -->
+        <div id="previewStep" style="display: none;">
+            <div class="row">
+                <div class="col-12">
+                    <div class="upload-card">
+                        <div class="card-body p-4">
+                            <div class="d-flex align-items-center justify-content-between mb-4">
+                                <h5 class="text-muted text-uppercase fw-semibold mb-0" style="font-size: 0.875rem; letter-spacing: 1px;">
+                                    <i class="bi bi-eye me-2"></i>Data Preview
+                                </h5>
+                                <span class="badge bg-info" style="font-size: 0.875rem;">
+                                    <i class="bi bi-info-circle me-1"></i><span id="previewSummary">Loading preview...</span>
+                                </span>
+                            </div>
+
+                            <!-- Statistics Cards -->
+                            <div class="row g-3 mb-4">
+                                <div class="col-md-4">
+                                    <div class="preview-stat-card">
+                                        <div class="preview-stat-icon bg-primary bg-opacity-10">
+                                            <i class="bi bi-file-text text-primary"></i>
+                                        </div>
+                                        <div class="preview-stat-content">
+                                            <span class="preview-stat-label">Total Rows</span>
+                                            <span class="preview-stat-value text-primary" id="totalRowsCount">0</span>
+                                        </div>
+                                    </div>
+                                </div>
+                                <div class="col-md-4">
+                                    <div class="preview-stat-card">
+                                        <div class="preview-stat-icon bg-success bg-opacity-10">
+                                            <i class="bi bi-check-circle text-success"></i>
+                                        </div>
+                                        <div class="preview-stat-content">
+                                            <span class="preview-stat-label">Valid Rows</span>
+                                            <span class="preview-stat-value text-success" id="validRowsCount">0</span>
+                                        </div>
+                                    </div>
+                                </div>
+                                <div class="col-md-4">
+                                    <div class="preview-stat-card">
+                                        <div class="preview-stat-icon bg-info bg-opacity-10">
+                                            <i class="bi bi-eye-fill text-info"></i>
+                                        </div>
+                                        <div class="preview-stat-content">
+                                            <span class="preview-stat-label">Preview Showing</span>
+                                            <span class="preview-stat-value text-info">10</span>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+
+                            <!-- Data Table -->
+                            <div class="preview-table-container">
+                                <div class="table-responsive">
+                                    <table class="preview-table" id="previewTable">
+                                        <thead>
+                                            <tr id="previewHeaders"></tr>
+                                        </thead>
+                                        <tbody id="previewBody"></tbody>
+                                    </table>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Action Buttons -->
+        <div class="row mt-4">
+            <div class="col-lg-8 mx-auto">
+                <div class="d-flex justify-content-between">
+                    <div>
+                        <a href="/Admin/CallLogs" class="btn btn-light px-4" id="cancelBtn">
+                            <i class="bi bi-x-circle me-2"></i>Cancel
+                        </a>
+                        <button type="button" class="btn btn-secondary px-4" id="backButton" style="display: none;" onclick="goBackToSetup()">
+                            <i class="bi bi-arrow-left me-2"></i>Back
+                        </button>
+                    </div>
+                    <div>
+                        <button type="button" class="btn btn-primary px-4" id="previewButton" onclick="previewData()">
+                            <i class="bi bi-eye me-2"></i>Preview Data
+                        </button>
+                        <button type="submit" class="btn btn-success px-4" id="importButton" style="display: none;">
+                            <i class="bi bi-upload me-2"></i>Import Now
+                        </button>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </form>
+</div>
+
+@section Scripts {
+    <script src="~/js/dateFormatDetector.js"></script>
+    <script src="~/js/csvValidator.js"></script>
+    <script>
+        // Initialize services
+        const csvValidator = new CSVValidator();
+        let parsedCSVData = null;
+        let detectedDateColumns = null;
+
+        // Load preferences from server
+        const lastUsedDateFormat = '@Model.LastUsedDateFormat';
+        const lastUsedCallLogType = '@Model.LastUsedCallLogType';
+
+        // Initialize billing period dropdowns
+        document.addEventListener('DOMContentLoaded', function() {
+            const billingYearSelect = document.getElementById('billingYear');
+            const billingMonthSelect = document.getElementById('billingMonth');
+
+            if (billingYearSelect && billingMonthSelect) {
+                // Populate year dropdown
+                const currentYear = new Date().getFullYear();
+                for (let year = currentYear; year >= currentYear - 5; year--) {
+                    const option = document.createElement('option');
+                    option.value = year;
+                    option.textContent = year;
+                    billingYearSelect.appendChild(option);
+                }
+
+                // Set defaults
+                const currentMonth = new Date().getMonth() + 1;
+                billingMonthSelect.value = currentMonth.toString();
+                billingYearSelect.value = currentYear.toString();
+            }
+
+            // Apply last used preferences
+            if (lastUsedDateFormat && lastUsedDateFormat !== '') {
+                const dateFormatSelect = document.getElementById('dateFormat');
+                if (dateFormatSelect) {
+                    dateFormatSelect.value = lastUsedDateFormat;
+                    // Add visual indicator
+                    const label = dateFormatSelect.previousElementSibling;
+                    if (label) {
+                        label.innerHTML += ' <span class="badge bg-info ms-1" title="Last used format">Last Used</span>';
+                    }
+                }
+            }
+
+            if (lastUsedCallLogType && lastUsedCallLogType !== '') {
+                const typeRadio = document.getElementById('type' + lastUsedCallLogType.charAt(0).toUpperCase() + lastUsedCallLogType.slice(1));
+                if (typeRadio) {
+                    typeRadio.checked = true;
+                }
+            }
+
+            // File input change handler
+            const fileInput = document.getElementById('callLogFile');
+            const fileNameDisplay = document.getElementById('fileNameDisplay');
+            if (fileInput && fileNameDisplay) {
+                fileInput.addEventListener('change', function() {
+                    if (this.files && this.files.length > 0) {
+                        const fileName = this.files[0].name;
+                        const fileSize = (this.files[0].size / 1024 / 1024).toFixed(2);
+                        fileNameDisplay.textContent = `${fileName} (${fileSize} MB)`;
+                        fileNameDisplay.style.color = '#009EDB';
+                    } else {
+                        fileNameDisplay.textContent = 'No file chosen';
+                        fileNameDisplay.style.color = '#6b7280';
+                    }
+                });
+            }
+        });
+
+        // Preview data function - skip detection, go straight to preview
+        async function previewData() {
+            const fileInput = document.getElementById('callLogFile');
+            const file = fileInput.files[0];
+            const billingMonth = document.getElementById('billingMonth').value;
+            const billingYear = document.getElementById('billingYear').value;
+
+            if (!file) {
+                alert('Please select a CSV file first.');
+                return;
+            }
+
+            if (!billingMonth || !billingYear) {
+                alert('Please select billing month and year.');
+                return;
+            }
+
+            // Show loading state
+            document.getElementById('previewButton').innerHTML = '<span class="spinner-border spinner-border-sm me-2"></span>Loading Preview...';
+            document.getElementById('previewButton').disabled = true;
+
+            const billingPeriodDate = new Date(parseInt(billingYear), parseInt(billingMonth) - 1, 1);
+            const billingPeriodString = billingPeriodDate.toISOString().split('T')[0];
+            const monthNames = ['January', 'February', 'March', 'April', 'May', 'June',
+                              'July', 'August', 'September', 'October', 'November', 'December'];
+            const monthName = monthNames[parseInt(billingMonth) - 1];
+
+            const reader = new FileReader();
+            reader.onload = function(e) {
+                const text = e.target.result;
+                const lines = text.split('\n').filter(line => line.trim());
+
+                if (lines.length < 2) {
+                    alert('The CSV file appears to be empty or has no data rows.');
+                    return;
+                }
+
+                const headers = parseCSVLine(lines[0]);
+                const dataRows = lines.slice(1, Math.min(11, lines.length))
+                    .map(line => parseCSVLine(line));
+
+                // Find billing period columns
+                const billingPeriodIndex = headers.findIndex(h => h.toLowerCase() === 'billingperiod');
+                const callMonthIndex = headers.findIndex(h => h.toLowerCase() === 'call_month' || h.toLowerCase() === 'callmonth');
+                const callYearIndex = headers.findIndex(h => h.toLowerCase() === 'call_year' || h.toLowerCase() === 'callyear');
+
+                // Update summary
+                const totalRows = lines.length - 1;
+                document.getElementById('previewSummary').textContent =
+                    `Found ${totalRows} row${totalRows !== 1 ? 's' : ''} in the CSV file. Showing first ${Math.min(10, totalRows)} rows. Billing Period: ${monthName} ${billingYear}`;
+                document.getElementById('totalRowsCount').textContent = totalRows;
+                document.getElementById('validRowsCount').textContent = totalRows;
+
+                // Build preview table
+                const headerRow = document.getElementById('previewHeaders');
+                headerRow.innerHTML = '';
+                headers.forEach(header => {
+                    const th = document.createElement('th');
+                    th.textContent = header;
+                    th.className = 'text-nowrap';
+                    headerRow.appendChild(th);
+                });
+
+                const tbody = document.getElementById('previewBody');
+                tbody.innerHTML = '';
+                dataRows.forEach((row, index) => {
+                    const tr = document.createElement('tr');
+                    headers.forEach((header, colIndex) => {
+                        const td = document.createElement('td');
+
+                        // Override billing period columns
+                        if (colIndex === billingPeriodIndex) {
+                            td.textContent = billingPeriodString;
+                            td.className = 'text-nowrap fw-bold text-primary';
+                            td.title = 'Will be set to: ' + billingPeriodString;
+                        } else if (colIndex === callMonthIndex) {
+                            td.textContent = billingMonth;
+                            td.className = 'text-nowrap fw-bold text-primary';
+                            td.title = 'Will be set to: ' + billingMonth;
+                        } else if (colIndex === callYearIndex) {
+                            td.textContent = billingYear;
+                            td.className = 'text-nowrap fw-bold text-primary';
+                            td.title = 'Will be set to: ' + billingYear;
+                        } else {
+                            td.textContent = row[colIndex] || '';
+                            td.className = 'text-nowrap';
+                        }
+
+                        tr.appendChild(td);
+                    });
+                    tbody.appendChild(tr);
+                });
+
+                // Show preview step
+                showPreviewStep();
+
+                // Reset button state
+                document.getElementById('previewButton').innerHTML = '<i class="bi bi-eye me-2"></i>Preview Data';
+                document.getElementById('previewButton').disabled = false;
+            };
+
+            reader.readAsText(file);
+        }
+
+        // Parse CSV line
+        function parseCSVLine(line) {
+            const result = [];
+            let current = '';
+            let inQuotes = false;
+
+            for (let i = 0; i < line.length; i++) {
+                const char = line[i];
+                const nextChar = line[i + 1];
+
+                if (char === '"') {
+                    if (inQuotes && nextChar === '"') {
+                        current += '"';
+                        i++;
+                    } else {
+                        inQuotes = !inQuotes;
+                    }
+                } else if (char === ',' && !inQuotes) {
+                    result.push(current.trim());
+                    current = '';
+                } else {
+                    current += char;
+                }
+            }
+
+            result.push(current.trim());
+            return result;
+        }
+
+        // Show preview step
+        function showPreviewStep() {
+            // Update step indicators
+            document.getElementById('step1Indicator').classList.remove('active');
+            document.getElementById('step1Indicator').classList.add('completed');
+            document.getElementById('step2Indicator').classList.add('active');
+
+            // Hide setup, show preview
+            document.getElementById('uploadStep').style.display = 'none';
+            document.getElementById('previewStep').style.display = 'block';
+
+            // Update buttons
+            document.getElementById('cancelBtn').style.display = 'none';
+            document.getElementById('previewButton').style.display = 'none';
+            document.getElementById('backButton').style.display = 'inline-block';
+            document.getElementById('importButton').style.display = 'inline-block';
+        }
+
+        // Go back to setup
+        function goBackToSetup() {
+            // Update step indicators
+            document.getElementById('step1Indicator').classList.add('active');
+            document.getElementById('step1Indicator').classList.remove('completed');
+            document.getElementById('step2Indicator').classList.remove('active');
+
+            // Show setup, hide preview
+            document.getElementById('uploadStep').style.display = 'block';
+            document.getElementById('previewStep').style.display = 'none';
+
+            // Update buttons
+            document.getElementById('cancelBtn').style.display = 'inline-block';
+            document.getElementById('previewButton').style.display = 'inline-block';
+            document.getElementById('backButton').style.display = 'none';
+            document.getElementById('importButton').style.display = 'none';
+        }
+
+        // Download template based on selected call log type
+        function downloadTemplate() {
+            const callLogType = document.querySelector('input[name="callLogType"]:checked').value;
+
+            let headers = [];
+            let sampleRow = [];
+            let filename = '';
+
+            switch(callLogType) {
+                // Deprecated: Legacy 'regular' format is no longer supported
+                // case 'regular':
+
+                case 'Safaricom':
+                    // Safaricom template - Required: IndexNumber, ext, call_date, dialed, cost
+                    // NOTE: Replace IndexNumber with actual values from your EbillUsers table
+                    headers = ['IndexNumber', 'ext', 'call_date', 'time', 'dialed', 'dest', 'durx', 'cost', 'dur', 'call_type'];
+                    sampleRow = ['REPLACE_WITH_REAL_INDEX', '254701234567', '01/08/2025', '09:30:00', '254722000000', 'Kenya-Safaricom', '5.25', '15.00', '5.00', 'Local'];
+                    filename = 'safaricom_call_logs_template.csv';
+                    break;
+
+                case 'PSTN':
+                    // PSTN template - Required: inde_, dialed, date, kshs
+                    // NOTE: Replace inde_ with actual IndexNumber values from your EbillUsers table
+                    headers = ['inde_', 'ext', 'dialed', 'date', 'time', 'dest', 'dl', 'durx', 'dur', 'kshs', 'car'];
+                    sampleRow = ['REPLACE_WITH_REAL_INDEX', '1234', '0202000000', '01/08/2025', '14:30:00', 'Nairobi', 'Line1', '10.5', '10.0', '50.00', 'Telkom'];
+                    filename = 'pstn_call_logs_template.csv';
+                    break;
+
+                case 'Airtel':
+                    // Airtel template - Required: IndexNumber, ext, call_date, dialed, cost
+                    // NOTE: Replace IndexNumber with actual values from your EbillUsers table
+                    headers = ['IndexNumber', 'ext', 'call_date', 'time', 'dialed', 'dest', 'durx', 'cost', 'dur', 'call_type'];
+                    sampleRow = ['REPLACE_WITH_REAL_INDEX', '254731234567', '01/08/2025', '11:45:00', '254733000000', 'Kenya-Airtel', '3.75', '12.00', '3.50', 'Local'];
+                    filename = 'airtel_call_logs_template.csv';
+                    break;
+
+                case 'PrivateWire':
+                    // PrivateWire template - Required: inde_, dialed, date, usd
+                    // NOTE: Replace inde_ with actual IndexNumber values from your EbillUsers table
+                    headers = ['inde_', 'ext', 'dialed', 'date', 'time', 'dest', 'dl', 'durx', 'dur', 'usd'];
+                    sampleRow = ['REPLACE_WITH_REAL_INDEX', '5678', '+12125551234', '01/08/2025', '08:00:00', 'New York, USA', 'PW-Line-A', '15.25', '15.00', '2.50'];
+                    filename = 'privatewire_call_logs_template.csv';
+                    break;
+
+                default:
+                    alert('Please select a call log type first.');
+                    return;
+            }
+
+            // Generate CSV content
+            let csv = headers.join(',') + '\n';
+            csv += sampleRow.join(',') + '\n';
+
+            // Add a few more sample rows with varied data
+            for (let i = 2; i <= 5; i++) {
+                const variedRow = sampleRow.map(value => {
+                    // Vary numeric values slightly for sample data
+                    if (!isNaN(value) && value !== '') {
+                        const num = parseFloat(value);
+                        return (num + (i * 0.5)).toFixed(2);
+                    }
+                    return value;
+                });
+                csv += variedRow.join(',') + '\n';
+            }
+
+            // Create download
+            const blob = new Blob([csv], { type: 'text/csv;charset=utf-8;' });
+            const link = document.createElement('a');
+            const url = URL.createObjectURL(blob);
+
+            link.setAttribute('href', url);
+            link.setAttribute('download', filename);
+            link.style.visibility = 'hidden';
+            document.body.appendChild(link);
+            link.click();
+            document.body.removeChild(link);
+        }
+
+        // Display detection results
+        function displayDetectionResults() {
+            const resultsContainer = document.getElementById('dateFormatResults');
+
+            if (Object.keys(detectedDateColumns).length === 0) {
+                resultsContainer.innerHTML = `
+                    <div class="alert alert-warning border-0">
+                        <i class="bi bi-exclamation-triangle me-2"></i>
+                        <strong>No date columns detected.</strong> The CSV file doesn't appear to have any date columns.
+                    </div>
+                `;
+                return;
+            }
+
+            let html = '';
+
+            for (const [columnName, detection] of Object.entries(detectedDateColumns)) {
+                const confidencePercent = detection.confidence || 0;
+                const confidenceClass = confidencePercent >= 90 ? 'success' : confidencePercent >= 70 ? 'warning' : 'danger';
+                const confidenceWidth = Math.max(10, confidencePercent);
+
+                html += `
+                    <div class="card mb-3 border-0 shadow-sm" data-column-card="${columnName}">
+                        <div class="card-header bg-light">
+                            <h6 class="mb-0">
+                                <i class="bi bi-calendar-date me-2"></i>
+                                <strong>${columnName}</strong>
+                            </h6>
+                        </div>
+                        <div class="card-body">
+                `;
+
+                if (detection.success) {
+                    html += `
+                            <div class="row align-items-center mb-3">
+                                <div class="col-md-6">
+                                    <label class="form-label fw-semibold mb-2">Detected Format</label>
+                                    <div class="input-group">
+                                        <span class="input-group-text bg-success text-white">
+                                            <i class="bi bi-check-circle-fill"></i>
+                                        </span>
+                                        <select class="form-select" id="format_${columnName}" data-column="${columnName}">
+                                            <option value="${detection.format}" selected>${detection.format}</option>
+                                            <option value="dd/MM/yyyy">DD/MM/YYYY</option>
+                                            <option value="MM/dd/yyyy">MM/DD/YYYY</option>
+                                            <option value="d/M/yyyy">D/M/YYYY</option>
+                                            <option value="M/d/yyyy">M/D/YYYY</option>
+                                            <option value="yyyy-MM-dd">YYYY-MM-DD</option>
+                                            <option value="dd-MM-yyyy">DD-MM-YYYY</option>
+                                            <option value="dd/MM/yy">DD/MM/YY</option>
+                                            <option value="MM/dd/yy">MM/DD/YY</option>
+                                            <option value="d/M/yy">D/M/YY</option>
+                                        </select>
+                                    </div>
+                                </div>
+                                <div class="col-md-6">
+                                    <label class="form-label fw-semibold mb-2">Confidence Score</label>
+                                    <div class="progress" style="height: 30px;">
+                                        <div class="progress-bar bg-${confidenceClass}" role="progressbar"
+                                             style="width: ${confidenceWidth}%;"
+                                             aria-valuenow="${confidencePercent}" aria-valuemin="0" aria-valuemax="100">
+                                            ${confidencePercent.toFixed(1)}%
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+
+                            <div class="row">
+                                <div class="col-12">
+                                    <label class="form-label fw-semibold mb-2">Sample Values Preview</label>
+                                    <div class="table-responsive">
+                                        <table class="table table-sm table-bordered">
+                                            <thead class="table-light">
+                                                <tr>
+                                                    <th>Original Value</th>
+                                                    <th>Parsed As</th>
+                                                    <th>Status</th>
+                                                </tr>
+                                            </thead>
+                                            <tbody>
+                    `;
+
+                    if (detection.parsedSamples && detection.parsedSamples.length > 0) {
+                        detection.parsedSamples.slice(0, 5).forEach(sample => {
+                            html += `
+                                                <tr>
+                                                    <td><code>${sample.original}</code></td>
+                                                    <td><strong>${sample.formatted}</strong></td>
+                                                    <td><span class="badge bg-success">✓ Valid</span></td>
+                                                </tr>
+                            `;
+                        });
+                    }
+
+                    if (detection.invalidSamples && detection.invalidSamples.length > 0) {
+                        detection.invalidSamples.slice(0, 3).forEach(sample => {
+                            html += `
+                                                <tr>
+                                                    <td><code>${sample.value}</code></td>
+                                                    <td class="text-muted">-</td>
+                                                    <td><span class="badge bg-danger">✗ ${sample.reason}</span></td>
+                                                </tr>
+                            `;
+                        });
+                    }
+
+                    html += `
+                                            </tbody>
+                                        </table>
+                                    </div>
+                                    <small class="text-muted">
+                                        <i class="bi bi-info-circle me-1"></i>
+                                        Successfully parsed ${detection.validCount} of ${detection.totalCount} sample values
+                                    </small>
+                                </div>
+                            </div>
+                    `;
+                } else {
+                    html += `
+                            <div class="alert alert-warning border-0">
+                                <i class="bi bi-exclamation-triangle me-2"></i>
+                                Could not automatically detect format. Please select manually:
+                            </div>
+                            <select class="form-select" id="format_${columnName}" data-column="${columnName}">
+                                <option value="">-- Select Format --</option>
+                                <option value="dd/MM/yyyy">DD/MM/YYYY</option>
+                                <option value="MM/dd/yyyy">MM/DD/YYYY</option>
+                                <option value="d/M/yyyy">D/M/YYYY</option>
+                                <option value="M/d/yyyy">M/D/YYYY</option>
+                                <option value="yyyy-MM-dd">YYYY-MM-DD</option>
+                                <option value="dd-MM-yyyy">DD-MM-YYYY</option>
+                                <option value="dd/MM/yy">DD/MM/YY</option>
+                                <option value="MM/dd/yy">MM/DD/YY</option>
+                                <option value="d/M/yy">D/M/YY</option>
+                            </select>
+                    `;
+                }
+
+                html += `
+                        </div>
+                    </div>
+                `;
+            }
+
+            resultsContainer.innerHTML = html;
+
+            // Add event listeners to format dropdowns to re-validate on change
+            for (const [columnName, detection] of Object.entries(detectedDateColumns)) {
+                const selectElement = document.getElementById(`format_${columnName}`);
+                console.log('Looking for dropdown:', `format_${columnName}`, 'Found:', selectElement);
+                if (selectElement) {
+                    console.log('Adding event listener to:', columnName);
+                    selectElement.addEventListener('change', function(e) {
+                        console.log('Dropdown changed! Column:', columnName, 'New value:', this.value);
+                        revalidateColumn(columnName, this.value);
+                    });
+                } else {
+                    console.error('Could not find dropdown for column:', columnName);
+                }
+            }
+        }
+
+        // Re-validate column with new format
+        function revalidateColumn(columnName, newFormat) {
+            console.log('Revalidating column:', columnName, 'with format:', newFormat);
+
+            if (!detectedDateColumns[columnName] || !newFormat) {
+                console.log('No detection data or format');
+                return;
+            }
+
+            const detection = detectedDateColumns[columnName];
+            const columnIndex = detection.columnIndex;
+
+            // Get sample values for this column
+            const sampleValues = parsedCSVData.dataRows
+                .map(row => row[columnIndex])
+                .filter(v => v && v.trim() !== '');
+
+            console.log('Sample values:', sampleValues);
+
+            // Use the detector to parse with new format
+            const newDetection = csvValidator.detector.detectFormat(sampleValues);
+
+            // But force it to use the selected format by parsing each value
+            let validCount = 0;
+            let invalidSamples = [];
+            let parsedSamples = [];
+
+            // Find the format details
+            const formatDetails = csvValidator.detector.supportedFormats.find(f => f.pattern === newFormat);
+            if (!formatDetails) {
+                console.log('Format not found:', newFormat);
+                return;
+            }
+
+            sampleValues.forEach((sample, index) => {
+                // Try to parse with the selected format
+                const parseResult = tryParseDateValue(sample, formatDetails);
+
+                if (parseResult.valid) {
+                    validCount++;
+                    if (parsedSamples.length < 5) {
+                        parsedSamples.push({
+                            original: sample,
+                            parsed: parseResult.date,
+                            formatted: formatDateValue(parseResult.date)
+                        });
+                    }
+                } else {
+                    if (invalidSamples.length < 3) {
+                        invalidSamples.push({
+                            value: sample,
+                            reason: parseResult.reason
+                        });
+                    }
+                }
+            });
+
+            const confidence = sampleValues.length > 0 ? (validCount / sampleValues.length) * 100 : 0;
+
+            console.log('New confidence:', confidence, 'Valid:', validCount, 'Total:', sampleValues.length);
+
+            // Update the UI for this column
+            updateColumnDisplay(columnName, {
+                format: newFormat,
+                confidence: Math.round(confidence * 10) / 10,
+                validCount: validCount,
+                totalCount: sampleValues.length,
+                parsedSamples: parsedSamples,
+                invalidSamples: invalidSamples
+            });
+
+            // Update stored detection
+            detectedDateColumns[columnName].format = newFormat;
+            detectedDateColumns[columnName].confidence = confidence;
+        }
+
+        // Helper function to parse date value
+        function tryParseDateValue(dateString, format) {
+            if (!format.regex.test(dateString)) {
+                return { valid: false, reason: 'Pattern mismatch' };
+            }
+
+            const parts = dateString.split(format.separator);
+            if (parts.length !== 3) {
+                return { valid: false, reason: 'Invalid number of components' };
+            }
+
+            let day, month, year;
+
+            // Parse based on format order
+            if (format.order === 'DMY') {
+                [day, month, year] = parts.map(p => parseInt(p, 10));
+            } else if (format.order === 'MDY') {
+                [month, day, year] = parts.map(p => parseInt(p, 10));
+            } else if (format.order === 'YMD') {
+                [year, month, day] = parts.map(p => parseInt(p, 10));
+            }
+
+            // Handle 2-digit years
+            if (year < 100) {
+                year += year < 50 ? 2000 : 1900;
+            }
+
+            // Validate ranges
+            if (month < 1 || month > 12) {
+                return { valid: false, reason: `Invalid month: ${month}` };
+            }
+
+            if (day < 1 || day > 31) {
+                return { valid: false, reason: `Invalid day: ${day}` };
+            }
+
+            // Check for valid date
+            const date = new Date(year, month - 1, day);
+            if (date.getFullYear() !== year || date.getMonth() !== month - 1 || date.getDate() !== day) {
+                return { valid: false, reason: 'Invalid date (e.g., Feb 30)' };
+            }
+
+            // Check reasonable year range
+            if (year < 1900 || year > 2100) {
+                return { valid: false, reason: `Year out of range: ${year}` };
+            }
+
+            return { valid: true, date };
+        }
+
+        // Helper function to format date
+        function formatDateValue(date) {
+            const months = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun',
+                           'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'];
+            return `${months[date.getMonth()]} ${date.getDate()}, ${date.getFullYear()}`;
+        }
+
+        // Update column display with new validation results
+        function updateColumnDisplay(columnName, results) {
+            console.log('Updating display for column:', columnName);
+            const resultsContainer = document.getElementById('dateFormatResults');
+            console.log('Results container:', resultsContainer);
+            const card = resultsContainer.querySelector(`[data-column-card="${columnName}"]`);
+            console.log('Found card:', card);
+            if (!card) {
+                console.error('Could not find card with selector:', `[data-column-card="${columnName}"]`);
+                console.log('All cards in resultsContainer:', resultsContainer.querySelectorAll('[data-column-card]'));
+                console.log('All cards in document:', document.querySelectorAll('[data-column-card]'));
+                return;
+            }
+
+            const confidencePercent = results.confidence;
+            const confidenceClass = confidencePercent >= 90 ? 'success' : confidencePercent >= 70 ? 'warning' : 'danger';
+            const confidenceWidth = Math.max(10, confidencePercent);
+
+            // Update confidence bar
+            const progressBar = card.querySelector('.progress-bar');
+            if (progressBar) {
+                progressBar.className = `progress-bar bg-${confidenceClass}`;
+                progressBar.style.width = `${confidenceWidth}%`;
+                progressBar.textContent = `${confidencePercent.toFixed(1)}%`;
+            }
+
+            // Update sample table
+            const tbody = card.querySelector('tbody');
+            if (tbody) {
+                tbody.innerHTML = '';
+
+                // Add valid samples
+                if (results.parsedSamples && results.parsedSamples.length > 0) {
+                    results.parsedSamples.slice(0, 5).forEach(sample => {
+                        const tr = document.createElement('tr');
+                        tr.innerHTML = `
+                            <td><code>${sample.original}</code></td>
+                            <td><strong>${sample.formatted}</strong></td>
+                            <td><span class="badge bg-success">✓ Valid</span></td>
+                        `;
+                        tbody.appendChild(tr);
+                    });
+                }
+
+                // Add invalid samples
+                if (results.invalidSamples && results.invalidSamples.length > 0) {
+                    results.invalidSamples.slice(0, 3).forEach(sample => {
+                        const tr = document.createElement('tr');
+                        tr.innerHTML = `
+                            <td><code>${sample.value}</code></td>
+                            <td class="text-muted">-</td>
+                            <td><span class="badge bg-danger">✗ ${sample.reason}</span></td>
+                        `;
+                        tbody.appendChild(tr);
+                    });
+                }
+            }
+
+            // Update stats
+            const stats = card.querySelector('small.text-muted');
+            if (stats) {
+                stats.innerHTML = `
+                    <i class="bi bi-info-circle me-1"></i>
+                    Successfully parsed ${results.validCount} of ${results.totalCount} sample values
+                `;
+            }
+        }
+
+        // Show format detection step
+        function showFormatDetectionStep() {
+            document.getElementById('step1Indicator').classList.remove('active');
+            document.getElementById('step1Indicator').classList.add('completed');
+            document.getElementById('step2Indicator').classList.add('active');
+
+            document.getElementById('uploadStep').style.display = 'none';
+            document.getElementById('formatDetectionStep').style.display = 'block';
+
+            document.getElementById('cancelBtn').style.display = 'none';
+            document.getElementById('previewButton').style.display = 'none';
+            document.getElementById('backButton').style.display = 'inline-block';
+            document.getElementById('importButton').style.display = 'none';
+
+            // Add "Continue to Preview" button
+            if (!document.getElementById('continueToPreviewBtn')) {
+                const continueBtn = document.createElement('button');
+                continueBtn.type = 'button';
+                continueBtn.id = 'continueToPreviewBtn';
+                continueBtn.className = 'btn btn-primary px-4';
+                continueBtn.innerHTML = '<i class="bi bi-arrow-right me-2"></i>Continue to Preview';
+                continueBtn.onclick = continueToPreview;
+                document.getElementById('backButton').parentElement.nextElementSibling.appendChild(continueBtn);
+            }
+        }
+
+        // Continue to preview with selected formats
+        function continueToPreview() {
+            // Update dateFormat dropdown with primary detected format
+            const firstColumn = Object.keys(detectedDateColumns)[0];
+            if (firstColumn) {
+                const selectedFormat = document.getElementById(`format_${firstColumn}`).value;
+                document.getElementById('dateFormat').value = selectedFormat;
+            }
+
+            loadPreviewData();
+        }
+
+        // Load preview data (original preview logic)
+        function loadPreviewData() {
+            const billingMonth = document.getElementById('billingMonth').value;
+            const billingYear = document.getElementById('billingYear').value;
+
+            const billingPeriodDate = new Date(parseInt(billingYear), parseInt(billingMonth) - 1, 1);
+            const billingPeriodString = billingPeriodDate.toISOString().split('T')[0];
+            const monthNames = ['January', 'February', 'March', 'April', 'May', 'June',
+                              'July', 'August', 'September', 'October', 'November', 'December'];
+            const monthName = monthNames[parseInt(billingMonth) - 1];
+
+            const headers = parsedCSVData.headers;
+            const dataRows = parsedCSVData.dataRows.slice(0, 10);
+
+            // Find billing period columns
+            const billingPeriodIndex = headers.findIndex(h => h.toLowerCase() === 'billingperiod');
+            const callMonthIndex = headers.findIndex(h => h.toLowerCase() === 'call_month' || h.toLowerCase() === 'callmonth');
+            const callYearIndex = headers.findIndex(h => h.toLowerCase() === 'call_year' || h.toLowerCase() === 'callyear');
+
+            // Update summary
+            const totalRows = parsedCSVData.totalRows;
+            document.getElementById('previewSummary').textContent =
+                `Found ${totalRows} row${totalRows !== 1 ? 's' : ''} in the CSV file. Showing first ${Math.min(10, totalRows)} rows. Billing Period: ${monthName} ${billingYear}`;
+            document.getElementById('totalRowsCount').textContent = totalRows;
+            document.getElementById('validRowsCount').textContent = totalRows;
+
+            // Build preview table
+            const headerRow = document.getElementById('previewHeaders');
+            headerRow.innerHTML = '';
+            headers.forEach(header => {
+                const th = document.createElement('th');
+                th.textContent = header;
+                th.className = 'text-nowrap';
+                headerRow.appendChild(th);
+            });
+
+            const tbody = document.getElementById('previewBody');
+            tbody.innerHTML = '';
+            dataRows.forEach((row, index) => {
+                const tr = document.createElement('tr');
+                headers.forEach((header, colIndex) => {
+                    const td = document.createElement('td');
+
+                    // Override billing period columns
+                    if (colIndex === billingPeriodIndex) {
+                        td.textContent = billingPeriodString;
+                        td.className = 'text-nowrap fw-bold text-primary';
+                        td.title = 'Will be set to: ' + billingPeriodString;
+                    } else if (colIndex === callMonthIndex) {
+                        td.textContent = billingMonth;
+                        td.className = 'text-nowrap fw-bold text-primary';
+                        td.title = 'Will be set to: ' + billingMonth;
+                    } else if (colIndex === callYearIndex) {
+                        td.textContent = billingYear;
+                        td.className = 'text-nowrap fw-bold text-primary';
+                        td.title = 'Will be set to: ' + billingYear;
+                    } else {
+                        td.textContent = row[colIndex] || '';
+                        td.className = 'text-nowrap';
+                    }
+
+                    tr.appendChild(td);
+                });
+                tbody.appendChild(tr);
+            });
+
+            // Show preview step
+            showPreviewStepFromDetection();
+        }
+
+        // Show preview step from detection
+        function showPreviewStepFromDetection() {
+            document.getElementById('step2Indicator').classList.remove('active');
+            document.getElementById('step2Indicator').classList.add('completed');
+            document.getElementById('step3Indicator').classList.add('active');
+
+            document.getElementById('formatDetectionStep').style.display = 'none';
+            document.getElementById('previewStep').style.display = 'block';
+
+            document.getElementById('backButton').onclick = goBackToFormatDetection;
+            document.getElementById('continueToPreviewBtn').style.display = 'none';
+            document.getElementById('importButton').style.display = 'inline-block';
+        }
+
+        // Go back to format detection
+        function goBackToFormatDetection() {
+            document.getElementById('step3Indicator').classList.remove('active');
+            document.getElementById('step2Indicator').classList.remove('completed');
+            document.getElementById('step2Indicator').classList.add('active');
+
+            document.getElementById('previewStep').style.display = 'none';
+            document.getElementById('formatDetectionStep').style.display = 'block';
+
+            document.getElementById('backButton').onclick = goBackToSetup;
+            document.getElementById('continueToPreviewBtn').style.display = 'inline-block';
+            document.getElementById('importButton').style.display = 'none';
+        }
+
+        // Update form action to CallLogs import handler
+        document.getElementById('uploadForm').addEventListener('submit', function(e) {
+            this.action = '/Admin/CallLogs?handler=ImportCallLogs';
+            // The dateFormat field from Step 1 will be used directly
+        });
+    </script>
+}

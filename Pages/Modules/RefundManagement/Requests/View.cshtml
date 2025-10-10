@@ -1,0 +1,888 @@
+@page "{id:int}"
+@model TAB.Web.Pages.Modules.RefundManagement.Requests.ViewModel
+@{
+    ViewData["Title"] = $"Request #{Model.RefundRequest.Id} Details";
+    ViewData["PageIcon"] = "bi-eye";
+    ViewData["PageTitle"] = $"Request #{Model.RefundRequest.Id} Details";
+    ViewData["Breadcrumb"] = "Services / Device Reimbursement / View Request";
+}
+
+<style>
+    /* Container and Layout */
+    .form-container {
+        max-width: 1200px;
+        margin: 0 auto;
+        padding: 0 1rem;
+    }
+    
+    .form-card {
+        background: #ffffff;
+        border: none;
+        border-radius: 12px;
+        box-shadow: 0 1px 3px 0 rgba(0, 0, 0, 0.1), 0 1px 2px 0 rgba(0, 0, 0, 0.06);
+        overflow: hidden;
+    }
+    
+    .form-header {
+        background-color: #009EDB;
+        color: white;
+        padding: 1rem 1.25rem;
+        position: relative;
+        border-radius: 12px 12px 0 0;
+        margin-bottom: 0;
+        box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+    }
+    
+    .form-header h1 {
+        font-size: 1.25rem;
+        font-weight: 600;
+        margin: 0;
+        position: relative;
+        z-index: 1;
+        display: flex;
+        align-items: center;
+        gap: 0.5rem;
+    }
+    
+    .form-header h1 i {
+        font-size: 1.1rem;
+    }
+    
+    .form-header p {
+        margin: 0.25rem 0 0 0;
+        opacity: 0.9;
+        font-size: 0.875rem;
+    }
+    
+    .form-body {
+        padding: 0;
+    }
+    
+    /* Tab Styles */
+    .nav-tabs {
+        background: #f8fafc;
+        padding: 0.75rem 1.25rem 0;
+        border-bottom: 2px solid #e2e8f0;
+        border-radius: 0;
+        margin-bottom: 0;
+    }
+    
+    .nav-tabs .nav-link {
+        color: #64748b;
+        background: transparent;
+        border: none;
+        border-bottom: 3px solid transparent;
+        padding: 0.75rem 1.5rem;
+        font-weight: 500;
+        font-size: 0.875rem;
+        transition: all 0.3s ease;
+        border-radius: 8px 8px 0 0;
+        margin-right: 0.5rem;
+        position: relative;
+    }
+    
+    .nav-tabs .nav-link:hover {
+        color: #009EDB;
+        background: rgba(0, 158, 219, 0.05);
+        border-bottom-color: rgba(0, 158, 219, 0.3);
+    }
+    
+    .nav-tabs .nav-link.active {
+        color: #009EDB;
+        background: white;
+        border-bottom-color: #009EDB;
+        font-weight: 600;
+    }
+    
+    .nav-tabs .nav-link i {
+        margin-right: 0.5rem;
+        font-size: 1rem;
+    }
+    
+    .tab-content {
+        background: white;
+        padding: 1.5rem;
+        min-height: 400px;
+    }
+    
+    .tab-pane {
+        animation: fadeIn 0.3s ease;
+    }
+    
+    @@keyframes fadeIn {
+        from {
+            opacity: 0;
+            transform: translateY(10px);
+        }
+        to {
+            opacity: 1;
+            transform: translateY(0);
+        }
+    }
+    
+    .detail-section {
+        margin-bottom: 1.5rem;
+        background: #f8fafc;
+        border-radius: 8px;
+        padding: 1.25rem;
+        border: 1px solid #e2e8f0;
+    }
+    
+    .section-header {
+        font-size: 0.875rem;
+        font-weight: 600;
+        color: #4a5568;
+        margin-bottom: 1rem;
+        padding-bottom: 0.5rem;
+        border-bottom: 2px solid #e2e8f0;
+        display: flex;
+        align-items: center;
+    }
+    
+    .section-icon {
+        color: #009EDB;
+        margin-right: 0.5rem;
+        font-size: 1rem;
+    }
+    
+    .detail-row {
+        display: flex;
+        flex-wrap: wrap;
+        gap: 2rem;
+        margin-bottom: 1rem;
+    }
+    
+    .detail-item {
+        flex: 1;
+        min-width: 250px;
+    }
+    
+    .detail-label {
+        font-size: 12px;
+        color: #6b7280;
+        margin-bottom: 4px;
+        font-weight: 500;
+        text-transform: uppercase;
+        letter-spacing: 0.025em;
+    }
+    
+    .detail-value {
+        font-size: 14px;
+        color: #1f2937;
+        font-weight: 500;
+        line-height: 1.5;
+    }
+    
+    .detail-value.amount {
+        font-size: 16px;
+        font-weight: 600;
+        color: #009EDB;
+    }
+    
+    .status-badge {
+        padding: 6px 14px;
+        border-radius: 20px;
+        font-size: 12px;
+        font-weight: 600;
+        display: inline-flex;
+        align-items: center;
+        gap: 6px;
+    }
+    
+    .status-pending {
+        background: #f59e0b;
+        color: white;
+    }
+    
+    .status-approved {
+        background: #10b981;
+        color: white;
+    }
+    
+    .status-draft {
+        background: #64748b;
+        color: white;
+    }
+    
+    .status-completed {
+        background: #7c3aed;
+        color: white;
+    }
+    
+    .status-cancelled {
+        background: #dc2626;
+        color: white;
+    }
+    
+    /* Timeline Styles */
+    .workflow-timeline {
+        position: relative;
+        padding-left: 0;
+    }
+    
+    .timeline-item {
+        display: flex;
+        margin-bottom: 24px;
+        position: relative;
+        align-items: flex-start;
+    }
+    
+    .timeline-marker {
+        width: 36px;
+        height: 36px;
+        border-radius: 50%;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        margin-right: 16px;
+        flex-shrink: 0;
+        background: #f1f5f9;
+        border: 2px solid white;
+        color: #6b7280;
+        font-size: 14px;
+        font-weight: 600;
+        box-shadow: 0 2px 8px rgba(0,0,0,0.1);
+        position: relative;
+        z-index: 2;
+    }
+    
+    .timeline-approved {
+        background: #10b981;
+        color: white;
+        border-color: #d1fae5;
+    }
+    
+    .timeline-current {
+        background: #3b82f6;
+        color: white;
+        border-color: #dbeafe;
+        animation: pulse-current 2s infinite;
+    }
+    
+    .timeline-content {
+        flex: 1;
+        background: white;
+        padding: 12px 16px;
+        border-radius: 8px;
+        border: 1px solid #e5e7eb;
+        box-shadow: 0 1px 3px rgba(0,0,0,0.05);
+    }
+    
+    .timeline-header {
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        margin-bottom: 4px;
+    }
+    
+    .timeline-title {
+        font-size: 14px;
+        font-weight: 600;
+        color: #1f2937;
+        margin-bottom: 0;
+    }
+    
+    .timeline-date {
+        font-size: 11px;
+        color: #6b7280;
+        background: #f9fafb;
+        padding: 2px 6px;
+        border-radius: 4px;
+    }
+    
+    .timeline-description {
+        font-size: 12px;
+        color: #6b7280;
+        margin-bottom: 8px;
+        line-height: 1.4;
+    }
+    
+    .timeline-remarks {
+        background: #f8fafc;
+        padding: 8px 12px;
+        border-radius: 6px;
+        border: 1px solid #e2e8f0;
+        font-size: 12px;
+        color: #4b5563;
+        line-height: 1.4;
+        margin-top: 6px;
+    }
+    
+    .timeline-remarks strong {
+        color: #1f2937;
+    }
+    
+    .timeline-item:not(:last-child)::after {
+        content: '';
+        position: absolute;
+        left: 17px;
+        top: 36px;
+        width: 2px;
+        height: calc(100% - 12px);
+        background: linear-gradient(to bottom, #e5e7eb, #f3f4f6);
+        z-index: 1;
+    }
+    
+    @@keyframes pulse-current {
+        0%, 100% {
+            box-shadow: 0 2px 8px rgba(59, 130, 246, 0.3);
+        }
+        50% {
+            box-shadow: 0 2px 12px rgba(59, 130, 246, 0.5);
+        }
+    }
+    
+    .back-btn {
+        background: #f8fafc;
+        border: 1px solid #e2e8f0;
+        color: #475569;
+        padding: 8px 16px;
+        border-radius: 6px;
+        text-decoration: none;
+        font-weight: 500;
+        font-size: 13px;
+        display: inline-flex;
+        align-items: center;
+        gap: 6px;
+        transition: all 0.3s ease;
+    }
+    
+    .back-btn:hover {
+        background: #e2e8f0;
+        color: #1e293b;
+        text-decoration: none;
+        transform: translateY(-1px);
+    }
+    
+    .action-buttons {
+        display: flex;
+        gap: 8px;
+        margin-bottom: 1rem;
+    }
+    
+    .action-btn {
+        padding: 8px 16px;
+        border-radius: 6px;
+        font-size: 13px;
+        font-weight: 500;
+        border: 1px solid;
+        transition: all 0.2s ease;
+        display: inline-flex;
+        align-items: center;
+        gap: 6px;
+        text-decoration: none;
+    }
+    
+    .btn-edit {
+        background: #dcfce7;
+        border-color: #16a34a;
+        color: #15803d;
+    }
+    
+    .btn-edit:hover {
+        background: #16a34a;
+        color: white;
+        text-decoration: none;
+    }
+    
+    .btn-cancel {
+        background: #fef2f2;
+        border-color: #ef4444;
+        color: #dc2626;
+    }
+    
+    .btn-cancel:hover {
+        background: #ef4444;
+        color: white;
+        text-decoration: none;
+    }
+    
+    /* Responsive */
+    @@media (max-width: 768px) {
+        .nav-tabs {
+            padding: 0.5rem;
+        }
+        
+        .nav-tabs .nav-link {
+            padding: 0.5rem 0.75rem;
+            font-size: 0.75rem;
+        }
+        
+        .nav-tabs .nav-link i {
+            display: none;
+        }
+        
+        .detail-row {
+            flex-direction: column;
+            gap: 1rem;
+        }
+        
+        .detail-item {
+            min-width: 100%;
+        }
+    }
+</style>
+
+<div class="form-container">
+    <!-- Action Buttons -->
+    <div class="action-buttons">
+        <a href="/Modules/RefundManagement/Requests" class="back-btn">
+            <i class="bi bi-arrow-left"></i>
+            Back to List
+        </a>
+        @if (Model.RefundRequest.Status == RefundRequestStatus.Draft)
+        {
+            <a href="/Modules/RefundManagement/Requests/Edit/@Model.RefundRequest.Id" class="action-btn btn-edit">
+                <i class="bi bi-pencil"></i>
+                Edit Request
+            </a>
+            <a href="#" class="action-btn btn-cancel" onclick="cancelRequest(@Model.RefundRequest.Id)">
+                <i class="bi bi-x"></i>
+                Cancel Request
+            </a>
+        }
+    </div>
+
+    <div class="form-card">
+        <div class="form-header">
+            <h1>
+                <i class="bi bi-eye-fill"></i>
+                Request Details #@Model.RefundRequest.Id
+            </h1>
+            <p>Comprehensive request information and workflow tracking</p>
+        </div>
+        
+        <div class="form-body">
+            <!-- Navigation Tabs -->
+            <ul class="nav nav-tabs" id="viewTabs" role="tablist">
+                <li class="nav-item" role="presentation">
+                    <button class="nav-link active" id="overview-tab" data-bs-toggle="tab" 
+                            data-bs-target="#overview" type="button" role="tab">
+                        <i class="bi bi-info-circle"></i> Overview
+                    </button>
+                </li>
+                <li class="nav-item" role="presentation">
+                    <button class="nav-link" id="financial-tab" data-bs-toggle="tab" 
+                            data-bs-target="#financial" type="button" role="tab">
+                        <i class="bi bi-currency-dollar"></i> Financial Details
+                    </button>
+                </li>
+                <li class="nav-item" role="presentation">
+                    <button class="nav-link" id="workflow-tab" data-bs-toggle="tab" 
+                            data-bs-target="#workflow" type="button" role="tab">
+                        <i class="bi bi-diagram-3"></i> Workflow History
+                    </button>
+                </li>
+                <li class="nav-item" role="presentation">
+                    <button class="nav-link" id="remarks-tab" data-bs-toggle="tab" 
+                            data-bs-target="#remarks" type="button" role="tab">
+                        <i class="bi bi-chat-square-text"></i> Remarks
+                    </button>
+                </li>
+            </ul>
+            
+            <!-- Tab Content -->
+            <div class="tab-content" id="viewTabContent">
+                <!-- Overview Tab -->
+                <div class="tab-pane fade show active" id="overview" role="tabpanel">
+                    <!-- Status Section -->
+                    <div class="detail-section">
+                        <h6 class="section-header">
+                            <i class="bi bi-flag section-icon"></i>
+                            Current Status
+                        </h6>
+                        <div class="detail-row">
+                            <div class="detail-item">
+                                <div class="detail-label">Status</div>
+                                <div>
+                                    <span class="status-badge @GetStatusClass(Model.RefundRequest.Status)">
+                                        <i class="@GetStatusIcon(Model.RefundRequest.Status)"></i>
+                                        @Model.RefundRequest.Status.ToString().Replace("PendingSupervisor", "Pending Supervisor").Replace("PendingBudgetOfficer", "Pending Budget Officer").Replace("PendingStaffClaimsUnit", "Pending Claims Unit").Replace("PendingPaymentApproval", "Pending Payment")
+                                    </span>
+                                </div>
+                            </div>
+                            <div class="detail-item">
+                                <div class="detail-label">Request Date</div>
+                                <div class="detail-value">@Model.RefundRequest.RequestDate.ToString("MMMM dd, yyyy")</div>
+                            </div>
+                            <div class="detail-item">
+                                <div class="detail-label">Request ID</div>
+                                <div class="detail-value">#@Model.RefundRequest.Id</div>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Staff Information Section -->
+                    <div class="detail-section">
+                        <h6 class="section-header">
+                            <i class="bi bi-person-circle section-icon"></i>
+                            Staff Information
+                        </h6>
+                        <div class="detail-row">
+                            <div class="detail-item">
+                                <div class="detail-label">Staff Name</div>
+                                <div class="detail-value">@Model.RefundRequest.MobileNumberAssignedTo</div>
+                            </div>
+                            <div class="detail-item">
+                                <div class="detail-label">Index Number</div>
+                                <div class="detail-value">@Model.RefundRequest.IndexNo</div>
+                            </div>
+                        </div>
+                        <div class="detail-row">
+                            <div class="detail-item">
+                                <div class="detail-label">Primary Mobile Number</div>
+                                <div class="detail-value">@Model.RefundRequest.PrimaryMobileNumber</div>
+                            </div>
+                            <div class="detail-item">
+                                <div class="detail-label">Office Extension</div>
+                                <div class="detail-value">@(!string.IsNullOrEmpty(Model.RefundRequest.OfficeExtension) ? Model.RefundRequest.OfficeExtension : "N/A")</div>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Organization Details Section -->
+                    <div class="detail-section">
+                        <h6 class="section-header">
+                            <i class="bi bi-building section-icon"></i>
+                            Organization Details
+                        </h6>
+                        <div class="detail-row">
+                            <div class="detail-item">
+                                <div class="detail-label">Office</div>
+                                <div class="detail-value">@Model.RefundRequest.Office</div>
+                            </div>
+                            <div class="detail-item">
+                                <div class="detail-label">Organization</div>
+                                <div class="detail-value">@Model.RefundRequest.Organization</div>
+                            </div>
+                        </div>
+                        <div class="detail-row">
+                            <div class="detail-item">
+                                <div class="detail-label">Supervisor</div>
+                                <div class="detail-value">@Model.RefundRequest.Supervisor</div>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Service Details Section -->
+                    <div class="detail-section">
+                        <h6 class="section-header">
+                            <i class="bi bi-phone section-icon"></i>
+                            Mobile Service Details
+                        </h6>
+                        <div class="detail-row">
+                            <div class="detail-item">
+                                <div class="detail-label">Mobile Service</div>
+                                <div class="detail-value">@Model.RefundRequest.MobileService</div>
+                            </div>
+                            <div class="detail-item">
+                                <div class="detail-label">Class of Service</div>
+                                <div class="detail-value">@Model.RefundRequest.ClassOfService</div>
+                            </div>
+                            <div class="detail-item">
+                                <div class="detail-label">Device Allowance</div>
+                                <div class="detail-value amount">$@Model.RefundRequest.DeviceAllowance.ToString("N2")</div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Financial Details Tab -->
+                <div class="tab-pane fade" id="financial" role="tabpanel">
+                    <!-- Purchase Information Section -->
+                    <div class="detail-section">
+                        <h6 class="section-header">
+                            <i class="bi bi-receipt section-icon"></i>
+                            Purchase Information
+                        </h6>
+                        <div class="detail-row">
+                            <div class="detail-item">
+                                <div class="detail-label">Purchase Amount</div>
+                                <div class="detail-value amount">@Model.RefundRequest.DevicePurchaseCurrency @Model.RefundRequest.DevicePurchaseAmount.ToString("N2")</div>
+                            </div>
+                            <div class="detail-item">
+                                <div class="detail-label">Device Allowance</div>
+                                <div class="detail-value amount">$@Model.RefundRequest.DeviceAllowance.ToString("N2")</div>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Cost Allocation Section -->
+                    @if (!string.IsNullOrEmpty(Model.RefundRequest.CostObject) || !string.IsNullOrEmpty(Model.RefundRequest.CostCenter) || !string.IsNullOrEmpty(Model.RefundRequest.FundCommitment))
+                    {
+                        <div class="detail-section">
+                            <h6 class="section-header">
+                                <i class="bi bi-calculator section-icon"></i>
+                                Cost Allocation
+                            </h6>
+                            <div class="detail-row">
+                                @if (!string.IsNullOrEmpty(Model.RefundRequest.CostObject))
+                                {
+                                    <div class="detail-item">
+                                        <div class="detail-label">Cost Object</div>
+                                        <div class="detail-value">@Model.RefundRequest.CostObject</div>
+                                    </div>
+                                }
+                                @if (!string.IsNullOrEmpty(Model.RefundRequest.CostCenter))
+                                {
+                                    <div class="detail-item">
+                                        <div class="detail-label">Cost Center</div>
+                                        <div class="detail-value">@Model.RefundRequest.CostCenter</div>
+                                    </div>
+                                }
+                                @if (!string.IsNullOrEmpty(Model.RefundRequest.FundCommitment))
+                                {
+                                    <div class="detail-item">
+                                        <div class="detail-label">Fund Commitment</div>
+                                        <div class="detail-value">@Model.RefundRequest.FundCommitment</div>
+                                    </div>
+                                }
+                            </div>
+                        </div>
+                    }
+
+                    <!-- Payment Information Section -->
+                    @if (!string.IsNullOrEmpty(Model.RefundRequest.UmojaBankName) || !string.IsNullOrEmpty(Model.RefundRequest.UmojaPaymentDocumentId) || !string.IsNullOrEmpty(Model.RefundRequest.PaymentReference))
+                    {
+                        <div class="detail-section">
+                            <h6 class="section-header">
+                                <i class="bi bi-credit-card section-icon"></i>
+                                Payment Information
+                            </h6>
+                            <div class="detail-row">
+                                @if (!string.IsNullOrEmpty(Model.RefundRequest.UmojaBankName))
+                                {
+                                    <div class="detail-item">
+                                        <div class="detail-label">Bank Name</div>
+                                        <div class="detail-value">@Model.RefundRequest.UmojaBankName</div>
+                                    </div>
+                                }
+                                @if (!string.IsNullOrEmpty(Model.RefundRequest.UmojaPaymentDocumentId))
+                                {
+                                    <div class="detail-item">
+                                        <div class="detail-label">Umoja Payment Document ID</div>
+                                        <div class="detail-value">@Model.RefundRequest.UmojaPaymentDocumentId</div>
+                                    </div>
+                                }
+                                @if (!string.IsNullOrEmpty(Model.RefundRequest.PaymentReference))
+                                {
+                                    <div class="detail-item">
+                                        <div class="detail-label">Payment Reference</div>
+                                        <div class="detail-value">@Model.RefundRequest.PaymentReference</div>
+                                    </div>
+                                }
+                            </div>
+                        </div>
+                    }
+                </div>
+
+                <!-- Workflow History Tab -->
+                <div class="tab-pane fade" id="workflow" role="tabpanel">
+                    <div class="workflow-timeline">
+                        <!-- Request Submission -->
+                        <div class="timeline-item">
+                            <div class="timeline-marker timeline-approved">
+                                <i class="bi bi-check"></i>
+                            </div>
+                            <div class="timeline-content">
+                                <div class="timeline-header">
+                                    <h6 class="timeline-title">Request Submitted</h6>
+                                    <span class="timeline-date">@Model.RefundRequest.RequestDate.ToString("MMM dd, yyyy")</span>
+                                </div>
+                                <p class="timeline-description">Request submitted by @Model.RefundRequest.MobileNumberAssignedTo</p>
+                            </div>
+                        </div>
+
+                        <!-- Supervisor Review -->
+                        <div class="timeline-item">
+                            <div class="timeline-marker @(Model.RefundRequest.SupervisorApprovalDate.HasValue ? "timeline-approved" : (Model.RefundRequest.Status == RefundRequestStatus.PendingSupervisor ? "timeline-current" : ""))">
+                                <i class="bi @(Model.RefundRequest.SupervisorApprovalDate.HasValue ? "bi-check" : "bi-clock")"></i>
+                            </div>
+                            <div class="timeline-content">
+                                <div class="timeline-header">
+                                    <h6 class="timeline-title">Supervisor Review</h6>
+                                    <span class="timeline-date">@(Model.RefundRequest.SupervisorApprovalDate?.ToString("MMM dd, yyyy") ?? "Pending")</span>
+                                </div>
+                                <p class="timeline-description">@(Model.RefundRequest.SupervisorApprovalDate.HasValue ? $"Approved by {Model.RefundRequest.Supervisor}" : "Pending supervisor approval")</p>
+                                @if (!string.IsNullOrEmpty(Model.RefundRequest.SupervisorRemarks))
+                                {
+                                    <div class="timeline-remarks">
+                                        <strong>Remarks:</strong> @Model.RefundRequest.SupervisorRemarks
+                                    </div>
+                                }
+                            </div>
+                        </div>
+
+                        <!-- Budget Officer Review -->
+                        <div class="timeline-item">
+                            <div class="timeline-marker @(Model.RefundRequest.BudgetOfficerApprovalDate.HasValue ? "timeline-approved" : (Model.RefundRequest.Status == RefundRequestStatus.PendingBudgetOfficer ? "timeline-current" : ""))">
+                                <i class="bi @(Model.RefundRequest.BudgetOfficerApprovalDate.HasValue ? "bi-check" : "bi-clock")"></i>
+                            </div>
+                            <div class="timeline-content">
+                                <div class="timeline-header">
+                                    <h6 class="timeline-title">Budget Officer Review</h6>
+                                    <span class="timeline-date">@(Model.RefundRequest.BudgetOfficerApprovalDate?.ToString("MMM dd, yyyy") ?? "Pending")</span>
+                                </div>
+                                <p class="timeline-description">@(Model.RefundRequest.BudgetOfficerApprovalDate.HasValue ? "Processed by Budget Officer" : "Pending budget officer review")</p>
+                                @if (!string.IsNullOrEmpty(Model.RefundRequest.BudgetOfficerRemarks))
+                                {
+                                    <div class="timeline-remarks">
+                                        <strong>Remarks:</strong> @Model.RefundRequest.BudgetOfficerRemarks
+                                    </div>
+                                }
+                            </div>
+                        </div>
+
+                        <!-- Claims Unit Processing -->
+                        <div class="timeline-item">
+                            <div class="timeline-marker @(Model.RefundRequest.ClaimsActionDate.HasValue ? "timeline-approved" : (Model.RefundRequest.Status == RefundRequestStatus.PendingStaffClaimsUnit ? "timeline-current" : ""))">
+                                <i class="bi @(Model.RefundRequest.ClaimsActionDate.HasValue ? "bi-check" : "bi-clock")"></i>
+                            </div>
+                            <div class="timeline-content">
+                                <div class="timeline-header">
+                                    <h6 class="timeline-title">Claims Unit Processing</h6>
+                                    <span class="timeline-date">@(Model.RefundRequest.ClaimsActionDate?.ToString("MMM dd, yyyy") ?? "Pending")</span>
+                                </div>
+                                <p class="timeline-description">@(Model.RefundRequest.ClaimsActionDate.HasValue ? "Processed by Claims Unit" : "Pending claims unit processing")</p>
+                                @if (!string.IsNullOrEmpty(Model.RefundRequest.StaffClaimsRemarks))
+                                {
+                                    <div class="timeline-remarks">
+                                        <strong>Remarks:</strong> @Model.RefundRequest.StaffClaimsRemarks
+                                    </div>
+                                }
+                            </div>
+                        </div>
+
+                        <!-- Payment Approval -->
+                        <div class="timeline-item">
+                            <div class="timeline-marker @(Model.RefundRequest.Status == RefundRequestStatus.Completed ? "timeline-approved" : (Model.RefundRequest.Status == RefundRequestStatus.PendingPaymentApproval ? "timeline-current" : ""))">
+                                <i class="bi @(Model.RefundRequest.Status == RefundRequestStatus.Completed ? "bi-check" : (Model.RefundRequest.Status == RefundRequestStatus.PendingPaymentApproval ? "bi-credit-card" : "bi-clock"))"></i>
+                            </div>
+                            <div class="timeline-content">
+                                <div class="timeline-header">
+                                    <h6 class="timeline-title">Payment Approval</h6>
+                                    <span class="timeline-date">@(Model.RefundRequest.Status == RefundRequestStatus.Completed ? "Completed" : "Pending")</span>
+                                </div>
+                                <p class="timeline-description">@(Model.RefundRequest.Status == RefundRequestStatus.Completed ? "Payment approved and processed" : (Model.RefundRequest.Status == RefundRequestStatus.PendingPaymentApproval ? "Pending payment approval" : "Pending payment processing"))</p>
+                            </div>
+                        </div>
+
+                        <!-- Request Completion -->
+                        <div class="timeline-item">
+                            <div class="timeline-marker @(Model.RefundRequest.Status == RefundRequestStatus.Completed ? "timeline-approved" : "")">
+                                <i class="bi @(Model.RefundRequest.Status == RefundRequestStatus.Completed ? "bi-check" : "bi-clock")"></i>
+                            </div>
+                            <div class="timeline-content">
+                                <div class="timeline-header">
+                                    <h6 class="timeline-title">Request Completion</h6>
+                                    <span class="timeline-date">@(Model.RefundRequest.Status == RefundRequestStatus.Completed ? "Completed" : "Pending")</span>
+                                </div>
+                                <p class="timeline-description">@(Model.RefundRequest.Status == RefundRequestStatus.Completed ? $"Payment Reference: {Model.RefundRequest.PaymentReference ?? "N/A"}" : "Pending completion")</p>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Remarks Tab -->
+                <div class="tab-pane fade" id="remarks" role="tabpanel">
+                    @if (!string.IsNullOrEmpty(Model.RefundRequest.Remarks) || 
+                         !string.IsNullOrEmpty(Model.RefundRequest.SupervisorRemarks) || 
+                         !string.IsNullOrEmpty(Model.RefundRequest.BudgetOfficerRemarks) || 
+                         !string.IsNullOrEmpty(Model.RefundRequest.StaffClaimsRemarks))
+                    {
+                        @if (!string.IsNullOrEmpty(Model.RefundRequest.Remarks))
+                        {
+                            <div class="detail-section">
+                                <h6 class="section-header">
+                                    <i class="bi bi-person section-icon"></i>
+                                    Requester Remarks
+                                </h6>
+                                <div class="detail-value" style="background: white; padding: 12px; border-radius: 6px; border: 1px solid #e2e8f0;">
+                                    @Model.RefundRequest.Remarks
+                                </div>
+                            </div>
+                        }
+                        
+                        @if (!string.IsNullOrEmpty(Model.RefundRequest.SupervisorRemarks))
+                        {
+                            <div class="detail-section">
+                                <h6 class="section-header">
+                                    <i class="bi bi-person-check section-icon"></i>
+                                    Supervisor Remarks
+                                </h6>
+                                <div class="detail-value" style="background: white; padding: 12px; border-radius: 6px; border: 1px solid #e2e8f0;">
+                                    @Model.RefundRequest.SupervisorRemarks
+                                </div>
+                            </div>
+                        }
+                        
+                        @if (!string.IsNullOrEmpty(Model.RefundRequest.BudgetOfficerRemarks))
+                        {
+                            <div class="detail-section">
+                                <h6 class="section-header">
+                                    <i class="bi bi-calculator section-icon"></i>
+                                    Budget Officer Remarks
+                                </h6>
+                                <div class="detail-value" style="background: white; padding: 12px; border-radius: 6px; border: 1px solid #e2e8f0;">
+                                    @Model.RefundRequest.BudgetOfficerRemarks
+                                </div>
+                            </div>
+                        }
+                        
+                        @if (!string.IsNullOrEmpty(Model.RefundRequest.StaffClaimsRemarks))
+                        {
+                            <div class="detail-section">
+                                <h6 class="section-header">
+                                    <i class="bi bi-clipboard-check section-icon"></i>
+                                    Claims Unit Remarks
+                                </h6>
+                                <div class="detail-value" style="background: white; padding: 12px; border-radius: 6px; border: 1px solid #e2e8f0;">
+                                    @Model.RefundRequest.StaffClaimsRemarks
+                                </div>
+                            </div>
+                        }
+                    }
+                    else
+                    {
+                        <div class="text-center py-5">
+                            <i class="bi bi-chat-square-text" style="font-size: 48px; color: #cbd5e0;"></i>
+                            <p class="mt-3 text-muted">No remarks have been added to this request.</p>
+                        </div>
+                    }
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+@functions {
+    string GetStatusClass(RefundRequestStatus status)
+    {
+        return status switch
+        {
+            RefundRequestStatus.Draft => "status-draft",
+            RefundRequestStatus.PendingSupervisor or 
+            RefundRequestStatus.PendingBudgetOfficer or 
+            RefundRequestStatus.PendingStaffClaimsUnit or 
+            RefundRequestStatus.PendingPaymentApproval => "status-pending",
+            RefundRequestStatus.Completed => "status-approved",
+            RefundRequestStatus.Cancelled => "status-cancelled",
+            _ => "status-draft"
+        };
+    }
+    
+    string GetStatusIcon(RefundRequestStatus status)
+    {
+        return status switch
+        {
+            RefundRequestStatus.Draft => "bi-file-earmark",
+            RefundRequestStatus.PendingSupervisor or 
+            RefundRequestStatus.PendingBudgetOfficer or 
+            RefundRequestStatus.PendingStaffClaimsUnit or 
+            RefundRequestStatus.PendingPaymentApproval => "bi-clock",
+            RefundRequestStatus.Completed => "bi-check-circle",
+            RefundRequestStatus.Cancelled => "bi-x-circle",
+            _ => "bi-file-earmark"
+        };
+    }
+}

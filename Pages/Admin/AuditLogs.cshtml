@@ -1,0 +1,960 @@
+@page
+@model TAB.Web.Pages.Admin.AuditLogsModel
+@{
+    ViewData["Title"] = "Audit Logs";
+}
+
+<style>
+    /* Statistics Grid */
+    .stats-grid {
+        display: grid;
+        grid-template-columns: repeat(auto-fit, minmax(240px, 1fr));
+        gap: 1.25rem;
+        margin-bottom: 2rem;
+    }
+
+    .stat-card {
+        background: white;
+        border-radius: 12px;
+        padding: 1.5rem;
+        border: 1px solid #e5e7eb;
+        transition: all 0.3s ease;
+        position: relative;
+        overflow: hidden;
+    }
+
+    .stat-card::before {
+        content: '';
+        position: absolute;
+        top: 0;
+        left: 0;
+        right: 0;
+        height: 4px;
+        background: linear-gradient(90deg, var(--gradient-start), var(--gradient-end));
+    }
+
+    .stat-card:nth-child(1)::before {
+        --gradient-start: #3b82f6;
+        --gradient-end: #60a5fa;
+    }
+
+    .stat-card:nth-child(2)::before {
+        --gradient-start: #10b981;
+        --gradient-end: #34d399;
+    }
+
+    .stat-card:nth-child(3)::before {
+        --gradient-start: #ef4444;
+        --gradient-end: #f87171;
+    }
+
+    .stat-card:nth-child(4)::before {
+        --gradient-start: #f59e0b;
+        --gradient-end: #fbbf24;
+    }
+
+    .stat-card:hover {
+        transform: translateY(-4px);
+        box-shadow: 0 10px 30px rgba(0, 0, 0, 0.1);
+    }
+
+    .stat-content {
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+    }
+
+    .stat-icon {
+        width: 50px;
+        height: 50px;
+        border-radius: 12px;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        font-size: 1.5rem;
+    }
+
+    .stat-icon-primary {
+        background: linear-gradient(135deg, #3b82f6, #60a5fa);
+        color: white;
+    }
+
+    .stat-icon-success {
+        background: linear-gradient(135deg, #10b981, #34d399);
+        color: white;
+    }
+
+    .stat-icon-danger {
+        background: linear-gradient(135deg, #ef4444, #f87171);
+        color: white;
+    }
+
+    .stat-icon-warning {
+        background: linear-gradient(135deg, #f59e0b, #fbbf24);
+        color: white;
+    }
+
+    .stat-details {
+        text-align: right;
+    }
+
+    .stat-number {
+        font-size: 1.75rem;
+        font-weight: 700;
+        color: #1f2937;
+        line-height: 1;
+        margin-bottom: 0.25rem;
+    }
+
+    .stat-label {
+        font-size: 0.875rem;
+        color: #6b7280;
+        font-weight: 500;
+    }
+
+    /* Filter Section */
+    .filter-section {
+        background: white;
+        border-radius: 12px;
+        padding: 1.5rem;
+        margin-bottom: 2rem;
+        box-shadow: 0 2px 10px rgba(0, 0, 0, 0.05);
+        border: 1px solid #e5e7eb;
+    }
+
+    .filter-header {
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        margin-bottom: 1.5rem;
+        padding-bottom: 1rem;
+        border-bottom: 2px solid #f3f4f6;
+    }
+
+    .filter-title {
+        font-size: 1.25rem;
+        font-weight: 600;
+        color: #1f2937;
+        display: flex;
+        align-items: center;
+        gap: 0.5rem;
+    }
+
+    .filter-title i {
+        color: #009EDB;
+    }
+
+    .filter-grid {
+        display: grid;
+        grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
+        gap: 1rem;
+    }
+
+    .filter-group {
+        display: flex;
+        flex-direction: column;
+        gap: 0.5rem;
+    }
+
+    .filter-label {
+        font-size: 0.875rem;
+        font-weight: 600;
+        color: #4b5563;
+        display: flex;
+        align-items: center;
+        gap: 0.5rem;
+    }
+
+    .filter-label i {
+        color: #009EDB;
+        font-size: 0.875rem;
+    }
+
+    .filter-input,
+    .filter-select {
+        padding: 0.625rem 1rem;
+        border: 2px solid #e5e7eb;
+        border-radius: 8px;
+        font-size: 0.875rem;
+        transition: all 0.2s ease;
+        background: white;
+    }
+
+    .filter-input:focus,
+    .filter-select:focus {
+        outline: none;
+        border-color: #009EDB;
+        box-shadow: 0 0 0 3px rgba(0, 158, 219, 0.1);
+    }
+
+    .filter-input::placeholder {
+        color: #9ca3af;
+    }
+
+    .btn-clear-filters {
+        padding: 0.625rem 1.25rem;
+        background: #f3f4f6;
+        color: #4b5563;
+        border: none;
+        border-radius: 8px;
+        font-weight: 500;
+        font-size: 0.875rem;
+        display: inline-flex;
+        align-items: center;
+        gap: 0.5rem;
+        transition: all 0.2s ease;
+        text-decoration: none;
+    }
+
+    .btn-clear-filters:hover {
+        background: #e5e7eb;
+        color: #1f2937;
+        text-decoration: none;
+    }
+
+    .filter-count {
+        font-size: 0.875rem;
+        color: #6b7280;
+        padding: 0.375rem 0.75rem;
+        background: #f9fafb;
+        border-radius: 6px;
+    }
+
+    /* Pagination Styles */
+    .pagination {
+        gap: 0.25rem;
+    }
+
+    .page-link {
+        color: #009EDB;
+        border: 1px solid #e5e7eb;
+        padding: 0.5rem 0.75rem;
+        font-size: 0.875rem;
+        font-weight: 500;
+        transition: all 0.2s ease;
+        border-radius: 8px;
+        margin: 0 2px;
+    }
+
+    .page-link:hover {
+        color: #0084c7;
+        background-color: #f9fafb;
+        border-color: #009EDB;
+        transform: translateY(-1px);
+    }
+
+    .page-item.active .page-link {
+        background-color: #009EDB;
+        border-color: #009EDB;
+        color: white;
+    }
+
+    .page-item.disabled .page-link {
+        color: #9ca3af;
+        background-color: #f9fafb;
+        border-color: #e5e7eb;
+        cursor: not-allowed;
+        opacity: 0.6;
+    }
+
+    /* Table Row Hover Effects */
+    .audit-row {
+        transition: all 0.2s ease;
+        border-bottom: 1px solid #f3f4f6;
+    }
+
+    .audit-row:hover {
+        background-color: #f9fafb;
+        transform: translateX(2px);
+        box-shadow: 0 2px 4px rgba(0, 0, 0, 0.05);
+    }
+
+    /* Badge Hover Effects */
+    .badge {
+        transition: all 0.2s ease;
+    }
+
+    .badge:hover {
+        transform: translateY(-1px);
+        box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+    }
+
+    @@media (max-width: 768px) {
+        .filter-grid {
+            grid-template-columns: 1fr;
+        }
+
+        .stats-grid {
+            grid-template-columns: repeat(2, 1fr);
+            gap: 1rem;
+        }
+    }
+</style>
+
+<!-- Statistics Cards -->
+<div class="stats-grid mb-3">
+    <div class="stat-card">
+        <div class="stat-content">
+            <div class="stat-icon stat-icon-primary">
+                <i class="bi bi-calendar-day"></i>
+            </div>
+            <div class="stat-details">
+                <div class="stat-number">@Model.TotalLogsToday</div>
+                <div class="stat-label">Logs Today</div>
+            </div>
+        </div>
+    </div>
+
+    <div class="stat-card">
+        <div class="stat-content">
+            <div class="stat-icon stat-icon-success">
+                <i class="bi bi-check-circle"></i>
+            </div>
+            <div class="stat-details">
+                <div class="stat-number">@Model.TotalSuccessful</div>
+                <div class="stat-label">Successful</div>
+            </div>
+        </div>
+    </div>
+
+    <div class="stat-card">
+        <div class="stat-content">
+            <div class="stat-icon stat-icon-danger">
+                <i class="bi bi-x-circle"></i>
+            </div>
+            <div class="stat-details">
+                <div class="stat-number">@Model.TotalFailed</div>
+                <div class="stat-label">Failed</div>
+            </div>
+        </div>
+    </div>
+
+    <div class="stat-card">
+        <div class="stat-content">
+            <div class="stat-icon stat-icon-warning">
+                <i class="bi bi-people"></i>
+            </div>
+            <div class="stat-details">
+                <div class="stat-number">@Model.TotalActiveUsers</div>
+                <div class="stat-label">Active Users (7d)</div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Filter Section (Collapsible) -->
+<div class="mb-3">
+    <button class="btn btn-outline-primary" type="button" data-bs-toggle="collapse" data-bs-target="#filterCollapse" aria-expanded="false" aria-controls="filterCollapse">
+        <i class="bi bi-funnel"></i> Show Filters
+    </button>
+</div>
+<div class="collapse" id="filterCollapse">
+    <div class="filter-section">
+        <div class="filter-header">
+            <h2 class="filter-title">
+                <i class="bi bi-funnel"></i>
+                Filters
+            </h2>
+            <div class="filter-actions">
+                <span class="filter-count">
+                    Showing @((Model.CurrentPage - 1) * Model.PageSize + 1) - @Math.Min(Model.CurrentPage * Model.PageSize, Model.TotalCount)
+                    of @Model.TotalCount results
+                </span>
+            </div>
+        </div>
+
+        <form method="get" class="filter-form" id="filterForm">
+            <!-- Preserve page size when filtering -->
+            <input type="hidden" name="PageSizeParam" value="@Model.PageSize" />
+            <div class="filter-grid">
+                <div class="filter-group">
+                    <label class="filter-label" for="searchFilter">
+                        <i class="bi bi-search"></i> Search
+                    </label>
+                    <input type="text" name="SearchTerm" id="searchFilter" class="filter-input filter-search-input"
+                           placeholder="Description, Entity ID..." value="@Model.SearchTerm" />
+                </div>
+                <div class="filter-group">
+                    <label class="filter-label" for="moduleFilter">
+                        <i class="bi bi-box"></i> Module
+                    </label>
+                    <select name="Module" id="moduleFilter" class="filter-select filter-auto-submit">
+                        <option value="">All Modules</option>
+                        @foreach (var module in Model.AvailableModules)
+                        {
+                            <option value="@module" selected="@(Model.Module == module)">@module</option>
+                        }
+                    </select>
+                </div>
+
+                <div class="filter-group">
+                    <label class="filter-label" for="entityFilter">
+                        <i class="bi bi-diagram-3"></i> Entity Type
+                    </label>
+                    <select name="EntityType" id="entityFilter" class="filter-select filter-auto-submit">
+                        <option value="">All Entity Types</option>
+                        @foreach (var entityType in Model.AvailableEntityTypes)
+                        {
+                            <option value="@entityType" selected="@(Model.EntityType == entityType)">@entityType</option>
+                        }
+                    </select>
+                </div>
+
+                <div class="filter-group">
+                    <label class="filter-label" for="actionFilter">
+                        <i class="bi bi-activity"></i> Action
+                    </label>
+                    <select name="Action" id="actionFilter" class="filter-select filter-auto-submit">
+                        <option value="">All Actions</option>
+                        @foreach (var action in Model.AvailableActions)
+                        {
+                            <option value="@action" selected="@(Model.Action == action)">@action</option>
+                        }
+                    </select>
+                </div>
+
+                <div class="filter-group">
+                    <label class="filter-label" for="userFilter">
+                        <i class="bi bi-person"></i> Performed By
+                    </label>
+                    <select name="PerformedBy" id="userFilter" class="filter-select filter-auto-submit">
+                        <option value="">All Users</option>
+                        @foreach (var user in Model.AvailableUsers)
+                        {
+                            <option value="@user" selected="@(Model.PerformedBy == user)">@user</option>
+                        }
+                    </select>
+                </div>
+
+                <div class="filter-group">
+                    <label class="filter-label" for="startDate">
+                        <i class="bi bi-calendar-minus"></i> Start Date
+                    </label>
+                    <input type="date" name="StartDate" id="startDate" class="filter-input filter-auto-submit" value="@Model.StartDate?.ToString("yyyy-MM-dd")" />
+                </div>
+
+                <div class="filter-group">
+                    <label class="filter-label" for="endDate">
+                        <i class="bi bi-calendar-plus"></i> End Date
+                    </label>
+                    <input type="date" name="EndDate" id="endDate" class="filter-input filter-auto-submit" value="@Model.EndDate?.ToString("yyyy-MM-dd")" />
+                </div>
+
+                <div class="filter-group align-self-end">
+                    <a href="/Admin/AuditLogs" class="btn-clear-filters">
+                        <i class="bi bi-x-circle"></i> Clear All
+                    </a>
+                </div>
+            </div>
+        </form>
+    </div>
+</div>
+
+<script>
+    // Auto-submit functionality
+    document.addEventListener('DOMContentLoaded', function() {
+        // Auto-submit for select elements and date inputs
+        const autoSubmitElements = document.querySelectorAll('.filter-auto-submit');
+        autoSubmitElements.forEach(element => {
+            element.addEventListener('change', function() {
+                document.getElementById('filterForm').submit();
+            });
+        });
+
+        // Debounced auto-submit for search input
+        let searchTimeout;
+        const searchInput = document.querySelector('.filter-search-input');
+        if (searchInput) {
+            searchInput.addEventListener('input', function() {
+                clearTimeout(searchTimeout);
+                searchTimeout = setTimeout(() => {
+                    document.getElementById('filterForm').submit();
+                }, 500); // 500ms delay
+            });
+        }
+
+        // Update button text when filters are shown/hidden
+        const filterToggle = document.querySelector('[data-bs-target="#filterCollapse"]');
+        const filterCollapse = document.getElementById('filterCollapse');
+        if (filterToggle && filterCollapse) {
+            filterCollapse.addEventListener('show.bs.collapse', function () {
+                filterToggle.innerHTML = '<i class="bi bi-funnel-fill"></i> Hide Filters';
+            });
+            filterCollapse.addEventListener('hide.bs.collapse', function () {
+                filterToggle.innerHTML = '<i class="bi bi-funnel"></i> Show Filters';
+            });
+
+            // Check if any filters are active and show the filter section
+            const hasActiveFilters = @Html.Raw((!string.IsNullOrEmpty(Model.SearchTerm) || !string.IsNullOrEmpty(Model.Module) ||
+                                                !string.IsNullOrEmpty(Model.EntityType) || !string.IsNullOrEmpty(Model.Action) ||
+                                                !string.IsNullOrEmpty(Model.PerformedBy) || Model.StartDate.HasValue || Model.EndDate.HasValue).ToString().ToLower());
+            if (hasActiveFilters) {
+                filterCollapse.classList.add('show');
+                filterToggle.innerHTML = '<i class="bi bi-funnel-fill"></i> Hide Filters';
+                filterToggle.setAttribute('aria-expanded', 'true');
+            }
+        }
+    });
+</script>
+
+<div class="row">
+    <div class="col-12">
+        <!-- Action Buttons and Page Size Selector -->
+        <div class="d-flex justify-content-between align-items-center mb-3">
+            <div class="d-flex align-items-center gap-2">
+                <label class="mb-0" style="font-size: 14px; color: #4b5563;">Show</label>
+                <form method="get" id="pageSizeForm" class="d-inline-block">
+                    <!-- Preserve filter parameters when changing page size -->
+                    <input type="hidden" name="SearchTerm" value="@Model.SearchTerm" />
+                    <input type="hidden" name="Module" value="@Model.Module" />
+                    <input type="hidden" name="EntityType" value="@Model.EntityType" />
+                    <input type="hidden" name="Action" value="@Model.Action" />
+                    <input type="hidden" name="PerformedBy" value="@Model.PerformedBy" />
+                    <input type="hidden" name="StartDate" value="@Model.StartDate?.ToString("yyyy-MM-dd")" />
+                    <input type="hidden" name="EndDate" value="@Model.EndDate?.ToString("yyyy-MM-dd")" />
+                    <select name="PageSizeParam" class="form-select form-select-sm" style="width: auto;" onchange="document.getElementById('pageSizeForm').submit()">
+                        <option value="10" selected="@(Model.PageSize == 10)">10</option>
+                        <option value="25" selected="@(Model.PageSize == 25)">25</option>
+                        <option value="50" selected="@(Model.PageSize == 50)">50</option>
+                        <option value="100" selected="@(Model.PageSize == 100)">100</option>
+                    </select>
+                </form>
+                <label class="mb-0" style="font-size: 14px; color: #4b5563;">entries per page</label>
+            </div>
+            <div>
+                <form method="post" asp-page-handler="Export" class="d-inline">
+                    <!-- Preserve filter parameters for export -->
+                    <input type="hidden" name="SearchTerm" value="@Model.SearchTerm" />
+                    <input type="hidden" name="Module" value="@Model.Module" />
+                    <input type="hidden" name="EntityType" value="@Model.EntityType" />
+                    <input type="hidden" name="Action" value="@Model.Action" />
+                    <input type="hidden" name="PerformedBy" value="@Model.PerformedBy" />
+                    <input type="hidden" name="StartDate" value="@Model.StartDate?.ToString("yyyy-MM-dd")" />
+                    <input type="hidden" name="EndDate" value="@Model.EndDate?.ToString("yyyy-MM-dd")" />
+                    <button type="submit" class="btn btn-success">
+                        <i class="bi bi-download me-1"></i>Export to CSV
+                    </button>
+                </form>
+            </div>
+        </div>
+
+        <!-- Audit Logs Table -->
+        <div class="card border-0 shadow-sm" style="border-radius: 16px;">
+            <div class="card-header bg-gradient border-0 py-4" style="background: linear-gradient(135deg, #f8f9fa 0%, #e9ecef 100%); border-radius: 16px 16px 0 0;">
+                <div class="d-flex justify-content-between align-items-center">
+                    <div>
+                        <h5 class="card-title mb-1 text-dark fw-bold">
+                            <i class="bi bi-journal-text me-2 text-primary"></i>System Audit Trail
+                        </h5>
+                        <p class="text-muted mb-0">Track all system activities and changes</p>
+                    </div>
+                    <div class="input-group" style="max-width: 300px;">
+                        <span class="input-group-text bg-white border-1">
+                            <i class="bi bi-search text-muted"></i>
+                        </span>
+                        <input type="text" class="form-control bg-white border-1 text-dark"
+                               id="quickSearch" placeholder="Quick search..."
+                               style="border-radius: 0 8px 8px 0;">
+                    </div>
+                </div>
+            </div>
+            <div class="card-body p-0">
+                <div class="table-responsive">
+                    <table class="table table-hover mb-0" id="auditTable">
+                        <thead style="background-color: #f8f9fa;">
+                            <tr>
+                                <th class="border-0 px-4 py-3" style="font-weight: 600; color: #4a5568; text-transform: uppercase; font-size: 12px; letter-spacing: 0.5px;">
+                                    <i class="bi bi-clock me-2"></i>Date/Time
+                                </th>
+                                <th class="border-0 px-3 py-3" style="font-weight: 600; color: #4a5568; text-transform: uppercase; font-size: 12px; letter-spacing: 0.5px;">
+                                    <i class="bi bi-person me-2"></i>User
+                                </th>
+                                <th class="border-0 px-3 py-3" style="font-weight: 600; color: #4a5568; text-transform: uppercase; font-size: 12px; letter-spacing: 0.5px;">
+                                    <i class="bi bi-box me-2"></i>Module
+                                </th>
+                                <th class="border-0 px-3 py-3" style="font-weight: 600; color: #4a5568; text-transform: uppercase; font-size: 12px; letter-spacing: 0.5px;">
+                                    <i class="bi bi-diagram-3 me-2"></i>Entity
+                                </th>
+                                <th class="border-0 px-3 py-3" style="font-weight: 600; color: #4a5568; text-transform: uppercase; font-size: 12px; letter-spacing: 0.5px;">
+                                    <i class="bi bi-activity me-2"></i>Action
+                                </th>
+                                <th class="border-0 px-3 py-3" style="font-weight: 600; color: #4a5568; text-transform: uppercase; font-size: 12px; letter-spacing: 0.5px;">
+                                    <i class="bi bi-info-circle me-2"></i>Description
+                                </th>
+                                <th class="border-0 px-3 py-3 text-center" style="font-weight: 600; color: #4a5568; text-transform: uppercase; font-size: 12px; letter-spacing: 0.5px;">
+                                    <i class="bi bi-toggle2-on me-2"></i>Status
+                                </th>
+                                <th class="border-0 px-3 py-3 text-center" style="font-weight: 600; color: #4a5568; text-transform: uppercase; font-size: 12px; letter-spacing: 0.5px; width: 100px;">
+                                    <i class="bi bi-gear me-2"></i>Actions
+                                </th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            @if (Model.AuditLogs.Any())
+                            {
+                                @foreach (var log in Model.AuditLogs)
+                                {
+                                    <tr class="audit-row">
+                                        <td class="align-middle px-4 py-3">
+                                            <small class="text-muted">@log.PerformedDate.ToString("yyyy-MM-dd HH:mm:ss")</small>
+                                        </td>
+                                        <td class="align-middle px-3 py-3">
+                                            <span class="fw-medium">@log.PerformedBy</span>
+                                        </td>
+                                        <td class="align-middle px-3 py-3">
+                                            @if (!string.IsNullOrEmpty(log.Module))
+                                            {
+                                                <span class="badge bg-secondary">@log.Module</span>
+                                            }
+                                        </td>
+                                        <td class="align-middle px-3 py-3">
+                                            <div>
+                                                <span class="fw-medium">@log.EntityType</span>
+                                                @if (!string.IsNullOrEmpty(log.EntityId))
+                                                {
+                                                    <br />
+                                                    <code class="small">@log.EntityId</code>
+                                                }
+                                            </div>
+                                        </td>
+                                        <td class="align-middle px-3 py-3">
+                                            <span class="badge @GetActionBadgeClass(log.Action)">
+                                                @log.Action
+                                            </span>
+                                        </td>
+                                        <td class="align-middle px-3 py-3">
+                                            @if (!string.IsNullOrEmpty(log.Description))
+                                            {
+                                                var truncated = log.Description.Length > 100
+                                                    ? log.Description.Substring(0, 100) + "..."
+                                                    : log.Description;
+                                                <span title="@log.Description">@truncated</span>
+                                            }
+                                        </td>
+                                        <td class="align-middle text-center px-3 py-3">
+                                            @if (log.IsSuccess)
+                                            {
+                                                <span class="badge rounded-pill" style="background-color: #10b981; color: white; padding: 6px 16px;">
+                                                    <i class="bi bi-check-circle-fill me-1"></i>Success
+                                                </span>
+                                            }
+                                            else
+                                            {
+                                                <span class="badge rounded-pill" style="background-color: #ef4444; color: white; padding: 6px 16px;" title="@log.ErrorMessage">
+                                                    <i class="bi bi-x-circle-fill me-1"></i>Failed
+                                                </span>
+                                            }
+                                        </td>
+                                        <td class="align-middle px-3 py-3">
+                                            <div class="d-flex gap-1 justify-content-center">
+                                                <button type="button" class="btn btn-sm btn-light border-0"
+                                                        onclick="viewDetails(@log.Id)" title="View Details" style="border-radius: 8px;">
+                                                    <i class="bi bi-eye text-primary"></i>
+                                                </button>
+                                            </div>
+                                        </td>
+                                    </tr>
+                                }
+                            }
+                            else
+                            {
+                                <tr>
+                                    <td colspan="8" class="text-center py-5">
+                                        <div class="bg-light rounded-circle d-inline-flex align-items-center justify-content-center mb-3" style="width: 80px; height: 80px;">
+                                            <i class="bi bi-journal-x text-muted" style="font-size: 32px;"></i>
+                                        </div>
+                                        <h5 class="text-muted mb-3">No Audit Logs Found</h5>
+                                        <p class="text-muted mb-0">Try adjusting your filters or search criteria.</p>
+                                    </td>
+                                </tr>
+                            }
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+            <!-- Pagination Controls -->
+            @if (Model.TotalPages > 1)
+            {
+                <div class="card-footer bg-white border-0 pt-3 pb-3">
+                    <nav aria-label="Page navigation">
+                        <ul class="pagination justify-content-center mb-0">
+                            <!-- First Page -->
+                            <li class="page-item @(Model.CurrentPage == 1 ? "disabled" : "")">
+                                <a class="page-link" href="?PageNumber=1&PageSizeParam=@Model.PageSize&SearchTerm=@Model.SearchTerm&Module=@Model.Module&EntityType=@Model.EntityType&Action=@Model.Action&PerformedBy=@Model.PerformedBy&StartDate=@Model.StartDate?.ToString("yyyy-MM-dd")&EndDate=@Model.EndDate?.ToString("yyyy-MM-dd")"
+                                   aria-label="First">
+                                    <span aria-hidden="true">&laquo;&laquo;</span>
+                                </a>
+                            </li>
+
+                            <!-- Previous Page -->
+                            <li class="page-item @(!Model.HasPreviousPage ? "disabled" : "")">
+                                <a class="page-link" href="?PageNumber=@(Model.CurrentPage - 1)&PageSizeParam=@Model.PageSize&SearchTerm=@Model.SearchTerm&Module=@Model.Module&EntityType=@Model.EntityType&Action=@Model.Action&PerformedBy=@Model.PerformedBy&StartDate=@Model.StartDate?.ToString("yyyy-MM-dd")&EndDate=@Model.EndDate?.ToString("yyyy-MM-dd")"
+                                   aria-label="Previous">
+                                    <span aria-hidden="true">&laquo;</span>
+                                </a>
+                            </li>
+
+                            <!-- Page Numbers -->
+                            @{
+                                int startPage = Math.Max(1, Model.CurrentPage - 2);
+                                int endPage = Math.Min(Model.TotalPages, Model.CurrentPage + 2);
+
+                                if (startPage > 1)
+                                {
+                                    <li class="page-item">
+                                        <a class="page-link" href="?PageNumber=1&PageSizeParam=@Model.PageSize&SearchTerm=@Model.SearchTerm&Module=@Model.Module&EntityType=@Model.EntityType&Action=@Model.Action&PerformedBy=@Model.PerformedBy&StartDate=@Model.StartDate?.ToString("yyyy-MM-dd")&EndDate=@Model.EndDate?.ToString("yyyy-MM-dd")">1</a>
+                                    </li>
+                                    if (startPage > 2)
+                                    {
+                                        <li class="page-item disabled"><span class="page-link">...</span></li>
+                                    }
+                                }
+
+                                for (int i = startPage; i <= endPage; i++)
+                                {
+                                    <li class="page-item @(i == Model.CurrentPage ? "active" : "")">
+                                        <a class="page-link" href="?PageNumber=@i&PageSizeParam=@Model.PageSize&SearchTerm=@Model.SearchTerm&Module=@Model.Module&EntityType=@Model.EntityType&Action=@Model.Action&PerformedBy=@Model.PerformedBy&StartDate=@Model.StartDate?.ToString("yyyy-MM-dd")&EndDate=@Model.EndDate?.ToString("yyyy-MM-dd")">@i</a>
+                                    </li>
+                                }
+
+                                if (endPage < Model.TotalPages)
+                                {
+                                    if (endPage < Model.TotalPages - 1)
+                                    {
+                                        <li class="page-item disabled"><span class="page-link">...</span></li>
+                                    }
+                                    <li class="page-item">
+                                        <a class="page-link" href="?PageNumber=@Model.TotalPages&PageSizeParam=@Model.PageSize&SearchTerm=@Model.SearchTerm&Module=@Model.Module&EntityType=@Model.EntityType&Action=@Model.Action&PerformedBy=@Model.PerformedBy&StartDate=@Model.StartDate?.ToString("yyyy-MM-dd")&EndDate=@Model.EndDate?.ToString("yyyy-MM-dd")">@Model.TotalPages</a>
+                                    </li>
+                                }
+                            }
+
+                            <!-- Next Page -->
+                            <li class="page-item @(!Model.HasNextPage ? "disabled" : "")">
+                                <a class="page-link" href="?PageNumber=@(Model.CurrentPage + 1)&PageSizeParam=@Model.PageSize&SearchTerm=@Model.SearchTerm&Module=@Model.Module&EntityType=@Model.EntityType&Action=@Model.Action&PerformedBy=@Model.PerformedBy&StartDate=@Model.StartDate?.ToString("yyyy-MM-dd")&EndDate=@Model.EndDate?.ToString("yyyy-MM-dd")"
+                                   aria-label="Next">
+                                    <span aria-hidden="true">&raquo;</span>
+                                </a>
+                            </li>
+
+                            <!-- Last Page -->
+                            <li class="page-item @(Model.CurrentPage == Model.TotalPages ? "disabled" : "")">
+                                <a class="page-link" href="?PageNumber=@Model.TotalPages&PageSizeParam=@Model.PageSize&SearchTerm=@Model.SearchTerm&Module=@Model.Module&EntityType=@Model.EntityType&Action=@Model.Action&PerformedBy=@Model.PerformedBy&StartDate=@Model.StartDate?.ToString("yyyy-MM-dd")&EndDate=@Model.EndDate?.ToString("yyyy-MM-dd")"
+                                   aria-label="Last">
+                                    <span aria-hidden="true">&raquo;&raquo;</span>
+                                </a>
+                            </li>
+                        </ul>
+                    </nav>
+                </div>
+            }
+        </div>
+    </div>
+</div>
+
+<!-- Details Modal -->
+<div class="modal fade" id="detailsModal" tabindex="-1" aria-hidden="true">
+    <div class="modal-dialog modal-lg modal-dialog-centered">
+        <div class="modal-content" style="border-radius: 20px; border: none; box-shadow: 0 10px 40px rgba(0, 0, 0, 0.1);">
+            <div class="modal-body p-0">
+                <!-- Icon and Title Section -->
+                <div class="text-center pt-4 pb-3" style="background: linear-gradient(135deg, #f8f9fa 0%, #e9ecef 100%); border-radius: 20px 20px 0 0;">
+                    <div class="d-inline-flex align-items-center justify-content-center mb-3"
+                         style="width: 64px; height: 64px; background: linear-gradient(135deg, #009EDB 0%, #0084c7 100%); border-radius: 16px;">
+                        <i class="bi bi-journal-text text-white" style="font-size: 28px;"></i>
+                    </div>
+                    <h5 class="modal-title mb-1 fw-bold">Audit Log Details</h5>
+                    <p class="text-muted mb-0 small">Complete information about this audit entry</p>
+                </div>
+
+                <!-- Content Section -->
+                <div class="p-4">
+                    <div id="detailsContent">
+                        <div class="text-center py-5">
+                            <div class="spinner-border text-primary" role="status" style="width: 3rem; height: 3rem;">
+                                <span class="visually-hidden">Loading...</span>
+                            </div>
+                            <p class="text-muted mt-3">Loading audit details...</p>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Footer Section -->
+                <div class="modal-footer border-0 pt-0 pb-4">
+                    <button type="button" class="btn btn-light px-4" data-bs-dismiss="modal" style="border-radius: 10px;">
+                        <i class="bi bi-x-circle me-2"></i>Close
+                    </button>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+@section Scripts {
+    <script>
+        function viewDetails(id) {
+            const modal = new bootstrap.Modal(document.getElementById('detailsModal'));
+            modal.show();
+
+            fetch(`/Admin/AuditLogs?handler=Details&id=${id}`)
+                .then(response => response.json())
+                .then(data => {
+                    let html = '';
+
+                    // Basic Information Section
+                    html += '<div class="mb-4">';
+                    html += '<h6 class="text-uppercase text-muted mb-3" style="font-size: 12px; letter-spacing: 0.5px; font-weight: 600;">';
+                    html += '<i class="bi bi-info-circle me-2"></i>Basic Information</h6>';
+                    html += '<div class="bg-light rounded-3 p-3">';
+                    html += '<div class="row g-3">';
+
+                    html += '<div class="col-md-6">';
+                    html += `<div class="mb-2"><strong class="text-muted small">ID:</strong> <span class="ms-2">${data.id}</span></div>`;
+                    html += `<div class="mb-2"><strong class="text-muted small">Date/Time:</strong> <span class="ms-2">${data.performedDate}</span></div>`;
+                    html += `<div class="mb-2"><strong class="text-muted small">User:</strong> <span class="ms-2 fw-medium">${data.performedBy}</span></div>`;
+                    html += '</div>';
+
+                    html += '<div class="col-md-6">';
+                    html += `<div class="mb-2"><strong class="text-muted small">Module:</strong> <span class="ms-2">${data.module ? '<span class="badge bg-secondary">' + data.module + '</span>' : 'N/A'}</span></div>`;
+                    html += `<div class="mb-2"><strong class="text-muted small">Entity Type:</strong> <span class="ms-2">${data.entityType}</span></div>`;
+                    html += `<div class="mb-2"><strong class="text-muted small">Entity ID:</strong> <span class="ms-2">${data.entityId ? '<code>' + data.entityId + '</code>' : 'N/A'}</span></div>`;
+                    html += '</div>';
+
+                    html += '</div>';
+                    html += '</div>';
+                    html += '</div>';
+
+                    // Action and Status Section
+                    html += '<div class="mb-4">';
+                    html += '<h6 class="text-uppercase text-muted mb-3" style="font-size: 12px; letter-spacing: 0.5px; font-weight: 600;">';
+                    html += '<i class="bi bi-activity me-2"></i>Action & Status</h6>';
+                    html += '<div class="bg-light rounded-3 p-3">';
+                    html += '<div class="row g-3">';
+                    html += '<div class="col-md-6">';
+                    html += `<div class="mb-2"><strong class="text-muted small">Action:</strong> <span class="ms-2"><span class="badge bg-primary">${data.action}</span></span></div>`;
+                    html += '</div>';
+                    html += '<div class="col-md-6">';
+                    html += `<div class="mb-2"><strong class="text-muted small">Status:</strong> <span class="ms-2">${data.isSuccess ?
+                        '<span class="badge rounded-pill bg-success"><i class="bi bi-check-circle-fill me-1"></i>Success</span>' :
+                        '<span class="badge rounded-pill bg-danger"><i class="bi bi-x-circle-fill me-1"></i>Failed</span>'}</span></div>`;
+                    html += '</div>';
+                    html += '</div>';
+
+                    if (data.description) {
+                        html += `<div class="mt-3 p-3 bg-white rounded-2"><strong class="text-muted small">Description:</strong><br><span class="mt-1">${data.description}</span></div>`;
+                    }
+
+                    if (!data.isSuccess && data.errorMessage) {
+                        html += `<div class="mt-3 p-3 bg-danger bg-opacity-10 rounded-2 border border-danger border-opacity-25"><strong class="text-danger small">Error Message:</strong><br><span class="text-danger mt-1">${data.errorMessage}</span></div>`;
+                    }
+
+                    html += '</div>';
+                    html += '</div>';
+
+                    // Technical Details Section
+                    if (data.ipAddress || data.userAgent) {
+                        html += '<div class="mb-4">';
+                        html += '<h6 class="text-uppercase text-muted mb-3" style="font-size: 12px; letter-spacing: 0.5px; font-weight: 600;">';
+                        html += '<i class="bi bi-gear me-2"></i>Technical Details</h6>';
+                        html += '<div class="bg-light rounded-3 p-3">';
+
+                        if (data.ipAddress) {
+                            html += `<div class="mb-2"><strong class="text-muted small">IP Address:</strong> <span class="ms-2"><code>${data.ipAddress}</code></span></div>`;
+                        }
+
+                        if (data.userAgent) {
+                            html += `<div class="mb-2"><strong class="text-muted small">User Agent:</strong><br><small class="text-muted mt-1">${data.userAgent}</small></div>`;
+                        }
+
+                        html += '</div>';
+                        html += '</div>';
+                    }
+
+                    // Data Changes Section
+                    if (data.oldValues || data.newValues) {
+                        html += '<div class="mb-4">';
+                        html += '<h6 class="text-uppercase text-muted mb-3" style="font-size: 12px; letter-spacing: 0.5px; font-weight: 600;">';
+                        html += '<i class="bi bi-arrow-left-right me-2"></i>Data Changes</h6>';
+
+                        if (data.oldValues) {
+                            html += '<div class="mb-3">';
+                            html += '<label class="text-muted small fw-medium mb-2">Old Values:</label>';
+                            html += `<pre class="bg-light border rounded-2 p-3 mb-0" style="max-height: 200px; overflow-y: auto;">${formatJson(data.oldValues)}</pre>`;
+                            html += '</div>';
+                        }
+
+                        if (data.newValues) {
+                            html += '<div class="mb-3">';
+                            html += '<label class="text-muted small fw-medium mb-2">New Values:</label>';
+                            html += `<pre class="bg-light border rounded-2 p-3 mb-0" style="max-height: 200px; overflow-y: auto;">${formatJson(data.newValues)}</pre>`;
+                            html += '</div>';
+                        }
+
+                        html += '</div>';
+                    }
+
+                    // Additional Data Section
+                    if (data.additionalData) {
+                        html += '<div class="mb-4">';
+                        html += '<h6 class="text-uppercase text-muted mb-3" style="font-size: 12px; letter-spacing: 0.5px; font-weight: 600;">';
+                        html += '<i class="bi bi-database me-2"></i>Additional Data</h6>';
+                        html += `<pre class="bg-light border rounded-2 p-3 mb-0" style="max-height: 200px; overflow-y: auto;">${formatJson(data.additionalData)}</pre>`;
+                        html += '</div>';
+                    }
+
+                    document.getElementById('detailsContent').innerHTML = html;
+                })
+                .catch(error => {
+                    document.getElementById('detailsContent').innerHTML =
+                        '<div class="alert alert-danger">Error loading details: ' + error + '</div>';
+                });
+        }
+
+        function formatJson(jsonString) {
+            try {
+                const obj = JSON.parse(jsonString);
+                return JSON.stringify(obj, null, 2);
+            } catch {
+                return jsonString;
+            }
+        }
+
+        // Quick search functionality
+        document.getElementById('quickSearch').addEventListener('keyup', function() {
+            const searchTerm = this.value.toLowerCase();
+            const rows = document.querySelectorAll('#auditTable tbody tr');
+
+            rows.forEach(row => {
+                const text = row.textContent.toLowerCase();
+                row.style.display = text.includes(searchTerm) ? '' : 'none';
+            });
+        });
+
+        // Add animation to badges
+        document.querySelectorAll('.badge').forEach(badge => {
+            badge.addEventListener('mouseenter', function() {
+                this.style.transform = 'translateY(-2px) scale(1.05)';
+            });
+            badge.addEventListener('mouseleave', function() {
+                this.style.transform = 'translateY(0) scale(1)';
+            });
+        });
+    </script>
+}
+
+@functions {
+    private string GetActionBadgeClass(string action)
+    {
+        return action.ToLower() switch
+        {
+            "created" => "bg-success",
+            "updated" => "bg-info",
+            "deleted" => "bg-danger",
+            "verified" => "bg-primary",
+            "rejected" => "bg-warning",
+            "published" => "bg-success",
+            "rolledback" => "bg-secondary",
+            _ => "bg-secondary"
+        };
+    }
+}

@@ -1,0 +1,1114 @@
+@page
+@model TAB.Web.Pages.Admin.OfficesModel
+@{
+    ViewData["Title"] = "Offices Management";
+}
+
+<style>
+    /* Dashboard Header Styles */
+    .dashboard-header {
+        background: linear-gradient(135deg, #009EDB 0%, #0084c7 100%);
+        border-radius: 12px;
+        padding: 1.5rem 2rem;
+        margin-bottom: 2rem;
+        color: white;
+        box-shadow: 0 4px 20px rgba(0, 158, 219, 0.2);
+    }
+
+    .header-content {
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        flex-wrap: wrap;
+        gap: 1rem;
+    }
+
+    .welcome-section {
+        flex: 1;
+    }
+
+    .dashboard-title {
+        font-size: 1.75rem;
+        font-weight: 600;
+        margin-bottom: 0.3rem;
+        color: white;
+    }
+
+    .dashboard-subtitle {
+        font-size: 1rem;
+        opacity: 0.95;
+        margin: 0;
+    }
+
+    .header-actions {
+        display: flex;
+        align-items: center;
+        gap: 1rem;
+    }
+
+    .current-date {
+        background: rgba(255, 255, 255, 0.2);
+        backdrop-filter: blur(10px);
+        padding: 0.5rem 1rem;
+        border-radius: 8px;
+        display: flex;
+        align-items: center;
+        gap: 0.5rem;
+        font-size: 0.9rem;
+    }
+
+    .create-btn {
+        background: rgba(255, 255, 255, 0.95);
+        color: #009EDB;
+        border: 2px solid rgba(255, 255, 255, 0.3);
+        padding: 10px 20px;
+        border-radius: 8px;
+        text-decoration: none;
+        font-weight: 600;
+        font-size: 14px;
+        transition: all 0.3s ease;
+        display: inline-flex;
+        align-items: center;
+        gap: 8px;
+        backdrop-filter: blur(10px);
+        cursor: pointer;
+    }
+
+    .create-btn:hover {
+        background: white;
+        color: #0084c7;
+        text-decoration: none;
+        transform: translateY(-2px);
+        box-shadow: 0 8px 24px rgba(0, 0, 0, 0.15);
+    }
+
+    /* Professional Filter Section */
+    .filter-section {
+        background: #ffffff;
+        border: 1px solid #e5e7eb;
+        border-radius: 12px;
+        padding: 1.5rem;
+        box-shadow: 0 2px 8px rgba(0, 0, 0, 0.04);
+        margin-bottom: 2rem;
+    }
+
+    .filter-form {
+        width: 100%;
+    }
+
+    .filter-grid {
+        display: grid;
+        grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+        gap: 1rem;
+        align-items: end;
+    }
+
+    .filter-group {
+        display: flex;
+        flex-direction: column;
+        gap: 0.5rem;
+    }
+
+    .filter-label {
+        font-size: 0.875rem;
+        font-weight: 600;
+        color: #475569;
+        display: flex;
+        align-items: center;
+        gap: 0.5rem;
+    }
+
+    .filter-label i {
+        color: #009EDB;
+        font-size: 1rem;
+    }
+
+    .filter-select,
+    .filter-input {
+        width: 100%;
+        padding: 0.625rem 0.875rem;
+        border: 1px solid #d1d5db;
+        border-radius: 8px;
+        font-size: 0.875rem;
+        background: #ffffff;
+        color: #1e293b;
+        transition: all 0.2s;
+        appearance: none;
+    }
+
+    .filter-select {
+        background-image: url("data:image/svg+xml,%3csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 16 16'%3e%3cpath fill='none' stroke='%23475569' stroke-linecap='round' stroke-linejoin='round' stroke-width='2' d='M2 5l6 6 6-6'/%3e%3c/svg%3e");
+        background-repeat: no-repeat;
+        background-position: right 12px center;
+        background-size: 14px 10px;
+        padding-right: 2.5rem;
+    }
+
+    .filter-select:hover,
+    .filter-input:hover {
+        border-color: #009EDB;
+    }
+
+    .filter-select:focus,
+    .filter-input:focus {
+        outline: none;
+        border-color: #009EDB;
+        box-shadow: 0 0 0 3px rgba(0, 158, 219, 0.1);
+    }
+
+    .filter-input::placeholder {
+        color: #9ca3af;
+    }
+
+    .filter-actions {
+        display: flex;
+        gap: 0.75rem;
+        align-items: flex-end;
+        grid-column: span 1;
+    }
+
+    .clear-filter-btn {
+        background: #ffffff;
+        color: #ef4444;
+        border: 1px solid #ef4444;
+        padding: 0.625rem 1.25rem;
+        border-radius: 8px;
+        font-size: 0.875rem;
+        font-weight: 600;
+        cursor: pointer;
+        transition: all 0.2s;
+        display: inline-flex;
+        align-items: center;
+        gap: 0.5rem;
+        text-decoration: none;
+        white-space: nowrap;
+    }
+
+    .clear-filter-btn:hover {
+        background: #fef2f2;
+        color: #dc2626;
+        border-color: #dc2626;
+        text-decoration: none;
+        transform: translateY(-1px);
+    }
+
+    /* Table Styles */
+    .organization-row {
+        transition: all 0.2s ease;
+        border-bottom: 1px solid #f3f4f6;
+    }
+
+    .organization-row:hover {
+        background-color: #f9fafb;
+        transform: translateX(2px);
+        box-shadow: 0 2px 4px rgba(0, 0, 0, 0.05);
+    }
+
+    .office-row {
+        background-color: #ffffff;
+        transition: all 0.2s ease;
+    }
+
+    .office-row:hover {
+        background-color: #f9fafb;
+        transform: translateX(2px);
+    }
+
+    .sub-office-row {
+        background-color: #f8f9fa;
+        border-left: 3px solid #6c757d;
+    }
+
+    .sub-office-row td:first-child {
+        padding-left: 2rem;
+    }
+
+    .sub-office-row:hover {
+        background-color: #e9ecef;
+    }
+
+    /* Badge Styles */
+    .badge {
+        transition: all 0.2s ease;
+        font-weight: 500;
+        padding: 0.35rem 0.65rem;
+    }
+
+    .badge:hover {
+        transform: translateY(-1px);
+        box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+    }
+
+    /* Modern Form Styling */
+    .form-control-modern {
+        background-color: #f8f9fa;
+        border: 2px solid transparent;
+        border-radius: 12px;
+        height: 48px;
+        padding: 0 16px;
+        font-size: 15px;
+        font-weight: 500;
+        color: #2d3748;
+        transition: all 0.3s ease;
+    }
+
+    .form-control-modern:hover {
+        background-color: #e2e8f0;
+        border-color: #cbd5e0;
+    }
+
+    .form-control-modern:focus {
+        background-color: #ffffff;
+        border-color: #10b981;
+        box-shadow: 0 0 0 4px rgba(16, 185, 129, 0.1);
+        outline: none;
+    }
+
+    .form-label-modern {
+        display: block;
+        font-size: 13px;
+        font-weight: 600;
+        color: #4a5568;
+        margin-bottom: 8px;
+        text-transform: uppercase;
+        letter-spacing: 0.05em;
+    }
+
+    .form-group-modern {
+        margin-bottom: 20px;
+    }
+
+    textarea.form-control-modern {
+        height: auto;
+        min-height: 100px;
+        padding: 12px 16px;
+    }
+
+    /* Responsive Design */
+    @@media (max-width: 768px) {
+        .header-content {
+            flex-direction: column;
+            text-align: center;
+        }
+
+        .header-actions {
+            width: 100%;
+            justify-content: center;
+        }
+
+        .filter-grid {
+            grid-template-columns: 1fr;
+        }
+    }
+</style>
+
+<!-- Welcome Banner -->
+<div class="dashboard-header">
+    <div class="header-content">
+        <div class="welcome-section">
+            <h1 class="dashboard-title">
+                <i class="bi bi-geo-alt-fill me-2"></i>
+                Welcome Back, @Model.CurrentUserName
+            </h1>
+            <p class="dashboard-subtitle">
+                Manage offices and sub-offices across the organization
+            </p>
+        </div>
+        <div class="header-actions">
+            <div class="current-date">
+                <i class="bi bi-calendar3"></i>
+                <span>@DateTime.Now.ToString("dddd, MMMM dd, yyyy")</span>
+            </div>
+            <div class="d-flex gap-2">
+                <button type="button" class="create-btn" data-bs-toggle="modal" data-bs-target="#officeModal" onclick="openOfficeModal()">
+                    <i class="bi bi-plus-circle"></i>
+                    <span>Add Office</span>
+                </button>
+                <button type="button" class="create-btn" data-bs-toggle="modal" data-bs-target="#subOfficeModal" onclick="openSubOfficeModal()">
+                    <i class="bi bi-plus-circle"></i>
+                    <span>Add Sub-Office</span>
+                </button>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Filter Section (Collapsible) -->
+<div class="mb-3">
+    <button class="btn btn-outline-primary" type="button" data-bs-toggle="collapse" data-bs-target="#filterCollapse" aria-expanded="false" aria-controls="filterCollapse">
+        <i class="bi bi-funnel"></i> Show Filters
+    </button>
+</div>
+<div class="collapse" id="filterCollapse">
+    <div class="filter-section">
+        <form method="get" class="filter-form" id="filterForm">
+            <div class="filter-grid">
+                <div class="filter-group">
+                    <label class="filter-label" for="searchFilter">
+                        <i class="bi bi-search"></i> Search
+                    </label>
+                    <input type="text" name="SearchTerm" id="searchFilter" class="filter-input filter-search-input"
+                           placeholder="Office name or description..." value="@Model.SearchTerm" />
+                </div>
+
+                <div class="filter-group">
+                    <label class="filter-label" for="organizationFilter">
+                        <i class="bi bi-building"></i> Organization
+                    </label>
+                    <select name="SelectedOrganizationId" id="organizationFilter" class="filter-select filter-auto-submit">
+                        <option value="">All Organizations</option>
+                        @foreach (var org in Model.Organizations)
+                        {
+                            <option value="@org.Value" selected="@(org.Value == Model.SelectedOrganizationId?.ToString())">
+                                @org.Text
+                            </option>
+                        }
+                    </select>
+                </div>
+
+                <div class="filter-group">
+                    <label class="filter-label" for="usersFilter">
+                        <i class="bi bi-people"></i> Has Users
+                    </label>
+                    <select name="HasUsers" id="usersFilter" class="filter-select filter-auto-submit">
+                        <option value="">All Offices</option>
+                        <option value="true" selected="@(Model.HasUsers == true)">With Users</option>
+                        <option value="false" selected="@(Model.HasUsers == false)">Without Users</option>
+                    </select>
+                </div>
+
+                <div class="filter-actions">
+                    @if (!string.IsNullOrEmpty(Model.SearchTerm) || Model.SelectedOrganizationId != null || Model.HasUsers != null)
+                    {
+                        <a href="/Admin/Offices" class="clear-filter-btn">
+                            <i class="bi bi-x-circle"></i> Clear All
+                        </a>
+                    }
+                </div>
+            </div>
+        </form>
+    </div>
+</div>
+
+@if (!string.IsNullOrEmpty(Model.StatusMessage))
+{
+    <div class="alert alert-@Model.StatusMessageClass alert-dismissible fade show" role="alert">
+        @Model.StatusMessage
+        <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
+    </div>
+}
+
+@if (Model.Organizations == null || !Model.Organizations.Any())
+{
+    <div class="alert alert-warning" role="alert">
+        <h4 class="alert-heading">No Organizations Available!</h4>
+        <p>You must create at least one organization before you can create offices.</p>
+        <hr>
+        <p class="mb-0">
+            <a href="/Admin/Organizations" class="btn btn-primary">
+                <i class="bi bi-building"></i> Go to Organizations
+            </a>
+        </p>
+    </div>
+}
+else
+{
+    <!-- Page Size Selector and Action Buttons -->
+    <div class="d-flex justify-content-between align-items-center mb-3">
+        <div class="d-flex align-items-center gap-2">
+            <label class="mb-0" style="font-size: 14px; color: #4b5563;">Show</label>
+            <form method="get" id="pageSizeForm" class="d-inline-block">
+                <!-- Preserve filter parameters when changing page size -->
+                <input type="hidden" name="SearchTerm" value="@Model.SearchTerm" />
+                <input type="hidden" name="SelectedOrganizationId" value="@Model.SelectedOrganizationId" />
+                <input type="hidden" name="HasUsers" value="@Model.HasUsers" />
+                <select name="PageSize" class="form-select form-select-sm" style="width: auto;" onchange="document.getElementById('pageSizeForm').submit()">
+                    <option value="10" selected="@(Model.PageSize == 10)">10</option>
+                    <option value="20" selected="@(Model.PageSize == 20)">20</option>
+                    <option value="50" selected="@(Model.PageSize == 50)">50</option>
+                    <option value="100" selected="@(Model.PageSize == 100)">100</option>
+                </select>
+            </form>
+            <label class="mb-0" style="font-size: 14px; color: #4b5563;">entries per page</label>
+        </div>
+        <div class="text-muted" style="font-size: 14px;">
+            Showing @((Model.PageNumber - 1) * Model.PageSize + 1) to
+            @Math.Min(Model.PageNumber * Model.PageSize, Model.TotalRecords)
+            of @Model.TotalRecords offices
+        </div>
+    </div>
+
+    <!-- Offices Table -->
+    <div class="card border-0 shadow-sm" style="border-radius: 16px;">
+        <div class="card-header bg-white border-0 py-4" style="border-radius: 16px 16px 0 0;">
+            <div class="d-flex justify-content-between align-items-center">
+                <div>
+                    <h5 class="card-title mb-1 fw-bold text-dark">
+                        <i class="bi bi-geo-alt-fill me-2"></i>Offices Directory
+                    </h5>
+                    <p class="mb-0 text-muted">Manage office locations and sub-offices</p>
+                </div>
+                <div class="input-group" style="max-width: 300px;">
+                    <span class="input-group-text bg-light border-0">
+                        <i class="bi bi-search"></i>
+                    </span>
+                    <input type="text" class="form-control border-0 bg-light"
+                           id="searchTable" placeholder="Search offices..."
+                           style="border-radius: 0 8px 8px 0;">
+                </div>
+            </div>
+        </div>
+        <div class="card-body p-0">
+            <div class="table-responsive">
+                <table class="table table-hover mb-0" id="officesTable">
+                    <thead style="background-color: #f8f9fa;">
+                        <tr>
+                            <th class="border-0 px-4 py-3" style="font-weight: 600; color: #4a5568; text-transform: uppercase; font-size: 12px; letter-spacing: 0.5px;">
+                                <i class="bi bi-tag me-2"></i>Type
+                            </th>
+                            <th class="border-0 px-3 py-3" style="font-weight: 600; color: #4a5568; text-transform: uppercase; font-size: 12px; letter-spacing: 0.5px;">
+                                <i class="bi bi-geo-alt me-2"></i>Name
+                            </th>
+                            <th class="border-0 px-3 py-3" style="font-weight: 600; color: #4a5568; text-transform: uppercase; font-size: 12px; letter-spacing: 0.5px;">
+                                <i class="bi bi-hash me-2"></i>Code
+                            </th>
+                            <th class="border-0 px-3 py-3" style="font-weight: 600; color: #4a5568; text-transform: uppercase; font-size: 12px; letter-spacing: 0.5px;">
+                                <i class="bi bi-building me-2"></i>Parent/Organization
+                            </th>
+                            <th class="border-0 px-3 py-3" style="font-weight: 600; color: #4a5568; text-transform: uppercase; font-size: 12px; letter-spacing: 0.5px;">
+                                <i class="bi bi-info-circle me-2"></i>Details
+                            </th>
+                            <th class="border-0 px-3 py-3" style="font-weight: 600; color: #4a5568; text-transform: uppercase; font-size: 12px; letter-spacing: 0.5px;">
+                                <i class="bi bi-people me-2"></i>Users
+                            </th>
+                            <th class="border-0 px-3 py-3" style="font-weight: 600; color: #4a5568; text-transform: uppercase; font-size: 12px; letter-spacing: 0.5px;">
+                                <i class="bi bi-check-circle me-2"></i>Status
+                            </th>
+                            <th class="border-0 px-3 py-3 text-center" style="font-weight: 600; color: #4a5568; text-transform: uppercase; font-size: 12px; letter-spacing: 0.5px; width: 120px;">
+                                <i class="bi bi-gear me-2"></i>Actions
+                            </th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        @if (Model.Offices.Any() || Model.SubOffices.Any())
+                        {
+                            @foreach (var office in Model.Offices.OrderBy(o => o.Organization.Name).ThenBy(o => o.Name))
+                            {
+                                <!-- Office Row -->
+                                <tr class="office-row organization-row">
+                                    <td class="px-4 py-3">
+                                        <span class="badge rounded-pill bg-primary">Office</span>
+                                    </td>
+                                    <td class="px-3 py-3">
+                                        <div class="d-flex align-items-center">
+                                            <div>
+                                                <div class="fw-semibold text-dark">@office.Name</div>
+                                                @if (!string.IsNullOrEmpty(office.Description))
+                                                {
+                                                    <div class="text-muted small">@office.Description</div>
+                                                }
+                                            </div>
+                                        </div>
+                                    </td>
+                                    <td class="px-3 py-3">
+                                        @if (!string.IsNullOrEmpty(office.Code))
+                                        {
+                                            <span class="badge bg-secondary">@office.Code</span>
+                                        }
+                                        else
+                                        {
+                                            <span class="text-muted">-</span>
+                                        }
+                                    </td>
+                                    <td class="px-3 py-3">
+                                        <span class="badge rounded-pill bg-info bg-opacity-10 text-info">@office.Organization.Name</span>
+                                    </td>
+                                    <td class="px-3 py-3">
+                                        <span class="badge rounded-pill bg-secondary bg-opacity-10 text-secondary">
+                                            <i class="bi bi-diagram-3 me-1"></i>@office.SubOffices.Count sub-offices
+                                        </span>
+                                    </td>
+                                    <td class="px-3 py-3">
+                                        <span class="badge rounded-pill bg-warning bg-opacity-10 text-warning">
+                                            <i class="bi bi-people me-1"></i>@office.Users.Count
+                                        </span>
+                                    </td>
+                                    <td class="px-3 py-3">
+                                        <span class="badge rounded-pill bg-success bg-opacity-10 text-success">
+                                            <i class="bi bi-check-circle me-1"></i>Active
+                                        </span>
+                                    </td>
+                                    <td class="px-3 py-3 text-center">
+                                        <div class="btn-group" role="group">
+                                            <button type="button" class="btn btn-sm btn-outline-primary" onclick="editOffice(@office.Id, '@office.Name', '@(office.Code ?? "")', '@office.OrganizationId', '@(office.Description?.Replace("'", "\\'") ?? "")')">
+                                                <i class="bi bi-pencil"></i>
+                                            </button>
+                                            <button type="button" class="btn btn-sm btn-outline-danger"
+                                                    onclick="confirmDeleteOffice(@office.Id, '@office.Name')">
+                                                <i class="bi bi-trash"></i>
+                                            </button>
+                                        </div>
+                                    </td>
+                                </tr>
+
+                                <!-- Sub-Office Rows for this Office -->
+                                @foreach (var subOffice in office.SubOffices.OrderBy(s => s.Name))
+                                {
+                                    <tr class="sub-office-row">
+                                        <td class="px-4 py-3">
+                                            <span class="badge rounded-pill bg-secondary">Sub-Office</span>
+                                        </td>
+                                        <td class="px-3 py-3">
+                                            <div class="d-flex align-items-center">
+                                                <div>
+                                                    <div class="text-dark">└─ @subOffice.Name</div>
+                                                    @if (!string.IsNullOrEmpty(subOffice.ContactPerson))
+                                                    {
+                                                        <div class="text-muted small">
+                                                            <i class="bi bi-person me-1"></i>@subOffice.ContactPerson
+                                                        </div>
+                                                    }
+                                                </div>
+                                            </div>
+                                        </td>
+                                        <td class="px-3 py-3">
+                                            @if (!string.IsNullOrEmpty(subOffice.Code))
+                                            {
+                                                <span class="badge bg-secondary">@subOffice.Code</span>
+                                            }
+                                            else
+                                            {
+                                                <span class="text-muted">-</span>
+                                            }
+                                        </td>
+                                        <td class="px-3 py-3">
+                                            <small class="text-muted">@office.Name</small>
+                                        </td>
+                                        <td class="px-3 py-3">
+                                            <div class="small">
+                                                @if (!string.IsNullOrEmpty(subOffice.PhoneNumber))
+                                                {
+                                                    <div><i class="bi bi-telephone me-1"></i>@subOffice.PhoneNumber</div>
+                                                }
+                                                @if (!string.IsNullOrEmpty(subOffice.Email))
+                                                {
+                                                    <div><i class="bi bi-envelope me-1"></i>@subOffice.Email</div>
+                                                }
+                                                @if (string.IsNullOrEmpty(subOffice.PhoneNumber) && string.IsNullOrEmpty(subOffice.Email))
+                                                {
+                                                    <span class="text-muted">-</span>
+                                                }
+                                            </div>
+                                        </td>
+                                        <td class="px-3 py-3">
+                                            <span class="badge rounded-pill bg-warning bg-opacity-10 text-warning">
+                                                <i class="bi bi-people me-1"></i>@subOffice.Users.Count
+                                            </span>
+                                        </td>
+                                        <td class="px-3 py-3">
+                                            @if (subOffice.IsActive)
+                                            {
+                                                <span class="badge rounded-pill bg-success bg-opacity-10 text-success">
+                                                    <i class="bi bi-check-circle me-1"></i>Active
+                                                </span>
+                                            }
+                                            else
+                                            {
+                                                <span class="badge rounded-pill bg-secondary bg-opacity-10 text-secondary">
+                                                    <i class="bi bi-x-circle me-1"></i>Inactive
+                                                </span>
+                                            }
+                                        </td>
+                                        <td class="px-3 py-3 text-center">
+                                            <div class="btn-group" role="group">
+                                                <button type="button" class="btn btn-sm btn-outline-primary" onclick="editSubOffice(@subOffice.Id, '@subOffice.Name', '@(subOffice.Description?.Replace("'", "\\'") ?? "")', '@(subOffice.ContactPerson?.Replace("'", "\\'") ?? "")', '@(subOffice.PhoneNumber?.Replace("'", "\\'") ?? "")', '@(subOffice.Email?.Replace("'", "\\'") ?? "")', '@(subOffice.Address?.Replace("'", "\\'") ?? "")', @subOffice.OfficeId, @(subOffice.IsActive ? "true" : "false"))">
+                                                    <i class="bi bi-pencil"></i>
+                                                </button>
+                                                <button type="button" class="btn btn-sm btn-outline-danger"
+                                                        onclick="confirmDeleteSubOffice(@subOffice.Id, '@subOffice.Name')">
+                                                    <i class="bi bi-trash"></i>
+                                                </button>
+                                            </div>
+                                        </td>
+                                    </tr>
+                                }
+                            }
+                        }
+                        else
+                        {
+                            <tr>
+                                <td colspan="7" class="text-center py-5">
+                                    <div class="text-muted">
+                                        <i class="bi bi-geo-alt" style="font-size: 48px;"></i>
+                                        <p class="mt-2">No offices found. Click "Add Office" to get started.</p>
+                                    </div>
+                                </td>
+                            </tr>
+                        }
+                    </tbody>
+                </table>
+            </div>
+
+            <!-- Pagination Controls -->
+            @if (Model.TotalPages > 1)
+            {
+                <div class="card-footer bg-white border-0 pt-3 pb-3">
+                    <nav aria-label="Page navigation">
+                        <ul class="pagination justify-content-center mb-0">
+                            <!-- First Page -->
+                            <li class="page-item @(Model.PageNumber == 1 ? "disabled" : "")">
+                                <a class="page-link" href="?PageNumber=1&PageSize=@Model.PageSize&SearchTerm=@Model.SearchTerm&SelectedOrganizationId=@Model.SelectedOrganizationId&HasUsers=@Model.HasUsers"
+                                   aria-label="First">
+                                    <span aria-hidden="true">&laquo;&laquo;</span>
+                                </a>
+                            </li>
+
+                            <!-- Previous Page -->
+                            <li class="page-item @(!Model.HasPreviousPage ? "disabled" : "")">
+                                <a class="page-link" href="?PageNumber=@(Model.PageNumber - 1)&PageSize=@Model.PageSize&SearchTerm=@Model.SearchTerm&SelectedOrganizationId=@Model.SelectedOrganizationId&HasUsers=@Model.HasUsers"
+                                   aria-label="Previous">
+                                    <span aria-hidden="true">&laquo;</span>
+                                </a>
+                            </li>
+
+                            <!-- Page Numbers -->
+                            @{
+                                int startPage = Math.Max(1, Model.PageNumber - 2);
+                                int endPage = Math.Min(Model.TotalPages, Model.PageNumber + 2);
+
+                                if (startPage > 1)
+                                {
+                                    <li class="page-item">
+                                        <a class="page-link" href="?PageNumber=1&PageSize=@Model.PageSize&SearchTerm=@Model.SearchTerm&SelectedOrganizationId=@Model.SelectedOrganizationId&HasUsers=@Model.HasUsers">1</a>
+                                    </li>
+                                    if (startPage > 2)
+                                    {
+                                        <li class="page-item disabled"><span class="page-link">...</span></li>
+                                    }
+                                }
+
+                                for (int i = startPage; i <= endPage; i++)
+                                {
+                                    <li class="page-item @(i == Model.PageNumber ? "active" : "")">
+                                        <a class="page-link" href="?PageNumber=@i&PageSize=@Model.PageSize&SearchTerm=@Model.SearchTerm&SelectedOrganizationId=@Model.SelectedOrganizationId&HasUsers=@Model.HasUsers">@i</a>
+                                    </li>
+                                }
+
+                                if (endPage < Model.TotalPages)
+                                {
+                                    if (endPage < Model.TotalPages - 1)
+                                    {
+                                        <li class="page-item disabled"><span class="page-link">...</span></li>
+                                    }
+                                    <li class="page-item">
+                                        <a class="page-link" href="?PageNumber=@Model.TotalPages&PageSize=@Model.PageSize&SearchTerm=@Model.SearchTerm&SelectedOrganizationId=@Model.SelectedOrganizationId&HasUsers=@Model.HasUsers">@Model.TotalPages</a>
+                                    </li>
+                                }
+                            }
+
+                            <!-- Next Page -->
+                            <li class="page-item @(!Model.HasNextPage ? "disabled" : "")">
+                                <a class="page-link" href="?PageNumber=@(Model.PageNumber + 1)&PageSize=@Model.PageSize&SearchTerm=@Model.SearchTerm&SelectedOrganizationId=@Model.SelectedOrganizationId&HasUsers=@Model.HasUsers"
+                                   aria-label="Next">
+                                    <span aria-hidden="true">&raquo;</span>
+                                </a>
+                            </li>
+
+                            <!-- Last Page -->
+                            <li class="page-item @(Model.PageNumber == Model.TotalPages ? "disabled" : "")">
+                                <a class="page-link" href="?PageNumber=@Model.TotalPages&PageSize=@Model.PageSize&SearchTerm=@Model.SearchTerm&SelectedOrganizationId=@Model.SelectedOrganizationId&HasUsers=@Model.HasUsers"
+                                   aria-label="Last">
+                                    <span aria-hidden="true">&raquo;&raquo;</span>
+                                </a>
+                            </li>
+                        </ul>
+                    </nav>
+                </div>
+            }
+        </div>
+    </div>
+}
+
+<!-- Office Modal -->
+<div class="modal fade" id="officeModal" tabindex="-1" aria-labelledby="officeModalLabel" aria-hidden="true">
+    <div class="modal-dialog modal-dialog-centered">
+        <div class="modal-content border-0 shadow-lg" style="border-radius: 20px;">
+            <div class="modal-header border-0 pb-0" style="padding: 2rem 2rem 1rem 2rem;">
+                <div class="w-100 text-center">
+                    <div class="mb-3">
+                        <div class="bg-success bg-opacity-10 rounded-circle d-inline-flex align-items-center justify-content-center" style="width: 60px; height: 60px;">
+                            <i class="bi bi-building text-success" style="font-size: 24px;"></i>
+                        </div>
+                    </div>
+                    <h4 class="modal-title fw-bold text-dark mb-1" id="officeModalLabel">Add New Office</h4>
+                    <p class="text-muted mb-0">Create a new office location</p>
+                </div>
+                <button type="button" class="btn-close position-absolute" data-bs-dismiss="modal" aria-label="Close" style="top: 1rem; right: 1rem;"></button>
+            </div>
+            <form method="post" id="officeForm" asp-page-handler="CreateOffice">
+                <input asp-for="Input.Id" type="hidden" id="officeId" />
+                <div class="modal-body" style="padding: 1rem 2rem;">
+                    <div class="form-group-modern">
+                        <label asp-for="Input.Name" class="form-label-modern">Office Name</label>
+                        <input asp-for="Input.Name" class="form-control form-control-modern" placeholder="Enter office name" required />
+                        <span asp-validation-for="Input.Name" class="text-danger small"></span>
+                    </div>
+                    <div class="form-group-modern">
+                        <label asp-for="Input.Code" class="form-label-modern">Code (Short Name)</label>
+                        <input asp-for="Input.Code" class="form-control form-control-modern" placeholder="Enter short code (e.g., HQ, BR1)" maxlength="10" />
+                        <span asp-validation-for="Input.Code" class="text-danger small"></span>
+                    </div>
+                    <div class="form-group-modern">
+                        <label asp-for="Input.OrganizationId" class="form-label-modern">Organization</label>
+                        <select asp-for="Input.OrganizationId" class="form-control form-control-modern" required>
+                            <option value="">Select Organization</option>
+                            @foreach (var org in Model.Organizations)
+                            {
+                                <option value="@org.Value">@org.Text</option>
+                            }
+                        </select>
+                        <span asp-validation-for="Input.OrganizationId" class="text-danger small"></span>
+                    </div>
+                    <div class="form-group-modern">
+                        <label asp-for="Input.Description" class="form-label-modern">Description</label>
+                        <textarea asp-for="Input.Description" class="form-control form-control-modern" placeholder="Enter office description (optional)" rows="3"></textarea>
+                        <span asp-validation-for="Input.Description" class="text-danger small"></span>
+                    </div>
+                </div>
+                <div class="modal-footer border-0 pt-0" style="padding: 1rem 2rem 2rem 2rem;">
+                    <div class="d-grid gap-2 d-md-flex justify-content-md-end w-100">
+                        <button type="button" class="btn btn-light me-md-2 px-4 py-2" data-bs-dismiss="modal" style="border-radius: 12px; font-weight: 500;">Cancel</button>
+                        <button type="submit" class="btn btn-success px-4 py-2" style="border-radius: 12px; font-weight: 500;">
+                            <i class="bi bi-check-circle me-2"></i>Save Office
+                        </button>
+                    </div>
+                </div>
+            </form>
+        </div>
+    </div>
+</div>
+
+<!-- Sub-Office Modal -->
+<div class="modal fade" id="subOfficeModal" tabindex="-1" aria-labelledby="subOfficeModalLabel" aria-hidden="true">
+    <div class="modal-dialog modal-dialog-centered modal-lg">
+        <div class="modal-content border-0 shadow-lg" style="border-radius: 20px;">
+            <div class="modal-header border-0 pb-0" style="padding: 2rem 2rem 1rem 2rem;">
+                <div class="w-100 text-center">
+                    <div class="mb-3">
+                        <div class="bg-info bg-opacity-10 rounded-circle d-inline-flex align-items-center justify-content-center" style="width: 60px; height: 60px;">
+                            <i class="bi bi-diagram-3 text-info" style="font-size: 24px;"></i>
+                        </div>
+                    </div>
+                    <h4 class="modal-title fw-bold text-dark mb-1" id="subOfficeModalLabel">Add New Sub-Office</h4>
+                    <p class="text-muted mb-0">Create a sub-office under an existing office</p>
+                </div>
+                <button type="button" class="btn-close position-absolute" data-bs-dismiss="modal" aria-label="Close" style="top: 1rem; right: 1rem;"></button>
+            </div>
+            <form method="post" id="subOfficeForm" asp-page-handler="CreateSubOffice">
+                <input asp-for="SubOfficeInput.Id" type="hidden" id="subOfficeId" />
+                <div class="modal-body" style="padding: 1rem 2rem;">
+                    <div class="row">
+                        <div class="col-md-6">
+                            <div class="form-group-modern">
+                                <label asp-for="SubOfficeInput.Name" class="form-label-modern">Sub-Office Name</label>
+                                <input asp-for="SubOfficeInput.Name" class="form-control form-control-modern" placeholder="Enter sub-office name" required />
+                                <span asp-validation-for="SubOfficeInput.Name" class="text-danger small"></span>
+                            </div>
+                        </div>
+                        <div class="col-md-6">
+                            <div class="form-group-modern">
+                                <label asp-for="SubOfficeInput.Code" class="form-label-modern">Code (Short Name)</label>
+                                <input asp-for="SubOfficeInput.Code" class="form-control form-control-modern" placeholder="Enter short code (e.g., SUB1, BR-A)" maxlength="10" />
+                                <span asp-validation-for="SubOfficeInput.Code" class="text-danger small"></span>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="row">
+                        <div class="col-md-6">
+                            <div class="form-group-modern">
+                                <label asp-for="SubOfficeInput.OfficeId" class="form-label-modern">Parent Office</label>
+                                <select asp-for="SubOfficeInput.OfficeId" class="form-control form-control-modern" required>
+                                    <option value="">Select Parent Office</option>
+                                    @foreach (var office in Model.OfficesList)
+                                    {
+                                        <option value="@office.Value">@office.Text</option>
+                                    }
+                                </select>
+                                <span asp-validation-for="SubOfficeInput.OfficeId" class="text-danger small"></span>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="row">
+                        <div class="col-md-6">
+                            <div class="form-group-modern">
+                                <label asp-for="SubOfficeInput.ContactPerson" class="form-label-modern">Contact Person</label>
+                                <input asp-for="SubOfficeInput.ContactPerson" class="form-control form-control-modern" placeholder="Enter contact person name" />
+                                <span asp-validation-for="SubOfficeInput.ContactPerson" class="text-danger small"></span>
+                            </div>
+                        </div>
+                        <div class="col-md-6">
+                            <div class="form-group-modern">
+                                <label asp-for="SubOfficeInput.PhoneNumber" class="form-label-modern">Phone Number</label>
+                                <input asp-for="SubOfficeInput.PhoneNumber" class="form-control form-control-modern" placeholder="Enter phone number" />
+                                <span asp-validation-for="SubOfficeInput.PhoneNumber" class="text-danger small"></span>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="row">
+                        <div class="col-md-6">
+                            <div class="form-group-modern">
+                                <label asp-for="SubOfficeInput.Email" class="form-label-modern">Email</label>
+                                <input asp-for="SubOfficeInput.Email" type="email" class="form-control form-control-modern" placeholder="Enter email address" />
+                                <span asp-validation-for="SubOfficeInput.Email" class="text-danger small"></span>
+                            </div>
+                        </div>
+                        <div class="col-md-6">
+                            <div class="form-group-modern">
+                                <label asp-for="SubOfficeInput.IsActive" class="form-label-modern">Status</label>
+                                <select asp-for="SubOfficeInput.IsActive" class="form-control form-control-modern">
+                                    <option value="true">Active</option>
+                                    <option value="false">Inactive</option>
+                                </select>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="form-group-modern">
+                        <label asp-for="SubOfficeInput.Address" class="form-label-modern">Address</label>
+                        <input asp-for="SubOfficeInput.Address" class="form-control form-control-modern" placeholder="Enter address" />
+                        <span asp-validation-for="SubOfficeInput.Address" class="text-danger small"></span>
+                    </div>
+                    <div class="form-group-modern">
+                        <label asp-for="SubOfficeInput.Description" class="form-label-modern">Description</label>
+                        <textarea asp-for="SubOfficeInput.Description" class="form-control form-control-modern" placeholder="Enter description (optional)" rows="3"></textarea>
+                        <span asp-validation-for="SubOfficeInput.Description" class="text-danger small"></span>
+                    </div>
+                </div>
+                <div class="modal-footer border-0 pt-0" style="padding: 1rem 2rem 2rem 2rem;">
+                    <div class="d-grid gap-2 d-md-flex justify-content-md-end w-100">
+                        <button type="button" class="btn btn-light me-md-2 px-4 py-2" data-bs-dismiss="modal" style="border-radius: 12px; font-weight: 500;">Cancel</button>
+                        <button type="submit" class="btn btn-info px-4 py-2" style="border-radius: 12px; font-weight: 500;">
+                            <i class="bi bi-check-circle me-2"></i>Save Sub-Office
+                        </button>
+                    </div>
+                </div>
+            </form>
+        </div>
+    </div>
+</div>
+
+<!-- Delete Office Confirmation Modal -->
+<div class="modal fade" id="deleteOfficeModal" tabindex="-1" aria-labelledby="deleteOfficeModalLabel" aria-hidden="true">
+    <div class="modal-dialog modal-dialog-centered">
+        <div class="modal-content" style="border-radius: 16px; overflow: hidden; border: none;">
+            <div class="modal-header border-0" style="background: linear-gradient(135deg, #dc3545 0%, #c82333 100%); padding: 1.5rem 2rem;">
+                <h5 class="modal-title text-white" id="deleteOfficeModalLabel">
+                    <i class="bi bi-exclamation-triangle me-2"></i>Confirm Delete Office
+                </h5>
+                <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal" aria-label="Close"></button>
+            </div>
+            <div class="modal-body" style="padding: 2rem;">
+                <div class="text-center mb-3">
+                    <i class="bi bi-trash text-danger" style="font-size: 3rem;"></i>
+                </div>
+                <h6 class="text-center mb-3">Are you sure you want to delete this office?</h6>
+                <p class="text-center text-muted mb-0">
+                    <strong id="deleteOfficeName"></strong>
+                </p>
+                <div class="alert alert-warning mt-3" role="alert">
+                    <i class="bi bi-exclamation-triangle-fill me-2"></i>
+                    This action cannot be undone.
+                </div>
+            </div>
+            <div class="modal-footer border-0" style="padding: 1rem 2rem 2rem 2rem;">
+                <button type="button" class="btn btn-secondary px-4" data-bs-dismiss="modal">Cancel</button>
+                <form method="post" asp-page-handler="DeleteOffice" id="deleteOfficeForm" style="display: inline;">
+                    <input type="hidden" name="id" id="deleteOfficeId" />
+                    <button type="submit" class="btn btn-danger px-4">
+                        <i class="bi bi-trash me-2"></i>Delete Office
+                    </button>
+                </form>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Delete Sub-Office Confirmation Modal -->
+<div class="modal fade" id="deleteSubOfficeModal" tabindex="-1" aria-labelledby="deleteSubOfficeModalLabel" aria-hidden="true">
+    <div class="modal-dialog modal-dialog-centered">
+        <div class="modal-content" style="border-radius: 16px; overflow: hidden; border: none;">
+            <div class="modal-header border-0" style="background: linear-gradient(135deg, #dc3545 0%, #c82333 100%); padding: 1.5rem 2rem;">
+                <h5 class="modal-title text-white" id="deleteSubOfficeModalLabel">
+                    <i class="bi bi-exclamation-triangle me-2"></i>Confirm Delete Sub-Office
+                </h5>
+                <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal" aria-label="Close"></button>
+            </div>
+            <div class="modal-body" style="padding: 2rem;">
+                <div class="text-center mb-3">
+                    <i class="bi bi-trash text-danger" style="font-size: 3rem;"></i>
+                </div>
+                <h6 class="text-center mb-3">Are you sure you want to delete this sub-office?</h6>
+                <p class="text-center text-muted mb-0">
+                    <strong id="deleteSubOfficeName"></strong>
+                </p>
+                <div class="alert alert-warning mt-3" role="alert">
+                    <i class="bi bi-exclamation-triangle-fill me-2"></i>
+                    This action cannot be undone.
+                </div>
+            </div>
+            <div class="modal-footer border-0" style="padding: 1rem 2rem 2rem 2rem;">
+                <button type="button" class="btn btn-secondary px-4" data-bs-dismiss="modal">Cancel</button>
+                <form method="post" asp-page-handler="DeleteSubOffice" id="deleteSubOfficeForm" style="display: inline;">
+                    <input type="hidden" name="id" id="deleteSubOfficeId" />
+                    <button type="submit" class="btn btn-danger px-4">
+                        <i class="bi bi-trash me-2"></i>Delete Sub-Office
+                    </button>
+                </form>
+            </div>
+        </div>
+    </div>
+</div>
+
+@section Scripts {
+    <partial name="_ValidationScriptsPartial" />
+    <script>
+        // Auto-submit form on filter change
+        document.addEventListener('DOMContentLoaded', function() {
+            // Handle select changes
+            const autoSubmitElements = document.querySelectorAll('.filter-auto-submit');
+            autoSubmitElements.forEach(element => {
+                element.addEventListener('change', function() {
+                    document.getElementById('filterForm').submit();
+                });
+            });
+
+            // Handle search input with debounce
+            let searchTimeout;
+            const searchInput = document.querySelector('.filter-search-input');
+            if (searchInput) {
+                searchInput.addEventListener('input', function() {
+                    clearTimeout(searchTimeout);
+                    searchTimeout = setTimeout(() => {
+                        document.getElementById('filterForm').submit();
+                    }, 500); // Wait 500ms after user stops typing
+                });
+
+                // Also submit on Enter key
+                searchInput.addEventListener('keypress', function(e) {
+                    if (e.key === 'Enter') {
+                        e.preventDefault();
+                        clearTimeout(searchTimeout);
+                        document.getElementById('filterForm').submit();
+                    }
+                });
+            }
+
+            // Update button text when filters are shown/hidden
+            const filterToggle = document.querySelector('[data-bs-target="#filterCollapse"]');
+            const filterCollapse = document.getElementById('filterCollapse');
+            if (filterToggle && filterCollapse) {
+                filterCollapse.addEventListener('show.bs.collapse', function () {
+                    filterToggle.innerHTML = '<i class="bi bi-funnel-fill"></i> Hide Filters';
+                });
+                filterCollapse.addEventListener('hide.bs.collapse', function () {
+                    filterToggle.innerHTML = '<i class="bi bi-funnel"></i> Show Filters';
+                });
+
+                // Check if any filters are active and show the filter section
+                const hasActiveFilters = @Html.Raw((!string.IsNullOrEmpty(Model.SearchTerm) || Model.SelectedOrganizationId != null || Model.HasUsers != null).ToString().ToLower());
+                if (hasActiveFilters) {
+                    filterCollapse.classList.add('show');
+                    filterToggle.innerHTML = '<i class="bi bi-funnel-fill"></i> Hide Filters';
+                    filterToggle.setAttribute('aria-expanded', 'true');
+                }
+            }
+        });
+
+        function openOfficeModal() {
+            document.getElementById('officeModalLabel').textContent = 'Add New Office';
+            document.getElementById('officeForm').action = '?handler=CreateOffice';
+            document.getElementById('officeId').value = '';
+            document.getElementById('Input_Name').value = '';
+            document.getElementById('Input_OrganizationId').value = '';
+            document.getElementById('Input_Description').value = '';
+        }
+
+        function editOffice(id, name, code, organizationId, description) {
+            document.getElementById('officeModalLabel').textContent = 'Edit Office';
+            document.getElementById('officeForm').action = '?handler=EditOffice';
+            document.getElementById('officeId').value = id;
+            document.getElementById('Input_Name').value = name;
+            document.getElementById('Input_Code').value = code || '';
+            document.getElementById('Input_OrganizationId').value = organizationId;
+            document.getElementById('Input_Description').value = description;
+
+            var modal = new bootstrap.Modal(document.getElementById('officeModal'));
+            modal.show();
+        }
+
+        function openSubOfficeModal() {
+            document.getElementById('subOfficeModalLabel').textContent = 'Add New Sub-Office';
+            document.getElementById('subOfficeForm').action = '?handler=CreateSubOffice';
+            document.getElementById('subOfficeId').value = '';
+            document.getElementById('SubOfficeInput_Name').value = '';
+            document.getElementById('SubOfficeInput_OfficeId').value = '';
+            document.getElementById('SubOfficeInput_ContactPerson').value = '';
+            document.getElementById('SubOfficeInput_PhoneNumber').value = '';
+            document.getElementById('SubOfficeInput_Email').value = '';
+            document.getElementById('SubOfficeInput_Address').value = '';
+            document.getElementById('SubOfficeInput_Description').value = '';
+            document.getElementById('SubOfficeInput_IsActive').value = 'true';
+        }
+
+        function editSubOffice(id, name, description, contactPerson, phoneNumber, email, address, officeId, isActive) {
+            document.getElementById('subOfficeModalLabel').textContent = 'Edit Sub-Office';
+            document.getElementById('subOfficeForm').action = '?handler=EditSubOffice';
+            document.getElementById('subOfficeId').value = id;
+            document.getElementById('SubOfficeInput_Name').value = name;
+            document.getElementById('SubOfficeInput_Description').value = description;
+            document.getElementById('SubOfficeInput_ContactPerson').value = contactPerson;
+            document.getElementById('SubOfficeInput_PhoneNumber').value = phoneNumber;
+            document.getElementById('SubOfficeInput_Email').value = email;
+            document.getElementById('SubOfficeInput_Address').value = address;
+            document.getElementById('SubOfficeInput_OfficeId').value = officeId;
+            document.getElementById('SubOfficeInput_IsActive').value = isActive;
+
+            var modal = new bootstrap.Modal(document.getElementById('subOfficeModal'));
+            modal.show();
+        }
+
+        function confirmDeleteOffice(id, name) {
+            document.getElementById('deleteOfficeId').value = id;
+            document.getElementById('deleteOfficeName').textContent = name;
+            var modal = new bootstrap.Modal(document.getElementById('deleteOfficeModal'));
+            modal.show();
+        }
+
+        function confirmDeleteSubOffice(id, name) {
+            document.getElementById('deleteSubOfficeId').value = id;
+            document.getElementById('deleteSubOfficeName').textContent = name;
+            var modal = new bootstrap.Modal(document.getElementById('deleteSubOfficeModal'));
+            modal.show();
+        }
+
+        // Search functionality
+        document.getElementById('searchTable').addEventListener('keyup', function() {
+            const searchTerm = this.value.toLowerCase();
+            const rows = document.querySelectorAll('#officesTable tbody tr');
+
+            rows.forEach(row => {
+                const text = row.textContent.toLowerCase();
+                row.style.display = text.includes(searchTerm) ? '' : 'none';
+            });
+        });
+
+        // Add animation to badges
+        document.querySelectorAll('.badge').forEach(badge => {
+            badge.addEventListener('mouseenter', function() {
+                this.style.transform = 'translateY(-2px) scale(1.05)';
+            });
+            badge.addEventListener('mouseleave', function() {
+                this.style.transform = 'translateY(0) scale(1)';
+            });
+        });
+    </script>
+}

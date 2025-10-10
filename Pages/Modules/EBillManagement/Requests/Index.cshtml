@@ -1,0 +1,253 @@
+@page
+@model TAB.Web.Pages.Modules.EBillManagement.Requests.IndexModel
+@{
+    ViewData["Title"] = "E-Bill Management";
+    ViewData["PageIcon"] = "bi-receipt";
+    ViewData["PageTitle"] = "E-Bill Management";
+    ViewData["Breadcrumb"] = "Services / E-Bill";
+}
+
+<!-- Status Message -->
+@if (!string.IsNullOrEmpty(Model.StatusMessage))
+{
+    <div class="alert alert-@(Model.StatusMessageClass ?? "info") alert-dismissible fade show" role="alert">
+        <i class="bi bi-@(Model.StatusMessageClass == "success" ? "check-circle" : Model.StatusMessageClass == "danger" ? "exclamation-triangle" : "info-circle") me-2"></i>
+        @Model.StatusMessage
+        <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
+    </div>
+}
+
+<!-- Header Card -->
+<div class="card border-0 shadow-sm mb-4" style="border-radius: 20px;">
+    <div class="card-body p-4">
+        <div class="d-flex align-items-center">
+            <div class="bg-info bg-opacity-10 rounded-circle d-flex align-items-center justify-content-center me-3" 
+                 style="width: 60px; height: 60px;">
+                <i class="bi bi-receipt text-info" style="font-size: 24px;"></i>
+            </div>
+            <div>
+                <h5 class="card-title mb-1">E-Bill Management</h5>
+                <p class="text-muted mb-0">Submit and manage your electronic bills and payment requests</p>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Request Form -->
+<div class="card border-0 shadow-sm" style="border-radius: 20px;">
+    <div class="card-header bg-light border-0 py-3" style="border-radius: 20px 20px 0 0;">
+        <h6 class="mb-0 text-muted fw-semibold">
+            <i class="bi bi-form me-2"></i>
+            Bill Information
+        </h6>
+    </div>
+    <div class="card-body p-4">
+        <form method="post">
+            <div asp-validation-summary="All" class="text-danger mb-3"></div>
+            
+            <!-- Personal Information -->
+            <div class="mb-4">
+                <h6 class="text-muted text-uppercase fw-semibold mb-3" style="font-size: 0.75rem; letter-spacing: 1px;">Personal Information</h6>
+                <div class="row g-3">
+                    <div class="col-md-6">
+                        <div class="form-floating">
+                            <input asp-for="Ebill.FullName" class="form-control border-0 bg-light" 
+                                   style="border-radius: 12px; height: 58px;" required />
+                            <label asp-for="Ebill.FullName" class="text-muted"></label>
+                            <span asp-validation-for="Ebill.FullName" class="text-danger"></span>
+                        </div>
+                    </div>
+                    <div class="col-md-6">
+                        <div class="form-floating">
+                            <input asp-for="Ebill.Email" type="email" class="form-control border-0 bg-light" 
+                                   style="border-radius: 12px; height: 58px;" required />
+                            <label asp-for="Ebill.Email" class="text-muted"></label>
+                            <span asp-validation-for="Ebill.Email" class="text-danger"></span>
+                        </div>
+                    </div>
+                    <div class="col-md-6">
+                        <div class="form-floating">
+                            <input asp-for="Ebill.PhoneNumber" class="form-control border-0 bg-light" 
+                                   style="border-radius: 12px; height: 58px;" required />
+                            <label asp-for="Ebill.PhoneNumber" class="text-muted"></label>
+                            <span asp-validation-for="Ebill.PhoneNumber" class="text-danger"></span>
+                        </div>
+                    </div>
+                    <div class="col-md-6">
+                        <div class="form-floating">
+                            <input asp-for="Ebill.Department" class="form-control border-0 bg-light" 
+                                   style="border-radius: 12px; height: 58px;" required />
+                            <label asp-for="Ebill.Department" class="text-muted"></label>
+                            <span asp-validation-for="Ebill.Department" class="text-danger"></span>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Service Information -->
+            <div class="mb-4">
+                <h6 class="text-muted text-uppercase fw-semibold mb-3" style="font-size: 0.75rem; letter-spacing: 1px;">Service Information</h6>
+                <div class="row g-3">
+                    <div class="col-md-6">
+                        <div class="form-floating">
+                            <select asp-for="Ebill.ServiceProviderId" class="form-select border-0 bg-light" 
+                                    style="border-radius: 12px; height: 58px;" required>
+                                <option value="">Select Service Provider</option>
+                                @foreach (var provider in Model.ServiceProviders)
+                                {
+                                    <option value="@provider.Value">@provider.Text</option>
+                                }
+                            </select>
+                            <label asp-for="Ebill.ServiceProviderId" class="text-muted"></label>
+                            <span asp-validation-for="Ebill.ServiceProviderId" class="text-danger"></span>
+                        </div>
+                    </div>
+                    <div class="col-md-6">
+                        <div class="form-floating">
+                            <select asp-for="Ebill.BillType" class="form-select border-0 bg-light" 
+                                    style="border-radius: 12px; height: 58px;" required>
+                                <option value="">Select Bill Type</option>
+                                @foreach (var billType in Model.BillTypes)
+                                {
+                                    <option value="@billType.Value">@billType.Text</option>
+                                }
+                            </select>
+                            <label asp-for="Ebill.BillType" class="text-muted"></label>
+                            <span asp-validation-for="Ebill.BillType" class="text-danger"></span>
+                        </div>
+                    </div>
+                    <div class="col-md-12">
+                        <div class="form-floating">
+                            <input asp-for="Ebill.AccountNumber" class="form-control border-0 bg-light" 
+                                   style="border-radius: 12px; height: 58px;" required />
+                            <label asp-for="Ebill.AccountNumber" class="text-muted"></label>
+                            <span asp-validation-for="Ebill.AccountNumber" class="text-danger"></span>
+                        </div>
+                        <small class="text-muted mt-1 d-block">Your account number with the service provider</small>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Bill Details -->
+            <div class="mb-4">
+                <h6 class="text-muted text-uppercase fw-semibold mb-3" style="font-size: 0.75rem; letter-spacing: 1px;">Bill Details</h6>
+                <div class="row g-3">
+                    <div class="col-md-4">
+                        <div class="form-floating">
+                            <input asp-for="Ebill.BillMonth" type="month" class="form-control border-0 bg-light" 
+                                   style="border-radius: 12px; height: 58px;" required />
+                            <label asp-for="Ebill.BillMonth" class="text-muted"></label>
+                            <span asp-validation-for="Ebill.BillMonth" class="text-danger"></span>
+                        </div>
+                    </div>
+                    <div class="col-md-4">
+                        <div class="form-floating">
+                            <input asp-for="Ebill.BillAmount" type="number" step="0.01" min="0.01" 
+                                   class="form-control border-0 bg-light" style="border-radius: 12px; height: 58px;" required />
+                            <label asp-for="Ebill.BillAmount" class="text-muted"></label>
+                            <span asp-validation-for="Ebill.BillAmount" class="text-danger"></span>
+                        </div>
+                        <small class="text-muted mt-1 d-block">Amount in USD</small>
+                    </div>
+                    <div class="col-md-4">
+                        <div class="form-floating">
+                            <input asp-for="Ebill.DueDate" type="date" class="form-control border-0 bg-light" 
+                                   style="border-radius: 12px; height: 58px;" required />
+                            <label asp-for="Ebill.DueDate" class="text-muted"></label>
+                            <span asp-validation-for="Ebill.DueDate" class="text-danger"></span>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Additional Information -->
+            <div class="mb-4">
+                <h6 class="text-muted text-uppercase fw-semibold mb-3" style="font-size: 0.75rem; letter-spacing: 1px;">Additional Information</h6>
+                <div class="row g-3">
+                    <div class="col-12">
+                        <div class="form-floating">
+                            <textarea asp-for="Ebill.Description" class="form-control border-0 bg-light" 
+                                      style="border-radius: 12px; height: 100px;"></textarea>
+                            <label asp-for="Ebill.Description" class="text-muted"></label>
+                            <span asp-validation-for="Ebill.Description" class="text-danger"></span>
+                        </div>
+                        <small class="text-muted mt-1 d-block">Brief description of the services or charges</small>
+                    </div>
+                    <div class="col-12">
+                        <div class="form-floating">
+                            <textarea asp-for="Ebill.AdditionalNotes" class="form-control border-0 bg-light" 
+                                      style="border-radius: 12px; height: 80px;"></textarea>
+                            <label asp-for="Ebill.AdditionalNotes" class="text-muted"></label>
+                            <span asp-validation-for="Ebill.AdditionalNotes" class="text-danger"></span>
+                        </div>
+                        <small class="text-muted mt-1 d-block">Any additional notes or special instructions</small>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Submit Button -->
+            <div class="d-flex gap-2 justify-content-end">
+                <a asp-page="/Index" class="btn btn-light" style="border-radius: 12px; padding: 12px 24px;">
+                    <i class="bi bi-arrow-left me-2"></i>
+                    Cancel
+                </a>
+                <button type="submit" class="btn btn-info" style="border-radius: 12px; padding: 12px 24px;">
+                    <i class="bi bi-send me-2"></i>
+                    Submit E-Bill
+                </button>
+            </div>
+        </form>
+    </div>
+</div>
+
+<!-- Information Card -->
+<div class="card border-0 shadow-sm mt-4" style="border-radius: 20px;">
+    <div class="card-body p-4">
+        <h6 class="text-muted fw-semibold mb-3">
+            <i class="bi bi-info-circle me-2"></i>
+            E-Bill Information & Guidelines
+        </h6>
+        <div class="row g-3">
+            <div class="col-md-6">
+                <div class="d-flex align-items-start">
+                    <i class="bi bi-calendar-check text-info me-2 mt-1"></i>
+                    <div>
+                        <strong>Submission Deadline</strong>
+                        <p class="text-muted mb-0 small">Submit bills at least 5 days before the due date for timely processing.</p>
+                    </div>
+                </div>
+            </div>
+            <div class="col-md-6">
+                <div class="d-flex align-items-start">
+                    <i class="bi bi-shield-check text-info me-2 mt-1"></i>
+                    <div>
+                        <strong>Approval Required</strong>
+                        <p class="text-muted mb-0 small">All bills require department manager approval before payment.</p>
+                    </div>
+                </div>
+            </div>
+            <div class="col-md-6">
+                <div class="d-flex align-items-start">
+                    <i class="bi bi-clock text-info me-2 mt-1"></i>
+                    <div>
+                        <strong>Processing Time</strong>
+                        <p class="text-muted mb-0 small">Bills are typically processed within 3-5 business days.</p>
+                    </div>
+                </div>
+            </div>
+            <div class="col-md-6">
+                <div class="d-flex align-items-start">
+                    <i class="bi bi-bell text-info me-2 mt-1"></i>
+                    <div>
+                        <strong>Payment Notifications</strong>
+                        <p class="text-muted mb-0 small">You will receive email confirmation once payment is completed.</p>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+@section Scripts {
+    <partial name="_ValidationScriptsPartial" />
+} 

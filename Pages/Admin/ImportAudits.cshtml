@@ -1,0 +1,662 @@
+@page
+@model TAB.Web.Pages.Admin.ImportAuditsModel
+@{
+    ViewData["Title"] = "Import Audit Trail";
+}
+
+<style>
+    /* Statistics Grid */
+    .stats-grid {
+        display: grid;
+        grid-template-columns: repeat(auto-fit, minmax(240px, 1fr));
+        gap: 1.25rem;
+        margin-bottom: 2rem;
+    }
+
+    .stat-card {
+        background: white;
+        border-radius: 12px;
+        padding: 1.5rem;
+        border: 1px solid #e5e7eb;
+        transition: all 0.3s ease;
+        position: relative;
+        overflow: hidden;
+    }
+
+    .stat-card::before {
+        content: '';
+        position: absolute;
+        top: 0;
+        left: 0;
+        right: 0;
+        height: 4px;
+        background: linear-gradient(90deg, var(--gradient-start), var(--gradient-end));
+    }
+
+    .stat-card:nth-child(1)::before {
+        --gradient-start: #009EDB;
+        --gradient-end: #0084c7;
+    }
+
+    .stat-card:nth-child(2)::before {
+        --gradient-start: #10b981;
+        --gradient-end: #34d399;
+    }
+
+    .stat-card:nth-child(3)::before {
+        --gradient-start: #f59e0b;
+        --gradient-end: #fbbf24;
+    }
+
+    .stat-card:nth-child(4)::before {
+        --gradient-start: #6366f1;
+        --gradient-end: #8b5cf6;
+    }
+
+    .stat-card:hover {
+        transform: translateY(-4px);
+        box-shadow: 0 10px 30px rgba(0, 0, 0, 0.1);
+    }
+
+    .stat-content {
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+    }
+
+    .stat-icon {
+        width: 50px;
+        height: 50px;
+        border-radius: 12px;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        font-size: 1.5rem;
+    }
+
+    .stat-icon-primary {
+        background: linear-gradient(135deg, #009EDB, #0084c7);
+        color: white;
+    }
+
+    .stat-icon-success {
+        background: linear-gradient(135deg, #10b981, #34d399);
+        color: white;
+    }
+
+    .stat-icon-warning {
+        background: linear-gradient(135deg, #f59e0b, #fbbf24);
+        color: white;
+    }
+
+    .stat-icon-info {
+        background: linear-gradient(135deg, #6366f1, #8b5cf6);
+        color: white;
+    }
+
+    .stat-details {
+        text-align: right;
+    }
+
+    .stat-number {
+        font-size: 1.75rem;
+        font-weight: 700;
+        color: #1f2937;
+        line-height: 1;
+        margin-bottom: 0.25rem;
+    }
+
+    .stat-label {
+        font-size: 0.875rem;
+        color: #6b7280;
+        font-weight: 500;
+    }
+
+    /* Filter Section */
+    .filter-section {
+        background: white;
+        border-radius: 12px;
+        padding: 1.5rem;
+        margin-bottom: 2rem;
+        box-shadow: 0 2px 10px rgba(0, 0, 0, 0.05);
+        border: 1px solid #e5e7eb;
+    }
+
+    .filter-header {
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        margin-bottom: 1.5rem;
+        padding-bottom: 1rem;
+        border-bottom: 2px solid #f3f4f6;
+    }
+
+    .filter-title {
+        font-size: 1.25rem;
+        font-weight: 600;
+        color: #1f2937;
+        display: flex;
+        align-items: center;
+        gap: 0.5rem;
+    }
+
+    .filter-title i {
+        color: #009EDB;
+    }
+
+    .filter-grid {
+        display: grid;
+        grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
+        gap: 1rem;
+    }
+
+    .filter-group {
+        display: flex;
+        flex-direction: column;
+        gap: 0.5rem;
+    }
+
+    .filter-label {
+        font-size: 0.875rem;
+        font-weight: 600;
+        color: #4b5563;
+        display: flex;
+        align-items: center;
+        gap: 0.5rem;
+    }
+
+    .filter-label i {
+        color: #009EDB;
+        font-size: 0.875rem;
+    }
+
+    .filter-input,
+    .filter-select {
+        padding: 0.625rem 1rem;
+        border: 2px solid #e5e7eb;
+        border-radius: 8px;
+        font-size: 0.875rem;
+        transition: all 0.2s ease;
+        background: white;
+    }
+
+    .filter-input:focus,
+    .filter-select:focus {
+        outline: none;
+        border-color: #009EDB;
+        box-shadow: 0 0 0 3px rgba(0, 158, 219, 0.1);
+    }
+
+    .btn-clear-filters {
+        padding: 0.625rem 1.25rem;
+        background: #f3f4f6;
+        color: #4b5563;
+        border: none;
+        border-radius: 8px;
+        font-weight: 500;
+        font-size: 0.875rem;
+        display: inline-flex;
+        align-items: center;
+        gap: 0.5rem;
+        transition: all 0.2s ease;
+        text-decoration: none;
+    }
+
+    .btn-clear-filters:hover {
+        background: #e5e7eb;
+        color: #1f2937;
+        text-decoration: none;
+    }
+
+    /* Table Row Effects */
+    .audit-row {
+        transition: all 0.2s ease;
+        border-bottom: 1px solid #f3f4f6;
+    }
+
+    .audit-row:hover {
+        background-color: #f9fafb;
+        transform: translateX(2px);
+        box-shadow: 0 2px 4px rgba(0, 0, 0, 0.05);
+    }
+
+    /* Pagination */
+    .pagination {
+        gap: 0.25rem;
+    }
+
+    .page-link {
+        color: #009EDB;
+        border: 1px solid #e5e7eb;
+        padding: 0.5rem 0.75rem;
+        font-size: 0.875rem;
+        font-weight: 500;
+        transition: all 0.2s ease;
+        border-radius: 8px;
+        margin: 0 2px;
+    }
+
+    .page-link:hover {
+        color: #0084c7;
+        background-color: #f9fafb;
+        border-color: #009EDB;
+        transform: translateY(-1px);
+    }
+
+    .page-item.active .page-link {
+        background-color: #009EDB;
+        border-color: #009EDB;
+        color: white;
+    }
+
+    .page-item.disabled .page-link {
+        color: #9ca3af;
+        background-color: #f9fafb;
+        border-color: #e5e7eb;
+        cursor: not-allowed;
+        opacity: 0.6;
+    }
+
+    @@media (max-width: 768px) {
+        .filter-grid {
+            grid-template-columns: 1fr;
+        }
+
+        .stats-grid {
+            grid-template-columns: repeat(2, 1fr);
+            gap: 1rem;
+        }
+    }
+</style>
+
+<!-- Statistics Cards -->
+<div class="stats-grid">
+    <div class="stat-card">
+        <div class="stat-content">
+            <div class="stat-icon stat-icon-primary">
+                <i class="bi bi-file-earmark-arrow-up"></i>
+            </div>
+            <div class="stat-details">
+                <div class="stat-number">@Model.TotalImports.ToString("N0")</div>
+                <div class="stat-label">Total Imports</div>
+            </div>
+        </div>
+    </div>
+
+    <div class="stat-card">
+        <div class="stat-content">
+            <div class="stat-icon stat-icon-success">
+                <i class="bi bi-check-circle"></i>
+            </div>
+            <div class="stat-details">
+                <div class="stat-number">@Model.TotalRecordsImported.ToString("N0")</div>
+                <div class="stat-label">Records Imported</div>
+            </div>
+        </div>
+    </div>
+
+    <div class="stat-card">
+        <div class="stat-content">
+            <div class="stat-icon stat-icon-warning">
+                <i class="bi bi-exclamation-triangle"></i>
+            </div>
+            <div class="stat-details">
+                <div class="stat-number">@Model.TotalErrors.ToString("N0")</div>
+                <div class="stat-label">Total Errors</div>
+            </div>
+        </div>
+    </div>
+
+    <div class="stat-card">
+        <div class="stat-content">
+            <div class="stat-icon stat-icon-info">
+                <i class="bi bi-calendar-date"></i>
+            </div>
+            <div class="stat-details">
+                <div class="stat-number">@(Model.LatestImportDate?.ToString("MMM dd") ?? "N/A")</div>
+                <div class="stat-label">Latest Import</div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Page Title and Actions -->
+<div class="d-flex justify-content-between align-items-center mb-3">
+    <h4 class="mb-0">
+        <i class="bi bi-journal-text me-2 text-primary"></i>Import Audit Trail
+    </h4>
+</div>
+
+<!-- Filter Section (Collapsible) -->
+<div class="mb-3">
+    <button class="btn btn-outline-primary" type="button" data-bs-toggle="collapse" data-bs-target="#filterCollapse" aria-expanded="false" aria-controls="filterCollapse">
+        <i class="bi bi-funnel"></i> Show Filters
+    </button>
+</div>
+<div class="collapse" id="filterCollapse">
+    <div class="filter-section">
+        <div class="filter-header">
+            <h2 class="filter-title">
+                <i class="bi bi-funnel"></i>
+                Filters
+            </h2>
+            <div class="filter-actions">
+                <span class="badge bg-light text-dark">
+                    @if (Model.ImportAudits.Any())
+                    {
+                        <text>@Model.ImportAudits.Count results</text>
+                    }
+                    else
+                    {
+                        <text>No results</text>
+                    }
+                </span>
+            </div>
+        </div>
+
+        <form method="get" class="filter-form" id="filterForm">
+            <div class="filter-grid">
+                <div class="filter-group">
+                    <label class="filter-label" for="searchFilter">
+                        <i class="bi bi-search"></i> Search
+                    </label>
+                    <input type="text" name="SearchTerm" id="searchFilter" class="filter-input filter-search-input"
+                           placeholder="File, user, or type..." value="@Model.SearchTerm" />
+                </div>
+
+                <div class="filter-group">
+                    <label class="filter-label" for="typeFilter">
+                        <i class="bi bi-file-earmark"></i> Import Type
+                    </label>
+                    <select name="FilterType" id="typeFilter" class="filter-select filter-auto-submit">
+                        <option value="all" selected="@(Model.FilterType == "all")">All Types</option>
+                        <option value="CallLogs" selected="@(Model.FilterType == "CallLogs")">Call Logs</option>
+                        <option value="EbillUsers" selected="@(Model.FilterType == "EbillUsers")">E-bill Users</option>
+                    </select>
+                </div>
+
+                <div class="filter-group">
+                    <label class="filter-label" for="resultFilter">
+                        <i class="bi bi-flag"></i> Result Status
+                    </label>
+                    <select name="ResultFilter" id="resultFilter" class="filter-select filter-auto-submit">
+                        <option value="" selected="@(string.IsNullOrEmpty(Model.ResultFilter))">All Results</option>
+                        <option value="success" selected="@(Model.ResultFilter == "success")">Success Only</option>
+                        <option value="errors" selected="@(Model.ResultFilter == "errors")">With Errors</option>
+                        <option value="partial" selected="@(Model.ResultFilter == "partial")">Partial Success</option>
+                    </select>
+                </div>
+
+                <div class="filter-group">
+                    <label class="filter-label" for="startDate">
+                        <i class="bi bi-calendar-minus"></i> Start Date
+                    </label>
+                    <input type="date" name="StartDate" id="startDate" class="filter-input filter-auto-submit"
+                           value="@Model.StartDate?.ToString("yyyy-MM-dd")" />
+                </div>
+
+                <div class="filter-group">
+                    <label class="filter-label" for="endDate">
+                        <i class="bi bi-calendar-plus"></i> End Date
+                    </label>
+                    <input type="date" name="EndDate" id="endDate" class="filter-input filter-auto-submit"
+                           value="@Model.EndDate?.ToString("yyyy-MM-dd")" />
+                </div>
+
+                <div class="filter-group align-self-end">
+                    <a href="/Admin/ImportAudits" class="btn-clear-filters">
+                        <i class="bi bi-x-circle"></i> Clear Filters
+                    </a>
+                </div>
+            </div>
+        </form>
+    </div>
+</div>
+
+<!-- Audit Trail Table -->
+@if (!Model.ImportAudits.Any())
+{
+    <div class="card border-0 shadow-sm" style="border-radius: 16px;">
+        <div class="card-body text-center py-5">
+            <div class="bg-white rounded-circle d-inline-flex align-items-center justify-content-center mb-3"
+                 style="width: 80px; height: 80px; box-shadow: 0 4px 12px rgba(0, 0, 0, 0.08);">
+                <i class="bi bi-file-earmark-text text-muted" style="font-size: 32px;"></i>
+            </div>
+            <h5 class="text-muted mb-2">No Import Activities Found</h5>
+            <p class="text-muted mb-0">Import activities will appear here once data is imported.</p>
+        </div>
+    </div>
+}
+else
+{
+    <div class="card border-0 shadow-sm" style="border-radius: 16px;">
+        <div class="card-header bg-gradient border-0 py-4"
+             style="background: linear-gradient(135deg, #f8f9fa 0%, #e9ecef 100%); border-radius: 16px 16px 0 0;">
+            <div class="d-flex justify-content-between align-items-center">
+                <div class="d-flex align-items-center gap-2">
+                    <label class="mb-0" style="font-size: 14px; color: #4b5563;">Show entries</label>
+                </div>
+                <div class="input-group" style="max-width: 300px;">
+                    <span class="input-group-text bg-white border-1">
+                        <i class="bi bi-search text-muted"></i>
+                    </span>
+                    <input type="text" class="form-control bg-white border-1 text-dark"
+                           id="quickSearch" placeholder="Quick search..."
+                           style="border-radius: 0 8px 8px 0;">
+                </div>
+            </div>
+        </div>
+        <div class="card-body p-0">
+            <div class="table-responsive">
+                <table class="table table-hover mb-0" id="auditsTable">
+                    <thead style="background-color: #f8f9fa;">
+                        <tr>
+                            <th class="border-0 px-3 py-3" style="font-weight: 600; color: #4a5568; text-transform: uppercase; font-size: 12px; letter-spacing: 0.5px;">
+                                <i class="bi bi-calendar3 me-2"></i>Date & Time
+                            </th>
+                            <th class="border-0 px-3 py-3" style="font-weight: 600; color: #4a5568; text-transform: uppercase; font-size: 12px; letter-spacing: 0.5px;">
+                                <i class="bi bi-file-earmark me-2"></i>Import Details
+                            </th>
+                            <th class="border-0 px-3 py-3" style="font-weight: 600; color: #4a5568; text-transform: uppercase; font-size: 12px; letter-spacing: 0.5px;">
+                                <i class="bi bi-bar-chart me-2"></i>Results
+                            </th>
+                            <th class="border-0 px-3 py-3" style="font-weight: 600; color: #4a5568; text-transform: uppercase; font-size: 12px; letter-spacing: 0.5px;">
+                                <i class="bi bi-person me-2"></i>Imported By
+                            </th>
+                            <th class="border-0 px-3 py-3 text-center" style="font-weight: 600; color: #4a5568; text-transform: uppercase; font-size: 12px; letter-spacing: 0.5px;">
+                                <i class="bi bi-download me-2"></i>Actions
+                            </th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        @foreach (var audit in Model.ImportAudits)
+                        {
+                            <tr class="audit-row">
+                                <td class="px-3">
+                                    <div>
+                                        <div class="fw-semibold text-dark">@audit.ImportDate.ToString("MMM dd, yyyy")</div>
+                                        <small class="text-muted">@audit.ImportDate.ToString("hh:mm tt") • @audit.ProcessingTime.TotalSeconds.ToString("F1")s</small>
+                                    </div>
+                                </td>
+                                <td class="px-3">
+                                    <div>
+                                        <div class="d-flex align-items-center">
+                                            @if (audit.ImportType == "CallLogs")
+                                            {
+                                                <span class="badge rounded-pill bg-success bg-opacity-10 text-success me-2">
+                                                    <i class="bi bi-telephone me-1"></i>Call Logs
+                                                </span>
+                                            }
+                                            else if (audit.ImportType == "EbillUsers")
+                                            {
+                                                <span class="badge rounded-pill bg-info bg-opacity-10 text-info me-2">
+                                                    <i class="bi bi-people me-1"></i>E-bill Users
+                                                </span>
+                                            }
+                                            else
+                                            {
+                                                <span class="badge rounded-pill bg-secondary bg-opacity-10 text-secondary me-2">
+                                                    @audit.ImportType
+                                                </span>
+                                            }
+                                        </div>
+                                        <small class="text-muted">@audit.FileName (@FormatFileSize(audit.FileSize))</small>
+                                    </div>
+                                </td>
+                                <td class="px-3">
+                                    <div class="d-flex gap-2 flex-wrap">
+                                        @if (audit.SuccessCount > 0)
+                                        {
+                                            <span class="badge rounded-pill bg-success bg-opacity-10 text-success" style="font-size: 11px;">
+                                                <i class="bi bi-check-circle me-1"></i>@audit.SuccessCount imported
+                                            </span>
+                                        }
+                                        @if (audit.UpdatedCount > 0)
+                                        {
+                                            <span class="badge rounded-pill bg-info bg-opacity-10 text-info" style="font-size: 11px;">
+                                                <i class="bi bi-arrow-repeat me-1"></i>@audit.UpdatedCount updated
+                                            </span>
+                                        }
+                                        @if (audit.SkippedCount > 0)
+                                        {
+                                            <span class="badge rounded-pill bg-warning bg-opacity-10 text-warning" style="font-size: 11px;">
+                                                <i class="bi bi-skip-forward me-1"></i>@audit.SkippedCount skipped
+                                            </span>
+                                        }
+                                        @if (audit.ErrorCount > 0)
+                                        {
+                                            <span class="badge rounded-pill bg-danger bg-opacity-10 text-danger" style="font-size: 11px;">
+                                                <i class="bi bi-x-circle me-1"></i>@audit.ErrorCount errors
+                                            </span>
+                                        }
+                                    </div>
+                                    <small class="text-muted d-block mt-1">Total: @audit.TotalRecords.ToString("N0") records</small>
+                                </td>
+                                <td class="px-3">
+                                    <div>
+                                        <div class="fw-medium">@audit.ImportedBy</div>
+                                        @if (!string.IsNullOrEmpty(audit.IpAddress))
+                                        {
+                                            <small class="text-muted">@audit.IpAddress</small>
+                                        }
+                                    </div>
+                                </td>
+                                <td class="px-3 text-center">
+                                    <div class="dropdown">
+                                        <button class="btn btn-sm btn-light border-0" type="button" data-bs-toggle="dropdown"
+                                                aria-expanded="false" style="border-radius: 8px;">
+                                            <i class="bi bi-three-dots-vertical"></i>
+                                        </button>
+                                        <ul class="dropdown-menu dropdown-menu-end">
+                                            @if (audit.ErrorCount > 0)
+                                            {
+                                                <li>
+                                                    <a class="dropdown-item" href="/Admin/ImportAudits?handler=DownloadImportResults&auditId=@audit.Id&type=errors">
+                                                        <i class="bi bi-x-circle text-danger me-2"></i>Download Errors
+                                                    </a>
+                                                </li>
+                                            }
+                                            @if (audit.SkippedCount > 0)
+                                            {
+                                                <li>
+                                                    <a class="dropdown-item" href="/Admin/ImportAudits?handler=DownloadImportResults&auditId=@audit.Id&type=skipped">
+                                                        <i class="bi bi-skip-forward text-warning me-2"></i>Download Skipped
+                                                    </a>
+                                                </li>
+                                            }
+                                            <li>
+                                                <a class="dropdown-item" href="/Admin/ImportAudits?handler=DownloadImportResults&auditId=@audit.Id&type=all">
+                                                    <i class="bi bi-file-text text-primary me-2"></i>Download All Results
+                                                </a>
+                                            </li>
+                                        </ul>
+                                    </div>
+                                </td>
+                            </tr>
+                        }
+                    </tbody>
+                </table>
+            </div>
+        </div>
+    </div>
+}
+
+@section Scripts {
+    <script>
+        // Auto-submit functionality for filters
+        document.addEventListener('DOMContentLoaded', function() {
+            // Auto-submit for select elements and date inputs
+            const autoSubmitElements = document.querySelectorAll('.filter-auto-submit');
+            autoSubmitElements.forEach(element => {
+                element.addEventListener('change', function() {
+                    document.getElementById('filterForm').submit();
+                });
+            });
+
+            // Debounced auto-submit for search input
+            let searchTimeout;
+            const searchInput = document.querySelector('.filter-search-input');
+            if (searchInput) {
+                searchInput.addEventListener('input', function() {
+                    clearTimeout(searchTimeout);
+                    searchTimeout = setTimeout(() => {
+                        document.getElementById('filterForm').submit();
+                    }, 500); // 500ms delay
+                });
+            }
+
+            // Filter toggle
+            const filterToggle = document.querySelector('[data-bs-target="#filterCollapse"]');
+            const filterCollapse = document.getElementById('filterCollapse');
+            if (filterToggle && filterCollapse) {
+                filterCollapse.addEventListener('show.bs.collapse', function () {
+                    filterToggle.innerHTML = '<i class="bi bi-funnel-fill"></i> Hide Filters';
+                });
+                filterCollapse.addEventListener('hide.bs.collapse', function () {
+                    filterToggle.innerHTML = '<i class="bi bi-funnel"></i> Show Filters';
+                });
+
+                // Check if any filters are active
+                const hasActiveFilters = @Html.Raw((!string.IsNullOrEmpty(Model.SearchTerm) ||
+                                                    Model.FilterType != "all" ||
+                                                    !string.IsNullOrEmpty(Model.ResultFilter) ||
+                                                    Model.StartDate.HasValue ||
+                                                    Model.EndDate.HasValue).ToString().ToLower());
+                if (hasActiveFilters) {
+                    filterCollapse.classList.add('show');
+                    filterToggle.innerHTML = '<i class="bi bi-funnel-fill"></i> Hide Filters';
+                    filterToggle.setAttribute('aria-expanded', 'true');
+                }
+            }
+
+            // Quick search functionality
+            const quickSearch = document.getElementById('quickSearch');
+            if (quickSearch) {
+                quickSearch.addEventListener('keyup', function() {
+                    const searchTerm = this.value.toLowerCase();
+                    const rows = document.querySelectorAll('#auditsTable tbody tr');
+
+                    rows.forEach(row => {
+                        const text = row.textContent.toLowerCase();
+                        row.style.display = text.includes(searchTerm) ? '' : 'none';
+                    });
+                });
+            }
+        });
+    </script>
+}
+
+@functions {
+    private string FormatFileSize(long bytes)
+    {
+        string[] sizes = { "B", "KB", "MB", "GB" };
+        double len = bytes;
+        int order = 0;
+        while (len >= 1024 && order < sizes.Length - 1)
+        {
+            order++;
+            len = len / 1024;
+        }
+        return $"{len:0.##} {sizes[order]}";
+    }
+}

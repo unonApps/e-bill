@@ -1,0 +1,253 @@
+@page
+@model TAB.Web.Pages.Modules.SimManagement.Approvals.IndexModel
+@{
+    ViewData["Title"] = "SIM Card Approvals";
+    var activeTab = Request.Query["tab"].ToString();
+    if (string.IsNullOrEmpty(activeTab))
+    {
+        activeTab = "supervisor";
+    }
+}
+
+<style>
+    .page-header {
+        margin-bottom: 32px;
+        padding-bottom: 1rem;
+        border-bottom: 2px solid #E3EDF6; /* UN Blue Extra Light */
+    }
+    
+    .page-title {
+        font-size: 28px;
+        font-weight: 700;
+        color: #000000; /* UN Black */
+        margin-bottom: 8px;
+    }
+    
+    .page-title i {
+        color: #009EDB; /* UN Blue */
+    }
+
+    .page-subtitle {
+        color: #64748b;
+        font-size: 16px;
+        margin: 0;
+    }
+
+    .tab-navigation {
+        background: white;
+        border-radius: 12px;
+        padding: 1rem;
+        margin-bottom: 2rem;
+        box-shadow: 0 2px 10px rgba(0, 0, 0, 0.06);
+    }
+    
+    .nav-tabs {
+        border-bottom: 2px solid #e5e7eb;
+    }
+    
+    .nav-tabs .nav-link {
+        color: #6b7280;
+        border: none;
+        border-bottom: 3px solid transparent;
+        padding: 0.75rem 1.5rem;
+        font-weight: 500;
+        transition: all 0.3s;
+        background: none;
+        cursor: pointer;
+    }
+    
+    .nav-tabs .nav-link:hover {
+        color: #009edb;
+        border-bottom-color: rgba(0, 158, 219, 0.3);
+    }
+    
+    .nav-tabs .nav-link.active {
+        color: #009edb;
+        background: none;
+        border: none;
+        border-bottom: 3px solid #009edb;
+    }
+    
+    .tab-content {
+        margin-top: 0;
+    }
+    
+    .tab-header {
+        padding: 1rem 1.5rem;
+        background: white;
+        border-radius: 12px;
+        margin-bottom: 1.5rem;
+        box-shadow: 0 2px 10px rgba(0, 0, 0, 0.06);
+    }
+    
+    .tab-title {
+        font-size: 1.25rem;
+        font-weight: 600;
+        color: #1e293b;
+        margin-bottom: 0.25rem;
+    }
+    
+    .tab-subtitle {
+        color: #64748b;
+        margin-bottom: 0;
+        font-size: 0.875rem;
+    }
+    
+    .role-badge {
+        background: #009edb;
+        color: white;
+        padding: 0.375rem 1rem;
+        border-radius: 20px;
+        font-size: 0.875rem;
+        font-weight: 500;
+    }
+    
+    .stat-card {
+        background: white;
+        border-radius: 12px;
+        padding: 1.5rem;
+        box-shadow: 0 2px 10px rgba(0, 0, 0, 0.06);
+        transition: transform 0.2s;
+    }
+    
+    .stat-card:hover {
+        transform: translateY(-2px);
+        box-shadow: 0 4px 15px rgba(0, 0, 0, 0.1);
+    }
+</style>
+
+<div class="container-fluid px-4">
+    <div class="page-header">
+        <h1 class="page-title"><i class="bi bi-check2-square me-2"></i>SIM Card Approvals</h1>
+        <p class="page-subtitle">Manage and process SIM card requests across different approval stages</p>
+    </div>
+
+    <!-- Tab Navigation -->
+    <div class="tab-navigation">
+        <ul class="nav nav-tabs" id="approvalTabs" role="tablist">
+            <li class="nav-item" role="presentation">
+                <button class="nav-link @(activeTab == "supervisor" ? "active" : "")" 
+                        id="supervisor-tab" 
+                        data-bs-toggle="tab" 
+                        data-bs-target="#supervisor-content"
+                        type="button"
+                        role="tab"
+                        aria-controls="supervisor-content"
+                        aria-selected="@(activeTab == "supervisor" ? "true" : "false")">
+                    <i class="bi bi-person-check me-2"></i>
+                    Supervisor Approval
+                    @if (Model.SupervisorPendingCount > 0)
+                    {
+                        <span class="badge bg-danger ms-2">@Model.SupervisorPendingCount</span>
+                    }
+                </button>
+            </li>
+            @if (User.IsInRole("ICTS") || User.IsInRole("Admin"))
+            {
+                <li class="nav-item" role="presentation">
+                    <button class="nav-link @(activeTab == "icts" ? "active" : "")" 
+                            id="icts-tab"
+                            data-bs-toggle="tab"
+                            data-bs-target="#icts-content"
+                            type="button"
+                            role="tab"
+                            aria-controls="icts-content"
+                            aria-selected="@(activeTab == "icts" ? "true" : "false")">
+                        <i class="bi bi-gear me-2"></i>
+                        ICTS Processing
+                        @if (Model.IctsPendingCount > 0)
+                        {
+                            <span class="badge bg-warning text-dark ms-2">@Model.IctsPendingCount</span>
+                        }
+                    </button>
+                </li>
+            }
+        </ul>
+    </div>
+
+    <!-- Tab Content -->
+    <div class="tab-content" id="approvalTabContent">
+        <!-- Supervisor Tab -->
+        <div class="tab-pane fade @(activeTab == "supervisor" ? "show active" : "")" 
+             id="supervisor-content" 
+             role="tabpanel" 
+             aria-labelledby="supervisor-tab">
+            <div class="tab-header">
+                <div class="d-flex justify-content-between align-items-center">
+                    <div>
+                        <h2 class="tab-title">Supervisor Approval Queue</h2>
+                        <p class="tab-subtitle">Review and approve SIM card requests from your team members</p>
+                    </div>
+                    <div>
+                        <span class="role-badge">Supervisor Role</span>
+                        <a href="/Modules/SimManagement/Approvals/Supervisor" 
+                           class="btn btn-sm btn-outline-primary ms-2"
+                           title="Open full page">
+                            <i class="bi bi-arrows-fullscreen"></i> Full View
+                        </a>
+                    </div>
+                </div>
+            </div>
+            
+            <!-- Supervisor Requests Content -->
+            <partial name="_SupervisorRequestsPartial" model="Model" />
+        </div>
+        
+        <!-- ICTS Tab -->
+        @if (User.IsInRole("ICTS") || User.IsInRole("Admin"))
+        {
+            <div class="tab-pane fade @(activeTab == "icts" ? "show active" : "")" 
+                 id="icts-content" 
+                 role="tabpanel" 
+                 aria-labelledby="icts-tab">
+                <div class="tab-header">
+                    <div class="d-flex justify-content-between align-items-center">
+                        <div>
+                            <h2 class="tab-title">ICTS Processing Queue</h2>
+                            <p class="tab-subtitle">Process approved SIM card requests and assign phone numbers</p>
+                        </div>
+                        <div>
+                            <span class="role-badge" style="background: #f59e0b;">ICTS Role</span>
+                            <a href="/Modules/SimManagement/Approvals/ICTS" 
+                               class="btn btn-sm btn-outline-warning ms-2"
+                               title="Open full page">
+                                <i class="bi bi-arrows-fullscreen"></i> Full View
+                            </a>
+                        </div>
+                    </div>
+                </div>
+                
+                <!-- ICTS Requests Content -->
+                <partial name="_IctsRequestsPartial" model="Model" />
+            </div>
+        }
+    </div>
+</div>
+
+@section Scripts {
+    <script>
+        document.addEventListener('DOMContentLoaded', function() {
+            // Handle tab persistence with URL
+            var tabButtons = document.querySelectorAll('button[data-bs-toggle="tab"]');
+            tabButtons.forEach(function(button) {
+                button.addEventListener('shown.bs.tab', function (e) {
+                    var tabId = e.target.id.replace('-tab', '');
+                    var url = new URL(window.location);
+                    url.searchParams.set('tab', tabId);
+                    window.history.pushState({}, '', url);
+                });
+            });
+            
+            // Set active tab based on URL parameter
+            var urlParams = new URLSearchParams(window.location.search);
+            var activeTab = urlParams.get('tab');
+            if (activeTab === 'icts') {
+                var ictsTabButton = document.getElementById('icts-tab');
+                if (ictsTabButton) {
+                    var tab = new bootstrap.Tab(ictsTabButton);
+                    tab.show();
+                }
+            }
+        });
+    </script>
+}

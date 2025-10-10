@@ -1,0 +1,92 @@
+@{
+    var refundRequests = ViewData["RefundRequests"] as List<TAB.Web.Models.RefundRequest> ?? new List<TAB.Web.Models.RefundRequest>();
+    var pendingRequests = refundRequests.Where(r => r.Status == TAB.Web.Models.RefundRequestStatus.PendingSupervisor).ToList();
+}
+
+<div class="container-fluid">
+    <div class="card border-0 shadow-sm">
+        <div class="card-header bg-white border-0 py-3">
+            <div class="d-flex justify-content-between align-items-center">
+                <h5 class="mb-0"><i class="bi bi-list-check me-2"></i>Pending Refund Requests</h5>
+                <span class="badge bg-primary">@pendingRequests.Count pending</span>
+            </div>
+        </div>
+        <div class="card-body p-0">
+            @if (pendingRequests.Any())
+            {
+                <div class="table-responsive">
+                    <table class="table table-hover mb-0">
+                        <thead class="bg-light">
+                            <tr>
+                                <th>Request ID</th>
+                                <th>Employee</th>
+                                <th>Service Type</th>
+                                <th>Amount (USD)</th>
+                                <th>Organization</th>
+                                <th>Submitted Date</th>
+                                <th>Actions</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            @foreach (var request in pendingRequests)
+                            {
+                                <tr>
+                                    <td><span class="badge bg-primary">REF-@request.Id.ToString("D6")</span></td>
+                                    <td>
+                                        <strong>@request.MobileNumberAssignedTo</strong>
+                                        <div class="small text-muted">@request.IndexNo</div>
+                                    </td>
+                                    <td>@request.MobileService</td>
+                                    <td class="fw-bold">$@request.DevicePurchaseAmount.ToString("N2")</td>
+                                    <td>
+                                        <span class="text-truncate d-inline-block" style="max-width: 200px;" title="@request.Organization">
+                                            @request.Organization
+                                        </span>
+                                    </td>
+                                    <td>@request.RequestDate.ToString("MMM dd, yyyy")</td>
+                                    <td>
+                                        <div class="btn-group btn-group-sm">
+                                            <a href="/Modules/RefundManagement/Approvals/Supervisor/Details?id=@request.Id" 
+                                               class="btn btn-outline-primary">
+                                                <i class="bi bi-eye"></i> View
+                                            </a>
+                                            <button type="button" class="btn btn-success" 
+                                                    onclick="approveRefund(@request.Id)">
+                                                <i class="bi bi-check"></i> Approve
+                                            </button>
+                                            <button type="button" class="btn btn-danger" 
+                                                    onclick="rejectRefund(@request.Id)">
+                                                <i class="bi bi-x"></i> Reject
+                                            </button>
+                                        </div>
+                                    </td>
+                                </tr>
+                            }
+                        </tbody>
+                    </table>
+                </div>
+            }
+            else
+            {
+                <div class="text-center py-5">
+                    <i class="bi bi-inbox display-1 text-muted"></i>
+                    <p class="mt-3 text-muted">No pending refund requests</p>
+                </div>
+            }
+        </div>
+    </div>
+</div>
+
+<script>
+    function approveRefund(id) {
+        if (confirm('Are you sure you want to approve this refund request?')) {
+            window.location.href = `/Modules/RefundManagement/Approvals/Supervisor/Approve?id=${id}`;
+        }
+    }
+    
+    function rejectRefund(id) {
+        if (confirm('Are you sure you want to reject this refund request?')) {
+            window.location.href = `/Modules/RefundManagement/Approvals/Supervisor/Reject?id=${id}`;
+        }
+    }
+</script>

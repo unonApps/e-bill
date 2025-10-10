@@ -1,0 +1,24 @@
+Microsoft Visual Studio Solution File, Format Version 12.00
+# Visual Studio Version 17
+VisualStudioVersion = 17.5.2.0
+MinimumVisualStudioVersion = 10.0.40219.1
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "TAB.Web", "TAB.Web.csproj", "{722A5C77-EB25-4DAA-C3E8-010D7D9DA882}"
+EndProject
+Global
+	GlobalSection(SolutionConfigurationPlatforms) = preSolution
+		Debug|Any CPU = Debug|Any CPU
+		Release|Any CPU = Release|Any CPU
+	EndGlobalSection
+	GlobalSection(ProjectConfigurationPlatforms) = postSolution
+		{722A5C77-EB25-4DAA-C3E8-010D7D9DA882}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{722A5C77-EB25-4DAA-C3E8-010D7D9DA882}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{722A5C77-EB25-4DAA-C3E8-010D7D9DA882}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{722A5C77-EB25-4DAA-C3E8-010D7D9DA882}.Release|Any CPU.Build.0 = Release|Any CPU
+	EndGlobalSection
+	GlobalSection(SolutionProperties) = preSolution
+		HideSolutionNode = FALSE
+	EndGlobalSection
+	GlobalSection(ExtensibilityGlobals) = postSolution
+		SolutionGuid = {C9D44FC0-C594-4A96-9011-9D041C073FFC}
+	EndGlobalSection
+EndGlobal

@@ -1,0 +1,86 @@
+@{
+    var ebills = ViewData["Ebills"] as List<TAB.Web.Models.Ebill> ?? new List<TAB.Web.Models.Ebill>();
+    var pendingEbills = ebills.Where(e => e.Status == TAB.Web.Models.EbillStatus.PendingSupervisor).ToList();
+}
+
+<div class="container-fluid">
+    <div class="card border-0 shadow-sm">
+        <div class="card-header bg-white border-0 py-3">
+            <div class="d-flex justify-content-between align-items-center">
+                <h5 class="mb-0"><i class="bi bi-envelope me-2"></i>Pending E-Bill Approvals</h5>
+                <span class="badge bg-primary">@pendingEbills.Count pending</span>
+            </div>
+        </div>
+        <div class="card-body">
+            @if (pendingEbills.Any())
+            {
+                <div class="table-responsive">
+                    <table class="table table-hover">
+                        <thead class="bg-light">
+                            <tr>
+                                <th>E-Bill ID</th>
+                                <th>Employee</th>
+                                <th>Phone Number</th>
+                                <th>Amount</th>
+                                <th>Submitted Date</th>
+                                <th>Actions</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            @foreach (var ebill in pendingEbills)
+                            {
+                                <tr>
+                                    <td><span class="badge bg-primary">EB-@ebill.Id.ToString("D6")</span></td>
+                                    <td>
+                                        <strong>@ebill.FullName</strong>
+                                        <div class="small text-muted">@ebill.Department</div>
+                                    </td>
+                                    <td>@ebill.PhoneNumber</td>
+                                    <td class="fw-bold">$@ebill.BillAmount.ToString("N2")</td>
+                                    <td>@ebill.RequestDate.ToString("MMM dd, yyyy")</td>
+                                    <td>
+                                        <div class="btn-group btn-group-sm">
+                                            <a href="/Modules/EBillManagement/Approvals/Supervisor/Details?id=@ebill.Id" 
+                                               class="btn btn-outline-primary">
+                                                <i class="bi bi-eye"></i> View
+                                            </a>
+                                            <button type="button" class="btn btn-success" 
+                                                    onclick="approveEbill(@ebill.Id)">
+                                                <i class="bi bi-check"></i> Approve
+                                            </button>
+                                            <button type="button" class="btn btn-danger" 
+                                                    onclick="rejectEbill(@ebill.Id)">
+                                                <i class="bi bi-x"></i> Reject
+                                            </button>
+                                        </div>
+                                    </td>
+                                </tr>
+                            }
+                        </tbody>
+                    </table>
+                </div>
+            }
+            else
+            {
+                <div class="text-center py-5">
+                    <i class="bi bi-inbox display-1 text-muted"></i>
+                    <p class="mt-3 text-muted">No pending e-bill approvals</p>
+                </div>
+            }
+        </div>
+    </div>
+</div>
+
+<script>
+    function approveEbill(id) {
+        if (confirm('Are you sure you want to approve this e-bill?')) {
+            window.location.href = `/Modules/EBillManagement/Approvals/Supervisor/Approve?id=${id}`;
+        }
+    }
+    
+    function rejectEbill(id) {
+        if (confirm('Are you sure you want to reject this e-bill?')) {
+            window.location.href = `/Modules/EBillManagement/Approvals/Supervisor/Reject?id=${id}`;
+        }
+    }
+</script>

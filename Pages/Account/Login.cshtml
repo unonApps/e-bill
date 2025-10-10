@@ -1,0 +1,163 @@
+@page
+@model TAB.Web.Pages.Account.LoginModel
+@{
+    ViewData["Title"] = "Log in";
+    Layout = "_LoginLayout";
+}
+
+<section>
+    <h3 class="text-center mb-4">Choose Sign In Method</h3>
+    
+    @* Sign-in Method Selection *@
+    <div id="signInMethods" class="sign-in-options">
+        <div class="row g-3">
+            <div class="col-12">
+                <form method="post" asp-page-handler="AzureAd" asp-route-returnUrl="@Model.ReturnUrl">
+                    <button type="submit" class="w-100 btn btn-lg btn-azure sign-in-method-btn mb-3">
+                        <i class="bi bi-microsoft"></i>
+                        Sign in with Microsoft (Azure AD)
+                    </button>
+                </form>
+            </div>
+            <div class="col-12">
+                <button type="button" class="w-100 btn btn-lg btn-outline-primary sign-in-method-btn" id="localAccountBtn" onclick="showLocalLogin()">
+                    <i class="bi bi-person-circle"></i>
+                    Sign in with Local Account
+                </button>
+            </div>
+        </div>
+    </div>
+    
+    @* Local Account Sign-in Form (Initially Hidden) *@
+    <div id="localLoginForm" style="display: none;">
+        <div class="mb-3 text-center">
+            <button type="button" class="btn btn-link" onclick="backToMethods()">
+                <i class="bi bi-arrow-left"></i> Back to sign in options
+            </button>
+        </div>
+
+        @* Test Accounts Section *@
+        <div class="mb-4">
+            <h6 class="text-center text-muted mb-3">Quick Test Accounts</h6>
+            <div class="row g-2">
+                <div class="col-md-6">
+                    <div class="card test-account-card" onclick="fillLogin('admin@example.com', 'Admin123!')">
+                        <div class="card-body py-2">
+                            <h6 class="card-title mb-1"><i class="bi bi-shield-check text-danger"></i> Admin</h6>
+                            <p class="card-text small text-muted mb-0">admin@example.com</p>
+                        </div>
+                    </div>
+                </div>
+                <div class="col-md-6">
+                    <div class="card test-account-card" onclick="fillLogin('budget.officer1@example.com', 'Budget123!')">
+                        <div class="card-body py-2">
+                            <h6 class="card-title mb-1"><i class="bi bi-cash-stack text-success"></i> Budget Officer</h6>
+                            <p class="card-text small text-muted mb-0">budget.officer1@example.com</p>
+                        </div>
+                    </div>
+                </div>
+                <div class="col-md-6">
+                    <div class="card test-account-card" onclick="fillLogin('claims.approver1@example.com', 'Claims123!')">
+                        <div class="card-body py-2">
+                            <h6 class="card-title mb-1"><i class="bi bi-clipboard-check text-info"></i> Claims Approver</h6>
+                            <p class="card-text small text-muted mb-0">claims.approver1@example.com</p>
+                        </div>
+                    </div>
+                </div>
+                <div class="col-md-6">
+                    <div class="card test-account-card" onclick="fillLogin('amichuki@gmail.com', 'Claims123!')">
+                        <div class="card-body py-2">
+                            <h6 class="card-title mb-1"><i class="bi bi-person-badge text-primary"></i> Boniface Michuki</h6>
+                            <p class="card-text small text-muted mb-0">amichuki@gmail.com</p>
+                        </div>
+                    </div>
+                </div>
+            </div>
+            <p class="text-center small text-muted mt-2 mb-0">Click on any account to auto-fill credentials</p>
+        </div>
+
+        <form id="account" method="post">
+            <h5 class="text-center mb-3 text-muted">Sign in with Local Account</h5>
+            <div asp-validation-summary="ModelOnly" class="text-danger" role="alert"></div>
+            <div class="form-floating mb-3">
+                <input asp-for="Input.Email" class="form-control" autocomplete="username" aria-required="true" placeholder="name@example.com" />
+                <label asp-for="Input.Email">Email</label>
+                <span asp-validation-for="Input.Email" class="text-danger"></span>
+            </div>
+            <div class="form-floating mb-3">
+                <input asp-for="Input.Password" class="form-control" autocomplete="current-password" aria-required="true" placeholder="password" />
+                <label asp-for="Input.Password">Password</label>
+                <span asp-validation-for="Input.Password" class="text-danger"></span>
+            </div>
+            <div class="checkbox mb-3">
+                <label asp-for="Input.RememberMe" class="form-label">
+                    <input class="form-check-input" asp-for="Input.RememberMe" />
+                    @Html.DisplayNameFor(m => m.Input.RememberMe)
+                </label>
+            </div>
+            <div>
+                <button id="login-submit" type="submit" class="w-100 btn btn-lg btn-primary">Sign In</button>
+            </div>
+        </form>
+    </div>
+</section>
+
+@section Scripts {
+    <partial name="_ValidationScriptsPartial" />
+    <script>
+        function showLocalLogin() {
+            document.getElementById('signInMethods').style.display = 'none';
+            document.getElementById('localLoginForm').style.display = 'block';
+            document.querySelector('h3.text-center').innerText = 'Sign In with Local Account';
+        }
+
+        function backToMethods() {
+            document.getElementById('signInMethods').style.display = 'block';
+            document.getElementById('localLoginForm').style.display = 'none';
+            document.querySelector('h3.text-center').innerText = 'Choose Sign In Method';
+        }
+
+        function fillLogin(email, password) {
+            // Fill in the email and password fields
+            document.getElementById('Input_Email').value = email;
+            document.getElementById('Input_Password').value = password;
+
+            // Add visual feedback
+            const cards = document.querySelectorAll('.test-account-card');
+            cards.forEach(card => card.classList.remove('selected'));
+            event.currentTarget.classList.add('selected');
+
+            // Optional: Auto-submit after a short delay
+            // setTimeout(() => {
+            //     document.getElementById('account').submit();
+            // }, 300);
+        }
+    </script>
+    <style>
+        .test-account-card {
+            cursor: pointer;
+            transition: all 0.3s ease;
+            border: 2px solid #dee2e6;
+        }
+
+        .test-account-card:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 4px 8px rgba(0,0,0,0.15);
+            border-color: #0d6efd;
+        }
+
+        .test-account-card.selected {
+            background-color: #e7f3ff;
+            border-color: #0d6efd;
+        }
+
+        .test-account-card .card-title {
+            font-size: 0.9rem;
+            font-weight: 600;
+        }
+
+        .test-account-card i {
+            margin-right: 5px;
+        }
+    </style>
+} 

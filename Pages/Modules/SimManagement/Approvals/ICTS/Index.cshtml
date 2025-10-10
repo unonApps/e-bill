@@ -1,0 +1,1273 @@
+@page
+@model TAB.Web.Pages.Modules.SimManagement.Approvals.ICTS.IndexModel
+@{
+    ViewData["Title"] = "ICTS Processing";
+}
+
+<style>
+    .minimal-card {
+        background: #ffffff;
+        border: none;
+        border-radius: 12px;
+        box-shadow: 0 2px 12px rgba(0, 0, 0, 0.04);
+        transition: all 0.3s ease;
+    }
+    
+    .minimal-card:hover {
+        box-shadow: 0 4px 20px rgba(0, 0, 0, 0.08);
+        transform: translateY(-2px);
+    }
+    
+    .stat-icon {
+        width: 48px;
+        height: 48px;
+        border-radius: 12px;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        font-size: 20px;
+        color: white;
+    }
+    
+    .stat-pending { background: linear-gradient(135deg, #f59e0b, #f97316); }
+    .stat-processed { background: linear-gradient(135deg, #10b981, #059669); }
+    
+    .minimal-table {
+        background: white;
+        border-radius: 12px;
+        overflow: hidden;
+        box-shadow: 0 2px 12px rgba(0, 0, 0, 0.04);
+        border: none;
+    }
+    
+    .minimal-table thead th {
+        background: #f8fafc;
+        border: none;
+        padding: 20px 16px;
+        font-weight: 600;
+        font-size: 14px;
+        color: #475569;
+        text-transform: uppercase;
+        letter-spacing: 0.5px;
+    }
+    
+    .minimal-table tbody td {
+        border: none;
+        padding: 20px 16px;
+        border-bottom: 1px solid #f1f5f9;
+        vertical-align: middle;
+    }
+    
+    .minimal-table tbody tr:last-child td {
+        border-bottom: none;
+    }
+    
+    .minimal-table tbody tr:hover {
+        background: #f8fafc;
+    }
+    
+    .request-id {
+        font-weight: 600;
+        color: #1e293b;
+        font-size: 16px;
+    }
+    
+    .Staff-name {
+        font-weight: 600;
+        color: #1e293b;
+        margin-bottom: 4px;
+    }
+    
+    .Staff-details {
+        color: #64748b;
+        font-size: 13px;
+        line-height: 1.4;
+    }
+    
+    .priority-badge {
+        padding: 6px 12px;
+        border-radius: 20px;
+        font-size: 12px;
+        font-weight: 600;
+        text-transform: uppercase;
+        letter-spacing: 0.5px;
+    }
+    
+    .priority-high { background: #fef2f2; color: #dc2626; }
+    .priority-medium { background: #fffbeb; color: #d97706; }
+    .priority-low { background: #f0fdf4; color: #16a34a; }
+    
+    .status-badge {
+        padding: 8px 16px;
+        border-radius: 20px;
+        font-size: 12px;
+        font-weight: 600;
+        background: linear-gradient(135deg, #3b82f6, #1d4ed8);
+        color: white;
+        display: inline-flex;
+        align-items: center;
+        gap: 6px;
+    }
+    
+    .status-sp {
+        background: linear-gradient(135deg, #10b981, #059669) !important;
+    }
+    
+    .status-collection {
+        background: linear-gradient(135deg, #8b5cf6, #7c3aed) !important;
+    }
+    
+    .action-btn {
+        padding: 8px 16px;
+        border-radius: 8px;
+        font-size: 12px;
+        font-weight: 500;
+        border: 1px solid;
+        transition: all 0.2s ease;
+        display: flex;
+        align-items: center;
+        gap: 6px;
+        justify-content: center;
+        min-width: 100px;
+    }
+    
+    .action-btn:hover {
+        transform: translateY(-1px);
+        box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
+    }
+    
+    .btn-revert {
+        background: #fef3c7;
+        border-color: #f59e0b;
+        color: #92400e;
+    }
+    
+    .btn-revert:hover {
+        background: #fbbf24;
+        color: white;
+    }
+    
+    .btn-new-sim {
+        background: #dcfce7;
+        border-color: #16a34a;
+        color: #15803d;
+    }
+    
+    .btn-new-sim:hover {
+        background: #16a34a;
+        color: white;
+    }
+    
+    .btn-notify {
+        background: #dbeafe;
+        border-color: #3b82f6;
+        color: #1d4ed8;
+    }
+    
+    .btn-notify:hover {
+        background: #3b82f6;
+        color: white;
+    }
+    
+    .btn-correct {
+        background: #d1fae5;
+        border-color: #10b981;
+        color: #047857;
+    }
+    
+    .btn-correct:hover {
+        background: #10b981;
+        color: white;
+    }
+    
+    .btn-view {
+        background: #f0f9ff;
+        border-color: #0ea5e9;
+        color: #0c4a6e;
+    }
+    
+    .btn-view:hover {
+        background: #0ea5e9;
+        color: white;
+    }
+    
+    .remarks-box {
+        background: #f8fafc;
+        border: 1px solid #e2e8f0;
+        border-radius: 8px;
+        padding: 12px;
+        font-size: 13px;
+        color: #475569;
+        max-width: 200px;
+        line-height: 1.4;
+    }
+    
+    .page-header {
+        margin-bottom: 32px;
+    }
+    
+    .page-title {
+        font-size: 28px;
+        font-weight: 700;
+        color: #1e293b;
+        margin-bottom: 8px;
+    }
+    
+    .page-subtitle {
+        color: #64748b;
+        font-size: 16px;
+        margin: 0;
+    }
+    
+    .nav-tabs-minimal {
+        border: none;
+        background: #f8fafc;
+        border-radius: 12px;
+        padding: 4px;
+        margin-bottom: 24px;
+    }
+    
+    .nav-tabs-minimal .nav-link {
+        border: none;
+        border-radius: 8px;
+        padding: 12px 24px;
+        font-weight: 500;
+        color: #64748b;
+        transition: all 0.2s ease;
+    }
+    
+    .nav-tabs-minimal .nav-link.active {
+        background: white;
+        color: #1e293b;
+        box-shadow: 0 2px 8px rgba(0, 0, 0, 0.08);
+    }
+    
+    .empty-state {
+        text-align: center;
+        padding: 80px 20px;
+        color: #94a3b8;
+    }
+    
+    .empty-state i {
+        font-size: 64px;
+        margin-bottom: 16px;
+        opacity: 0.5;
+    }
+    
+    .alert-minimal {
+        border: none;
+        border-radius: 12px;
+        padding: 16px 20px;
+        margin-bottom: 24px;
+    }
+</style>
+
+<div class="container-fluid px-4">
+    <!-- Page Header -->
+    <div class="page-header">
+        <div class="d-flex justify-content-between align-items-start">
+            <div>
+                <h1 class="page-title">
+                    <i class="bi bi-gear-fill text-primary me-3"></i>
+                    ICTS Processing
+                    @if (Model.IsAdmin)
+                    {
+                        <span class="badge bg-primary ms-2" style="font-size: 12px; vertical-align: top;">Admin View</span>
+                    }
+                </h1>
+                <p class="page-subtitle">
+                    @if (Model.IsAdmin)
+                    {
+                        <span>Process all SIM card requests across the system (Admin)</span>
+                    }
+                    else
+                    {
+                        <span>Process SIM card requests forwarded by supervisors</span>
+                    }
+                </p>
+            </div>
+            <div class="text-end">
+                <span class="badge bg-light text-dark px-3 py-2">
+                    <i class="bi bi-person-circle me-2"></i>
+                    @if (Model.IsAdmin)
+                    {
+                        <span>Admin: @Model.CurrentUserName</span>
+                    }
+                    else
+                    {
+                        <span>ICTS: @Model.CurrentUserName</span>
+                    }
+                </span>
+            </div>
+        </div>
+    </div>
+
+    <!-- Status Messages -->
+    @if (!string.IsNullOrEmpty(Model.StatusMessage))
+    {
+        <div class="alert alert-@Model.StatusMessageClass alert-dismissible fade show alert-minimal" role="alert">
+            @Model.StatusMessage
+            <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
+        </div>
+    }
+
+    @* Role-based authorization is now handled at the controller level *@
+
+    <!-- Statistics Cards -->
+    <div class="row g-4 mb-5">
+        <div class="col-md-6">
+            <div class="minimal-card p-4">
+                <div class="d-flex align-items-center">
+                    <div class="stat-icon stat-pending me-4">
+                        <i class="bi bi-clock-history"></i>
+                    </div>
+                    <div>
+                        <h3 class="mb-1 fw-bold text-dark">@Model.PendingCount</h3>
+                        <p class="mb-0 text-muted">Pending Processing</p>
+                    </div>
+                </div>
+            </div>
+        </div>
+        <div class="col-md-6">
+            <div class="minimal-card p-4">
+                <div class="d-flex align-items-center">
+                    <div class="stat-icon stat-processed me-4">
+                        <i class="bi bi-check-circle"></i>
+                    </div>
+                    <div>
+                        <h3 class="mb-1 fw-bold text-dark">@Model.ProcessedCount</h3>
+                        <p class="mb-0 text-muted">Recently Processed</p>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Navigation Tabs -->
+    <ul class="nav nav-tabs nav-tabs-minimal" id="ictsTab" role="tablist">
+        <li class="nav-item" role="presentation">
+            <button class="nav-link active" id="pending-tab" data-bs-toggle="tab" data-bs-target="#pending" type="button" role="tab">
+                <i class="bi bi-clock-history me-2"></i>
+                Pending Processing (@Model.PendingCount)
+            </button>
+        </li>
+        <li class="nav-item" role="presentation">
+            <button class="nav-link" id="processed-tab" data-bs-toggle="tab" data-bs-target="#processed" type="button" role="tab">
+                <i class="bi bi-check-circle me-2"></i>
+                Recently Processed (@Model.ProcessedCount)
+            </button>
+        </li>
+    </ul>
+
+    <!-- Tab Content -->
+    <div class="tab-content" id="ictsTabContent">
+        <!-- Pending Requests Tab -->
+        <div class="tab-pane fade show active" id="pending" role="tabpanel">
+            @if (Model.PendingRequests.Any())
+            {
+                <div class="table-responsive">
+                    <table class="table minimal-table">
+                        <thead>
+                            <tr>
+                                <th>Request</th>
+                                <th>Staff</th>
+                                <th>Provider</th>
+                                <th>Date</th>
+                                <th>Priority</th>
+                                <th>Remarks</th>
+                                <th>Actions</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            @foreach (var request in Model.PendingRequests)
+                            {
+                                <tr>
+                                    <td>
+                                        <div class="d-flex align-items-center">
+                                            <i class="bi bi-sim text-primary me-3 fs-5"></i>
+                                            <div>
+                                                <div class="request-id">#@request.Id</div>
+                                                @if (request.Status == TAB.Web.Models.RequestStatus.PendingIcts)
+                                                {
+                                                <span class="status-badge">
+                                                    <i class="bi bi-gear-fill"></i>
+                                                    Pending ICTS
+                                                </span>
+                                                }
+                                                else if (request.Status == TAB.Web.Models.RequestStatus.PendingServiceProvider)
+                                                {
+                                                    <span class="status-badge status-sp">
+                                                        <i class="bi bi-telephone"></i>
+                                                        Pending Service Provider
+                                                    </span>
+                                                }
+                                                else if (request.Status == TAB.Web.Models.RequestStatus.PendingSIMCollection)
+                                                {
+                                                    <span class="status-badge status-collection">
+                                                        <i class="bi bi-collection"></i>
+                                                        Pending SIM Collection
+                                                    </span>
+                                                }
+                                            </div>
+                                        </div>
+                                    </td>
+                                    <td>
+                                        <div class="Staff-name">@request.FirstName @request.LastName</div>
+                                        <div class="Staff-details">
+                                            <div><i class="bi bi-envelope me-1"></i>@request.OfficialEmail</div>
+                                            <div><i class="bi bi-telephone me-1"></i>Ext: @request.OfficeExtension</div>
+                                        </div>
+                                    </td>
+                                    <td>
+                                        <span class="fw-medium text-dark">@request.ServiceProvider?.ServiceProviderName</span>
+                                    </td>
+                                    <td>
+                                        <span class="text-muted">@request.RequestDate.ToString("MMM dd, yyyy")</span>
+                                    </td>
+                                    <td>
+                                        <div>
+                                            <span class="priority-badge @(Model.GetPriority(request.RequestDate) == "High" ? "priority-high" : (Model.GetPriority(request.RequestDate) == "Medium" ? "priority-medium" : "priority-low"))">@Model.GetPriority(request.RequestDate)</span>
+                                        </div>
+                                    </td>
+                                    <td>
+                                        @if (!string.IsNullOrEmpty(request.SupervisorRemarks))
+                                        {
+                                            <div class="remarks-box">
+                                                @request.SupervisorRemarks
+                                            </div>
+                                        }
+                                        else
+                                        {
+                                            <span class="text-muted">—</span>
+                                        }
+                                    </td>
+                                    <td>
+                                        <div class="d-flex flex-column gap-2">
+                                            <!-- View Details Button (always visible) -->
+                                            <button type="button" class="action-btn btn-view" data-bs-toggle="modal" data-bs-target="#viewDetailsModal@(request.Id)">
+                                                <i class="bi bi-eye"></i>
+                                                View Details
+                                            </button>
+                                            
+                                            @if (request.Status == TAB.Web.Models.RequestStatus.PendingIcts)
+                                            {
+                                            <button type="button" class="action-btn btn-revert" data-bs-toggle="modal" data-bs-target="#revertModal@(request.Id)">
+                                                <i class="bi bi-arrow-left"></i>
+                                                Revert
+                                            </button>
+                                            <button type="button" class="action-btn btn-new-sim" data-bs-toggle="modal" data-bs-target="#newSimModal@(request.Id)">
+                                                <i class="bi bi-sim"></i>
+                                                New SIM
+                                            </button>
+                                            }
+                                            @if (request.Status == TAB.Web.Models.RequestStatus.PendingServiceProvider)
+                                            {
+                                            <button type="button" class="action-btn btn-notify" data-bs-toggle="modal" data-bs-target="#notifyModal@(request.Id)">
+                                                <i class="bi bi-bell"></i>
+                                                    Notify Correction
+                                            </button>
+                                            }
+                                            @if (request.Status == TAB.Web.Models.RequestStatus.PendingSIMCollection)
+                                            {
+                                                <button type="button" class="action-btn btn-correct" data-bs-toggle="modal" data-bs-target="#correctModal@(request.Id)">
+                                                    <i class="bi bi-check-circle"></i>
+                                                    Mark as Corrected
+                                            </button>
+                                            }
+                                        </div>
+                                    </td>
+                                </tr>
+
+                                <!-- View Details Modal (always present) -->
+                                <div class="modal fade" id="viewDetailsModal@(request.Id)" tabindex="-1">
+                                    <div class="modal-dialog modal-xl modal-dialog-centered">
+                                        <div class="modal-content" style="border: none; border-radius: 20px; box-shadow: 0 20px 60px rgba(0,0,0,0.1);">
+                                            
+                                            <!-- Header -->
+                                            <div class="modal-header" style="border: none; padding: 32px 32px 0 32px;">
+                                                <div class="d-flex align-items-center">
+                                                    <div class="me-3" style="width: 48px; height: 48px; background: linear-gradient(135deg, #3b82f6, #1d4ed8); border-radius: 16px; display: flex; align-items: center; justify-content: center;">
+                                                        <i class="bi bi-eye text-white" style="font-size: 24px;"></i>
+                                                    </div>
+                                                    <div>
+                                                        <h4 class="mb-1" style="font-weight: 700; color: #111827; font-size: 24px;">Request Details</h4>
+                                                        <p class="mb-0 text-muted" style="font-size: 14px;">@request.FirstName @request.LastName • Request #@request.Id</p>
+                                                    </div>
+                                                </div>
+                                                <button type="button" class="btn-close" data-bs-dismiss="modal" style="margin: 0;"></button>
+                                            </div>
+
+                                            <div class="modal-body" style="padding: 24px 32px;">
+                                                <div class="row g-4">
+                                                    
+                                                    <!-- Personal Information Card -->
+                                                    <div class="col-md-6">
+                                                        <div style="background: #f8fafc; border-radius: 16px; padding: 24px; border: 1px solid #e2e8f0; height: 100%;">
+                                                            <div class="d-flex align-items-center mb-3">
+                                                                <div style="width: 8px; height: 8px; background: #3b82f6; border-radius: 50%; margin-right: 12px;"></div>
+                                                                <h6 class="mb-0" style="font-weight: 600; color: #374151; font-size: 16px;">Personal Information</h6>
+                                                            </div>
+                                                            
+                                                            <div class="row g-3">
+                                                                <div class="col-12">
+                                                                    <div class="mb-2">
+                                                                        <span class="text-muted" style="font-size: 12px; font-weight: 500; text-transform: uppercase; letter-spacing: 0.5px;">Full Name</span>
+                                                                        <div style="font-weight: 500; color: #111827;">@request.FirstName @request.LastName</div>
+                                                                    </div>
+                                                                </div>
+                                                                <div class="col-12">
+                                                                    <div class="mb-2">
+                                                                        <span class="text-muted" style="font-size: 12px; font-weight: 500; text-transform: uppercase; letter-spacing: 0.5px;">Index Number</span>
+                                                                        <div style="color: #6b7280;">@request.IndexNo</div>
+                                                                    </div>
+                                                                </div>
+                                                                <div class="col-12">
+                                                                    <div class="mb-2">
+                                                                        <span class="text-muted" style="font-size: 12px; font-weight: 500; text-transform: uppercase; letter-spacing: 0.5px;">Official Email</span>
+                                                                        <div style="color: #6b7280;">@request.OfficialEmail</div>
+                                                                    </div>
+                                                                </div>
+                                                                <div class="col-12">
+                                                                    <div class="mb-2">
+                                                                        <span class="text-muted" style="font-size: 12px; font-weight: 500; text-transform: uppercase; letter-spacing: 0.5px;">Office Extension</span>
+                                                                        <div style="color: #6b7280;">@(request.OfficeExtension ?? "N/A")</div>
+                                                                    </div>
+                                                                </div>
+                                                            </div>
+                                                        </div>
+                                                    </div>
+
+                                                    <!-- Organization Information Card -->
+                                                    <div class="col-md-6">
+                                                        <div style="background: #f0fdf4; border-radius: 16px; padding: 24px; border: 1px solid #dcfce7; height: 100%;">
+                                                            <div class="d-flex align-items-center mb-3">
+                                                                <div style="width: 8px; height: 8px; background: #10b981; border-radius: 50%; margin-right: 12px;"></div>
+                                                                <h6 class="mb-0" style="font-weight: 600; color: #374151; font-size: 16px;">Organization Details</h6>
+                                                            </div>
+                                                            
+                                                            <div class="row g-3">
+                                                                <div class="col-12">
+                                                                    <div class="mb-2">
+                                                                        <span class="text-muted" style="font-size: 12px; font-weight: 500; text-transform: uppercase; letter-spacing: 0.5px;">Organization</span>
+                                                                        <div style="font-weight: 500; color: #111827;">@request.Organization</div>
+                                                                    </div>
+                                                                </div>
+                                                                <div class="col-12">
+                                                                    <div class="mb-2">
+                                                                        <span class="text-muted" style="font-size: 12px; font-weight: 500; text-transform: uppercase; letter-spacing: 0.5px;">Office</span>
+                                                                        <div style="color: #6b7280;">@request.Office</div>
+                                                                    </div>
+                                                                </div>
+                                                                <div class="col-12">
+                                                                    <div class="mb-2">
+                                                                        <span class="text-muted" style="font-size: 12px; font-weight: 500; text-transform: uppercase; letter-spacing: 0.5px;">Grade</span>
+                                                                        <div style="color: #6b7280;">@request.Grade</div>
+                                                                    </div>
+                                                                </div>
+                                                                <div class="col-12">
+                                                                    <div class="mb-2">
+                                                                        <span class="text-muted" style="font-size: 12px; font-weight: 500; text-transform: uppercase; letter-spacing: 0.5px;">Functional Title</span>
+                                                                        <div style="color: #6b7280;">@request.FunctionalTitle</div>
+                                                                    </div>
+                                                                </div>
+                                                            </div>
+                                                        </div>
+                                                    </div>
+
+                                                    <!-- SIM Configuration Card -->
+                                                    <div class="col-md-6">
+                                                        <div style="background: #fef3c7; border-radius: 16px; padding: 24px; border: 1px solid #fbbf24;">
+                                                            <div class="d-flex align-items-center mb-3">
+                                                                <div style="width: 8px; height: 8px; background: #f59e0b; border-radius: 50%; margin-right: 12px;"></div>
+                                                                <h6 class="mb-0" style="font-weight: 600; color: #374151; font-size: 16px;">SIM Configuration</h6>
+                                                            </div>
+                                                            
+                                                            <div class="row g-3">
+                                                                <div class="col-12">
+                                                                    <div class="mb-2">
+                                                                        <span class="text-muted" style="font-size: 12px; font-weight: 500; text-transform: uppercase; letter-spacing: 0.5px;">SIM Type</span>
+                                                                        <div style="font-weight: 500; color: #111827;">
+                                                                            @if (request.SimType == TAB.Web.Models.SimType.Physical)
+                                                                            {
+                                                                                <span class="badge" style="background: #dbeafe; color: #1e40af; padding: 4px 8px; border-radius: 6px;">
+                                                                                    <i class="bi bi-sim me-1"></i>Physical SIM
+                                                                                </span>
+                                                                            }
+                                                                            else
+                                                                            {
+                                                                                <span class="badge" style="background: #f3e8ff; color: #7c3aed; padding: 4px 8px; border-radius: 6px;">
+                                                                                    <i class="bi bi-phone me-1"></i>eSIM
+                                                                                </span>
+                                                                            }
+                                                                        </div>
+                                                                    </div>
+                                                                </div>
+                                                                <div class="col-12">
+                                                                    <div class="mb-2">
+                                                                        <span class="text-muted" style="font-size: 12px; font-weight: 500; text-transform: uppercase; letter-spacing: 0.5px;">Service Provider</span>
+                                                                        <div style="color: #6b7280;">@request.ServiceProvider?.ServiceProviderName</div>
+                                                                    </div>
+                                                                </div>
+                                                                @if (!string.IsNullOrEmpty(request.MobileService))
+                                                                {
+                                                                <div class="col-12">
+                                                                    <div class="mb-2">
+                                                                        <span class="text-muted" style="font-size: 12px; font-weight: 500; text-transform: uppercase; letter-spacing: 0.5px;">Mobile Service</span>
+                                                                        <div style="color: #6b7280;">@request.MobileService</div>
+                                                                    </div>
+                                                                </div>
+                                                                }
+                                                            </div>
+                                                        </div>
+                                                    </div>
+
+                                                    <!-- Service Allowances Card -->
+                                                    @if (!string.IsNullOrEmpty(request.MobileServiceAllowance) || !string.IsNullOrEmpty(request.HandsetAllowance))
+                                                    {
+                                                    <div class="col-md-6">
+                                                        <div style="background: #f0f9ff; border-radius: 16px; padding: 24px; border: 1px solid #bae6fd;">
+                                                            <div class="d-flex align-items-center mb-3">
+                                                                <div style="width: 8px; height: 8px; background: #0ea5e9; border-radius: 50%; margin-right: 12px;"></div>
+                                                                <h6 class="mb-0" style="font-weight: 600; color: #374151; font-size: 16px;">Service Allowances</h6>
+                                                            </div>
+                                                            
+                                                            <div class="row g-3">
+                                                                @if (!string.IsNullOrEmpty(request.MobileServiceAllowance))
+                                                                {
+                                                                <div class="col-12">
+                                                                    <div class="mb-2">
+                                                                        <span class="text-muted" style="font-size: 12px; font-weight: 500; text-transform: uppercase; letter-spacing: 0.5px;">Mobile Service Allowance</span>
+                                                                        <div style="font-weight: 500; color: #111827;">$@request.MobileServiceAllowance USD</div>
+                                                                    </div>
+                                                                </div>
+                                                                }
+                                                                @if (!string.IsNullOrEmpty(request.HandsetAllowance))
+                                                                {
+                                                                <div class="col-12">
+                                                                    <div class="mb-2">
+                                                                        <span class="text-muted" style="font-size: 12px; font-weight: 500; text-transform: uppercase; letter-spacing: 0.5px;">Handset Allowance</span>
+                                                                        <div style="font-weight: 500; color: #111827;">$@request.HandsetAllowance USD</div>
+                                                                    </div>
+                                                                </div>
+                                                                }
+                                                            </div>
+                                                        </div>
+                                                    </div>
+                                                    }
+
+                                                    <!-- Request Status & Timeline Card -->
+                                                    <div class="col-12">
+                                                        <div style="background: #ffffff; border-radius: 16px; padding: 24px; border: 1px solid #e2e8f0; box-shadow: 0 1px 3px rgba(0,0,0,0.05);">
+                                                            <div class="d-flex align-items-center mb-3">
+                                                                <div style="width: 8px; height: 8px; background: #8b5cf6; border-radius: 50%; margin-right: 12px;"></div>
+                                                                <h6 class="mb-0" style="font-weight: 600; color: #374151; font-size: 16px;">Request Status & Timeline</h6>
+                                                            </div>
+                                                            
+                                                            <div class="row g-4">
+                                                                <div class="col-md-3">
+                                                                    <div class="mb-2">
+                                                                        <span class="text-muted" style="font-size: 12px; font-weight: 500; text-transform: uppercase; letter-spacing: 0.5px;">Current Status</span>
+                                                                        <div>
+                                                                            @if (request.Status == TAB.Web.Models.RequestStatus.PendingIcts)
+                                                                            {
+                                                                                <span class="status-badge">
+                                                                                    <i class="bi bi-gear-fill"></i>
+                                                                                    Pending ICTS
+                                                                                </span>
+                                                                            }
+                                                                            else if (request.Status == TAB.Web.Models.RequestStatus.PendingServiceProvider)
+                                                                            {
+                                                                                <span class="status-badge status-sp">
+                                                                                    <i class="bi bi-telephone"></i>
+                                                                                    Pending Service Provider
+                                                                                </span>
+                                                                            }
+                                                                            else if (request.Status == TAB.Web.Models.RequestStatus.PendingSIMCollection)
+                                                                            {
+                                                                                <span class="status-badge status-collection">
+                                                                                    <i class="bi bi-collection"></i>
+                                                                                    Pending SIM Collection
+                                                                                </span>
+                                                                            }
+                                                                        </div>
+                                                                    </div>
+                                                                </div>
+                                                                <div class="col-md-3">
+                                                                    <div class="mb-2">
+                                                                        <span class="text-muted" style="font-size: 12px; font-weight: 500; text-transform: uppercase; letter-spacing: 0.5px;">Request Date</span>
+                                                                        <div style="color: #6b7280;">@request.RequestDate.ToString("MMM dd, yyyy HH:mm")</div>
+                                                                    </div>
+                                                                </div>
+                                                                <div class="col-md-3">
+                                                                    <div class="mb-2">
+                                                                        <span class="text-muted" style="font-size: 12px; font-weight: 500; text-transform: uppercase; letter-spacing: 0.5px;">Priority</span>
+                                                                        <div>
+                                                                            <span class="priority-badge @(Model.GetPriority(request.RequestDate) == "High" ? "priority-high" : (Model.GetPriority(request.RequestDate) == "Medium" ? "priority-medium" : "priority-low"))">@Model.GetPriority(request.RequestDate)</span>
+                                                                        </div>
+                                                                    </div>
+                                                                </div>
+                                                                @if (request.SupervisorApprovalDate.HasValue)
+                                                                {
+                                                                <div class="col-md-3">
+                                                                    <div class="mb-2">
+                                                                        <span class="text-muted" style="font-size: 12px; font-weight: 500; text-transform: uppercase; letter-spacing: 0.5px;">Supervisor Approval</span>
+                                                                        <div style="color: #6b7280;">@request.SupervisorApprovalDate?.ToString("MMM dd, yyyy HH:mm")</div>
+                                                                    </div>
+                                                                </div>
+                                                                }
+                                                            </div>
+                                                        </div>
+                                                    </div>
+
+                                                    <!-- ICTS Processing Details (if available) -->
+                                                    @if (!string.IsNullOrEmpty(request.SimSerialNo) || !string.IsNullOrEmpty(request.AssignedNo) || request.SpNotifiedDate.HasValue)
+                                                    {
+                                                    <div class="col-12">
+                                                        <div style="background: #fef2f2; border-radius: 16px; padding: 24px; border: 1px solid #fecaca;">
+                                                            <div class="d-flex align-items-center mb-3">
+                                                                <div style="width: 8px; height: 8px; background: #ef4444; border-radius: 50%; margin-right: 12px;"></div>
+                                                                <h6 class="mb-0" style="font-weight: 600; color: #374151; font-size: 16px;">ICTS Processing Details</h6>
+                                                            </div>
+                                                            
+                                                            <div class="row g-4">
+                                                                @if (!string.IsNullOrEmpty(request.SimSerialNo))
+                                                                {
+                                                                <div class="col-md-3">
+                                                                    <div class="mb-2">
+                                                                        <span class="text-muted" style="font-size: 12px; font-weight: 500; text-transform: uppercase; letter-spacing: 0.5px;">SIM Serial No</span>
+                                                                        <div style="font-weight: 500; color: #111827;">@request.SimSerialNo</div>
+                                                                    </div>
+                                                                </div>
+                                                                }
+                                                                @if (!string.IsNullOrEmpty(request.AssignedNo))
+                                                                {
+                                                                <div class="col-md-3">
+                                                                    <div class="mb-2">
+                                                                        <span class="text-muted" style="font-size: 12px; font-weight: 500; text-transform: uppercase; letter-spacing: 0.5px;">Assigned Number</span>
+                                                                        <div style="font-weight: 500; color: #111827;">@request.AssignedNo</div>
+                                                                    </div>
+                                                                </div>
+                                                                }
+                                                                @if (request.SpNotifiedDate.HasValue)
+                                                                {
+                                                                <div class="col-md-3">
+                                                                    <div class="mb-2">
+                                                                        <span class="text-muted" style="font-size: 12px; font-weight: 500; text-transform: uppercase; letter-spacing: 0.5px;">SP Notified Date</span>
+                                                                        <div style="color: #6b7280;">@request.SpNotifiedDate?.ToString("MMM dd, yyyy")</div>
+                                                                    </div>
+                                                                </div>
+                                                                }
+                                                                @if (request.CollectionNotifiedDate.HasValue)
+                                                                {
+                                                                <div class="col-md-3">
+                                                                    <div class="mb-2">
+                                                                        <span class="text-muted" style="font-size: 12px; font-weight: 500; text-transform: uppercase; letter-spacing: 0.5px;">Collection Notified</span>
+                                                                        <div style="color: #6b7280;">@request.CollectionNotifiedDate?.ToString("MMM dd, yyyy")</div>
+                                                                    </div>
+                                                                </div>
+                                                                }
+                                                            </div>
+                                                        </div>
+                                                    </div>
+                                                    }
+
+                                                    <!-- Remarks & Notes Card -->
+                                                    @if (!string.IsNullOrEmpty(request.SupervisorRemarks) || !string.IsNullOrEmpty(request.IctsRemark) || !string.IsNullOrEmpty(request.Remarks))
+                                                    {
+                                                    <div class="col-12">
+                                                        <div style="background: #f5f3ff; border-radius: 16px; padding: 24px; border: 1px solid #e9d5ff;">
+                                                            <div class="d-flex align-items-center mb-3">
+                                                                <div style="width: 8px; height: 8px; background: #8b5cf6; border-radius: 50%; margin-right: 12px;"></div>
+                                                                <h6 class="mb-0" style="font-weight: 600; color: #374151; font-size: 16px;">Remarks & Notes</h6>
+                                                            </div>
+                                                            
+                                                            <div class="row g-3">
+                                                                @if (!string.IsNullOrEmpty(request.Remarks))
+                                                                {
+                                                                <div class="col-md-4">
+                                                                    <div class="mb-2">
+                                                                        <span class="text-muted" style="font-size: 12px; font-weight: 500; text-transform: uppercase; letter-spacing: 0.5px;">Request Remarks</span>
+                                                                        <div style="color: #6b7280; background: #ffffff; padding: 12px; border-radius: 8px; font-size: 13px; line-height: 1.4;">@request.Remarks</div>
+                                                                    </div>
+                                                                </div>
+                                                                }
+                                                                @if (!string.IsNullOrEmpty(request.SupervisorRemarks))
+                                                                {
+                                                                <div class="col-md-4">
+                                                                    <div class="mb-2">
+                                                                        <span class="text-muted" style="font-size: 12px; font-weight: 500; text-transform: uppercase; letter-spacing: 0.5px;">Supervisor Remarks</span>
+                                                                        <div style="color: #6b7280; background: #ffffff; padding: 12px; border-radius: 8px; font-size: 13px; line-height: 1.4;">@request.SupervisorRemarks</div>
+                                                                    </div>
+                                                                </div>
+                                                                }
+                                                                @if (!string.IsNullOrEmpty(request.IctsRemark))
+                                                                {
+                                                                <div class="col-md-4">
+                                                                    <div class="mb-2">
+                                                                        <span class="text-muted" style="font-size: 12px; font-weight: 500; text-transform: uppercase; letter-spacing: 0.5px;">ICTS Remarks</span>
+                                                                        <div style="color: #6b7280; background: #ffffff; padding: 12px; border-radius: 8px; font-size: 13px; line-height: 1.4;">@request.IctsRemark</div>
+                                                                    </div>
+                                                                </div>
+                                                                }
+                                                            </div>
+                                                        </div>
+                                                    </div>
+                                                    }
+
+                                                </div>
+                                            </div>
+
+                                            <!-- Footer -->
+                                            <div class="modal-footer" style="border: none; padding: 0 32px 32px 32px; justify-content: center;">
+                                                <button type="button" class="btn" data-bs-dismiss="modal" style="border: 1px solid #0ea5e9; border-radius: 12px; padding: 12px 32px; background: #f0f9ff; color: #0c4a6e; font-weight: 500; transition: all 0.2s;">
+                                                    <i class="bi bi-x-lg me-2"></i>
+                                                    Close
+                                                </button>
+                                            </div>
+                                        </div>
+                                    </div>
+                                </div>
+
+                                @if (request.Status == TAB.Web.Models.RequestStatus.PendingIcts)
+                                {
+                                <!-- Revert Modal -->
+                                <div class="modal fade" id="revertModal@(request.Id)" tabindex="-1">
+                                    <div class="modal-dialog modal-dialog-centered">
+                                        <div class="modal-content border-0 shadow-lg" style="border-radius: 16px;">
+                                            <form method="post" asp-page-handler="IctsProcess">
+                                                <input type="hidden" name="requestId" value="@request.Id" />
+                                                <input type="hidden" name="action" value="revert" />
+                                                <div class="modal-header border-0 pb-0">
+                                                    <h5 class="modal-title fw-bold">
+                                                        <i class="bi bi-arrow-left text-warning me-2"></i>
+                                                        Revert to Requestor
+                                                    </h5>
+                                                    <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+                                                </div>
+                                                <div class="modal-body">
+                                                    <p class="text-muted">Are you sure you want to revert this request back to <strong>@request.FirstName @request.LastName</strong>?</p>
+                                                    <div class="mb-3">
+                                                        <label class="form-label fw-medium">ICTS Remarks:</label>
+                                                        <textarea name="ictsRemark" class="form-control" rows="3" placeholder="Reason for reversion..." style="border-radius: 8px;"></textarea>
+                                                    </div>
+                                                </div>
+                                                <div class="modal-footer border-0 pt-0">
+                                                    <button type="button" class="btn btn-light" data-bs-dismiss="modal" style="border-radius: 8px;">Cancel</button>
+                                                    <button type="submit" class="btn btn-warning" style="border-radius: 8px;">
+                                                        <i class="bi bi-arrow-left me-1"></i>
+                                                        Revert Request
+                                                    </button>
+                                                </div>
+                                            </form>
+                                        </div>
+                                    </div>
+                                </div>
+
+                                <!-- New SIM Modal -->
+                                <div class="modal fade" id="newSimModal@(request.Id)" tabindex="-1">
+                                    <div class="modal-dialog modal-xl modal-dialog-centered">
+                                        <div class="modal-content" style="border: none; border-radius: 20px; box-shadow: 0 20px 60px rgba(0,0,0,0.1);">
+                                            <form method="post" asp-page-handler="IctsProcess">
+                                                <input type="hidden" name="requestId" value="@request.Id" />
+                                                <input type="hidden" name="action" value="newsim" />
+                                                
+                                                <!-- Header -->
+                                                <div class="modal-header" style="border: none; padding: 32px 32px 0 32px;">
+                                                    <div class="d-flex align-items-center">
+                                                        <div class="me-3" style="width: 48px; height: 48px; background: linear-gradient(135deg, #10b981, #059669); border-radius: 16px; display: flex; align-items: center; justify-content: center;">
+                                                            <i class="bi bi-sim text-white" style="font-size: 24px;"></i>
+                                                        </div>
+                                                        <div>
+                                                            <h4 class="mb-1" style="font-weight: 700; color: #111827; font-size: 24px;">ICTS Processing</h4>
+                                                            <p class="mb-0 text-muted" style="font-size: 14px;">@request.FirstName @request.LastName • Request New SIM</p>
+                                                        </div>
+                                                    </div>
+                                                    <button type="button" class="btn-close" data-bs-dismiss="modal" style="margin: 0;"></button>
+                                                </div>
+
+                                                <div class="modal-body" style="padding: 24px 32px;">
+                                                    
+                                                    <!-- Service Provider Information Card -->
+                                                    <div class="mb-4" style="background: #f8fafc; border-radius: 16px; padding: 24px; border: 1px solid #e2e8f0;">
+                                                        <div class="d-flex align-items-center mb-3">
+                                                            <div style="width: 8px; height: 8px; background: #3b82f6; border-radius: 50%; margin-right: 12px;"></div>
+                                                            <h6 class="mb-0" style="font-weight: 600; color: #374151; font-size: 16px;">Service Provider Information</h6>
+                                                        </div>
+                                                        <div class="row g-3">
+                                                            <div class="col-md-6">
+                                                                <label class="form-label" style="font-weight: 500; color: #374151; font-size: 14px; margin-bottom: 8px;">Service Provider</label>
+                                                                <input type="text" class="form-control" value="@request.ServiceProvider?.ServiceProviderName" readonly style="border: 1px solid #d1d5db; border-radius: 12px; padding: 12px 16px; font-size: 14px; background: #f9fafb; color: #6b7280;" />
+                                                            </div>
+                                                            <div class="col-md-6">
+                                                                <label class="form-label" style="font-weight: 500; color: #374151; font-size: 14px; margin-bottom: 8px;">Main Contact Person</label>
+                                                                <input type="text" class="form-control" value="@request.ServiceProvider?.SPMainCP" readonly style="border: 1px solid #d1d5db; border-radius: 12px; padding: 12px 16px; font-size: 14px; background: #f9fafb; color: #6b7280;" />
+                                                            </div>
+                                                            <div class="col-md-6">
+                                                                <label class="form-label" style="font-weight: 500; color: #374151; font-size: 14px; margin-bottom: 8px;">Main CP Email</label>
+                                                                <input type="email" class="form-control" value="@request.ServiceProvider?.SPMainCPEmail" readonly style="border: 1px solid #d1d5db; border-radius: 12px; padding: 12px 16px; font-size: 14px; background: #f9fafb; color: #6b7280;" />
+                                                            </div>
+                                                            <div class="col-md-6">
+                                                                <label class="form-label" style="font-weight: 500; color: #374151; font-size: 14px; margin-bottom: 8px;">Other Contacts</label>
+                                                                <input type="text" class="form-control" value="@request.ServiceProvider?.SPOtherCPsEmail" readonly style="border: 1px solid #d1d5db; border-radius: 12px; padding: 12px 16px; font-size: 14px; background: #f9fafb; color: #6b7280;" />
+                                                            </div>
+                                                        </div>
+                                                    </div>
+
+                                                    <!-- SIM Request Details Card -->
+                                                    <div class="mb-4" style="background: #ffffff; border-radius: 16px; padding: 24px; border: 1px solid #e2e8f0; box-shadow: 0 1px 3px rgba(0,0,0,0.05);">
+                                                        <div class="d-flex align-items-center mb-3">
+                                                            <div style="width: 8px; height: 8px; background: #8b5cf6; border-radius: 50%; margin-right: 12px;"></div>
+                                                            <h6 class="mb-0" style="font-weight: 600; color: #374151; font-size: 16px;">SIM Request Details</h6>
+                                                        </div>
+                                                        
+                                                        <div class="row g-3">
+                                                            <div class="col-md-6">
+                                                                <label class="form-label" style="font-weight: 500; color: #374151; font-size: 14px; margin-bottom: 8px;">SIM Serial No <span style="color: #ef4444;">*</span></label>
+                                                                <input type="text" name="simSerialNo" class="form-control" required style="border: 1px solid #d1d5db; border-radius: 12px; padding: 12px 16px; font-size: 14px;" />
+                                                            </div>
+                                                            <div class="col-md-6">
+                                                                <label class="form-label" style="font-weight: 500; color: #374151; font-size: 14px; margin-bottom: 8px;">Service Request No <span style="color: #ef4444;">*</span></label>
+                                                                <input type="text" name="serviceRequestNo" class="form-control" required style="border: 1px solid #d1d5db; border-radius: 12px; padding: 12px 16px; font-size: 14px;" />
+                                                            </div>
+                                                            <div class="col-md-6">
+                                                                <label class="form-label" style="font-weight: 500; color: #374151; font-size: 14px; margin-bottom: 8px;">Line Type <span style="color: #ef4444;">*</span></label>
+                                                                <select name="lineType" class="form-select" required style="border: 1px solid #d1d5db; border-radius: 12px; padding: 12px 16px; font-size: 14px;">
+                                                                    <option value="">Select Line Type</option>
+                                                                    <option value="Voice">Voice</option>
+                                                                    <option value="Data">Data</option>
+                                                                    <option value="Voice + Data">Voice + Data</option>
+                                                                </select>
+                                                            </div>
+                                                            <div class="col-md-6">
+                                                                <label class="form-label" style="font-weight: 500; color: #374151; font-size: 14px; margin-bottom: 8px;">SIM PUK <span style="color: #ef4444;">*</span></label>
+                                                                <input type="text" name="simPuk" class="form-control" required style="border: 1px solid #d1d5db; border-radius: 12px; padding: 12px 16px; font-size: 14px;" />
+                                                            </div>
+                                                            <div class="col-md-6">
+                                                                <label class="form-label" style="font-weight: 500; color: #374151; font-size: 14px; margin-bottom: 8px;">Line Usage <span style="color: #ef4444;">*</span></label>
+                                                                <select name="lineUsage" class="form-select" required style="border: 1px solid #d1d5db; border-radius: 12px; padding: 12px 16px; font-size: 14px;">
+                                                                    <option value="">Select Line Usage</option>
+                                                                    <option value="Primary">Primary</option>
+                                                                    <option value="Secondary">Secondary</option>
+                                                                    <option value="Reserve">Reserve</option>
+                                                                </select>
+                                                            </div>
+                                                            <div class="col-md-6">
+                                                                <label class="form-label" style="font-weight: 500; color: #374151; font-size: 14px; margin-bottom: 8px;">Previous Lines</label>
+                                                                <input type="text" name="previousLines" class="form-control" value="@request.PreviouslyAssignedLines" style="border: 1px solid #d1d5db; border-radius: 12px; padding: 12px 16px; font-size: 14px;" />
+                                                            </div>
+                                                            <div class="col-md-6">
+                                                                <label class="form-label" style="font-weight: 500; color: #374151; font-size: 14px; margin-bottom: 8px;">SP Notified Date <span style="color: #ef4444;">*</span></label>
+                                                                <input type="date" name="spNotifiedDate" class="form-control" value="@DateTime.Now.ToString("yyyy-MM-dd")" required style="border: 1px solid #d1d5db; border-radius: 12px; padding: 12px 16px; font-size: 14px;" />
+                                                            </div>
+                                                            <div class="col-md-6">
+                                                                <label class="form-label" style="font-weight: 500; color: #374151; font-size: 14px; margin-bottom: 8px;">Assigned No <span style="color: #ef4444;">*</span></label>
+                                                                <input type="text" name="assignedNo" class="form-control" required style="border: 1px solid #d1d5db; border-radius: 12px; padding: 12px 16px; font-size: 14px;" />
+                                                            </div>
+                                                        </div>
+                                                    </div>
+
+                                                    <!-- ICTS Remarks Card -->
+                                                    <div style="background: #ffffff; border-radius: 16px; padding: 24px; border: 1px solid #e2e8f0; box-shadow: 0 1px 3px rgba(0,0,0,0.05);">
+                                                        <div class="d-flex align-items-center mb-3">
+                                                            <div style="width: 8px; height: 8px; background: #ef4444; border-radius: 50%; margin-right: 12px;"></div>
+                                                            <h6 class="mb-0" style="font-weight: 600; color: #374151; font-size: 16px;">ICTS Remarks</h6>
+                                                        </div>
+                                                        
+                                                        <div>
+                                                            <label class="form-label" style="font-weight: 500; color: #374151; font-size: 14px; margin-bottom: 8px;">ICTS Remark</label>
+                                                            <textarea name="ictsRemark" class="form-control" rows="3" maxlength="200" placeholder="Add processing notes and remarks..." style="border: 1px solid #d1d5db; border-radius: 12px; padding: 12px 16px; font-size: 14px; resize: none;"></textarea>
+                                                            <div class="d-flex justify-content-between align-items-center mt-2">
+                                                                <div style="font-size: 12px; color: #9ca3af;">Optional processing notes</div>
+                                                                <div style="font-size: 12px; color: #6b7280;">Max 200 characters</div>
+                                                            </div>
+                                                        </div>
+                                                    </div>
+                                                </div>
+
+                                                <!-- Footer -->
+                                                <div class="modal-footer" style="border: none; padding: 0 32px 32px 32px; gap: 12px;">
+                                                    <button type="button" class="btn" data-bs-dismiss="modal" style="border: 1px solid #d1d5db; border-radius: 12px; padding: 12px 24px; background: #ffffff; color: #6b7280; font-weight: 500;">
+                                                        Cancel
+                                                    </button>
+                                                    <button type="submit" name="action" value="revert" class="btn" style="border: 1px solid #f59e0b; border-radius: 12px; padding: 12px 24px; background: #fef3c7; color: #92400e; font-weight: 500;">
+                                                        <i class="bi bi-arrow-left me-2"></i>
+                                                        Revert To Requestor
+                                                    </button>
+                                                    <button type="submit" name="action" value="newsim" class="btn" style="border: none; border-radius: 12px; padding: 12px 24px; background: linear-gradient(135deg, #10b981, #059669); color: #ffffff; font-weight: 500; box-shadow: 0 4px 12px rgba(16, 185, 129, 0.3);">
+                                                        <i class="bi bi-sim me-2"></i>
+                                                        Request New SIM
+                                                    </button>
+                                                </div>
+                                            </form>
+                                        </div>
+                                    </div>
+                                </div>
+                                }
+
+                                @if (request.Status == TAB.Web.Models.RequestStatus.PendingServiceProvider)
+                                {
+                                <!-- Notify Collection Modal -->
+                                <div class="modal fade" id="notifyModal@(request.Id)" tabindex="-1">
+                                    <div class="modal-dialog modal-lg modal-dialog-centered">
+                                        <div class="modal-content" style="border: none; border-radius: 20px; box-shadow: 0 20px 60px rgba(0,0,0,0.1);">
+                                            <form method="post" asp-page-handler="IctsProcess">
+                                                <input type="hidden" name="requestId" value="@request.Id" />
+                                                <input type="hidden" name="action" value="notify" />
+                                                
+                                                <!-- Header -->
+                                                <div class="modal-header" style="border: none; padding: 32px 32px 0 32px;">
+                                                    <div class="d-flex align-items-center">
+                                                        <div class="me-3" style="width: 48px; height: 48px; background: linear-gradient(135deg, #3b82f6, #1d4ed8); border-radius: 16px; display: flex; align-items: center; justify-content: center;">
+                                                            <i class="bi bi-bell text-white" style="font-size: 24px;"></i>
+                                                </div>
+                                                        <div>
+                                                            <h4 class="mb-1" style="font-weight: 700; color: #111827; font-size: 24px;">Notify Collection</h4>
+                                                            <p class="mb-0 text-muted" style="font-size: 14px;">@request.FirstName @request.LastName • Collection Details</p>
+                                                        </div>
+                                                    </div>
+                                                    <button type="button" class="btn-close" data-bs-dismiss="modal" style="margin: 0;"></button>
+                                                </div>
+
+                                                <div class="modal-body" style="padding: 24px 32px;">
+                                                    
+                                                    <!-- Collection Notification Card -->
+                                                    <div class="mb-4" style="background: #ffffff; border-radius: 16px; padding: 24px; border: 1px solid #e2e8f0; box-shadow: 0 1px 3px rgba(0,0,0,0.05);">
+                                                        <div class="d-flex align-items-center mb-3">
+                                                            <div style="width: 8px; height: 8px; background: #3b82f6; border-radius: 50%; margin-right: 12px;"></div>
+                                                            <h6 class="mb-0" style="font-weight: 600; color: #374151; font-size: 16px;">Collection Notification</h6>
+                                                        </div>
+                                                        
+                                                    <div class="row g-3">
+                                                            <div class="col-md-12">
+                                                                <label class="form-label" style="font-weight: 500; color: #374151; font-size: 14px; margin-bottom: 8px;">Collection Notified Date <span style="color: #ef4444;">*</span></label>
+                                                                <input type="date" name="collectionNotifiedDate" class="form-control" value="@DateTime.Now.ToString("yyyy-MM-dd")" required style="border: 1px solid #d1d5db; border-radius: 12px; padding: 12px 16px; font-size: 14px;" />
+                                                        </div>
+                                                        </div>
+                                                        </div>
+
+                                                    <!-- ICTS Remarks Card -->
+                                                    <div style="background: #ffffff; border-radius: 16px; padding: 24px; border: 1px solid #e2e8f0; box-shadow: 0 1px 3px rgba(0,0,0,0.05);">
+                                                        <div class="d-flex align-items-center mb-3">
+                                                            <div style="width: 8px; height: 8px; background: #ef4444; border-radius: 50%; margin-right: 12px;"></div>
+                                                            <h6 class="mb-0" style="font-weight: 600; color: #374151; font-size: 16px;">ICTS Remarks</h6>
+                                                        </div>
+                                                        
+                                                        <div>
+                                                            <label class="form-label" style="font-weight: 500; color: #374151; font-size: 14px; margin-bottom: 8px;">ICTS Remark</label>
+                                                            <textarea name="ictsRemark" class="form-control" rows="3" maxlength="200" placeholder="Add collection notes and remarks..." style="border: 1px solid #d1d5db; border-radius: 12px; padding: 12px 16px; font-size: 14px; resize: none;"></textarea>
+                                                            <div class="d-flex justify-content-between align-items-center mt-2">
+                                                                <div style="font-size: 12px; color: #9ca3af;">Optional collection notes</div>
+                                                                <div style="font-size: 12px; color: #6b7280;">Max 200 characters</div>
+                                                        </div>
+                                                        </div>
+                                                        </div>
+                                                        </div>
+
+                                                <!-- Footer -->
+                                                <div class="modal-footer" style="border: none; padding: 0 32px 32px 32px; gap: 12px;">
+                                                    <button type="button" class="btn" data-bs-dismiss="modal" style="border: 1px solid #d1d5db; border-radius: 12px; padding: 12px 24px; background: #ffffff; color: #6b7280; font-weight: 500;">
+                                                        Cancel
+                                                    </button>
+                                                    <button type="submit" class="btn" style="border: none; border-radius: 12px; padding: 12px 24px; background: linear-gradient(135deg, #3b82f6, #1d4ed8); color: #ffffff; font-weight: 500; box-shadow: 0 4px 12px rgba(59, 130, 246, 0.3);">
+                                                        <i class="bi bi-bell me-2"></i>
+                                                        Notify Correction
+                                                    </button>
+                                                        </div>
+                                            </form>
+                                                        </div>
+                                    </div>
+                                </div>
+                                }
+
+                                @if (request.Status == TAB.Web.Models.RequestStatus.PendingSIMCollection)
+                                {
+                                <!-- Mark as Corrected Modal -->
+                                <div class="modal fade" id="correctModal@(request.Id)" tabindex="-1">
+                                    <div class="modal-dialog modal-lg modal-dialog-centered">
+                                        <div class="modal-content" style="border: none; border-radius: 20px; box-shadow: 0 20px 60px rgba(0,0,0,0.1);">
+                                            <form method="post" asp-page-handler="IctsProcess">
+                                                <input type="hidden" name="requestId" value="@request.Id" />
+                                                <input type="hidden" name="action" value="correct" />
+                                                
+                                                <!-- Header -->
+                                                <div class="modal-header" style="border: none; padding: 32px 32px 0 32px;">
+                                                    <div class="d-flex align-items-center">
+                                                        <div class="me-3" style="width: 48px; height: 48px; background: linear-gradient(135deg, #10b981, #059669); border-radius: 16px; display: flex; align-items: center; justify-content: center;">
+                                                            <i class="bi bi-check-circle text-white" style="font-size: 24px;"></i>
+                                                        </div>
+                                                        <div>
+                                                            <h4 class="mb-1" style="font-weight: 700; color: #111827; font-size: 24px;">Mark as Corrected</h4>
+                                                            <p class="mb-0 text-muted" style="font-size: 14px;">@request.FirstName @request.LastName • Collection Completion</p>
+                                                        </div>
+                                                    </div>
+                                                    <button type="button" class="btn-close" data-bs-dismiss="modal" style="margin: 0;"></button>
+                                                </div>
+
+                                                <div class="modal-body" style="padding: 24px 32px;">
+                                                    
+                                                    <!-- Collection Completion Card -->
+                                                    <div class="mb-4" style="background: #ffffff; border-radius: 16px; padding: 24px; border: 1px solid #e2e8f0; box-shadow: 0 1px 3px rgba(0,0,0,0.05);">
+                                                        <div class="d-flex align-items-center mb-3">
+                                                            <div style="width: 8px; height: 8px; background: #10b981; border-radius: 50%; margin-right: 12px;"></div>
+                                                            <h6 class="mb-0" style="font-weight: 600; color: #374151; font-size: 16px;">Collection Completion Details</h6>
+                                                        </div>
+                                                        
+                                                        <div class="row g-3">
+                                                        <div class="col-md-6">
+                                                                <label class="form-label" style="font-weight: 500; color: #374151; font-size: 14px; margin-bottom: 8px;">SIM Issued By <span style="color: #ef4444;">*</span></label>
+                                                                <input type="text" name="simIssuedBy" class="form-control" required placeholder="Name of person who issued the SIM" style="border: 1px solid #d1d5db; border-radius: 12px; padding: 12px 16px; font-size: 14px;" />
+                                                        </div>
+                                                        <div class="col-md-6">
+                                                                <label class="form-label" style="font-weight: 500; color: #374151; font-size: 14px; margin-bottom: 8px;">SIM Collected By <span style="color: #ef4444;">*</span></label>
+                                                                <input type="text" name="simCollectedBy" class="form-control" required placeholder="Name of person who collected the SIM" style="border: 1px solid #d1d5db; border-radius: 12px; padding: 12px 16px; font-size: 14px;" />
+                                                        </div>
+                                                            <div class="col-md-12">
+                                                                <label class="form-label" style="font-weight: 500; color: #374151; font-size: 14px; margin-bottom: 8px;">SIM Collected Date <span style="color: #ef4444;">*</span></label>
+                                                                <input type="date" name="simCollectedDate" class="form-control" required style="border: 1px solid #d1d5db; border-radius: 12px; padding: 12px 16px; font-size: 14px;" />
+                                                        </div>
+                                                    </div>
+                                                </div>
+
+                                                    <!-- ICTS Remarks Card -->
+                                                    <div style="background: #ffffff; border-radius: 16px; padding: 24px; border: 1px solid #e2e8f0; box-shadow: 0 1px 3px rgba(0,0,0,0.05);">
+                                                        <div class="d-flex align-items-center mb-3">
+                                                            <div style="width: 8px; height: 8px; background: #ef4444; border-radius: 50%; margin-right: 12px;"></div>
+                                                            <h6 class="mb-0" style="font-weight: 600; color: #374151; font-size: 16px;">ICTS Remarks</h6>
+                                                        </div>
+                                                        
+                                                        <div>
+                                                            <label class="form-label" style="font-weight: 500; color: #374151; font-size: 14px; margin-bottom: 8px;">ICTS Remark</label>
+                                                            <textarea name="ictsRemark" class="form-control" rows="3" maxlength="200" placeholder="Add completion notes and remarks..." style="border: 1px solid #d1d5db; border-radius: 12px; padding: 12px 16px; font-size: 14px; resize: none;"></textarea>
+                                                            <div class="d-flex justify-content-between align-items-center mt-2">
+                                                                <div style="font-size: 12px; color: #9ca3af;">Optional completion notes</div>
+                                                                <div style="font-size: 12px; color: #6b7280;">Max 200 characters</div>
+                                                            </div>
+                                                        </div>
+                                                    </div>
+                                                </div>
+
+                                                <!-- Footer -->
+                                                <div class="modal-footer" style="border: none; padding: 0 32px 32px 32px; gap: 12px;">
+                                                    <button type="button" class="btn" data-bs-dismiss="modal" style="border: 1px solid #d1d5db; border-radius: 12px; padding: 12px 24px; background: #ffffff; color: #6b7280; font-weight: 500;">
+                                                        Cancel
+                                                    </button>
+                                                    <button type="submit" class="btn" style="border: none; border-radius: 12px; padding: 12px 24px; background: linear-gradient(135deg, #10b981, #059669); color: #ffffff; font-weight: 500; box-shadow: 0 4px 12px rgba(16, 185, 129, 0.3);">
+                                                        <i class="bi bi-check-circle me-2"></i>
+                                                        Mark as Corrected
+                                                    </button>
+                                                </div>
+                                            </form>
+                                        </div>
+                                    </div>
+                                </div>
+                                }
+                            }
+                        </tbody>
+                    </table>
+                </div>
+            }
+            else
+            {
+                <div class="empty-state">
+                    <i class="bi bi-inbox"></i>
+                    <h4 class="fw-bold">No Pending Requests</h4>
+                    <p>All SIM requests have been processed.</p>
+                </div>
+            }
+        </div>
+
+        <!-- Processed Requests Tab -->
+        <div class="tab-pane fade" id="processed" role="tabpanel">
+            @if (Model.ProcessedRequests.Any())
+            {
+                <div class="table-responsive">
+                    <table class="table minimal-table">
+                        <thead>
+                            <tr>
+                                <th>Request</th>
+                                <th>Staff</th>
+                                <th>Provider</th>
+                                <th>Status</th>
+                                <th>Processed</th>
+                                <th>Details</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            @foreach (var request in Model.ProcessedRequests)
+                            {
+                                <tr>
+                                    <td>
+                                        <div class="d-flex align-items-center">
+                                            <i class="bi bi-sim text-success me-3 fs-5"></i>
+                                            <span class="request-id">#@request.Id</span>
+                                        </div>
+                                    </td>
+                                    <td>
+                                        <div class="Staff-name">@request.FirstName @request.LastName</div>
+                                        <div class="Staff-details">@request.OfficialEmail</div>
+                                    </td>
+                                    <td>@request.ServiceProvider?.ServiceProviderName</td>
+                                    <td>
+                                        <span class="badge bg-success px-3 py-2" style="border-radius: 20px;">
+                                            <i class="@Model.GetStatusIcon(request.Status) me-1"></i>
+                                            @request.Status
+                                        </span>
+                                    </td>
+                                    <td>
+                                        <span class="text-muted">@request.ProcessedDate?.ToString("MMM dd, yyyy HH:mm")</span>
+                                    </td>
+                                    <td>
+                                        @if (!string.IsNullOrEmpty(request.SimSerialNo))
+                                        {
+                                            <div class="small mb-1">
+                                                <strong>SIM:</strong> @request.SimSerialNo
+                                            </div>
+                                        }
+                                        @if (!string.IsNullOrEmpty(request.AssignedNo))
+                                        {
+                                            <div class="small">
+                                                <strong>No:</strong> @request.AssignedNo
+                                            </div>
+                                        }
+                                    </td>
+                                </tr>
+                            }
+                        </tbody>
+                    </table>
+                </div>
+            }
+            else
+            {
+                <div class="empty-state">
+                    <i class="bi bi-archive"></i>
+                    <h4 class="fw-bold">No Processed Requests</h4>
+                    <p>No requests have been processed yet.</p>
+                </div>
+            }
+        </div>
+    </div>
+</div>
+
+@section Scripts {
+    <script>
+        // Auto-hide alerts after 5 seconds
+        setTimeout(function() {
+            $('.alert').fadeOut();
+        }, 5000);
+        
+        // Add smooth transitions
+        document.addEventListener('DOMContentLoaded', function() {
+            // Animate cards on load
+            const cards = document.querySelectorAll('.minimal-card');
+            cards.forEach((card, index) => {
+                card.style.opacity = '0';
+                card.style.transform = 'translateY(20px)';
+                setTimeout(() => {
+                    card.style.transition = 'all 0.5s ease';
+                    card.style.opacity = '1';
+                    card.style.transform = 'translateY(0)';
+                }, index * 100);
+            });
+        });
+    </script>
+} 

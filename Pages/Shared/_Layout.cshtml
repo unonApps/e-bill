@@ -1,0 +1,246 @@
+﻿<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>@ViewData["Title"] - TAB System</title>
+    <link rel="stylesheet" href="~/lib/bootstrap/dist/css/bootstrap.min.css" />
+    <link rel="stylesheet" href="~/css/site.css" asp-append-version="true" />
+    <link rel="stylesheet" href="~/TAB.Web.styles.css" asp-append-version="true" />
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.3/font/bootstrap-icons.min.css">
+</head>
+<body>
+    <!-- Top Navigation -->
+    <header class="top-header">
+        <div class="header-content">
+            <button id="sidebarToggle" class="mobile-menu-btn d-md-none">
+                <i class="bi bi-list"></i>
+            </button>
+            <div class="header-left">
+                <img src="~/images/unlogo.png" alt="UN Logo" class="un-logo" />
+                <div class="header-text d-none d-md-block">
+                    <h1>UNITED NATIONS</h1>
+                    <h2>OFFICE NAIROBI</h2>
+                    <p>UN HEADQUARTERS IN AFRICA</p>
+                </div>
+            </div>
+            <div class="header-center d-none d-md-block">
+                <h2 class="app-title">E-Billing</h2>
+            </div>
+            <div class="header-right">
+                <partial name="_LoginPartial" />
+            </div>
+        </div>
+    </header>
+
+    <div class="wrapper">
+        <!-- Mobile sidebar overlay -->
+        <div class="sidebar-overlay" id="sidebarOverlay"></div>
+        
+        <!-- Sidebar -->
+        <nav id="sidebar">
+            <!-- Home Button -->
+            <ul class="list-unstyled menu-sections mt-1">
+                <li>
+                    <a asp-page="/Index" class="menu-item @(ViewContext.RouteData.Values["Page"]?.ToString() == "/Index" ? "active" : "")">
+                        <i class="menu-icon bi bi-house-door"></i>
+                        <span>Home</span>
+                    </a>
+                </li>
+            </ul>
+            
+            <!-- Services section -->
+            <div class="sidebar-section-header mt-0">
+                Services
+            </div>
+            <ul class="list-unstyled menu-sections">
+                <li>
+                    <a asp-page="/Modules/SimManagement/Requests/Index" class="menu-item @(ViewContext.RouteData.Values["Page"]?.ToString()?.StartsWith("/Modules/SimManagement/Requests") == true ? "active" : "")">
+                        <i class="menu-icon bi bi-phone"></i>
+                        <span>SIM Card Request</span>
+                    </a>
+                </li>
+                <li>
+                    <a asp-page="/Modules/RefundManagement/Requests/Index" class="menu-item @(ViewContext.RouteData.Values["Page"]?.ToString()?.StartsWith("/Modules/RefundManagement/Requests") == true ? "active" : "")">
+                        <i class="menu-icon bi bi-cash-coin"></i>
+                        <span>Refund Request</span>
+                    </a>
+                </li>
+                <li>
+                    <a asp-page="/Modules/EBillManagement/CallRecords/MyCallLogs" class="menu-item @(ViewContext.RouteData.Values["Page"]?.ToString()?.StartsWith("/Modules/EBillManagement/CallRecords") == true ? "active" : "")">
+                        <i class="menu-icon bi bi-envelope"></i>
+                        <span>E-Bill</span>
+                    </a>
+                </li>
+
+                <!-- Approver Dashboard - Check if user has any pending requests to approve -->
+                @{
+                    var supervisorName = User.Identity?.IsAuthenticated == true ? $"{User.FindFirst("FirstName")?.Value} {User.FindFirst("LastName")?.Value}" : "";
+                    // Note: This is a simplified check. In production, you might want to use a service to check this more efficiently.
+                }
+                @if (User.Identity?.IsAuthenticated == true)
+                {
+                <li>
+                    <a asp-page="/Dashboard/Approver/Index" class="menu-item @(ViewContext.RouteData.Values["Page"]?.ToString()?.StartsWith("/Dashboard/Approver") == true || ViewContext.RouteData.Values["Page"]?.ToString()?.Contains("/Approvals/") == true ? "active" : "")">
+                        <i class="menu-icon bi bi-person-badge"></i>
+                        <span>Approver Dashboard</span>
+                    </a>
+                </li>
+                }
+
+                @if (User.IsInRole("Admin") || User.IsInRole("Manager"))
+                {
+                <li class="menu-section-header">
+                    <span>MANAGEMENT</span>
+                </li>
+                }
+
+                @if (User.IsInRole("Admin"))
+                {
+                <li class="has-nested-submenu">
+                    <a href="#" class="menu-item @(ViewContext.RouteData.Values["Page"]?.ToString()?.StartsWith("/Admin/") == true ? "active" : "")">
+                        <i class="menu-icon bi bi-gear-fill"></i>
+                        <span>Administration</span>
+                        <span class="submenu-icon"><i class="bi bi-chevron-right"></i></span>
+                    </a>
+                    <ul class="nested-submenu list-unstyled">
+                        <li>
+                            <a asp-page="/Admin/UserManagement" class="nested-submenu-item @(ViewContext.RouteData.Values["Page"]?.ToString() == "/Admin/UserManagement" ? "active" : "")">
+                                <i class="menu-icon bi bi-people"></i>
+                                <span>User Management</span>
+                            </a>
+                        </li>
+                        <li>
+                            <a asp-page="/Admin/Organizations" class="nested-submenu-item @(ViewContext.RouteData.Values["Page"]?.ToString() == "/Admin/Organizations" ? "active" : "")">
+                                <i class="menu-icon bi bi-building"></i>
+                                <span>Organizations</span>
+                            </a>
+                        </li>
+                        <li>
+                            <a asp-page="/Admin/Offices" class="nested-submenu-item @(ViewContext.RouteData.Values["Page"]?.ToString() == "/Admin/Offices" ? "active" : "")">
+                                <i class="menu-icon bi bi-door-open"></i>
+                                <span>Offices</span>
+                            </a>
+                        </li>
+                        <li>
+                            <a asp-page="/Admin/ClassOfService" class="nested-submenu-item @(ViewContext.RouteData.Values["Page"]?.ToString() == "/Admin/ClassOfService" ? "active" : "")">
+                                <i class="menu-icon bi bi-telephone"></i>
+                                <span>Class of Service</span>
+                            </a>
+                        </li>
+                        <li>
+                            <a asp-page="/Admin/ServiceProvider" class="nested-submenu-item @(ViewContext.RouteData.Values["Page"]?.ToString() == "/Admin/ServiceProvider" ? "active" : "")">
+                                <i class="menu-icon bi bi-broadcast"></i>
+                                <span>Service Provider</span>
+                            </a>
+                        </li>
+                        <li>
+                            <a asp-page="/Admin/EmailSettings" class="nested-submenu-item @(ViewContext.RouteData.Values["Page"]?.ToString() == "/Admin/EmailSettings" ? "active" : "")">
+                                <i class="menu-icon bi bi-envelope-at"></i>
+                                <span>Email Settings</span>
+                            </a>
+                        </li>
+                        <li>
+                            <a asp-page="/Admin/EbillUsers" class="nested-submenu-item @(ViewContext.RouteData.Values["Page"]?.ToString() == "/Admin/EbillUsers" ? "active" : "")">
+                                <i class="menu-icon bi bi-person-lines-fill"></i>
+                                <span>Ebill Users</span>
+                            </a>
+                        </li>
+                        <li>
+                            <a asp-page="/Admin/CallLogs" class="nested-submenu-item @(ViewContext.RouteData.Values["Page"]?.ToString() == "/Admin/CallLogs" ? "active" : "")">
+                                <i class="menu-icon bi bi-telephone-fill"></i>
+                                <span>Call Logs</span>
+                            </a>
+                        </li>
+                        <li>
+                            <a asp-page="/Admin/CallLogStaging" class="nested-submenu-item @(ViewContext.RouteData.Values["Page"]?.ToString() == "/Admin/CallLogStaging" ? "active" : "")">
+                                <i class="menu-icon bi bi-clipboard-check"></i>
+                                <span>Call Log Verification</span>
+                            </a>
+                        </li>
+                        <li>
+                            <a asp-page="/Admin/ImportAudits" class="nested-submenu-item @(ViewContext.RouteData.Values["Page"]?.ToString() == "/Admin/ImportAudits" ? "active" : "")">
+                                <i class="menu-icon bi bi-file-earmark-check"></i>
+                                <span>Import Audit Trail</span>
+                            </a>
+                        </li>
+                        <li>
+                            <a asp-page="/Admin/BillingConsolidation" class="nested-submenu-item @(ViewContext.RouteData.Values["Page"]?.ToString() == "/Admin/BillingConsolidation" ? "active" : "")">
+                                <i class="menu-icon bi bi-receipt-cutoff"></i>
+                                <span>Billing Consolidation</span>
+                            </a>
+                        </li>
+                        <li>
+                            <a asp-page="/Admin/UserPhones" class="nested-submenu-item @(ViewContext.RouteData.Values["Page"]?.ToString() == "/Admin/UserPhones" ? "active" : "")">
+                                <i class="menu-icon bi bi-telephone-plus"></i>
+                                <span>User Phones</span>
+                            </a>
+                        </li>
+                        <li>
+                            <a asp-page="/Admin/ExchangeRates" class="nested-submenu-item @(ViewContext.RouteData.Values["Page"]?.ToString() == "/Admin/ExchangeRates" ? "active" : "")">
+                                <i class="menu-icon bi bi-currency-exchange"></i>
+                                <span>Exchange Rates</span>
+                            </a>
+                        </li>
+                        <li>
+                            <a asp-page="/Admin/AuditLogs" class="nested-submenu-item @(ViewContext.RouteData.Values["Page"]?.ToString() == "/Admin/AuditLogs" ? "active" : "")">
+                                <i class="menu-icon bi bi-journal-text"></i>
+                                <span>Audit Logs</span>
+                            </a>
+                        </li>
+                    </ul>
+                </li>
+                }
+            </ul>
+        </nav>
+
+        <!-- Page Content -->
+        <div id="content">
+            <div class="container-fluid">
+                <main role="main" class="py-3">
+                    @RenderBody()
+                </main>
+            </div>
+            
+            <!-- UNON Footer -->
+            <footer>
+        <!-- Rainbow color bar -->
+        <div class="d-flex" style="height: 5px;">
+            <div style="flex-grow: 1; background-color: #E5243B;"></div>
+            <div style="flex-grow: 1; background-color: #DDA63A;"></div>
+            <div style="flex-grow: 1; background-color: #4C9F38;"></div>
+            <div style="flex-grow: 1; background-color: #C5192D;"></div>
+            <div style="flex-grow: 1; background-color: #FF3A21;"></div>
+            <div style="flex-grow: 1; background-color: #26BDE2;"></div>
+            <div style="flex-grow: 1; background-color: #FCC30B;"></div>
+            <div style="flex-grow: 1; background-color: #A21942;"></div>
+            <div style="flex-grow: 1; background-color: #FD6925;"></div>
+            <div style="flex-grow: 1; background-color: #DD1367;"></div>
+            <div style="flex-grow: 1; background-color: #FD9D24;"></div>
+            <div style="flex-grow: 1; background-color: #BF8B2E;"></div>
+            <div style="flex-grow: 1; background-color: #3F7E44;"></div>
+            <div style="flex-grow: 1; background-color: #0A97D9;"></div>
+            <div style="flex-grow: 1; background-color: #56C02B;"></div>
+            <div style="flex-grow: 1; background-color: #00689D;"></div>
+            <div style="flex-grow: 1; background-color: #19486A;"></div>
+    </div>
+
+        <div class="container-fluid py-2">
+            <div class="text-center small">
+                <span>If you have any questions contact UNON ICTS Service Desk <a href="mailto:ICTS.Servicedesk@un.org">ICTS.Servicedesk@un.org</a></span>
+                <span>| +2542076 (2 1111) | Monday - Friday 8:00am - 6:00pm</span>
+                <span class="d-block fw-bold">Powered By UNON © 2025</span>
+                <span>DAS | ICTS | Innovation Business Unit</span>
+            </div>
+        </div>
+    </footer>
+        </div>
+    </div>
+
+    <script src="~/lib/jquery/dist/jquery.min.js"></script>
+    <script src="~/lib/bootstrap/dist/js/bootstrap.bundle.min.js"></script>
+    <script src="~/js/site.js" asp-append-version="true"></script>
+
+    @await RenderSectionAsync("Scripts", required: false)
+</body>
+</html>

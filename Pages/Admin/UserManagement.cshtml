@@ -1,0 +1,1946 @@
+@page
+@model TAB.Web.Pages.Admin.UserManagementModel
+@{
+    ViewData["Title"] = "User Management";
+}
+
+<style>
+    /* Dashboard Header Styles */
+    .dashboard-header {
+        background: linear-gradient(135deg, #009EDB 0%, #0084c7 100%);
+        border-radius: 12px;
+        padding: 1.5rem 2rem;
+        margin-bottom: 2rem;
+        color: white;
+        box-shadow: 0 4px 20px rgba(0, 158, 219, 0.2);
+    }
+    
+    .header-content {
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        flex-wrap: wrap;
+        gap: 1rem;
+    }
+    
+    .welcome-section {
+        flex: 1;
+    }
+    
+    .dashboard-title {
+        font-size: 1.75rem;
+        font-weight: 600;
+        margin-bottom: 0.3rem;
+        color: white;
+    }
+    
+    .dashboard-subtitle {
+        font-size: 1rem;
+        opacity: 0.95;
+        margin: 0;
+    }
+    
+    .header-actions {
+        display: flex;
+        align-items: center;
+        gap: 1rem;
+    }
+    
+    .current-date {
+        background: rgba(255, 255, 255, 0.2);
+        backdrop-filter: blur(10px);
+        padding: 0.5rem 1rem;
+        border-radius: 8px;
+        display: flex;
+        align-items: center;
+        gap: 0.5rem;
+        font-size: 0.9rem;
+    }
+    
+    .create-user-btn {
+        background: rgba(255, 255, 255, 0.95);
+        color: #009EDB;
+        border: 2px solid rgba(255, 255, 255, 0.3);
+        padding: 10px 20px;
+        border-radius: 8px;
+        text-decoration: none;
+        font-weight: 600;
+        font-size: 14px;
+        transition: all 0.3s ease;
+        display: inline-flex;
+        align-items: center;
+        gap: 8px;
+        backdrop-filter: blur(10px);
+        cursor: pointer;
+    }
+    
+    .create-user-btn:hover {
+        background: white;
+        color: #0084c7;
+        text-decoration: none;
+        transform: translateY(-2px);
+        box-shadow: 0 8px 24px rgba(0, 0, 0, 0.15);
+    }
+    
+    /* Professional Filter Section with UN Blue Color Scheme */
+    .filter-section {
+        background: #ffffff;
+        border: 1px solid #e5e7eb;
+        border-radius: 12px;
+        padding: 1.5rem;
+        box-shadow: 0 2px 8px rgba(0, 0, 0, 0.04);
+        margin-bottom: 2rem;
+    }
+    
+    .filter-form {
+        width: 100%;
+    }
+    
+    .filter-grid {
+        display: grid;
+        grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+        gap: 1rem;
+        align-items: end;
+    }
+    
+    .filter-group {
+        display: flex;
+        flex-direction: column;
+        gap: 0.5rem;
+    }
+    
+    .filter-label {
+        font-size: 0.875rem;
+        font-weight: 600;
+        color: #475569;
+        display: flex;
+        align-items: center;
+        gap: 0.5rem;
+    }
+    
+    .filter-label i {
+        color: #009EDB;
+        font-size: 1rem;
+    }
+    
+    .filter-select,
+    .filter-input {
+        width: 100%;
+        padding: 0.625rem 0.875rem;
+        border: 1px solid #d1d5db;
+        border-radius: 8px;
+        font-size: 0.875rem;
+        background: #ffffff;
+        color: #1e293b;
+        transition: all 0.2s;
+        appearance: none;
+    }
+    
+    .filter-select {
+        background-image: url("data:image/svg+xml,%3csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 16 16'%3e%3cpath fill='none' stroke='%23475569' stroke-linecap='round' stroke-linejoin='round' stroke-width='2' d='M2 5l6 6 6-6'/%3e%3c/svg%3e");
+        background-repeat: no-repeat;
+        background-position: right 12px center;
+        background-size: 14px 10px;
+        padding-right: 2.5rem;
+    }
+    
+    .filter-select:hover,
+    .filter-input:hover {
+        border-color: #009EDB;
+    }
+    
+    .filter-select:focus,
+    .filter-input:focus {
+        outline: none;
+        border-color: #009EDB;
+        box-shadow: 0 0 0 3px rgba(0, 158, 219, 0.1);
+    }
+    
+    .filter-input::placeholder {
+        color: #9ca3af;
+    }
+    
+    .filter-actions {
+        display: flex;
+        gap: 0.75rem;
+        align-items: flex-end;
+        grid-column: span 1;
+    }
+    
+    .filter-btn {
+        background: #009EDB;
+        color: #ffffff;
+        border: none;
+        padding: 0.625rem 1.25rem;
+        border-radius: 8px;
+        font-size: 0.875rem;
+        font-weight: 600;
+        cursor: pointer;
+        transition: all 0.2s;
+        display: inline-flex;
+        align-items: center;
+        gap: 0.5rem;
+        white-space: nowrap;
+    }
+    
+    .filter-btn:hover {
+        background: #0084c7;
+        transform: translateY(-1px);
+        box-shadow: 0 4px 12px rgba(0, 158, 219, 0.2);
+    }
+    
+    .filter-btn:active {
+        transform: translateY(0);
+    }
+    
+    .clear-filter-btn {
+        background: #ffffff;
+        color: #ef4444;
+        border: 1px solid #ef4444;
+        padding: 0.625rem 1.25rem;
+        border-radius: 8px;
+        font-size: 0.875rem;
+        font-weight: 600;
+        cursor: pointer;
+        transition: all 0.2s;
+        display: inline-flex;
+        align-items: center;
+        gap: 0.5rem;
+        text-decoration: none;
+        white-space: nowrap;
+    }
+    
+    .clear-filter-btn:hover {
+        background: #fef2f2;
+        color: #dc2626;
+        border-color: #dc2626;
+        text-decoration: none;
+        transform: translateY(-1px);
+    }
+    
+    .clear-filter-btn:active {
+        transform: translateY(0);
+    }
+    
+    /* Responsive adjustments for filter section */
+    @@media (min-width: 1200px) {
+        .filter-grid {
+            grid-template-columns: repeat(3, 1fr) repeat(2, minmax(180px, 1fr)) auto;
+        }
+        
+        .filter-actions {
+            grid-column: span 1;
+        }
+    }
+    
+    @@media (min-width: 768px) and (max-width: 1199px) {
+        .filter-grid {
+            grid-template-columns: repeat(2, 1fr);
+        }
+        
+        .filter-actions {
+            grid-column: span 2;
+            justify-content: flex-start;
+        }
+    }
+    
+    @@media (max-width: 768px) {
+        .filter-section {
+            padding: 1rem;
+        }
+        
+        .filter-grid {
+            grid-template-columns: 1fr;
+            gap: 0.75rem;
+        }
+        
+        .filter-actions {
+            grid-column: span 1;
+            flex-direction: column;
+            width: 100%;
+        }
+        
+        .filter-btn,
+        .clear-filter-btn {
+            width: 100%;
+            justify-content: center;
+        }
+    }
+    
+    /* Updated Stats Grid */
+    .stats-grid {
+        display: grid;
+        grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
+        gap: 1.5rem;
+        margin-bottom: 2rem;
+    }
+    
+    .stat-card {
+        background: white;
+        border-radius: 12px;
+        padding: 1.5rem;
+        box-shadow: 0 2px 12px rgba(0, 0, 0, 0.06);
+        transition: all 0.3s ease;
+        border: 1px solid #f1f5f9;
+    }
+    
+    .stat-card:hover {
+        transform: translateY(-4px);
+        box-shadow: 0 8px 24px rgba(0, 0, 0, 0.12);
+    }
+    
+    .stat-content {
+        display: flex;
+        align-items: center;
+        gap: 1rem;
+    }
+    
+    .stat-icon {
+        width: 56px;
+        height: 56px;
+        border-radius: 12px;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        font-size: 24px;
+        color: white;
+        flex-shrink: 0;
+    }
+    
+    .stat-icon-primary { 
+        background: linear-gradient(135deg, #009EDB, #0084c7); 
+    }
+    
+    .stat-icon-success { 
+        background: linear-gradient(135deg, #10b981, #059669); 
+    }
+    
+    .stat-icon-warning { 
+        background: linear-gradient(135deg, #f59e0b, #d97706); 
+    }
+    
+    .stat-icon-info { 
+        background: linear-gradient(135deg, #06b6d4, #0891b2); 
+    }
+    
+    .stat-details {
+        flex: 1;
+    }
+    
+    .stat-number {
+        font-size: 2rem;
+        font-weight: 700;
+        color: #1e293b;
+        line-height: 1;
+        margin-bottom: 0.25rem;
+    }
+    
+    .stat-label {
+        font-size: 0.875rem;
+        color: #64748b;
+        font-weight: 500;
+    }
+    .dropdown-menu {
+        max-height: 300px;
+        overflow-y: auto;
+        overflow-x: hidden;
+    }
+    
+    .table-container {
+        position: relative;
+        overflow: visible;
+    }
+    
+    /* Ensure dropdowns can extend beyond table boundaries */
+    .table-responsive {
+        overflow: visible;
+    }
+    
+    /* Modern Select Styling */
+    .form-select-modern {
+        position: relative;
+        background-color: #f8f9fa;
+        border: 2px solid transparent;
+        border-radius: 12px;
+        height: 48px;
+        padding: 0 40px 0 16px;
+        font-size: 15px;
+        font-weight: 500;
+        color: #2d3748;
+        transition: all 0.3s ease;
+        background-image: url("data:image/svg+xml,%3csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 16 16'%3e%3cpath fill='none' stroke='%236b7280' stroke-linecap='round' stroke-linejoin='round' stroke-width='2' d='M2 5l6 6 6-6'/%3e%3c/svg%3e");
+        background-repeat: no-repeat;
+        background-position: right 12px center;
+        background-size: 16px 12px;
+        cursor: pointer;
+    }
+    
+    .form-select-modern:hover {
+        background-color: #e2e8f0;
+        border-color: #cbd5e0;
+    }
+    
+    .form-select-modern:focus {
+        background-color: #ffffff;
+        border-color: #3b82f6;
+        box-shadow: 0 0 0 4px rgba(59, 130, 246, 0.1);
+        outline: none;
+    }
+    
+    .form-select-modern option {
+        font-weight: 500;
+        padding: 8px;
+    }
+    
+    /* Custom Label Styling */
+    .form-label-modern {
+        display: block;
+        font-size: 13px;
+        font-weight: 600;
+        color: #4a5568;
+        margin-bottom: 8px;
+        text-transform: uppercase;
+        letter-spacing: 0.05em;
+    }
+    
+    /* Form Group Container */
+    .form-group-modern {
+        margin-bottom: 20px;
+    }
+    
+    /* Input Field Styling to Match */
+    .form-control-modern {
+        background-color: #f8f9fa;
+        border: 2px solid transparent;
+        border-radius: 12px;
+        height: 48px;
+        padding: 0 16px;
+        font-size: 15px;
+        font-weight: 500;
+        color: #2d3748;
+        transition: all 0.3s ease;
+    }
+    
+    .form-control-modern:hover {
+        background-color: #e2e8f0;
+        border-color: #cbd5e0;
+    }
+    
+    .form-control-modern:focus {
+        background-color: #ffffff;
+        border-color: #3b82f6;
+        box-shadow: 0 0 0 4px rgba(59, 130, 246, 0.1);
+        outline: none;
+    }
+    
+    .form-control-modern::placeholder {
+        color: #9ca3af;
+        font-weight: 400;
+    }
+    
+    /* Role Card Styles */
+    .role-card {
+        background: #ffffff;
+        border: 1px solid #e2e8f0;
+        border-radius: 16px;
+        padding: 20px;
+        transition: all 0.3s ease;
+        height: 100%;
+        box-shadow: 0 1px 3px rgba(0, 0, 0, 0.06);
+    }
+    
+    .role-card:hover {
+        transform: translateY(-2px);
+        box-shadow: 0 8px 25px rgba(0, 0, 0, 0.12);
+        border-color: #d1d5db;
+    }
+    
+    .role-card-header {
+        display: flex;
+        align-items: center;
+        margin-bottom: 16px;
+    }
+    
+    .role-icon {
+        width: 48px;
+        height: 48px;
+        border-radius: 12px;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        margin-right: 16px;
+        font-size: 20px;
+        color: white;
+    }
+    
+    .role-icon-danger { background: linear-gradient(135deg, #ef4444, #dc2626); }
+    .role-icon-primary { background: linear-gradient(135deg, #3b82f6, #2563eb); }
+    .role-icon-warning { background: linear-gradient(135deg, #f59e0b, #f97316); }
+    .role-icon-info { background: linear-gradient(135deg, #06b6d4, #0891b2); }
+    .role-icon-secondary { background: linear-gradient(135deg, #6b7280, #4b5563); }
+    .role-icon-success { background: linear-gradient(135deg, #10b981, #059669); }
+    .role-icon-dark { background: linear-gradient(135deg, #374151, #1f2937); }
+    .role-icon-muted { background: linear-gradient(135deg, #9ca3af, #6b7280); }
+    
+    .role-info h6.role-name {
+        font-size: 14px;
+        font-weight: 600;
+        color: #374151;
+        margin: 0 0 4px 0;
+        line-height: 1.2;
+    }
+    
+    .role-count {
+        font-size: 28px;
+        font-weight: 700;
+        color: #1f2937;
+        line-height: 1;
+    }
+    
+    .role-stats {
+        border-top: 1px solid #f3f4f6;
+        padding-top: 16px;
+        display: flex;
+        flex-direction: column;
+        gap: 8px;
+    }
+    
+    .stat-item {
+        display: flex;
+        align-items: center;
+        gap: 8px;
+        font-size: 13px;
+    }
+    
+    .stat-dot {
+        width: 8px;
+        height: 8px;
+        border-radius: 50%;
+        flex-shrink: 0;
+    }
+    
+    .stat-dot-success { background: #10b981; }
+    .stat-dot-muted { background: #9ca3af; }
+    
+    .stat-label {
+        color: #6b7280;
+        font-weight: 500;
+    }
+    
+    .stat-value {
+        color: #374151;
+        font-weight: 600;
+        margin-left: auto;
+    }
+    
+    /* Compact Role Card Styles for Single Row */
+    .role-card-compact {
+        background: #ffffff;
+        border: 1px solid #e2e8f0;
+        border-radius: 12px;
+        padding: 12px;
+        transition: all 0.3s ease;
+        height: 100%;
+        box-shadow: 0 1px 3px rgba(0, 0, 0, 0.06);
+        min-width: 0; /* Allows flex items to shrink */
+    }
+    
+    .role-card-compact:hover {
+        transform: translateY(-2px);
+        box-shadow: 0 6px 20px rgba(0, 0, 0, 0.1);
+        border-color: #d1d5db;
+    }
+    
+    .role-header-compact {
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        margin-bottom: 8px;
+    }
+    
+    .role-icon-compact {
+        width: 32px;
+        height: 32px;
+        border-radius: 8px;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        font-size: 14px;
+        color: white;
+        flex-shrink: 0;
+    }
+    
+    .role-count-compact {
+        font-size: 20px;
+        font-weight: 700;
+        color: #1f2937;
+        line-height: 1;
+    }
+    
+    .role-name-compact {
+        font-size: 10px;
+        font-weight: 600;
+        color: #6b7280;
+        text-align: center;
+        line-height: 1.2;
+        overflow: hidden;
+        text-overflow: ellipsis;
+        white-space: nowrap;
+    }
+    
+    @@media (max-width: 768px) {
+        .table-responsive {
+            overflow-x: auto;
+            overflow-y: visible;
+        }
+        
+        .role-card {
+            margin-bottom: 16px;
+        }
+        
+        .role-icon {
+            width: 40px;
+            height: 40px;
+            font-size: 16px;
+            margin-right: 12px;
+        }
+        
+        .role-count {
+            font-size: 24px;
+        }
+        
+        /* Compact cards on mobile - stack in 2 columns */
+        .role-card-compact {
+            margin-bottom: 12px;
+            padding: 10px;
+        }
+        
+        .role-header-compact {
+            margin-bottom: 6px;
+        }
+        
+        .role-icon-compact {
+            width: 28px;
+            height: 28px;
+            font-size: 12px;
+        }
+        
+        .role-count-compact {
+            font-size: 18px;
+        }
+        
+        .role-name-compact {
+            font-size: 10px;
+        }
+        
+        /* Show only 2 columns on mobile for better readability */
+        .col:nth-child(n+3) {
+            display: none;
+        }
+    }
+    
+    @@media (max-width: 576px) {
+        /* Show only 1 column on very small screens */
+        .col:nth-child(n+2) {
+            display: none;
+        }
+    }
+    
+    /* Table Row Hover Effects */
+    .user-row {
+        transition: all 0.2s ease;
+        border-bottom: 1px solid #f3f4f6;
+    }
+    
+    .user-row:hover {
+        background-color: #f9fafb;
+        transform: translateX(2px);
+        box-shadow: 0 2px 4px rgba(0, 0, 0, 0.05);
+    }
+    
+    /* Search Input Styling */
+    #searchUsers::placeholder {
+        color: rgba(255, 255, 255, 0.6);
+    }
+    
+    #searchUsers:focus {
+        background-color: rgba(255, 255, 255, 0.2) !important;
+        outline: none;
+        box-shadow: 0 0 0 3px rgba(255, 255, 255, 0.2);
+    }
+    
+    /* Gradient Background */
+    .bg-gradient {
+        position: relative;
+        overflow: hidden;
+    }
+    
+    .bg-gradient::after {
+        content: '';
+        position: absolute;
+        top: -50%;
+        right: -50%;
+        width: 200%;
+        height: 200%;
+        background: radial-gradient(circle, rgba(255, 255, 255, 0.1) 1px, transparent 1px);
+        background-size: 20px 20px;
+        transform: rotate(45deg);
+        opacity: 0.5;
+    }
+    
+    /* Badge Hover Effects */
+    .badge {
+        transition: all 0.2s ease;
+    }
+    
+    .badge:hover {
+        transform: translateY(-1px);
+        box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+    }
+    
+    /* Responsive Styles */
+    @@media (max-width: 768px) {
+        .dashboard-header {
+            padding: 1.25rem;
+        }
+        
+        .dashboard-title {
+            font-size: 1.25rem;
+        }
+        
+        .dashboard-subtitle {
+            font-size: 0.875rem;
+        }
+        
+        .header-content {
+            flex-direction: column;
+            align-items: flex-start;
+        }
+        
+        .header-actions {
+            width: 100%;
+            flex-direction: column;
+            gap: 0.75rem;
+        }
+        
+        .current-date {
+            width: 100%;
+            justify-content: center;
+        }
+        
+        .create-user-btn {
+            width: 100%;
+            justify-content: center;
+        }
+        
+        .stats-grid {
+            grid-template-columns: repeat(2, 1fr);
+            gap: 1rem;
+        }
+        
+        .stat-card {
+            padding: 1rem;
+        }
+        
+        .stat-number {
+            font-size: 1.5rem;
+        }
+        
+        .stat-icon {
+            width: 44px;
+            height: 44px;
+            font-size: 20px;
+        }
+    }
+</style>
+
+<!-- Welcome Banner -->
+<div class="dashboard-header">
+    <div class="header-content">
+        <div class="welcome-section">
+            <h1 class="dashboard-title">
+                <i class="bi bi-people me-2"></i>
+                Welcome Back, @Model.CurrentUserName
+            </h1>
+            <p class="dashboard-subtitle">
+                Manage user accounts, roles, and permissions across the organization
+            </p>
+        </div>
+        <div class="header-actions">
+            <div class="current-date">
+                <i class="bi bi-calendar3"></i>
+                <span>@DateTime.Now.ToString("dddd, MMMM dd, yyyy")</span>
+            </div>
+            <button type="button" class="create-user-btn" data-bs-toggle="modal" data-bs-target="#createUserModal">
+                <i class="bi bi-person-plus"></i>
+                <span>Add New User</span>
+            </button>
+        </div>
+    </div>
+</div>
+
+<!-- Summary Statistics Cards -->
+<div class="stats-grid mb-3">
+    <div class="stat-card">
+        <div class="stat-content">
+            <div class="stat-icon stat-icon-primary">
+                <i class="bi bi-people"></i>
+            </div>
+            <div class="stat-details">
+                <div class="stat-number">@Model.Users.Count</div>
+                <div class="stat-label">Total Users</div>
+            </div>
+        </div>
+    </div>
+    
+    <div class="stat-card">
+        <div class="stat-content">
+            <div class="stat-icon stat-icon-success">
+                <i class="bi bi-person-check"></i>
+            </div>
+            <div class="stat-details">
+                <div class="stat-number">@Model.TotalActiveUsers</div>
+                <div class="stat-label">Active Users</div>
+            </div>
+        </div>
+    </div>
+    
+    <div class="stat-card">
+        <div class="stat-content">
+            <div class="stat-icon stat-icon-warning">
+                <i class="bi bi-shield-check"></i>
+            </div>
+            <div class="stat-details">
+                <div class="stat-number">@Model.AvailableRoles.Count</div>
+                <div class="stat-label">Available Roles</div>
+            </div>
+        </div>
+    </div>
+    
+    <div class="stat-card">
+        <div class="stat-content">
+            <div class="stat-icon stat-icon-info">
+                <i class="bi bi-building"></i>
+            </div>
+            <div class="stat-details">
+                <div class="stat-number">@Model.OrganizationUserCounts.Count</div>
+                <div class="stat-label">Organizations</div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Filter Section (Collapsible) -->
+<div class="mb-3">
+    <button class="btn btn-outline-primary" type="button" data-bs-toggle="collapse" data-bs-target="#filterCollapse" aria-expanded="false" aria-controls="filterCollapse">
+        <i class="bi bi-funnel"></i> Show Filters
+    </button>
+</div>
+<div class="collapse" id="filterCollapse">
+<div class="filter-section">
+    <form method="get" class="filter-form" id="filterForm">
+        <div class="filter-grid">
+            <div class="filter-group">
+                <label class="filter-label" for="searchFilter">
+                    <i class="bi bi-search"></i> Search
+                </label>
+                <input type="text" name="SearchTerm" id="searchFilter" class="filter-input filter-search-input" 
+                       placeholder="Name, Email, Username..." value="@Model.SearchTerm" />
+            </div>
+            
+            <div class="filter-group">
+                <label class="filter-label" for="roleFilter">
+                    <i class="bi bi-shield"></i> Role
+                </label>
+                <select name="SelectedRole" id="roleFilter" class="filter-select filter-auto-submit">
+                    <option value="">All Roles</option>
+                    @foreach (var role in Model.AvailableRoles)
+                    {
+                        <option value="@role" selected="@(Model.SelectedRole == role)">@role</option>
+                    }
+                </select>
+            </div>
+            
+            <div class="filter-group">
+                <label class="filter-label" for="statusFilter">
+                    <i class="bi bi-flag"></i> Status
+                </label>
+                <select name="SelectedStatus" id="statusFilter" class="filter-select filter-auto-submit">
+                    <option value="">All Status</option>
+                    <option value="@((int)TAB.Web.Models.UserStatus.Active)" selected="@(Model.SelectedStatus == TAB.Web.Models.UserStatus.Active)">Active</option>
+                    <option value="@((int)TAB.Web.Models.UserStatus.Inactive)" selected="@(Model.SelectedStatus == TAB.Web.Models.UserStatus.Inactive)">Inactive</option>
+                </select>
+            </div>
+            
+            <div class="filter-group">
+                <label class="filter-label" for="orgFilter">
+                    <i class="bi bi-building"></i> Organization
+                </label>
+                <select name="SelectedOrganizationId" id="orgFilter" class="filter-select filter-auto-submit">
+                    <option value="">All Organizations</option>
+                    @foreach (var org in Model.AvailableOrganizations)
+                    {
+                        <option value="@org.Value" selected="@(Model.SelectedOrganizationId?.ToString() == org.Value)">
+                            @org.Text
+                        </option>
+                    }
+                </select>
+            </div>
+            
+            <div class="filter-group">
+                <label class="filter-label" for="officeFilter">
+                    <i class="bi bi-geo-alt"></i> Office
+                </label>
+                <select name="SelectedOfficeId" id="officeFilter" class="filter-select filter-auto-submit">
+                    <option value="">All Offices</option>
+                    @foreach (var office in Model.AvailableOffices)
+                    {
+                        <option value="@office.Value" selected="@(Model.SelectedOfficeId?.ToString() == office.Value)">
+                            @office.Text
+                        </option>
+                    }
+                </select>
+            </div>
+            
+            <div class="filter-actions">
+                @if (!string.IsNullOrEmpty(Model.SearchTerm) || !string.IsNullOrEmpty(Model.SelectedRole) || 
+                     Model.SelectedStatus != null || Model.SelectedOrganizationId != null || Model.SelectedOfficeId != null)
+                {
+                    <a href="/Admin/UserManagement" class="clear-filter-btn">
+                        <i class="bi bi-x-circle"></i> Clear All
+                    </a>
+                }
+            </div>
+        </div>
+    </form>
+</div>
+</div>
+
+<script>
+    // Auto-submit form on filter change
+    document.addEventListener('DOMContentLoaded', function() {
+        // Handle select changes
+        const autoSubmitElements = document.querySelectorAll('.filter-auto-submit');
+        autoSubmitElements.forEach(element => {
+            element.addEventListener('change', function() {
+                document.getElementById('filterForm').submit();
+            });
+        });
+        
+        // Handle search input with debounce
+        let searchTimeout;
+        const searchInput = document.querySelector('.filter-search-input');
+        if (searchInput) {
+            searchInput.addEventListener('input', function() {
+                clearTimeout(searchTimeout);
+                searchTimeout = setTimeout(() => {
+                    document.getElementById('filterForm').submit();
+                }, 500); // Wait 500ms after user stops typing
+            });
+            
+            // Also submit on Enter key
+            searchInput.addEventListener('keypress', function(e) {
+                if (e.key === 'Enter') {
+                    e.preventDefault();
+                    clearTimeout(searchTimeout);
+                    document.getElementById('filterForm').submit();
+                }
+            });
+        }
+        
+        // Update button text when filters are shown/hidden
+        const filterToggle = document.querySelector('[data-bs-target="#filterCollapse"]');
+        const filterCollapse = document.getElementById('filterCollapse');
+        if (filterToggle && filterCollapse) {
+            filterCollapse.addEventListener('show.bs.collapse', function () {
+                filterToggle.innerHTML = '<i class="bi bi-funnel-fill"></i> Hide Filters';
+            });
+            filterCollapse.addEventListener('hide.bs.collapse', function () {
+                filterToggle.innerHTML = '<i class="bi bi-funnel"></i> Show Filters';
+            });
+            
+            // Check if any filters are active and show the filter section
+            const hasActiveFilters = @Html.Raw((!string.IsNullOrEmpty(Model.SearchTerm) || !string.IsNullOrEmpty(Model.SelectedRole) || Model.SelectedStatus != null || Model.SelectedOrganizationId != null || Model.SelectedOfficeId != null).ToString().ToLower());
+            if (hasActiveFilters) {
+                filterCollapse.classList.add('show');
+                filterToggle.innerHTML = '<i class="bi bi-funnel-fill"></i> Hide Filters';
+                filterToggle.setAttribute('aria-expanded', 'true');
+            }
+        }
+    });
+</script>
+
+<div class="row">
+    <div class="col-md-12">
+        @if (Model.StatusMessage != null)
+        {
+            <div class="alert alert-@Model.StatusMessageClass alert-dismissible fade show" role="alert">
+                @Model.StatusMessage
+                <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
+            </div>
+        }
+         
+         
+         
+                  
+
+         <!-- Action Buttons -->
+         <div class="d-flex justify-content-end mb-3">
+             <button type="button" class="btn btn-primary" data-bs-toggle="modal" data-bs-target="#createUserModal">
+                 <i class="bi bi-person-plus"></i> Create New User
+             </button>
+         </div>
+        
+        <!-- Users List Card -->
+        <div class="card border-0 shadow-sm" style="border-radius: 16px;">
+            <div class="card-header bg-gradient border-0 py-4" style="background: linear-gradient(135deg, #3b82f6 0%, #1e40af 100%); border-radius: 16px 16px 0 0;">
+                <div class="d-flex justify-content-between align-items-center">
+                    <div>
+                        <h5 class="card-title mb-1 text-white fw-bold">
+                            <i class="bi bi-people-fill me-2"></i>Users Directory
+                        </h5>
+                        <p class="text-white-50 mb-0">Manage system users and their permissions</p>
+                    </div>
+                    <div class="input-group" style="max-width: 300px;">
+                        <span class="input-group-text bg-white bg-opacity-10 border-0 text-white">
+                            <i class="bi bi-search"></i>
+                        </span>
+                        <input type="text" class="form-control bg-white bg-opacity-10 border-0 text-white placeholder-white-50" 
+                               id="searchUsers" placeholder="Search users..." 
+                               style="border-radius: 0 8px 8px 0;">
+                    </div>
+                </div>
+            </div>
+            <div class="card-body p-0">
+                <div class="table-responsive">
+                    <table class="table table-hover mb-0" id="usersTable">
+                        <thead style="background-color: #f8f9fa;">
+                            <tr>
+                                <th class="border-0 px-4 py-3" style="font-weight: 600; color: #4a5568; text-transform: uppercase; font-size: 12px; letter-spacing: 0.5px;">
+                                    <i class="bi bi-person me-2"></i>User Details
+                                </th>
+                                <th class="border-0 px-3 py-3" style="font-weight: 600; color: #4a5568; text-transform: uppercase; font-size: 12px; letter-spacing: 0.5px;">
+                                    <i class="bi bi-building me-2"></i>Assignment
+                                </th>
+                                <th class="border-0 px-3 py-3" style="font-weight: 600; color: #4a5568; text-transform: uppercase; font-size: 12px; letter-spacing: 0.5px;">
+                                    <i class="bi bi-shield-check me-2"></i>Roles
+                                </th>
+                                <th class="border-0 px-3 py-3 text-center" style="font-weight: 600; color: #4a5568; text-transform: uppercase; font-size: 12px; letter-spacing: 0.5px;">
+                                    <i class="bi bi-toggle2-on me-2"></i>Status
+                                </th>
+                                <th class="border-0 px-3 py-3 text-center" style="font-weight: 600; color: #4a5568; text-transform: uppercase; font-size: 12px; letter-spacing: 0.5px; width: 120px;">
+                                    <i class="bi bi-gear me-2"></i>Actions
+                                </th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            @foreach (var user in Model.Users)
+                            {
+                                <tr data-user-id="@user.Id" data-organization-id="@user.OrganizationId" data-office-id="@user.OfficeId" data-suboffice-id="@user.SubOfficeId" class="user-row">
+                                    <td class="align-middle px-4 py-3">
+                                        <div class="d-flex align-items-center">
+                                            <div class="position-relative">
+                                                <div class="rounded-circle d-flex align-items-center justify-content-center" 
+                                                     style="width: 48px; height: 48px; background: linear-gradient(135deg, #3b82f6 0%, #1e40af 100%);">
+                                                    @{
+                                                        var initials = "";
+                                                        if (!string.IsNullOrEmpty(user.FirstName) && !string.IsNullOrEmpty(user.LastName))
+                                                        {
+                                                            initials = $"{user.FirstName.Substring(0, 1)}{user.LastName.Substring(0, 1)}";
+                                                        }
+                                                        else if (!string.IsNullOrEmpty(user.Email))
+                                                        {
+                                                            initials = user.Email.Substring(0, 2).ToUpper();
+                                                        }
+                                                    }
+                                                    <span class="text-white fw-bold" style="font-size: 18px;">@initials</span>
+                                                </div>
+                                                @if (user.Status == TAB.Web.Models.UserStatus.Active)
+                                                {
+                                                    <span class="position-absolute bottom-0 end-0 bg-success border border-white rounded-circle" 
+                                                          style="width: 12px; height: 12px;"></span>
+                                                }
+                                            </div>
+                                            <div class="ms-3">
+                                                <h6 class="mb-0 fw-semibold text-dark">@user.FirstName @user.LastName</h6>
+                                                <div class="d-flex align-items-center gap-2">
+                                                    <span class="badge bg-light text-muted" style="font-weight: 500;">
+                                                        <i class="bi bi-envelope me-1"></i>@user.Email
+                                                    </span>
+                                                </div>
+                                            </div>
+                                        </div>
+                                    </td>
+                                    <td class="align-middle px-3 py-3">
+                                        <div class="d-flex flex-column gap-2">
+                                            <div class="d-flex flex-wrap gap-1">
+                                                @if (!string.IsNullOrEmpty(user.OrganizationName))
+                                                {
+                                                    <span class="badge" style="background-color: #f3f4f6; color: #374151; padding: 4px 10px;">
+                                                        <i class="bi bi-building me-1"></i>@user.OrganizationName
+                                                    </span>
+                                                }
+                                                @if (!string.IsNullOrEmpty(user.OfficeName))
+                                                {
+                                                    <span class="badge" style="background-color: #e0f2fe; color: #0284c7; padding: 4px 10px;">
+                                                        <i class="bi bi-geo-alt me-1"></i>@user.OfficeName
+                                                    </span>
+                                                }
+                                                @if (!string.IsNullOrEmpty(user.SubOfficeName))
+                                                {
+                                                    <span class="badge" style="background-color: #fef3c7; color: #92400e; padding: 4px 10px;">
+                                                        <i class="bi bi-pin-map me-1"></i>@user.SubOfficeName
+                                                    </span>
+                                                }
+                                            </div>
+                                            @if (string.IsNullOrEmpty(user.OrganizationName) && string.IsNullOrEmpty(user.OfficeName) && string.IsNullOrEmpty(user.SubOfficeName))
+                                            {
+                                                <span class="text-muted fst-italic" style="font-size: 13px;">Unassigned</span>
+                                            }
+                                        </div>
+                                    </td>
+                                    <td class="align-middle px-3 py-3" data-roles="@string.Join(", ", user.Roles)">
+                                        <div class="d-flex flex-wrap gap-1">
+                                            @foreach (var role in user.Roles)
+                                            {
+                                                <span class="badge" style="background-color: #dbeafe; color: #1e40af; padding: 4px 10px;">
+                                                    <i class="bi bi-shield-check me-1"></i>@role
+                                                </span>
+                                            }
+                                            @if (!user.Roles.Any())
+                                            {
+                                                <span class="text-muted fst-italic" style="font-size: 13px;">No roles assigned</span>
+                                            }
+                                        </div>
+                                    </td>
+                                    <td class="align-middle text-center px-3 py-3">
+                                        @if (user.Status == TAB.Web.Models.UserStatus.Active)
+                                        {
+                                            <span class="badge rounded-pill" style="background-color: #10b981; color: white; padding: 6px 16px;">
+                                                <i class="bi bi-check-circle-fill me-1"></i>Active
+                                            </span>
+                                        }
+                                        else
+                                        {
+                                            <span class="badge rounded-pill" style="background-color: #6b7280; color: white; padding: 6px 16px;">
+                                                <i class="bi bi-x-circle-fill me-1"></i>Inactive
+                                            </span>
+                                        }
+                                    </td>
+                                    <td class="align-middle px-3 py-3">
+                                        <div class="d-flex gap-1 justify-content-center">
+                                            <button type="button" class="btn btn-sm btn-light border-0" 
+                                                    onclick="manageRoles('@user.Id', '@user.Email', '@user.FirstName @user.LastName')" 
+                                                    title="Manage Roles" style="border-radius: 8px;">
+                                                <i class="bi bi-person-gear text-warning"></i>
+                                            </button>
+                                            <button type="button" class="btn btn-sm btn-light border-0" 
+                                                    onclick="editUser('@user.Id', '@user.Email', '@user.FirstName', '@user.LastName', '@((int)user.Status)', '@user.OrganizationId', '@user.OfficeId', '@user.SubOfficeId')" 
+                                                    title="Edit User" style="border-radius: 8px;">
+                                                <i class="bi bi-pencil text-primary"></i>
+                                            </button>
+                                            <form method="post" asp-page-handler="DeleteUser" class="d-inline" 
+                                                  onsubmit="return confirm('Are you sure you want to delete this user?');">
+                                                <input type="hidden" name="userId" value="@user.Id" />
+                                                <button type="submit" class="btn btn-sm btn-light border-0" title="Delete User" style="border-radius: 8px;">
+                                                    <i class="bi bi-trash text-danger"></i>
+                                                </button>
+                                            </form>
+                                            <div class="dropdown">
+                                                <button type="button" class="btn btn-sm btn-light border-0" data-bs-toggle="dropdown" 
+                                                        data-bs-auto-close="true" aria-expanded="false" title="More Options" style="border-radius: 8px;">
+                                                    <i class="bi bi-three-dots-vertical"></i>
+                                                </button>
+                                                <ul class="dropdown-menu dropdown-menu-end shadow-sm" style="border-radius: 12px;">
+                                                    <li>
+                                                        <form method="post" asp-page-handler="ToggleStatus">
+                                                            <input type="hidden" name="userId" value="@user.Id" />
+                                                            <button type="submit" class="dropdown-item">
+                                                                <i class="bi @(user.Status == TAB.Web.Models.UserStatus.Active ? "bi-x-circle text-danger" : "bi-check-circle text-success") me-2"></i>
+                                                                @(user.Status == TAB.Web.Models.UserStatus.Active ? "Deactivate User" : "Activate User")
+                                                            </button>
+                                                        </form>
+                                                    </li>
+                                                    <li><hr class="dropdown-divider"></li>
+                                                    <li>
+                                                        <form method="post" asp-page-handler="ForcePasswordChange">
+                                                            <input type="hidden" name="userId" value="@user.Id" />
+                                                            <button type="submit" class="dropdown-item text-warning">
+                                                                <i class="bi bi-key me-2"></i>Force Password Change
+                                                            </button>
+                                                        </form>
+                                                    </li>
+                                                </ul>
+                                            </div>
+                                        </div>
+                                    </td>
+                                </tr>
+                            }
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Create User Modal -->
+<div class="modal fade" id="createUserModal" tabindex="-1" aria-labelledby="createUserModalLabel" aria-hidden="true">
+    <div class="modal-dialog modal-lg modal-dialog-centered">
+        <div class="modal-content border-0 shadow-lg" style="border-radius: 20px;">
+            <div class="modal-header border-0 pb-0" style="padding: 2rem 2rem 1rem 2rem;">
+                <div class="w-100 text-center">
+                    <div class="mb-3">
+                        <div class="bg-primary bg-opacity-10 rounded-circle d-inline-flex align-items-center justify-content-center" style="width: 60px; height: 60px;">
+                            <i class="bi bi-person-plus text-primary" style="font-size: 24px;"></i>
+                        </div>
+                    </div>
+                    <h4 class="modal-title fw-bold text-dark mb-1" id="createUserModalLabel">Create New User</h4>
+                    <p class="text-muted mb-0">Add a new team member to your organization</p>
+                </div>
+                <button type="button" class="btn-close position-absolute" data-bs-dismiss="modal" aria-label="Close" style="top: 1rem; right: 1rem;"></button>
+            </div>
+            <form method="post" asp-page-handler="CreateUser">
+                <div class="modal-body" style="padding: 1rem 2rem;">
+                    <!-- Basic Information -->
+                    <div class="mb-4">
+                        <h6 class="text-muted text-uppercase fw-semibold mb-3" style="font-size: 0.75rem; letter-spacing: 1px;">Basic Information</h6>
+                        <div class="row g-3">
+                            <div class="col-12">
+                                <div class="form-group-modern">
+                                    <label asp-for="Input.Email" class="form-label-modern">Email Address</label>
+                                    <input asp-for="Input.Email" class="form-control form-control-modern" placeholder="Enter email address" />
+                                    <span asp-validation-for="Input.Email" class="text-danger small"></span>
+                                    <small class="form-text text-muted mt-1 d-block">Welcome email with login instructions will be sent</small>
+                                </div>
+                            </div>
+                            <div class="col-md-6">
+                                <div class="form-group-modern">
+                                    <label asp-for="Input.FirstName" class="form-label-modern">First Name</label>
+                                    <input asp-for="Input.FirstName" class="form-control form-control-modern" placeholder="Enter first name" />
+                                    <span asp-validation-for="Input.FirstName" class="text-danger small"></span>
+                                </div>
+                            </div>
+                            <div class="col-md-6">
+                                <div class="form-group-modern">
+                                    <label asp-for="Input.LastName" class="form-label-modern">Last Name</label>
+                                    <input asp-for="Input.LastName" class="form-control form-control-modern" placeholder="Enter last name" />
+                                    <span asp-validation-for="Input.LastName" class="text-danger small"></span>
+                                </div>
+                            </div>
+                            <div class="col-12">
+                                <div class="form-group-modern">
+                                    <label asp-for="Input.Role" class="form-label-modern">Role</label>
+                                    <select asp-for="Input.Role" class="form-select form-select-modern">
+                                        <option value="" disabled selected>Select a role</option>
+                                        @foreach (var role in Model.AvailableRoles)
+                                        {
+                                            <option value="@role">@role</option>
+                                        }
+                                    </select>
+                                    <span asp-validation-for="Input.Role" class="text-danger small"></span>
+                                </div>
+                            </div>
+                            <div class="col-12">
+                                <div class="form-group-modern">
+                                    <label asp-for="Input.Status" class="form-label-modern">Status</label>
+                                    <select asp-for="Input.Status" class="form-select form-select-modern">
+                                        <option value="@((int)TAB.Web.Models.UserStatus.Active)">Active</option>
+                                        <option value="@((int)TAB.Web.Models.UserStatus.Inactive)">Inactive</option>
+                                    </select>
+                                    <span asp-validation-for="Input.Status" class="text-danger small"></span>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Organization & Office -->
+                    <div class="mb-4">
+                        <h6 class="text-muted text-uppercase fw-semibold mb-3" style="font-size: 0.75rem; letter-spacing: 1px;">Organization, Office & Sub-Office (Optional)</h6>
+                        <div class="row g-3">
+                            <div class="col-md-4">
+                                <div class="form-group-modern">
+                                    <label asp-for="Input.OrganizationId" class="form-label-modern">Organization</label>
+                                    <select asp-for="Input.OrganizationId" class="form-select form-select-modern" id="createOrganizationId" onchange="filterOfficesByOrganization('create')">
+                                        <option value="">None selected</option>
+                                        @foreach (var org in Model.AvailableOrganizations)
+                                        {
+                                            <option value="@org.Value">@org.Text</option>
+                                        }
+                                    </select>
+                                    <span asp-validation-for="Input.OrganizationId" class="text-danger small"></span>
+                                </div>
+                            </div>
+                            <div class="col-md-4">
+                                <div class="form-group-modern">
+                                    <label asp-for="Input.OfficeId" class="form-label-modern">Office</label>
+                                    <select asp-for="Input.OfficeId" class="form-select form-select-modern" id="createOfficeId" onchange="filterSubOfficesByOffice('create')">
+                                        <option value="">None selected</option>
+                                    </select>
+                                    <span asp-validation-for="Input.OfficeId" class="text-danger small"></span>
+                                </div>
+                            </div>
+                            <div class="col-md-4">
+                                <div class="form-group-modern">
+                                    <label asp-for="Input.SubOfficeId" class="form-label-modern">Sub-Office</label>
+                                    <select asp-for="Input.SubOfficeId" class="form-select form-select-modern" id="createSubOfficeId">
+                                        <option value="">None selected</option>
+                                    </select>
+                                    <span asp-validation-for="Input.SubOfficeId" class="text-danger small"></span>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+                <div class="modal-footer border-0 pt-0" style="padding: 1rem 2rem 2rem 2rem;">
+                    <div class="d-grid gap-2 d-md-flex justify-content-md-end w-100">
+                        <button type="button" class="btn btn-light me-md-2 px-4 py-2" data-bs-dismiss="modal" style="border-radius: 12px; font-weight: 500;">Cancel</button>
+                        <button type="submit" class="btn btn-primary px-4 py-2" style="border-radius: 12px; font-weight: 500;">
+                            <i class="bi bi-plus-circle me-2"></i>Create User
+                        </button>
+                    </div>
+                </div>
+            </form>
+        </div>
+    </div>
+</div>
+
+<!-- Edit User Modal -->
+<div class="modal fade" id="editUserModal" tabindex="-1" aria-labelledby="editUserModalLabel" aria-hidden="true">
+    <div class="modal-dialog modal-lg modal-dialog-centered">
+        <div class="modal-content border-0 shadow-lg" style="border-radius: 20px;">
+            <div class="modal-header border-0 pb-0" style="padding: 2rem 2rem 1rem 2rem;">
+                <div class="w-100 text-center">
+                    <div class="mb-3">
+                        <div class="bg-info bg-opacity-10 rounded-circle d-inline-flex align-items-center justify-content-center" style="width: 60px; height: 60px;">
+                            <i class="bi bi-pencil text-info" style="font-size: 24px;"></i>
+                        </div>
+                    </div>
+                    <h4 class="modal-title fw-bold text-dark mb-1" id="editUserModalLabel">Edit User</h4>
+                    <p class="text-muted mb-0">Update user information and settings</p>
+                </div>
+                <button type="button" class="btn-close position-absolute" data-bs-dismiss="modal" aria-label="Close" style="top: 1rem; right: 1rem;"></button>
+            </div>
+            <form method="post" asp-page-handler="EditUser">
+                <input type="hidden" id="editUserId" name="userId" />
+                <div class="modal-body" style="padding: 1rem 2rem;">
+                    <!-- User Information -->
+                    <div class="mb-4">
+                        <h6 class="text-muted text-uppercase fw-semibold mb-3" style="font-size: 0.75rem; letter-spacing: 1px;">User Information</h6>
+                        <div class="row g-3">
+                            <div class="col-md-6">
+                                <div class="form-group-modern">
+                                    <label for="editUserEmail" class="form-label-modern">Email Address</label>
+                                    <input type="email" class="form-control form-control-modern" id="editUserEmail" name="email" readonly />
+                                    <small class="text-muted mt-1 d-block">Email cannot be changed</small>
+                                </div>
+                            </div>
+                            <div class="col-md-6">
+                                <div class="bg-light rounded-3 p-3" style="border-radius: 12px !important;">
+                                    <label for="editUserRoles" class="form-label text-muted small fw-semibold mb-1">Current Roles</label>
+                                    <p id="editUserRoles" class="mb-0 fw-medium"></p>
+                                </div>
+                            </div>
+                            <div class="col-md-6">
+                                <div class="form-group-modern">
+                                    <label for="editFirstName" class="form-label-modern">First Name</label>
+                                    <input type="text" class="form-control form-control-modern" id="editFirstName" name="firstName" required placeholder="Enter first name" />
+                                </div>
+                            </div>
+                            <div class="col-md-6">
+                                <div class="form-group-modern">
+                                    <label for="editLastName" class="form-label-modern">Last Name</label>
+                                    <input type="text" class="form-control form-control-modern" id="editLastName" name="lastName" required placeholder="Enter last name" />
+                                </div>
+                            </div>
+                            <div class="col-md-6">
+                                <div class="form-group-modern">
+                                    <label for="editStatus" class="form-label-modern">Status</label>
+                                    <select class="form-select form-select-modern" id="editStatus" name="status">
+                                        <option value="1">Active</option>
+                                        <option value="0">Inactive</option>
+                                    </select>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Organization & Office -->
+                    <div class="mb-4">
+                        <h6 class="text-muted text-uppercase fw-semibold mb-3" style="font-size: 0.75rem; letter-spacing: 1px;">Organization, Office & Sub-Office (Optional)</h6>
+                        <div class="row g-3">
+                            <div class="col-md-4">
+                                <div class="form-group-modern">
+                                    <label for="editOrganizationId" class="form-label-modern">Organization</label>
+                                    <select class="form-select form-select-modern" id="editOrganizationId" name="organizationId" onchange="filterOfficesByOrganization('edit')">
+                                        <option value="">None selected</option>
+                                        @foreach (var org in Model.AvailableOrganizations)
+                                        {
+                                            <option value="@org.Value">@org.Text</option>
+                                        }
+                                    </select>
+                                </div>
+                            </div>
+                            <div class="col-md-4">
+                                <div class="form-group-modern">
+                                    <label for="editOfficeId" class="form-label-modern">Office</label>
+                                    <select class="form-select form-select-modern" id="editOfficeId" name="officeId" onchange="filterSubOfficesByOffice('edit')">
+                                        <option value="">None selected</option>
+                                    </select>
+                                </div>
+                            </div>
+                            <div class="col-md-4">
+                                <div class="form-group-modern">
+                                    <label for="editSubOfficeId" class="form-label-modern">Sub-Office</label>
+                                    <select class="form-select form-select-modern" id="editSubOfficeId" name="subOfficeId">
+                                        <option value="">None selected</option>
+                                    </select>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Password Settings -->
+                    <div class="mb-4">
+                        <h6 class="text-muted text-uppercase fw-semibold mb-3" style="font-size: 0.75rem; letter-spacing: 1px;">Password Settings</h6>
+                        <div class="d-grid">
+                            <button type="button" class="btn btn-warning" onclick="resetUserPassword()" style="border-radius: 12px;">
+                                <i class="bi bi-key me-2"></i>Reset Password
+                            </button>
+                            <small class="d-block text-muted mt-2 text-center">Generate a new temporary password and require user to change it</small>
+                        </div>
+                    </div>
+                </div>
+                <div class="modal-footer border-0 pt-0" style="padding: 1rem 2rem 2rem 2rem;">
+                    <div class="d-grid gap-2 d-md-flex justify-content-md-end w-100">
+                        <button type="button" class="btn btn-light me-md-2 px-4 py-2" data-bs-dismiss="modal" style="border-radius: 12px; font-weight: 500;">Cancel</button>
+                        <button type="submit" class="btn btn-info px-4 py-2" style="border-radius: 12px; font-weight: 500;">
+                            <i class="bi bi-check-circle me-2"></i>Update User
+                        </button>
+                    </div>
+                </div>
+            </form>
+        </div>
+    </div>
+</div>
+
+<!-- Role Management Modal -->
+<div class="modal fade" id="roleManagementModal" tabindex="-1" aria-labelledby="roleManagementModalLabel" aria-hidden="true">
+    <div class="modal-dialog modal-dialog-centered">
+        <div class="modal-content border-0 shadow-lg" style="border-radius: 20px;">
+            <div class="modal-header border-0 pb-0" style="padding: 2rem 2rem 1rem 2rem;">
+                <div class="w-100 text-center">
+                    <div class="mb-3">
+                        <div class="bg-warning bg-opacity-10 rounded-circle d-inline-flex align-items-center justify-content-center" style="width: 60px; height: 60px;">
+                            <i class="bi bi-person-gear text-warning" style="font-size: 24px;"></i>
+                        </div>
+                    </div>
+                    <h4 class="modal-title fw-bold text-dark mb-1" id="roleManagementModalLabel">Manage User Roles</h4>
+                    <p class="text-muted mb-0" id="roleModalUserInfo">Assign or remove roles for this user</p>
+                </div>
+                <button type="button" class="btn-close position-absolute" data-bs-dismiss="modal" aria-label="Close" style="top: 1rem; right: 1rem;"></button>
+            </div>
+            <div class="modal-body" style="padding: 1rem 2rem;">
+                <!-- Current Roles Display -->
+                <div class="mb-4">
+                    <h6 class="text-muted text-uppercase fw-semibold mb-3" style="font-size: 0.75rem; letter-spacing: 1px;">Current Roles</h6>
+                    <div id="currentRolesDisplay" class="d-flex flex-wrap gap-2 mb-3">
+                        <!-- Current roles will be populated here -->
+                    </div>
+                </div>
+
+                <!-- Role Actions -->
+                <div class="mb-4">
+                    <h6 class="text-muted text-uppercase fw-semibold mb-3" style="font-size: 0.75rem; letter-spacing: 1px;">Role Actions</h6>
+                    <div id="roleActionsContainer">
+                        <!-- Role action forms will be populated here -->
+                    </div>
+                </div>
+            </div>
+            <div class="modal-footer border-0 pt-0" style="padding: 1rem 2rem 2rem 2rem;">
+                <div class="d-grid gap-2 d-md-flex justify-content-md-end w-100">
+                    <button type="button" class="btn btn-light px-4 py-2" data-bs-dismiss="modal" style="border-radius: 12px; font-weight: 500;">Close</button>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Password Reset Result Modal -->
+<div class="modal fade" id="passwordResetModal" tabindex="-1" aria-labelledby="passwordResetModalLabel" aria-hidden="true">
+    <div class="modal-dialog modal-dialog-centered">
+        <div class="modal-content border-0 shadow-lg" style="border-radius: 20px;">
+            <div class="modal-header border-0 pb-0" style="padding: 2rem 2rem 1rem 2rem; background: linear-gradient(135deg, #fbbf24 0%, #f59e0b 100%); border-radius: 20px 20px 0 0;">
+                <div class="w-100 text-center">
+                    <div class="mb-3">
+                        <div class="bg-white rounded-circle d-inline-flex align-items-center justify-content-center" style="width: 60px; height: 60px;">
+                            <i class="bi bi-key-fill text-warning" style="font-size: 24px;"></i>
+                        </div>
+                    </div>
+                    <h4 class="modal-title fw-bold text-white mb-1" id="passwordResetModalLabel">Password Reset Successful</h4>
+                    <p class="text-white-50 mb-0">New temporary password generated</p>
+                </div>
+                <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal" aria-label="Close" style="position: absolute; top: 1rem; right: 1rem;"></button>
+            </div>
+            <div class="modal-body" style="padding: 2rem;">
+                <div class="alert alert-success mb-3" id="emailStatusAlert" style="display: none;">
+                    <i class="bi bi-envelope-check me-2"></i>
+                    <span id="emailStatusMessage"></span>
+                </div>
+
+                <div class="alert alert-warning mb-3" id="emailErrorAlert" style="display: none;">
+                    <i class="bi bi-exclamation-triangle me-2"></i>
+                    <span id="emailErrorMessage"></span>
+                </div>
+
+                <div class="card border-warning" style="border-radius: 16px; border-width: 2px;">
+                    <div class="card-body p-4">
+                        <h6 class="fw-bold mb-3">
+                            <i class="bi bi-person-circle me-2 text-primary"></i>
+                            User: <span id="resetUserEmail" class="text-muted"></span>
+                        </h6>
+
+                        <label class="form-label fw-semibold mb-2">Temporary Password:</label>
+                        <div class="input-group mb-3">
+                            <input type="text" class="form-control form-control-lg fw-bold text-center" id="generatedPassword" readonly style="font-size: 1.25rem; letter-spacing: 2px; background: #fef3c7; border: 2px solid #fbbf24; font-family: 'Courier New', monospace;">
+                            <button class="btn btn-warning" type="button" onclick="copyPassword()" style="border: 2px solid #fbbf24;">
+                                <i class="bi bi-clipboard" id="copyIcon"></i>
+                                <span id="copyText">Copy</span>
+                            </button>
+                        </div>
+
+                        <div class="alert alert-info mb-0" style="border-radius: 12px;">
+                            <i class="bi bi-info-circle me-2"></i>
+                            <strong>Important:</strong>
+                            <ul class="mb-0 mt-2 ps-3">
+                                <li>Copy this password now - you won't be able to see it again</li>
+                                <li>Share this password securely with the user</li>
+                                <li>User must change this password on first login</li>
+                            </ul>
+                        </div>
+                    </div>
+                </div>
+            </div>
+            <div class="modal-footer border-0 pt-0" style="padding: 1rem 2rem 2rem 2rem;">
+                <div class="d-grid w-100">
+                    <button type="button" class="btn btn-warning btn-lg" data-bs-dismiss="modal" style="border-radius: 12px; font-weight: 600;">
+                        <i class="bi bi-check-lg me-2"></i>Done
+                    </button>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+@section Scripts {
+    <partial name="_ValidationScriptsPartial" />
+    <script>
+        // Available roles from server-side
+        const availableRoles = @Html.Raw(Json.Serialize(Model.AvailableRoles));
+        
+        // Enable Bootstrap dropdowns with smart positioning
+        document.addEventListener('DOMContentLoaded', function () {
+            var dropdownElementList = [].slice.call(document.querySelectorAll('.dropdown-toggle'))
+            var dropdownList = dropdownElementList.map(function (dropdownToggleEl) {
+                var dropdown = new bootstrap.Dropdown(dropdownToggleEl);
+                
+                // Add event listener to adjust dropdown position
+                dropdownToggleEl.addEventListener('show.bs.dropdown', function (e) {
+                    // Small delay to allow dropdown to be rendered
+                    setTimeout(function() {
+                        var dropdownMenu = dropdownToggleEl.nextElementSibling;
+                        if (dropdownMenu && dropdownMenu.classList.contains('dropdown-menu')) {
+                            var rect = dropdownMenu.getBoundingClientRect();
+                            var viewportHeight = window.innerHeight;
+                            
+                            // If dropdown extends below viewport, add dropup class
+                            if (rect.bottom > viewportHeight - 20) {
+                                dropdownToggleEl.parentElement.classList.add('dropup');
+                            } else {
+                                dropdownToggleEl.parentElement.classList.remove('dropup');
+                            }
+                        }
+                    }, 10);
+                });
+                
+                return dropdown;
+            });
+        });
+        
+        // Function to populate edit user modal
+        function editUser(userId, email, firstName, lastName, status, organizationId, officeId, subOfficeId) {
+            document.getElementById('editUserId').value = userId;
+            document.getElementById('editUserEmail').value = email;
+            document.getElementById('editFirstName').value = firstName;
+            document.getElementById('editLastName').value = lastName;
+            document.getElementById('editStatus').value = status;
+            document.getElementById('editOrganizationId').value = organizationId || '';
+
+            // Load offices for the selected organization
+            if (organizationId) {
+                filterOfficesByOrganization('edit', function() {
+                    document.getElementById('editOfficeId').value = officeId || '';
+                    // Load sub-offices for the selected office
+                    if (officeId) {
+                        filterSubOfficesByOffice('edit', function() {
+                            document.getElementById('editSubOfficeId').value = subOfficeId || '';
+                        });
+                    } else {
+                        document.getElementById('editSubOfficeId').value = '';
+                    }
+                });
+            } else {
+                document.getElementById('editOfficeId').value = '';
+                document.getElementById('editSubOfficeId').value = '';
+            }
+
+            // Get current user roles from the table
+            var rolesCell = document.querySelector(`tr[data-user-id="${userId}"] td[data-roles]`);
+            if (rolesCell) {
+                var roles = rolesCell.getAttribute('data-roles');
+                document.getElementById('editUserRoles').textContent = roles;
+            }
+
+            // Open the modal
+            var editModal = new bootstrap.Modal(document.getElementById('editUserModal'));
+            editModal.show();
+        }
+        
+        // Function to manage user roles
+        function manageRoles(userId, email, fullName) {
+            document.getElementById('roleModalUserInfo').textContent = `Assign or remove roles for ${fullName} (${email})`;
+            
+            // Get current user roles from the table
+            var rolesCell = document.querySelector(`tr[data-user-id="${userId}"] td[data-roles]`);
+            var currentUserRoles = [];
+            if (rolesCell) {
+                var rolesText = rolesCell.getAttribute('data-roles');
+                if (rolesText && rolesText.trim() !== '') {
+                    currentUserRoles = rolesText.split(', ').map(role => role.trim());
+                }
+            }
+            
+            // Populate current roles display
+            const currentRolesContainer = document.getElementById('currentRolesDisplay');
+            currentRolesContainer.innerHTML = '';
+            
+            if (currentUserRoles.length === 0) {
+                currentRolesContainer.innerHTML = '<span class="text-muted fst-italic">No roles assigned</span>';
+            } else {
+                currentUserRoles.forEach(role => {
+                    const roleElement = document.createElement('span');
+                    roleElement.className = 'badge bg-danger bg-opacity-10 text-danger border border-danger border-opacity-25 d-flex align-items-center';
+                    roleElement.style.width = 'fit-content';
+                    roleElement.innerHTML = `
+                        ${role}
+                        <button type="button" class="btn btn-link p-0 text-danger ms-2" style="font-size: 0.8rem; border: none; background: none;" 
+                                onclick="removeRole('${userId}', '${role}')" title="Remove ${role}">
+                            <i class="bi bi-x"></i>
+                        </button>
+                    `;
+                    currentRolesContainer.appendChild(roleElement);
+                });
+            }
+            
+            // Populate role actions
+            const roleActionsContainer = document.getElementById('roleActionsContainer');
+            roleActionsContainer.innerHTML = '';
+            
+            // Show available roles to add
+            const unassignedRoles = availableRoles.filter(role => !currentUserRoles.includes(role));
+            
+            if (unassignedRoles.length > 0) {
+                const addRoleDiv = document.createElement('div');
+                addRoleDiv.className = 'mb-3';
+                addRoleDiv.innerHTML = '<h6 class="text-muted mb-2">Add Role:</h6>';
+                
+                const roleList = document.createElement('div');
+                roleList.className = 'd-flex flex-wrap gap-2';
+                
+                unassignedRoles.forEach(role => {
+                    const roleElement = document.createElement('span');
+                    roleElement.className = 'badge bg-success bg-opacity-10 text-success border border-success border-opacity-25 d-flex align-items-center';
+                    roleElement.style.width = 'fit-content';
+                    roleElement.innerHTML = `
+                        ${role}
+                        <button type="button" class="btn btn-link p-0 text-success ms-2" style="font-size: 0.8rem; border: none; background: none;" 
+                                onclick="addRole('${userId}', '${role}')" title="Add ${role}">
+                            <i class="bi bi-plus"></i>
+                        </button>
+                    `;
+                    roleList.appendChild(roleElement);
+                });
+                
+                addRoleDiv.appendChild(roleList);
+                roleActionsContainer.appendChild(addRoleDiv);
+            } else {
+                roleActionsContainer.innerHTML = '<span class="text-muted fst-italic">All available roles are assigned</span>';
+            }
+            
+            // Open the modal
+            var roleModal = new bootstrap.Modal(document.getElementById('roleManagementModal'));
+            roleModal.show();
+        }
+        
+        // Function to add a role
+        function addRole(userId, role) {
+            const form = document.createElement('form');
+            form.method = 'post';
+            form.action = '?handler=AddRole';
+            
+            const userIdInput = document.createElement('input');
+            userIdInput.type = 'hidden';
+            userIdInput.name = 'userId';
+            userIdInput.value = userId;
+            
+            const roleInput = document.createElement('input');
+            roleInput.type = 'hidden';
+            roleInput.name = 'role';
+            roleInput.value = role;
+            
+            // Add anti-forgery token
+            const tokenInput = document.createElement('input');
+            tokenInput.type = 'hidden';
+            tokenInput.name = '__RequestVerificationToken';
+            tokenInput.value = document.querySelector('input[name="__RequestVerificationToken"]').value;
+            
+            form.appendChild(userIdInput);
+            form.appendChild(roleInput);
+            form.appendChild(tokenInput);
+            
+            document.body.appendChild(form);
+            form.submit();
+        }
+        
+        // Function to remove a role
+        function removeRole(userId, role) {
+            const form = document.createElement('form');
+            form.method = 'post';
+            form.action = '?handler=RemoveRole';
+            
+            const userIdInput = document.createElement('input');
+            userIdInput.type = 'hidden';
+            userIdInput.name = 'userId';
+            userIdInput.value = userId;
+            
+            const roleInput = document.createElement('input');
+            roleInput.type = 'hidden';
+            roleInput.name = 'role';
+            roleInput.value = role;
+            
+            // Add anti-forgery token
+            const tokenInput = document.createElement('input');
+            tokenInput.type = 'hidden';
+            tokenInput.name = '__RequestVerificationToken';
+            tokenInput.value = document.querySelector('input[name="__RequestVerificationToken"]').value;
+            
+            form.appendChild(userIdInput);
+            form.appendChild(roleInput);
+            form.appendChild(tokenInput);
+            
+            document.body.appendChild(form);
+            form.submit();
+        }
+        
+        // Search functionality
+        document.getElementById('searchUsers').addEventListener('keyup', function() {
+            const searchTerm = this.value.toLowerCase();
+            const rows = document.querySelectorAll('#usersTable tbody tr');
+            
+            rows.forEach(row => {
+                const text = row.textContent.toLowerCase();
+                row.style.display = text.includes(searchTerm) ? '' : 'none';
+            });
+        });
+        
+        // Add animation to status badges
+        document.querySelectorAll('.badge').forEach(badge => {
+            badge.addEventListener('mouseenter', function() {
+                this.style.transform = 'translateY(-2px) scale(1.05)';
+            });
+            badge.addEventListener('mouseleave', function() {
+                this.style.transform = 'translateY(0) scale(1)';
+            });
+        });
+
+        // Store all offices and sub-offices data
+        var allOffices = @Html.Raw(Json.Serialize(Model.AvailableOffices));
+        var allSubOffices = @Html.Raw(Json.Serialize(Model.AvailableSubOffices));
+
+        // Function to filter offices by selected organization
+        function filterOfficesByOrganization(formType, callback) {
+            var organizationId = document.getElementById(formType + 'OrganizationId').value;
+            var officeSelect = document.getElementById(formType + 'OfficeId');
+            var subOfficeSelect = document.getElementById(formType + 'SubOfficeId');
+
+            // Clear office dropdown
+            officeSelect.innerHTML = '<option value="">None selected</option>';
+
+            // Clear sub-office dropdown
+            if (subOfficeSelect) {
+                subOfficeSelect.innerHTML = '<option value="">None selected</option>';
+            }
+
+            if (organizationId) {
+                // Filter offices that belong to the selected organization
+                allOffices.forEach(function(office) {
+                    // Check if this office belongs to the selected organization
+                    // The text format is "Organization - Office"
+                    var parts = office.text.split(' - ');
+                    if (parts.length >= 2) {
+                        var orgName = parts[0];
+                        var officeName = parts[1];
+
+                        // Find the organization name from the ID
+                        var selectedOrgElement = document.querySelector('#' + formType + 'OrganizationId option[value="' + organizationId + '"]');
+                        if (selectedOrgElement && selectedOrgElement.textContent === orgName) {
+                            var option = document.createElement('option');
+                            option.value = office.value;
+                            option.textContent = officeName;
+                            officeSelect.appendChild(option);
+                        }
+                    }
+                });
+            }
+
+            if (callback) callback();
+        }
+
+        // Function to filter sub-offices by selected office
+        function filterSubOfficesByOffice(formType, callback) {
+            var officeId = document.getElementById(formType + 'OfficeId').value;
+            var subOfficeSelect = document.getElementById(formType + 'SubOfficeId');
+
+            // Clear sub-office dropdown
+            if (subOfficeSelect) {
+                subOfficeSelect.innerHTML = '<option value="">None selected</option>';
+
+                if (officeId) {
+                    // Get selected office text
+                    var selectedOfficeElement = document.querySelector('#' + formType + 'OfficeId option[value="' + officeId + '"]');
+                    var selectedOfficeName = selectedOfficeElement ? selectedOfficeElement.textContent : '';
+
+                    // Get selected organization text
+                    var organizationId = document.getElementById(formType + 'OrganizationId').value;
+                    var selectedOrgElement = document.querySelector('#' + formType + 'OrganizationId option[value="' + organizationId + '"]');
+                    var selectedOrgName = selectedOrgElement ? selectedOrgElement.textContent : '';
+
+                    // Filter sub-offices that belong to the selected office
+                    allSubOffices.forEach(function(subOffice) {
+                        // The text format is "Organization - Office - SubOffice"
+                        var parts = subOffice.text.split(' - ');
+                        if (parts.length >= 3) {
+                            var orgName = parts[0];
+                            var officeName = parts[1];
+                            var subOfficeName = parts[2];
+
+                            if (orgName === selectedOrgName && officeName === selectedOfficeName) {
+                                var option = document.createElement('option');
+                                option.value = subOffice.value;
+                                option.textContent = subOfficeName;
+                                subOfficeSelect.appendChild(option);
+                            }
+                        }
+                    });
+                }
+            }
+
+            if (callback) callback();
+        }
+
+        // Function to reset user password
+        function resetUserPassword() {
+            // Get the userId from the edit modal (stored in hidden field)
+            const userId = document.getElementById('editUserId').value;
+
+            if (!userId) {
+                alert('Error: No user selected');
+                return;
+            }
+
+            // Get the reset button element
+            const resetBtn = event.target.closest('button');
+            const originalHtml = resetBtn.innerHTML;
+
+            // Show loading state
+            resetBtn.disabled = true;
+            resetBtn.innerHTML = '<span class="spinner-border spinner-border-sm me-2"></span>Generating...';
+
+            // Make AJAX call to reset password
+            fetch('?handler=ResetPassword', {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/x-www-form-urlencoded',
+                    'RequestVerificationToken': document.querySelector('input[name="__RequestVerificationToken"]').value
+                },
+                body: new URLSearchParams({ userId: userId })
+            })
+            .then(response => response.json())
+            .then(data => {
+                // Restore button state
+                resetBtn.disabled = false;
+                resetBtn.innerHTML = originalHtml;
+
+                if (data.success) {
+                    // Populate modal with data
+                    document.getElementById('generatedPassword').value = data.password;
+                    document.getElementById('resetUserEmail').textContent = data.email;
+
+                    // Reset copy button state
+                    document.getElementById('copyIcon').className = 'bi bi-clipboard';
+                    document.getElementById('copyText').textContent = 'Copy';
+
+                    // Show/hide email status
+                    const emailStatusAlert = document.getElementById('emailStatusAlert');
+                    const emailErrorAlert = document.getElementById('emailErrorAlert');
+
+                    emailStatusAlert.style.display = 'none';
+                    emailErrorAlert.style.display = 'none';
+
+                    if (data.emailSent) {
+                        emailStatusAlert.style.display = 'block';
+                        document.getElementById('emailStatusMessage').textContent = `Password has been emailed to ${data.email}`;
+                    }
+
+                    if (data.emailError) {
+                        emailErrorAlert.style.display = 'block';
+                        document.getElementById('emailErrorMessage').textContent = `Email sending failed: ${data.emailError}. Please share the password manually with the user.`;
+                    }
+
+                    // Show the password modal
+                    var passwordModal = new bootstrap.Modal(document.getElementById('passwordResetModal'));
+                    passwordModal.show();
+                } else {
+                    alert('Error: ' + data.message);
+                }
+            })
+            .catch(error => {
+                // Restore button state
+                resetBtn.disabled = false;
+                resetBtn.innerHTML = originalHtml;
+                alert('Error resetting password: ' + error);
+            });
+        }
+
+        // Function to copy password to clipboard
+        function copyPassword() {
+            const passwordInput = document.getElementById('generatedPassword');
+            passwordInput.select();
+            passwordInput.setSelectionRange(0, 99999); // For mobile devices
+
+            navigator.clipboard.writeText(passwordInput.value).then(() => {
+                // Show success feedback
+                document.getElementById('copyIcon').className = 'bi bi-check-lg';
+                document.getElementById('copyText').textContent = 'Copied!';
+
+                // Reset after 2 seconds
+                setTimeout(() => {
+                    document.getElementById('copyIcon').className = 'bi bi-clipboard';
+                    document.getElementById('copyText').textContent = 'Copy';
+                }, 2000);
+            }).catch(err => {
+                alert('Failed to copy password: ' + err);
+            });
+        }
+    </script>
+}

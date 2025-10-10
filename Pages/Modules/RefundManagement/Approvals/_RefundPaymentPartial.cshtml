@@ -1,0 +1,351 @@
+@using Microsoft.EntityFrameworkCore
+@model TAB.Web.Pages.Modules.RefundManagement.Approvals.IndexModel
+@inject TAB.Web.Data.ApplicationDbContext _context
+@{
+    var paymentRequests = await _context.RefundRequests
+        .Where(r => r.Status == TAB.Web.Models.RefundRequestStatus.PendingPaymentApproval)
+        .OrderByDescending(r => r.RequestDate)
+        .ToListAsync();
+}
+
+<div class="content-wrapper">
+    @if (paymentRequests.Any())
+    {
+        <div class="table-responsive">
+            <table class="table table-hover">
+                <thead>
+                    <tr>
+                        <th>Request Date</th>
+                        <th>Index No</th>
+                        <th>Employee Name</th>
+                        <th>Umoja Doc ID</th>
+                        <th>Refund Amount (USD)</th>
+                        <th>Bank</th>
+                        <th>Status</th>
+                        <th>Actions</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    @foreach (var request in paymentRequests)
+                    {
+                        <tr>
+                            <td>@request.RequestDate.ToString("dd-MMM-yyyy")</td>
+                            <td>@request.IndexNo</td>
+                            <td>@request.MobileNumberAssignedTo</td>
+                            <td>@request.UmojaPaymentDocumentId</td>
+                            <td>USD @(request.RefundUsdAmount?.ToString("N2") ?? "0.00")</td>
+                            <td>@request.UmojaBankName</td>
+                            <td>
+                                <span class="badge bg-success">Pending Payment</span>
+                            </td>
+                            <td>
+                                <div class="btn-group btn-group-sm" role="group">
+                                    <button type="button" class="btn btn-outline-info" 
+                                            data-bs-toggle="modal" 
+                                            data-bs-target="#viewPaymentModal_@request.Id">
+                                        <i class="bi bi-eye"></i> View
+                                    </button>
+                                    <button type="button" class="btn btn-outline-success" 
+                                            data-bs-toggle="modal" 
+                                            data-bs-target="#approvePaymentModal_@request.Id">
+                                        <i class="bi bi-credit-card"></i> Approve
+                                    </button>
+                                    <button type="button" class="btn btn-outline-danger" 
+                                            data-bs-toggle="modal" 
+                                            data-bs-target="#rejectPaymentModal_@request.Id">
+                                        <i class="bi bi-x-circle"></i> Reject
+                                    </button>
+                                </div>
+                            </td>
+                        </tr>
+                    }
+                </tbody>
+            </table>
+        </div>
+
+        <!-- Modals for each request -->
+        @foreach (var request in paymentRequests)
+        {
+            <!-- View Modal -->
+            <div class="modal fade" id="viewPaymentModal_@request.Id" tabindex="-1">
+                <div class="modal-dialog modal-dialog-centered modal-lg">
+                    <div class="modal-content">
+                        <div class="modal-header bg-info text-white">
+                            <h5 class="modal-title">
+                                <i class="bi bi-eye me-2"></i>View Refund Request - Payment Approval
+                            </h5>
+                            <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal"></button>
+                        </div>
+                        <div class="modal-body compact-modal">
+                            <div class="section-header">Request Information</div>
+                            <div class="info-grid">
+                                <div class="info-item">
+                                    <label>Request Date:</label>
+                                    <span>@request.RequestDate.ToString("dd-MMM-yyyy")</span>
+                                </div>
+                                <div class="info-item">
+                                    <label>Index No:</label>
+                                    <span>@request.IndexNo</span>
+                                </div>
+                                <div class="info-item">
+                                    <label>Employee:</label>
+                                    <span>@request.MobileNumberAssignedTo</span>
+                                </div>
+                                <div class="info-item">
+                                    <label>Organization:</label>
+                                    <span>@request.Organization</span>
+                                </div>
+                            </div>
+
+                            <div class="section-header mt-3">Payment Information</div>
+                            <div class="info-grid">
+                                <div class="info-item">
+                                    <label>Original Amount:</label>
+                                    <span>@request.DevicePurchaseCurrency @request.DevicePurchaseAmount.ToString("N2")</span>
+                                </div>
+                                <div class="info-item">
+                                    <label>Refund Amount (USD):</label>
+                                    <span class="fw-bold text-success">USD @(request.RefundUsdAmount?.ToString("N2") ?? "0.00")</span>
+                                </div>
+                                <div class="info-item">
+                                    <label>Bank Name:</label>
+                                    <span>@request.UmojaBankName</span>
+                                </div>
+                                <div class="info-item">
+                                    <label>Device Allowance:</label>
+                                    <span>USD @request.DeviceAllowance.ToString("N2")</span>
+                                </div>
+                            </div>
+
+                            <div class="section-header mt-3">Processing History</div>
+                            <div class="timeline">
+                                <div class="timeline-item completed">
+                                    <div class="timeline-badge"><i class="bi bi-check"></i></div>
+                                    <div class="timeline-content">
+                                        <strong>Supervisor Approval</strong>
+                                        <span class="text-muted">@request.SupervisorApprovalDate?.ToString("dd-MMM-yyyy") by @request.SupervisorName</span>
+                                    </div>
+                                </div>
+                                <div class="timeline-item completed">
+                                    <div class="timeline-badge"><i class="bi bi-check"></i></div>
+                                    <div class="timeline-content">
+                                        <strong>Budget Officer</strong>
+                                        <span class="text-muted">@request.BudgetOfficerApprovalDate?.ToString("dd-MMM-yyyy") - Cost Center: @request.CostCenter</span>
+                                    </div>
+                                </div>
+                                <div class="timeline-item completed">
+                                    <div class="timeline-badge"><i class="bi bi-check"></i></div>
+                                    <div class="timeline-content">
+                                        <strong>Claims Unit</strong>
+                                        <span class="text-muted">@request.StaffClaimsApprovalDate?.ToString("dd-MMM-yyyy") - Doc ID: @request.UmojaPaymentDocumentId</span>
+                                    </div>
+                                </div>
+                                <div class="timeline-item pending">
+                                    <div class="timeline-badge"><i class="bi bi-hourglass"></i></div>
+                                    <div class="timeline-content">
+                                        <strong>Payment Approval</strong>
+                                        <span class="text-muted">Pending</span>
+                                    </div>
+                                </div>
+                            </div>
+
+                            @if (!string.IsNullOrEmpty(request.StaffClaimsNotes))
+                            {
+                                <div class="info-item full-width mt-3">
+                                    <label>Claims Processing Notes:</label>
+                                    <span>@request.StaffClaimsNotes</span>
+                                </div>
+                            }
+                        </div>
+                        <div class="modal-footer">
+                            <button type="button" class="btn btn-secondary btn-sm" data-bs-dismiss="modal">Close</button>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Approve Payment Modal -->
+            <div class="modal fade" id="approvePaymentModal_@request.Id" tabindex="-1">
+                <div class="modal-dialog modal-dialog-centered">
+                    <div class="modal-content">
+                        <div class="modal-header bg-success text-white">
+                            <h5 class="modal-title">
+                                <i class="bi bi-credit-card me-2"></i>Final Payment Approval
+                            </h5>
+                            <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal"></button>
+                        </div>
+                        <form method="post" asp-page-handler="ApprovePayment">
+                            <div class="modal-body compact-modal">
+                                <input type="hidden" name="requestId" value="@request.Id" />
+                                
+                                <div class="alert alert-success compact-alert">
+                                    <i class="bi bi-check-circle me-2"></i>
+                                    <div>
+                                        <strong>Ready for Payment</strong><br/>
+                                        <strong>Employee:</strong> @request.MobileNumberAssignedTo<br/>
+                                        <strong>Amount:</strong> USD @(request.RefundUsdAmount?.ToString("N2") ?? "0.00")<br/>
+                                        <strong>Umoja Doc:</strong> @request.UmojaPaymentDocumentId
+                                    </div>
+                                </div>
+
+                                <div class="section-header">Payment Details</div>
+                                
+                                <div class="form-group compact-form">
+                                    <label class="form-label required">Payment Reference Number:</label>
+                                    <input type="text" name="paymentReference" class="form-control form-control-sm" required
+                                           placeholder="Enter payment reference"/>
+                                </div>
+
+                                <div class="form-group compact-form">
+                                    <label class="form-label required">Payment Approval Notes:</label>
+                                    <textarea name="paymentNotes" class="form-control form-control-sm" rows="2" required
+                                              placeholder="Enter payment approval notes..."></textarea>
+                                </div>
+
+                                <div class="form-group compact-form">
+                                    <label class="form-label">Completion Notes (Optional):</label>
+                                    <input type="text" name="completionNotes" class="form-control form-control-sm" 
+                                           placeholder="Optional completion notes"/>
+                                </div>
+
+                                <div class="form-check mt-3">
+                                    <input class="form-check-input" type="checkbox" id="confirmPayment_@request.Id" required>
+                                    <label class="form-check-label" for="confirmPayment_@request.Id">
+                                        I confirm that the payment has been processed in accordance with UN financial regulations
+                                    </label>
+                                </div>
+                            </div>
+                            <div class="modal-footer">
+                                <button type="button" class="btn btn-secondary btn-sm" data-bs-dismiss="modal">Cancel</button>
+                                <button type="submit" class="btn btn-success btn-sm">
+                                    <i class="bi bi-check-circle me-1"></i>Approve & Complete
+                                </button>
+                            </div>
+                        </form>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Reject Modal -->
+            <div class="modal fade" id="rejectPaymentModal_@request.Id" tabindex="-1">
+                <div class="modal-dialog modal-dialog-centered">
+                    <div class="modal-content">
+                        <div class="modal-header bg-danger text-white">
+                            <h5 class="modal-title">
+                                <i class="bi bi-x-circle me-2"></i>Reject Payment
+                            </h5>
+                            <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal"></button>
+                        </div>
+                        <form method="post" asp-page-handler="RejectPayment">
+                            <div class="modal-body compact-modal">
+                                <input type="hidden" name="requestId" value="@request.Id" />
+                                
+                                <div class="alert alert-danger compact-alert">
+                                    <i class="bi bi-exclamation-triangle me-2"></i>
+                                    <div>
+                                        <strong>Warning:</strong> Rejecting at this stage will require re-processing<br/>
+                                        <strong>Employee:</strong> @request.MobileNumberAssignedTo<br/>
+                                        <strong>Amount:</strong> USD @(request.RefundUsdAmount?.ToString("N2") ?? "0.00")
+                                    </div>
+                                </div>
+
+                                <div class="form-group compact-form">
+                                    <label class="form-label required">Rejection Reason:</label>
+                                    <select name="rejectionType" class="form-select form-select-sm mb-2" required>
+                                        <option value="">Select reason...</option>
+                                        <option value="Banking Issues">Banking Issues</option>
+                                        <option value="Invalid Account Information">Invalid Account Information</option>
+                                        <option value="Compliance Issues">Compliance Issues</option>
+                                        <option value="Documentation Error">Documentation Error</option>
+                                        <option value="Payment System Error">Payment System Error</option>
+                                        <option value="Other">Other</option>
+                                    </select>
+                                    <textarea name="rejectionDetails" class="form-control form-control-sm" rows="3" required
+                                              placeholder="Provide detailed explanation..."></textarea>
+                                </div>
+                            </div>
+                            <div class="modal-footer">
+                                <button type="button" class="btn btn-secondary btn-sm" data-bs-dismiss="modal">Cancel</button>
+                                <button type="submit" class="btn btn-danger btn-sm">
+                                    <i class="bi bi-x-circle me-1"></i>Reject Payment
+                                </button>
+                            </div>
+                        </form>
+                    </div>
+                </div>
+            </div>
+        }
+    }
+    else
+    {
+        <div class="empty-state">
+            <i class="bi bi-credit-card empty-icon"></i>
+            <h4>No Pending Payments</h4>
+            <p>There are no refund requests waiting for payment approval.</p>
+        </div>
+    }
+</div>
+
+<style>
+    .timeline {
+        position: relative;
+        padding-left: 30px;
+    }
+
+    .timeline::before {
+        content: '';
+        position: absolute;
+        left: 9px;
+        top: 0;
+        bottom: 0;
+        width: 2px;
+        background: #dee2e6;
+    }
+
+    .timeline-item {
+        position: relative;
+        margin-bottom: 1rem;
+    }
+
+    .timeline-badge {
+        position: absolute;
+        left: -21px;
+        top: 0;
+        width: 20px;
+        height: 20px;
+        border-radius: 50%;
+        background: white;
+        border: 2px solid #dee2e6;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        font-size: 0.625rem;
+    }
+
+    .timeline-item.completed .timeline-badge {
+        background: #10b981;
+        border-color: #10b981;
+        color: white;
+    }
+
+    .timeline-item.pending .timeline-badge {
+        background: #f59e0b;
+        border-color: #f59e0b;
+        color: white;
+    }
+
+    .timeline-content {
+        display: flex;
+        flex-direction: column;
+        font-size: 0.875rem;
+    }
+
+    .timeline-content strong {
+        color: #212529;
+        margin-bottom: 0.125rem;
+    }
+
+    .timeline-content .text-muted {
+        font-size: 0.75rem;
+    }
+</style>

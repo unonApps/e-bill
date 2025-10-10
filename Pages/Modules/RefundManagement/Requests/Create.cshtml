@@ -1,0 +1,1204 @@
+@page
+@model TAB.Web.Pages.Modules.RefundManagement.Requests.CreateModel
+@{
+    ViewData["Title"] = "Create Device Reimbursement Request";
+    ViewData["PageIcon"] = "bi-plus-circle";
+    ViewData["PageTitle"] = "Create Device Reimbursement Request";
+    ViewData["Breadcrumb"] = "Services / Device Reimbursement / Create Request";
+}
+
+<style>
+    /* Container and Layout */
+    .form-container {
+        max-width: 1200px;
+        margin: 0 auto;
+        padding: 0 1rem;
+    }
+    
+    .form-card {
+        background: #ffffff;
+        border: none;
+        border-radius: 12px;
+        box-shadow: 0 1px 3px 0 rgba(0, 0, 0, 0.1), 0 1px 2px 0 rgba(0, 0, 0, 0.06);
+        overflow: hidden;
+    }
+    
+    .form-header {
+        background-color: #009EDB; /* UN Blue */
+        color: white;
+        padding: 1rem 1.25rem;
+        position: relative;
+        border-radius: 12px 12px 0 0;
+        margin-bottom: 0;
+        box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+    }
+    
+    .form-header h1 {
+        font-size: 1.25rem;
+        font-weight: 600;
+        margin: 0;
+        position: relative;
+        z-index: 1;
+        display: flex;
+        align-items: center;
+        gap: 0.5rem;
+    }
+    
+    .form-header h1 i {
+        font-size: 1.1rem;
+    }
+    
+    .form-header p {
+        margin: 0.25rem 0 0 0;
+        opacity: 0.9;
+        font-size: 0.875rem;
+    }
+    
+    .form-body {
+        padding: 0;
+    }
+    
+    /* Tab Styles */
+    .nav-tabs {
+        background: #f8fafc;
+        padding: 0.75rem 1.25rem 0;
+        border-bottom: 2px solid #e2e8f0;
+        border-radius: 0;
+        margin-bottom: 0;
+    }
+    
+    .nav-tabs .nav-link {
+        color: #64748b;
+        background: transparent;
+        border: none;
+        border-bottom: 3px solid transparent;
+        padding: 0.75rem 1.5rem;
+        font-weight: 500;
+        font-size: 0.875rem;
+        transition: all 0.3s ease;
+        border-radius: 8px 8px 0 0;
+        margin-right: 0.5rem;
+        position: relative;
+    }
+    
+    .nav-tabs .nav-link:hover {
+        color: #009EDB; /* UN Blue */
+        background: rgba(0, 158, 219, 0.05);
+        border-bottom-color: rgba(0, 158, 219, 0.3);
+    }
+    
+    .nav-tabs .nav-link.active {
+        color: #009EDB; /* UN Blue */
+        background: white;
+        border-bottom-color: #009EDB;
+        font-weight: 600;
+    }
+    
+    .nav-tabs .nav-link.completed {
+        color: #72BF44; /* UN Green */
+    }
+    
+    .nav-tabs .nav-link.completed i {
+        color: #72BF44;
+    }
+    
+    .nav-tabs .nav-link i {
+        margin-right: 0.5rem;
+        font-size: 1rem;
+    }
+    
+    .tab-content {
+        background: white;
+        padding: 1.5rem;
+        min-height: 400px;
+    }
+    
+    .tab-pane {
+        animation: fadeIn 0.3s ease;
+    }
+    
+    @@keyframes fadeIn {
+        from {
+            opacity: 0;
+            transform: translateY(10px);
+        }
+        to {
+            opacity: 1;
+            transform: translateY(0);
+        }
+    }
+    
+    .form-section {
+        margin-bottom: 1.25rem;
+    }
+    
+    .section-header {
+        font-size: 0.875rem;
+        font-weight: 600;
+        color: #4a5568;
+        margin-bottom: 1rem;
+        padding-bottom: 0.5rem;
+        border-bottom: 2px solid #e2e8f0;
+        display: flex;
+        align-items: center;
+    }
+    
+    .section-icon {
+        color: #009EDB; /* UN Blue */
+        margin-right: 0.5rem;
+        font-size: 1rem;
+    }
+    
+    .form-floating {
+        position: relative;
+        margin-bottom: 1rem;
+    }
+    
+    .form-control, .form-select {
+        border: 1px solid #e2e8f0 !important;
+        border-radius: 8px !important;
+        padding: 0.875rem !important;
+        font-size: 0.8125rem !important;
+        transition: all 0.3s ease !important;
+        background: #ffffff !important;
+        height: 52px !important;
+        line-height: 1.4 !important;
+    }
+    
+    .form-control:focus, .form-select:focus {
+        border-color: #009EDB !important; /* UN Blue */
+        box-shadow: 0 0 0 0.15rem rgba(0, 158, 219, 0.2) !important;
+        outline: none !important;
+        background-color: #ffffff !important;
+    }
+    
+    .form-floating > label {
+        color: #6b7280 !important;
+        font-weight: 500 !important;
+        font-size: 11px !important;
+        padding: 6px 14px !important;
+        top: 0 !important;
+        left: 0 !important;
+        transform: none !important;
+        background: transparent !important;
+    }
+    
+    .form-floating > .form-control:focus ~ label,
+    .form-floating > .form-control:not(:placeholder-shown) ~ label,
+    .form-floating > .form-select ~ label {
+        color: #009EDB !important; /* UN Blue */
+        font-weight: 600 !important;
+        font-size: 10px !important;
+        top: 0 !important;
+        transform: none !important;
+    }
+    
+    .form-floating > textarea {
+        padding-top: 20px !important;
+        min-height: 100px !important;
+        height: auto !important;
+    }
+    
+    /* Required field indicator */
+    .required-field::after {
+        content: ' *';
+        color: #ED1847; /* UN Red */
+    }
+    
+    /* File Upload Area */
+    .file-upload-area {
+        border: 2px dashed #E3EDF6; /* UN Blue Extra Light */
+        border-radius: 8px;
+        padding: 1.5rem;
+        text-align: center;
+        background: #f8fafc;
+        transition: all 0.3s ease;
+        cursor: pointer;
+    }
+    
+    .file-upload-area:hover {
+        border-color: #009EDB;
+        background: #E3EDF6;
+    }
+    
+    .file-upload-area.has-file {
+        border-color: #72BF44; /* UN Green */
+        background: rgba(114, 191, 68, 0.05);
+    }
+    
+    .file-upload-icon {
+        font-size: 2rem;
+        color: #009EDB;
+        margin-bottom: 0.5rem;
+    }
+    
+    .file-upload-text {
+        font-size: 0.875rem;
+        color: #6b7280;
+        margin-bottom: 0.25rem;
+    }
+    
+    .file-upload-hint {
+        font-size: 0.75rem;
+        color: #9ca3af;
+    }
+    
+    /* Action Buttons */
+    .form-actions {
+        display: none;
+        justify-content: space-between;
+        align-items: center;
+        padding: 1.5rem;
+        background: #f8fafc;
+        border-top: 1px solid #e2e8f0;
+        border-radius: 0 0 12px 12px;
+        margin-top: 2rem;
+        gap: 1rem;
+        flex-wrap: wrap;
+    }
+    
+    .btn-group-actions {
+        display: flex;
+        gap: 0.75rem;
+    }
+    
+    .btn {
+        padding: 0.625rem 1.25rem;
+        font-size: 0.875rem;
+        font-weight: 500;
+        border-radius: 8px;
+        transition: all 0.3s ease;
+        border: 1px solid transparent;
+        cursor: pointer;
+        display: inline-flex;
+        align-items: center;
+        gap: 0.5rem;
+    }
+    
+    .btn-primary {
+        background: #009EDB; /* UN Blue */
+        color: white;
+        border-color: #009EDB;
+    }
+    
+    .btn-primary:hover {
+        background: #0077B8; /* UN Blue Accessible */
+        border-color: #0077B8;
+        transform: translateY(-1px);
+        box-shadow: 0 4px 12px rgba(0, 158, 219, 0.3);
+    }
+    
+    .btn-success {
+        background: #72BF44; /* UN Green */
+        color: white;
+        border-color: #72BF44;
+    }
+    
+    .btn-success:hover {
+        background: #27833A; /* UN Green Accessible */
+        border-color: #27833A;
+        transform: translateY(-1px);
+        box-shadow: 0 4px 12px rgba(114, 191, 68, 0.3);
+    }
+    
+    .btn-secondary {
+        background: #6b7280;
+        color: white;
+        border-color: #6b7280;
+    }
+    
+    .btn-secondary:hover {
+        background: #4b5563;
+        border-color: #4b5563;
+        transform: translateY(-1px);
+    }
+    
+    /* Show actions only on review tab */
+    #review .form-actions {
+        display: flex !important;
+    }
+    
+    .btn-outline-secondary {
+        background: white;
+        color: #6b7280;
+        border-color: #e2e8f0;
+    }
+    
+    .btn-outline-secondary:hover {
+        background: #f8fafc;
+        color: #4b5563;
+        border-color: #cbd5e1;
+    }
+    
+    .btn-danger {
+        background: #ED1847; /* UN Red */
+        color: white;
+        border-color: #ED1847;
+    }
+    
+    .btn-danger:hover {
+        background: #AB1D37; /* UN Red Accessible */
+        border-color: #AB1D37;
+        transform: translateY(-1px);
+        box-shadow: 0 4px 12px rgba(237, 24, 71, 0.3);
+    }
+    
+    /* Alert Messages */
+    .alert {
+        padding: 0.75rem 1rem;
+        border-radius: 8px;
+        border: 1px solid;
+        margin-bottom: 1rem;
+        font-size: 0.875rem;
+        display: flex;
+        align-items: center;
+        gap: 0.5rem;
+    }
+    
+    .alert-info {
+        background: #E3EDF6; /* UN Blue Extra Light */
+        border-color: #C5DFEF; /* UN Blue Light */
+        color: #004987; /* UN Blue Dark */
+    }
+    
+    .alert-warning {
+        background: #FAF0BB; /* Yellow Extra Light */
+        border-color: #F8E66B; /* Yellow Light */
+        color: #B16D03; /* Yellow Dark */
+    }
+    
+    .alert-success {
+        background: #E6EFD0; /* Green Extra Light */
+        border-color: #CEE3A0; /* Green Light */
+        color: #006747; /* Green Dark */
+    }
+    
+    .alert-danger {
+        background: #F7DFDF; /* Red Extra Light */
+        border-color: #F9C0C5; /* Red Light */
+        color: #A71F36; /* Red Dark */
+    }
+    
+    /* Validation */
+    .invalid-feedback {
+        color: #ED1847; /* UN Red */
+        font-size: 0.75rem;
+        margin-top: 0.25rem;
+    }
+    
+    .form-control.is-invalid,
+    .form-select.is-invalid {
+        border-color: #ED1847 !important;
+    }
+    
+    .form-control.is-invalid:focus,
+    .form-select.is-invalid:focus {
+        border-color: #ED1847 !important;
+        box-shadow: 0 0 0 0.15rem rgba(237, 24, 71, 0.2) !important;
+    }
+    
+    /* Navigation helpers */
+    .nav-helper {
+        display: flex;
+        justify-content: space-between;
+        margin-top: 2rem;
+        padding-top: 1rem;
+        border-top: 1px solid #e5e7eb;
+    }
+    
+    .nav-helper .btn {
+        min-width: 140px;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        gap: 0.5rem;
+    }
+    
+    .nav-helper .btn-primary:hover {
+        transform: translateX(2px);
+    }
+    
+    .nav-helper .btn-outline-secondary:hover {
+        transform: translateX(-2px);
+    }
+    
+    /* Tab completion indicator */
+    .nav-tabs .nav-link.completed::after {
+        content: '\2713';
+        position: absolute;
+        right: 15px;
+        top: 50%;
+        transform: translateY(-50%);
+        color: #72BF44;
+        font-weight: bold;
+        font-size: 1rem;
+    }
+    
+    .nav-tabs .nav-link {
+        position: relative;
+    }
+    
+    .nav-tabs .nav-link.has-errors {
+        color: #ED1847 !important;
+    }
+    
+    /* Responsive */
+    @@media (max-width: 768px) {
+        .form-actions {
+            flex-direction: column;
+        }
+        
+        .btn-group-actions {
+            width: 100%;
+            justify-content: space-between;
+        }
+        
+        .btn {
+            flex: 1;
+            justify-content: center;
+        }
+    }
+</style>
+
+<div class="form-container">
+    <div class="form-card">
+        <div class="form-header">
+            <h1>
+                <i class="bi bi-phone-fill"></i>
+                Device Reimbursement Request
+            </h1>
+            <p>Submit your mobile device purchase for reimbursement processing</p>
+        </div>
+        
+        @if (!ViewData.ModelState.IsValid)
+        {
+            <div class="alert alert-danger mt-3">
+                <h5><i class="bi bi-exclamation-triangle"></i> Please correct the following errors:</h5>
+                <div asp-validation-summary="All" class="text-danger"></div>
+            </div>
+        }
+        
+        <form method="post" enctype="multipart/form-data" id="refundForm" novalidate asp-page-handler="">
+            <div class="form-body">
+                <!-- Navigation Tabs -->
+                <ul class="nav nav-tabs" id="formTabs" role="tablist">
+                    <li class="nav-item" role="presentation">
+                        <button class="nav-link active" id="personal-tab" data-bs-toggle="tab" 
+                                data-bs-target="#personal" type="button" role="tab">
+                            <i class="bi bi-person"></i> Personal Information
+                        </button>
+                    </li>
+                    <li class="nav-item" role="presentation">
+                        <button class="nav-link" id="device-tab" data-bs-toggle="tab" 
+                                data-bs-target="#device" type="button" role="tab">
+                            <i class="bi bi-phone"></i> Device Details
+                        </button>
+                    </li>
+                    <li class="nav-item" role="presentation">
+                        <button class="nav-link" id="purchase-tab" data-bs-toggle="tab" 
+                                data-bs-target="#purchase" type="button" role="tab">
+                            <i class="bi bi-receipt"></i> Purchase Information
+                        </button>
+                    </li>
+                    <li class="nav-item" role="presentation">
+                        <button class="nav-link" id="review-tab" data-bs-toggle="tab" 
+                                data-bs-target="#review" type="button" role="tab">
+                            <i class="bi bi-check-circle"></i> Review & Submit
+                        </button>
+                    </li>
+                </ul>
+                
+                <!-- Tab Content -->
+                <div class="tab-content" id="formTabContent">
+                    <!-- Personal Information Tab -->
+                    <div class="tab-pane fade show active" id="personal" role="tabpanel">
+                        <div class="form-section">
+                            <h6 class="section-header">
+                                <i class="bi bi-person-circle section-icon"></i>
+                                Employee Information
+                            </h6>
+                            
+                            <div class="row">
+                                <div class="col-md-6">
+                                    <div class="form-floating">
+                                        <input type="text" class="form-control" id="mobileNumberAssignedTo" 
+                                               name="RefundRequest.MobileNumberAssignedTo" placeholder=" " required>
+                                        <label for="mobileNumberAssignedTo" class="required-field">Full Name</label>
+                                        <span class="invalid-feedback"></span>
+                                    </div>
+                                </div>
+                                <div class="col-md-6">
+                                    <div class="form-floating">
+                                        <input type="text" class="form-control" id="indexNo" 
+                                               name="RefundRequest.IndexNo" placeholder=" " required
+                                               pattern="[A-Z0-9]+" maxlength="50">
+                                        <label for="indexNo" class="required-field">Index Number</label>
+                                        <span class="invalid-feedback"></span>
+                                    </div>
+                                </div>
+                            </div>
+                            
+                            <div class="row">
+                                <div class="col-md-6">
+                                    <div class="form-floating">
+                                        <input type="tel" class="form-control" id="primaryMobileNumber" 
+                                               name="RefundRequest.PrimaryMobileNumber" placeholder=" " required
+                                               pattern="\d{9}" maxlength="9">
+                                        <label for="primaryMobileNumber" class="required-field">Primary Mobile Number (9 digits)</label>
+                                        <span class="invalid-feedback"></span>
+                                    </div>
+                                </div>
+                                <div class="col-md-6">
+                                    <div class="form-floating">
+                                        <input type="text" class="form-control" id="officeExtension" 
+                                               name="RefundRequest.OfficeExtension" placeholder=" ">
+                                        <label for="officeExtension">Office Extension</label>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                        
+                        <div class="form-section">
+                            <h6 class="section-header">
+                                <i class="bi bi-building section-icon"></i>
+                                Organization Details
+                            </h6>
+                            
+                            <div class="row">
+                                <div class="col-md-6">
+                                    <div class="form-floating">
+                                        <select class="form-select" id="office" name="RefundRequest.Office" required>
+                                            <option value="">Select Office</option>
+                                            @* Temporarily commented - Offices being recreated
+                                            @foreach (var office in Model.Offices)
+                                            {
+                                                <option value="@office.Name">@office.Name</option>
+                                            }
+                                            *@
+                                        </select>
+                                        <label for="office" class="required-field">Office</label>
+                                        <span class="invalid-feedback"></span>
+                                    </div>
+                                </div>
+                                <div class="col-md-6">
+                                    <div class="form-floating">
+                                        <select class="form-select" id="organization" name="RefundRequest.Organization" required>
+                                            <option value="">Select Organization</option>
+                                            @foreach (var org in Model.Organizations)
+                                            {
+                                                <option value="@org.Name">@org.Name</option>
+                                            }
+                                        </select>
+                                        <label for="organization" class="required-field">Organization</label>
+                                        <span class="invalid-feedback"></span>
+                                    </div>
+                                </div>
+                            </div>
+                            
+                            <div class="row">
+                                <div class="col-md-12">
+                                    <div class="form-floating">
+                                        <input type="text" class="form-control" id="supervisor" 
+                                               name="RefundRequest.Supervisor" placeholder=" " required>
+                                        <label for="supervisor" class="required-field">Supervisor Name</label>
+                                        <span class="invalid-feedback"></span>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                        
+                        <div class="nav-helper">
+                            <div></div>
+                            <button type="button" class="btn btn-primary" onclick="validateAndNext('personal', 'device-tab')">
+                                Next: Device Details <i class="bi bi-arrow-right"></i>
+                            </button>
+                        </div>
+                    </div>
+                    
+                    <!-- Device Details Tab -->
+                    <div class="tab-pane fade" id="device" role="tabpanel">
+                        <div class="form-section">
+                            <h6 class="section-header">
+                                <i class="bi bi-phone-fill section-icon"></i>
+                                Mobile Service Information
+                            </h6>
+                            
+                            <div class="row">
+                                <div class="col-md-6">
+                                    <div class="form-floating">
+                                        <select class="form-select" id="mobileService" name="RefundRequest.MobileService" required>
+                                            <option value="">Select Service Provider</option>
+                                            <option value="Safaricom">Safaricom</option>
+                                            <option value="Airtel">Airtel</option>
+                                            <option value="Telkom">Telkom</option>
+                                            <option value="Other">Other</option>
+                                        </select>
+                                        <label for="mobileService" class="required-field">Mobile Service Provider</label>
+                                        <span class="invalid-feedback"></span>
+                                    </div>
+                                </div>
+                                <div class="col-md-6">
+                                    <div class="form-floating">
+                                        <select class="form-select" id="classOfService" name="RefundRequest.ClassOfService" required>
+                                            <option value="">Select Class of Service</option>
+                                            @foreach (var cos in Model.ClassesOfService)
+                                            {
+                                                <option value="@cos.Class" data-allowance="@cos.HandsetAllowance">
+                                                    @cos.Class - @cos.Service
+                                                </option>
+                                            }
+                                        </select>
+                                        <label for="classOfService" class="required-field">Class of Service</label>
+                                        <span class="invalid-feedback"></span>
+                                    </div>
+                                </div>
+                            </div>
+                            
+                            <div class="row">
+                                <div class="col-md-6">
+                                    <div class="form-floating">
+                                        <input type="number" class="form-control" id="deviceAllowance" 
+                                               name="RefundRequest.DeviceAllowance" placeholder=" " 
+                                               step="0.01" min="0.01" value="0" readonly required>
+                                        <label for="deviceAllowance">Device Allowance (USD)</label>
+                                    </div>
+                                </div>
+                                <div class="col-md-6">
+                                    <div class="form-floating">
+                                        <input type="date" class="form-control" id="previousDeviceDate" 
+                                               name="RefundRequest.PreviousDeviceReimbursedDate" placeholder=" ">
+                                        <label for="previousDeviceDate">Previous Device Reimbursement Date</label>
+                                    </div>
+                                </div>
+                            </div>
+                            
+                            <div class="alert alert-info mt-3">
+                                <i class="bi bi-info-circle"></i>
+                                Your device allowance is determined by your class of service. 
+                                This amount represents the maximum reimbursement available for your device purchase.
+                            </div>
+                        </div>
+                        
+                        <div class="nav-helper">
+                            <button type="button" class="btn btn-outline-secondary" onclick="previousTab('personal-tab')">
+                                <i class="bi bi-arrow-left"></i> Previous
+                            </button>
+                            <button type="button" class="btn btn-primary" onclick="validateAndNext('device', 'purchase-tab')">
+                                Next: Purchase Information <i class="bi bi-arrow-right"></i>
+                            </button>
+                        </div>
+                    </div>
+                    
+                    <!-- Purchase Information Tab -->
+                    <div class="tab-pane fade" id="purchase" role="tabpanel">
+                        <div class="form-section">
+                            <h6 class="section-header">
+                                <i class="bi bi-receipt-cutoff section-icon"></i>
+                                Purchase Details
+                            </h6>
+                            
+                            <div class="row">
+                                <div class="col-md-6">
+                                    <div class="form-floating">
+                                        <select class="form-select" id="purchaseCurrency" 
+                                                name="RefundRequest.DevicePurchaseCurrency" required>
+                                            <option value="">Select Currency</option>
+                                            <option value="USD">USD - US Dollar</option>
+                                            <option value="KES">KES - Kenyan Shilling</option>
+                                            <option value="EUR">EUR - Euro</option>
+                                            <option value="GBP">GBP - British Pound</option>
+                                        </select>
+                                        <label for="purchaseCurrency" class="required-field">Purchase Currency</label>
+                                        <span class="invalid-feedback"></span>
+                                    </div>
+                                </div>
+                                <div class="col-md-6">
+                                    <div class="form-floating">
+                                        <input type="number" class="form-control" id="purchaseAmount" 
+                                               name="RefundRequest.DevicePurchaseAmount" placeholder=" " 
+                                               step="0.01" min="0.01" required>
+                                        <label for="purchaseAmount" class="required-field">Purchase Amount</label>
+                                        <span class="invalid-feedback"></span>
+                                    </div>
+                                </div>
+                            </div>
+                            
+                            <div class="row">
+                                <div class="col-md-12">
+                                    <div class="form-floating">
+                                        <select class="form-select" id="umojaBankName" 
+                                                name="RefundRequest.UmojaBankName" required>
+                                            <option value="">Select Bank</option>
+                                            <option value="Standard Chartered Bank">Standard Chartered Bank</option>
+                                            <option value="Citibank">Citibank</option>
+                                            <option value="JP Morgan Chase">JP Morgan Chase</option>
+                                            <option value="Bank of America">Bank of America</option>
+                                            <option value="Other">Other</option>
+                                        </select>
+                                        <label for="umojaBankName" class="required-field">Umoja Bank Name</label>
+                                        <span class="invalid-feedback"></span>
+                                    </div>
+                                </div>
+                            </div>
+                            
+                            <div class="row">
+                                <div class="col-md-12">
+                                    <label class="form-label">Purchase Receipt <span class="text-danger">*</span></label>
+                                    <div class="file-upload-area" id="fileUploadArea">
+                                        <input type="file" id="purchaseReceipt" name="receiptFile" 
+                                               accept=".pdf,.jpg,.jpeg,.png" style="display: none;" required>
+                                        <i class="bi bi-cloud-upload file-upload-icon"></i>
+                                        <div class="file-upload-text">Click to upload or drag and drop</div>
+                                        <div class="file-upload-hint">PDF, JPG, or PNG (Max 5MB)</div>
+                                        <div id="fileName" class="mt-2 text-success" style="display: none;"></div>
+                                    </div>
+                                </div>
+                            </div>
+                            
+                            <div class="row mt-3">
+                                <div class="col-md-12">
+                                    <div class="form-floating">
+                                        <textarea class="form-control" id="remarks" 
+                                                  name="RefundRequest.Remarks" placeholder=" " 
+                                                  style="height: 100px"></textarea>
+                                        <label for="remarks">Additional Remarks (Optional)</label>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                        
+                        <div class="nav-helper">
+                            <button type="button" class="btn btn-outline-secondary" onclick="previousTab('device-tab')">
+                                <i class="bi bi-arrow-left"></i> Previous
+                            </button>
+                            <button type="button" class="btn btn-primary" onclick="validateAndNext('purchase', 'review-tab')">
+                                Next: Review <i class="bi bi-arrow-right"></i>
+                            </button>
+                        </div>
+                    </div>
+                    
+                    <!-- Review & Submit Tab -->
+                    <div class="tab-pane fade" id="review" role="tabpanel">
+                        <div class="form-section">
+                            <h6 class="section-header">
+                                <i class="bi bi-list-check section-icon"></i>
+                                Review Your Information
+                            </h6>
+                            
+                            <div class="alert alert-warning">
+                                <i class="bi bi-exclamation-triangle"></i>
+                                Please review all information carefully before submitting. 
+                                Once submitted, you cannot edit the request.
+                            </div>
+                            
+                            <div id="validationStatus" class="alert alert-info mt-3" style="display: none;">
+                                <!-- Validation status will be shown here -->
+                            </div>
+                            
+                            <div id="reviewSummary" class="mt-3">
+                                <!-- This will be populated by JavaScript -->
+                            </div>
+                        </div>
+                        
+                        <div class="nav-helper">
+                            <button type="button" class="btn btn-outline-secondary" onclick="previousTab('purchase-tab')">
+                                <i class="bi bi-arrow-left"></i> Previous
+                            </button>
+                        </div>
+                        
+                        <!-- Form Actions - Only visible on Review tab -->
+                        <div class="form-actions mt-3">
+                            <a href="/Modules/RefundManagement/Requests" class="btn btn-outline-secondary">
+                                <i class="bi bi-x-circle"></i> Cancel
+                            </a>
+                            <div class="btn-group-actions">
+                                <button type="submit" name="action" value="draft" class="btn btn-secondary">
+                                    <i class="bi bi-save"></i> Save as Draft
+                                </button>
+                                <button type="submit" name="action" value="submit" class="btn btn-secondary" id="submitBtn">
+                                    <i class="bi bi-send"></i> Submit Request
+                                </button>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </form>
+    </div>
+</div>
+
+@section Scripts {
+    <script>
+        // Initialize on page load
+        document.addEventListener('DOMContentLoaded', function() {
+            // Initially set submit button state
+            const submitBtn = document.getElementById('submitBtn');
+            if (submitBtn) {
+                // Start with button enabled but gray - will be updated when review tab is shown
+                submitBtn.disabled = false;
+                submitBtn.type = 'submit';
+                submitBtn.classList.add('btn-secondary');
+                submitBtn.classList.remove('btn-success');
+            }
+            
+            // Add validation status display
+            const statusDiv = document.createElement('div');
+            statusDiv.id = 'validationStatus';
+            statusDiv.className = 'alert alert-info mt-3';
+            statusDiv.style.display = 'none';
+            const reviewSummary = document.getElementById('reviewSummary');
+            if (reviewSummary && reviewSummary.parentNode) {
+                reviewSummary.parentNode.insertBefore(statusDiv, reviewSummary);
+            }
+        });
+        
+        // Tab Navigation with Validation
+        function validateAndNext(currentTab, nextTabId) {
+            const tabMap = {
+                'personal': '#personal',
+                'device': '#device',
+                'purchase': '#purchase',
+                'review': '#review'
+            };
+            
+            const currentTabPane = document.querySelector(tabMap[currentTab]);
+            const requiredFields = currentTabPane.querySelectorAll('input:required, select:required, textarea:required');
+            let hasErrors = false;
+            let firstError = null;
+            
+            // Check all required fields
+            requiredFields.forEach(field => {
+                if (!field.value || field.value.trim() === '') {
+                    field.classList.add('is-invalid');
+                    hasErrors = true;
+                    if (!firstError) firstError = field;
+                    
+                    // Add error message if not exists
+                    let feedback = field.parentElement.querySelector('.invalid-feedback');
+                    if (feedback) {
+                        feedback.textContent = 'This field is required';
+                        feedback.style.display = 'block';
+                    }
+                } else {
+                    field.classList.remove('is-invalid');
+                    let feedback = field.parentElement.querySelector('.invalid-feedback');
+                    if (feedback) {
+                        feedback.style.display = 'none';
+                    }
+                }
+            });
+            
+            if (hasErrors) {
+                // Show error message
+                if (firstError) {
+                    firstError.focus();
+                    firstError.scrollIntoView({ behavior: 'smooth', block: 'center' });
+                }
+                
+                // Mark tab as having errors
+                const currentTabButton = document.querySelector(`[data-bs-target="${tabMap[currentTab]}"]`);
+                if (currentTabButton) {
+                    currentTabButton.classList.add('has-errors');
+                }
+                
+                alert('Please fill in all required fields before proceeding.');
+                return;
+            }
+            
+            // Mark current tab as completed
+            const currentTabButton = document.querySelector(`[data-bs-target="${tabMap[currentTab]}"]`);
+            if (currentTabButton) {
+                currentTabButton.classList.remove('has-errors');
+                currentTabButton.classList.add('completed');
+            }
+            
+            // Navigate to next tab
+            nextTab(nextTabId);
+            
+            // Check if all tabs are complete when reaching review tab
+            if (nextTabId === 'review-tab') {
+                checkAllFieldsComplete();
+            }
+        }
+        
+        function nextTab(tabId) {
+            const tab = document.getElementById(tabId);
+            if (tab) {
+                const bsTab = new bootstrap.Tab(tab);
+                bsTab.show();
+            }
+        }
+        
+        function previousTab(tabId) {
+            const tab = document.getElementById(tabId);
+            if (tab) {
+                const bsTab = new bootstrap.Tab(tab);
+                bsTab.show();
+            }
+        }
+        
+        function checkAllFieldsComplete() {
+            const form = document.getElementById('refundForm');
+            const allRequiredFields = form.querySelectorAll('input[required], select[required], textarea[required]');
+            let allComplete = true;
+            let missingFields = [];
+            let fieldsByTab = {
+                'Personal Information': [],
+                'Device Details': [],
+                'Purchase Information': []
+            };
+            
+            allRequiredFields.forEach(field => {
+                let isEmpty = false;
+                let fieldLabel = field.getAttribute('placeholder') || field.getAttribute('name') || field.id;
+                
+                // Get the tab this field belongs to
+                const tabPane = field.closest('.tab-pane');
+                let tabName = 'Unknown';
+                if (tabPane) {
+                    if (tabPane.id === 'personal') tabName = 'Personal Information';
+                    else if (tabPane.id === 'device') tabName = 'Device Details';
+                    else if (tabPane.id === 'purchase') tabName = 'Purchase Information';
+                }
+                
+                // Check if field is empty
+                if (field.type === 'file') {
+                    if (!field.files || field.files.length === 0) {
+                        isEmpty = true;
+                        fieldLabel = 'Purchase Receipt';
+                    }
+                } else {
+                    if (!field.value || field.value.trim() === '') {
+                        isEmpty = true;
+                        // Get a more user-friendly field name
+                        const label = field.parentElement.querySelector('label');
+                        if (label) {
+                            fieldLabel = label.textContent.replace('*', '').trim();
+                        }
+                    }
+                }
+                
+                if (isEmpty) {
+                    allComplete = false;
+                    fieldsByTab[tabName].push(fieldLabel);
+                }
+            });
+            
+            // Show validation status
+            const statusDiv = document.getElementById('validationStatus');
+            if (statusDiv) {
+                if (!allComplete) {
+                    let statusHTML = '<strong>⚠️ Required fields missing:</strong><ul class="mb-0">';
+                    for (const [tab, fields] of Object.entries(fieldsByTab)) {
+                        if (fields.length > 0) {
+                            statusHTML += `<li><strong>${tab}:</strong> ${fields.join(', ')}</li>`;
+                        }
+                    }
+                    statusHTML += '</ul>';
+                    statusDiv.innerHTML = statusHTML;
+                    statusDiv.className = 'alert alert-warning mt-3';
+                    statusDiv.style.display = 'block';
+                } else {
+                    statusDiv.innerHTML = '✅ All required fields are complete. You can now submit your request.';
+                    statusDiv.className = 'alert alert-success mt-3';
+                    statusDiv.style.display = 'block';
+                }
+            }
+            
+            // Enable/disable submit button based on completion
+            const submitBtn = document.getElementById('submitBtn');
+            if (submitBtn) {
+                if (allComplete) {
+                    submitBtn.disabled = false;
+                    submitBtn.classList.remove('btn-secondary');
+                    submitBtn.classList.add('btn-success');
+                    submitBtn.type = 'submit';
+                } else {
+                    submitBtn.disabled = true;
+                    submitBtn.classList.add('btn-secondary');
+                    submitBtn.classList.remove('btn-success');
+                }
+            }
+            
+            // Update review summary
+            populateReviewSummary();
+        }
+        
+        // Class of Service - Auto-populate allowance
+        document.getElementById('classOfService').addEventListener('change', function() {
+            const selected = this.options[this.selectedIndex];
+            const allowance = selected.getAttribute('data-allowance');
+            const deviceAllowanceField = document.getElementById('deviceAllowance');
+            deviceAllowanceField.value = allowance || '0';
+            
+            // Also fetch from server to get accurate data
+            if (this.value) {
+                fetch(`/Modules/RefundManagement/Requests/Create?handler=ClassOfServiceAllowance&classOfServiceId=${this.value}`)
+                    .then(response => response.json())
+                    .then(data => {
+                        if (data.success) {
+                            deviceAllowanceField.value = data.handsetAllowance || '0';
+                        }
+                    })
+                    .catch(err => console.error('Error fetching allowance:', err));
+            }
+        });
+        
+        // File Upload
+        const fileInput = document.getElementById('purchaseReceipt');
+        const fileUploadArea = document.getElementById('fileUploadArea');
+        const fileName = document.getElementById('fileName');
+        
+        fileUploadArea.addEventListener('click', () => fileInput.click());
+        
+        fileUploadArea.addEventListener('dragover', (e) => {
+            e.preventDefault();
+            fileUploadArea.style.borderColor = '#009EDB';
+            fileUploadArea.style.background = '#E3EDF6';
+        });
+        
+        fileUploadArea.addEventListener('dragleave', () => {
+            fileUploadArea.style.borderColor = '#E3EDF6';
+            fileUploadArea.style.background = '#f8fafc';
+        });
+        
+        fileUploadArea.addEventListener('drop', (e) => {
+            e.preventDefault();
+            const files = e.dataTransfer.files;
+            if (files.length > 0) {
+                fileInput.files = files;
+                handleFileSelect();
+            }
+        });
+        
+        fileInput.addEventListener('change', handleFileSelect);
+        
+        function handleFileSelect() {
+            const file = fileInput.files[0];
+            if (file) {
+                fileName.textContent = `Selected: ${file.name}`;
+                fileName.style.display = 'block';
+                fileUploadArea.classList.add('has-file');
+                
+                // Check if we're on the review tab and update button state
+                const reviewTab = document.querySelector('#review-tab');
+                if (reviewTab && reviewTab.classList.contains('active')) {
+                    checkAllFieldsComplete();
+                }
+            }
+        }
+        
+        // Review Tab Population
+        document.getElementById('review-tab').addEventListener('shown.bs.tab', function() {
+            checkAllFieldsComplete();
+        });
+        
+        // Clear error states on input
+        document.querySelectorAll('input, select, textarea').forEach(field => {
+            field.addEventListener('input', function() {
+                if (this.value && this.value.trim() !== '') {
+                    this.classList.remove('is-invalid');
+                    let feedback = this.parentElement.querySelector('.invalid-feedback');
+                    if (feedback) {
+                        feedback.style.display = 'none';
+                    }
+                }
+            });
+            
+            // Also add change event for select elements
+            if (field.tagName === 'SELECT') {
+                field.addEventListener('change', function() {
+                    if (this.value && this.value.trim() !== '') {
+                        this.classList.remove('is-invalid');
+                        let feedback = this.parentElement.querySelector('.invalid-feedback');
+                        if (feedback) {
+                            feedback.style.display = 'none';
+                        }
+                    }
+                    
+                    // Check form completion if on review tab
+                    const reviewTab = document.querySelector('#review-tab');
+                    if (reviewTab && reviewTab.classList.contains('active')) {
+                        checkAllFieldsComplete();
+                    }
+                });
+            }
+        });
+        
+        function populateReviewSummary() {
+            const summary = document.getElementById('reviewSummary');
+            const formData = new FormData(document.getElementById('refundForm'));
+            
+            let html = `
+                <div class="row">
+                    <div class="col-md-6">
+                        <h6 class="text-muted mb-3">Personal Information</h6>
+                        <p><strong>Name:</strong> ${formData.get('RefundRequest.MobileNumberAssignedTo') || 'Not provided'}</p>
+                        <p><strong>Index No:</strong> ${formData.get('RefundRequest.IndexNo') || 'Not provided'}</p>
+                        <p><strong>Mobile:</strong> ${formData.get('RefundRequest.PrimaryMobileNumber') || 'Not provided'}</p>
+                        <p><strong>Office:</strong> ${formData.get('RefundRequest.Office') || 'Not provided'}</p>
+                        <p><strong>Organization:</strong> ${formData.get('RefundRequest.Organization') || 'Not provided'}</p>
+                    </div>
+                    <div class="col-md-6">
+                        <h6 class="text-muted mb-3">Purchase Information</h6>
+                        <p><strong>Currency:</strong> ${formData.get('RefundRequest.DevicePurchaseCurrency') || 'Not provided'}</p>
+                        <p><strong>Amount:</strong> ${formData.get('RefundRequest.DevicePurchaseAmount') || 'Not provided'}</p>
+                        <p><strong>Bank:</strong> ${formData.get('RefundRequest.UmojaBankName') || 'Not provided'}</p>
+                        <p><strong>Class of Service:</strong> ${formData.get('RefundRequest.ClassOfService') || 'Not provided'}</p>
+                        <p><strong>Allowance:</strong> USD ${formData.get('RefundRequest.DeviceAllowance') || '0.00'}</p>
+                    </div>
+                </div>
+            `;
+            
+            summary.innerHTML = html;
+        }
+        
+        // Track which button was clicked
+        let clickedAction = null;
+        document.querySelectorAll('button[type="submit"]').forEach(btn => {
+            btn.addEventListener('click', function() {
+                clickedAction = this.value;
+            });
+        });
+        
+        // Form Validation and Submission
+        document.getElementById('refundForm').addEventListener('submit', function(e) {
+            const action = e.submitter ? e.submitter.value : clickedAction;
+            
+            if (action === 'submit') {
+                // Allow submission - validation will be done server-side
+                // We're removing client-side validation temporarily to diagnose the issue
+                return true;
+            } else if (action === 'draft') {
+                // For draft, temporarily remove file requirement
+                const fileInput = this.querySelector('input[type="file"]');
+                if (fileInput) {
+                    fileInput.removeAttribute('required');
+                }
+                return true;
+            } else {
+                // If no action specified, allow submission
+                return true;
+            }
+        });
+        
+        // Mark completed tabs
+        document.querySelectorAll('.nav-tabs button').forEach(tab => {
+            tab.addEventListener('hidden.bs.tab', function() {
+                const tabPane = document.querySelector(this.getAttribute('data-bs-target'));
+                const inputs = tabPane.querySelectorAll('input:required, select:required');
+                let allFilled = true;
+                
+                inputs.forEach(input => {
+                    if (!input.value) {
+                        allFilled = false;
+                    }
+                });
+                
+                if (allFilled) {
+                    this.classList.add('completed');
+                }
+            });
+        });
+    </script>
+}

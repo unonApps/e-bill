@@ -1,0 +1,705 @@
+@page
+@model TAB.Web.Pages.Modules.EBillManagement.Approvals.Supervisor.IndexModel
+@{
+    ViewData["Title"] = "E-Bills Management";
+}
+
+<style>
+    .minimal-card {
+        background: #ffffff;
+        border: none;
+        border-radius: 12px;
+        box-shadow: 0 2px 12px rgba(0, 0, 0, 0.04);
+        transition: all 0.3s ease;
+    }
+    
+    .minimal-card:hover {
+        box-shadow: 0 4px 20px rgba(0, 0, 0, 0.08);
+        transform: translateY(-2px);
+    }
+    
+    .stat-icon {
+        width: 48px;
+        height: 48px;
+        border-radius: 12px;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        font-size: 20px;
+        color: white;
+    }
+    
+    .stat-pending { background: linear-gradient(135deg, #f59e0b, #f97316); }
+    .stat-processed { background: linear-gradient(135deg, #10b981, #059669); }
+    .stat-rejected { background: linear-gradient(135deg, #ef4444, #dc2626); }
+    
+    .minimal-table {
+        background: white;
+        border-radius: 12px;
+        overflow: hidden;
+        box-shadow: 0 2px 12px rgba(0, 0, 0, 0.04);
+        border: none;
+    }
+    
+    .minimal-table thead th {
+        background: #f8fafc;
+        border: none;
+        padding: 20px 16px;
+        font-weight: 600;
+        font-size: 14px;
+        color: #475569;
+        text-transform: uppercase;
+        letter-spacing: 0.5px;
+    }
+    
+    .minimal-table tbody td {
+        border: none;
+        padding: 20px 16px;
+        border-bottom: 1px solid #f1f5f9;
+        vertical-align: middle;
+    }
+    
+    .minimal-table tbody tr:last-child td {
+        border-bottom: none;
+    }
+    
+    .minimal-table tbody tr:hover {
+        background: #f8fafc;
+    }
+    
+    .request-id {
+        font-weight: 600;
+        color: #1e293b;
+        font-size: 16px;
+    }
+    
+    .Staff-name {
+        font-weight: 600;
+        color: #1e293b;
+        margin-bottom: 4px;
+    }
+    
+    .Staff-details {
+        color: #64748b;
+        font-size: 13px;
+        line-height: 1.4;
+    }
+    
+    .priority-badge {
+        padding: 6px 12px;
+        border-radius: 20px;
+        font-size: 12px;
+        font-weight: 600;
+        text-transform: uppercase;
+        letter-spacing: 0.5px;
+    }
+    
+    .priority-high { background: #fef2f2; color: #dc2626; }
+    .priority-medium { background: #fffbeb; color: #d97706; }
+    .priority-low { background: #f0fdf4; color: #16a34a; }
+    
+    .status-badge {
+        padding: 8px 16px;
+        border-radius: 20px;
+        font-size: 12px;
+        font-weight: 600;
+        display: inline-flex;
+        align-items: center;
+        gap: 6px;
+    }
+    
+    .status-pending {
+        background: linear-gradient(135deg, #f59e0b, #f97316);
+        color: white;
+    }
+    
+    .status-approved {
+        background: linear-gradient(135deg, #10b981, #059669);
+        color: white;
+    }
+    
+    .status-rejected {
+        background: linear-gradient(135deg, #ef4444, #dc2626);
+        color: white;
+    }
+    
+    .action-btn {
+        padding: 8px 16px;
+        border-radius: 8px;
+        font-size: 12px;
+        font-weight: 500;
+        border: 1px solid;
+        transition: all 0.2s ease;
+        display: flex;
+        align-items: center;
+        gap: 6px;
+        justify-content: center;
+        min-width: 100px;
+    }
+    
+    .action-btn:hover {
+        transform: translateY(-1px);
+        box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
+    }
+    
+    .btn-approve {
+        background: #dcfce7;
+        border-color: #16a34a;
+        color: #15803d;
+    }
+    
+    .btn-approve:hover {
+        background: #16a34a;
+        color: white;
+    }
+    
+    .btn-reject {
+        background: #fef2f2;
+        border-color: #ef4444;
+        color: #dc2626;
+    }
+    
+    .btn-reject:hover {
+        background: #ef4444;
+        color: white;
+    }
+    
+    .bill-amount {
+        font-weight: 700;
+        font-size: 16px;
+        color: #1e293b;
+    }
+    
+    .bill-details {
+        background: #f8fafc;
+        border: 1px solid #e2e8f0;
+        border-radius: 8px;
+        padding: 12px;
+        font-size: 13px;
+        color: #475569;
+        line-height: 1.4;
+    }
+    
+    .page-header {
+        margin-bottom: 32px;
+    }
+    
+    .page-title {
+        font-size: 28px;
+        font-weight: 700;
+        color: #1e293b;
+        margin-bottom: 8px;
+    }
+    
+    .page-subtitle {
+        color: #64748b;
+        font-size: 16px;
+        margin: 0;
+    }
+    
+    .nav-tabs-minimal {
+        border: none;
+        background: #f8fafc;
+        border-radius: 12px;
+        padding: 4px;
+        margin-bottom: 24px;
+    }
+    
+    .nav-tabs-minimal .nav-link {
+        border: none;
+        border-radius: 8px;
+        padding: 12px 24px;
+        font-weight: 500;
+        color: #64748b;
+        transition: all 0.2s ease;
+    }
+    
+    .nav-tabs-minimal .nav-link.active {
+        background: white;
+        color: #1e293b;
+        box-shadow: 0 2px 8px rgba(0, 0, 0, 0.08);
+    }
+    
+    .empty-state {
+        text-align: center;
+        padding: 80px 20px;
+        color: #94a3b8;
+    }
+    
+    .empty-state i {
+        font-size: 64px;
+        margin-bottom: 16px;
+        opacity: 0.5;
+    }
+    
+    .alert-minimal {
+        border: none;
+        border-radius: 12px;
+        padding: 16px 20px;
+        margin-bottom: 24px;
+    }
+    
+    .due-date {
+        font-size: 13px;
+        color: #64748b;
+    }
+    
+    .due-urgent {
+        color: #dc2626;
+        font-weight: 600;
+    }
+    
+    .due-soon {
+        color: #d97706;
+        font-weight: 500;
+    }
+</style>
+
+<div class="container-fluid px-4">
+    <!-- Page Header -->
+    <div class="page-header">
+        <div class="d-flex justify-content-between align-items-start">
+            <div>
+                <h1 class="page-title">
+                    <i class="bi bi-receipt text-primary me-3"></i>
+                    E-Bills Management
+                </h1>
+                <p class="page-subtitle">Manage electronic bill requests requiring your approval</p>
+            </div>
+            <div class="text-end">
+                <span class="badge bg-light text-dark px-3 py-2">
+                    <i class="bi bi-person-circle me-2"></i>
+                    Supervisor: @Model.CurrentSupervisorName
+                </span>
+            </div>
+        </div>
+    </div>
+
+    <!-- Status Messages -->
+    @if (!string.IsNullOrEmpty(Model.StatusMessage))
+    {
+        <div class="alert alert-@Model.StatusMessageClass alert-dismissible fade show alert-minimal" role="alert">
+            @Model.StatusMessage
+            <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
+        </div>
+    }
+
+    <!-- Statistics Cards -->
+    <div class="row g-4 mb-5">
+        <div class="col-md-4">
+            <div class="minimal-card p-4">
+                <div class="d-flex align-items-center">
+                    <div class="stat-icon stat-pending me-4">
+                        <i class="bi bi-clock-history"></i>
+                    </div>
+                    <div>
+                        <h3 class="mb-1 fw-bold text-dark">@Model.PendingCount</h3>
+                        <p class="mb-0 text-muted">Pending Approval</p>
+                    </div>
+                </div>
+            </div>
+        </div>
+        <div class="col-md-4">
+            <div class="minimal-card p-4">
+                <div class="d-flex align-items-center">
+                    <div class="stat-icon stat-processed me-4">
+                        <i class="bi bi-check-circle"></i>
+                    </div>
+                    <div>
+                        <h3 class="mb-1 fw-bold text-dark">@Model.ProcessedCount</h3>
+                        <p class="mb-0 text-muted">Processed</p>
+                    </div>
+                </div>
+            </div>
+        </div>
+        <div class="col-md-4">
+            <div class="minimal-card p-4">
+                <div class="d-flex align-items-center">
+                    <div class="stat-icon stat-rejected me-4">
+                        <i class="bi bi-x-circle"></i>
+                    </div>
+                    <div>
+                        <h3 class="mb-1 fw-bold text-dark">@Model.RejectedCount</h3>
+                        <p class="mb-0 text-muted">Rejected</p>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Navigation Tabs -->
+    <ul class="nav nav-tabs nav-tabs-minimal" id="ebillsTab" role="tablist">
+        <li class="nav-item" role="presentation">
+            <button class="nav-link active" id="pending-tab" data-bs-toggle="tab" data-bs-target="#pending" type="button" role="tab">
+                <i class="bi bi-clock-history me-2"></i>
+                Pending (@Model.PendingCount)
+            </button>
+        </li>
+        <li class="nav-item" role="presentation">
+            <button class="nav-link" id="processed-tab" data-bs-toggle="tab" data-bs-target="#processed" type="button" role="tab">
+                <i class="bi bi-check-circle me-2"></i>
+                Processed (@Model.ProcessedCount)
+            </button>
+        </li>
+        <li class="nav-item" role="presentation">
+            <button class="nav-link" id="rejected-tab" data-bs-toggle="tab" data-bs-target="#rejected" type="button" role="tab">
+                <i class="bi bi-x-circle me-2"></i>
+                Rejected (@Model.RejectedCount)
+            </button>
+        </li>
+    </ul>
+
+    <!-- Tab Content -->
+    <div class="tab-content" id="ebillsTabContent">
+        <!-- Pending Requests Tab -->
+        <div class="tab-pane fade show active" id="pending" role="tabpanel">
+            @if (Model.PendingRequests.Any())
+            {
+                <div class="table-responsive">
+                    <table class="table minimal-table">
+                        <thead>
+                            <tr>
+                                <th>Request</th>
+                                <th>Staff</th>
+                                <th>Bill Details</th>
+                                <th>Amount</th>
+                                <th>Due Date</th>
+                                <th>Priority</th>
+                                <th>Actions</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            @foreach (var request in Model.PendingRequests)
+                            {
+                                <tr>
+                                    <td>
+                                        <div class="d-flex align-items-center">
+                                            <i class="bi bi-receipt text-primary me-3 fs-5"></i>
+                                            <div>
+                                                <div class="request-id">#@request.Id</div>
+                                                <span class="status-badge status-pending">
+                                                    <i class="bi bi-clock-history"></i>
+                                                    Pending
+                                                </span>
+                                            </div>
+                                        </div>
+                                    </td>
+                                    <td>
+                                        <div class="Staff-name">@request.FullName</div>
+                                        <div class="Staff-details">
+                                            <div><i class="bi bi-envelope me-1"></i>@request.Email</div>
+                                            <div><i class="bi bi-building me-1"></i>@request.Department</div>
+                                        </div>
+                                    </td>
+                                    <td>
+                                        <div class="bill-details">
+                                            <div class="mb-1"><strong>Type:</strong> @request.BillType</div>
+                                            <div class="mb-1"><strong>Month:</strong> @request.BillMonth</div>
+                                            @if (!string.IsNullOrEmpty(request.AccountNumber))
+                                            {
+                                                <div><strong>Account:</strong> @request.AccountNumber</div>
+                                            }
+                                        </div>
+                                    </td>
+                                    <td>
+                                        <div class="bill-amount">$@request.BillAmount.ToString("N2")</div>
+                                        @if (request.PaidAmount.HasValue)
+                                        {
+                                            <div class="small text-muted">Paid: $@request.PaidAmount.Value.ToString("N2")</div>
+                                        }
+                                    </td>
+                                    <td>
+                                        @{
+                                            var daysUntilDue = (request.DueDate - DateTime.Now).Days;
+                                            var dueDateClass = daysUntilDue <= 3 ? "due-urgent" : (daysUntilDue <= 7 ? "due-soon" : "due-date");
+                                        }
+                                        <div class="@dueDateClass">
+                                            @request.DueDate.ToString("MMM dd, yyyy")
+                                            @if (daysUntilDue <= 7)
+                                            {
+                                                <div class="small">
+                                                    @if (daysUntilDue <= 0)
+                                                    {
+                                                        <span class="text-danger fw-bold">OVERDUE</span>
+                                                    }
+                                                    else
+                                                    {
+                                                        <span>@daysUntilDue days left</span>
+                                                    }
+                                                </div>
+                                            }
+                                        </div>
+                                    </td>
+                                    <td>
+                                        @{
+                                            var priority = Model.GetPriority(request.RequestDate, request.DueDate);
+                                            var priorityClass = priority == "High" ? "priority-high" : (priority == "Medium" ? "priority-medium" : "priority-low");
+                                        }
+                                        <span class="priority-badge @priorityClass">@priority</span>
+                                    </td>
+                                    <td>
+                                        <div class="d-flex flex-column gap-2">
+                                            <button type="button" class="action-btn btn-approve" data-bs-toggle="modal" data-bs-target="#approveModal@(request.Id)">
+                                                <i class="bi bi-check-lg"></i>
+                                                Approve
+                                            </button>
+                                            <button type="button" class="action-btn btn-reject" data-bs-toggle="modal" data-bs-target="#rejectModal@(request.Id)">
+                                                <i class="bi bi-x-lg"></i>
+                                                Reject
+                                            </button>
+                                        </div>
+                                    </td>
+                                </tr>
+
+                                <!-- Approve Modal -->
+                                <div class="modal fade" id="approveModal@(request.Id)" tabindex="-1">
+                                    <div class="modal-dialog modal-dialog-centered">
+                                        <div class="modal-content border-0 shadow-lg" style="border-radius: 16px;">
+                                            <form method="post" asp-page-handler="Approve">
+                                                <input type="hidden" name="requestId" value="@request.Id" />
+                                                <div class="modal-header border-0 pb-0">
+                                                    <h5 class="modal-title fw-bold">
+                                                        <i class="bi bi-check-circle text-success me-2"></i>
+                                                        Approve E-Bill Request
+                                                    </h5>
+                                                    <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+                                                </div>
+                                                <div class="modal-body">
+                                                    <div class="mb-3">
+                                                        <h6 class="fw-bold">Request Details:</h6>
+                                                        <div class="bg-light p-3 rounded">
+                                                            <div><strong>Staff:</strong> @request.FullName</div>
+                                                            <div><strong>Bill Type:</strong> @request.BillType</div>
+                                                            <div><strong>Amount:</strong> $@request.BillAmount.ToString("N2")</div>
+                                                            <div><strong>Due Date:</strong> @request.DueDate.ToString("MMM dd, yyyy")</div>
+                                                        </div>
+                                                    </div>
+                                                    <div class="mb-3">
+                                                        <label class="form-label fw-medium">Supervisor Remarks (Optional):</label>
+                                                        <textarea name="supervisorRemarks" class="form-control" rows="3" placeholder="Add any approval comments..." style="border-radius: 8px;"></textarea>
+                                                    </div>
+                                                </div>
+                                                <div class="modal-footer border-0 pt-0">
+                                                    <button type="button" class="btn btn-light" data-bs-dismiss="modal" style="border-radius: 8px;">Cancel</button>
+                                                    <button type="submit" class="btn btn-success" style="border-radius: 8px;">
+                                                        <i class="bi bi-check-lg me-1"></i>
+                                                        Approve Request
+                                                    </button>
+                                                </div>
+                                            </form>
+                                        </div>
+                                    </div>
+                                </div>
+
+                                <!-- Reject Modal -->
+                                <div class="modal fade" id="rejectModal@(request.Id)" tabindex="-1">
+                                    <div class="modal-dialog modal-dialog-centered">
+                                        <div class="modal-content border-0 shadow-lg" style="border-radius: 16px;">
+                                            <form method="post" asp-page-handler="Reject">
+                                                <input type="hidden" name="requestId" value="@request.Id" />
+                                                <div class="modal-header border-0 pb-0">
+                                                    <h5 class="modal-title fw-bold">
+                                                        <i class="bi bi-x-circle text-danger me-2"></i>
+                                                        Reject E-Bill Request
+                                                    </h5>
+                                                    <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+                                                </div>
+                                                <div class="modal-body">
+                                                    <div class="mb-3">
+                                                        <h6 class="fw-bold">Request Details:</h6>
+                                                        <div class="bg-light p-3 rounded">
+                                                            <div><strong>Staff:</strong> @request.FullName</div>
+                                                            <div><strong>Bill Type:</strong> @request.BillType</div>
+                                                            <div><strong>Amount:</strong> $@request.BillAmount.ToString("N2")</div>
+                                                        </div>
+                                                    </div>
+                                                    <div class="mb-3">
+                                                        <label class="form-label fw-medium">Reason for Rejection <span class="text-danger">*</span>:</label>
+                                                        <textarea name="supervisorRemarks" class="form-control" rows="3" placeholder="Please provide a reason for rejection..." required style="border-radius: 8px;"></textarea>
+                                                    </div>
+                                                </div>
+                                                <div class="modal-footer border-0 pt-0">
+                                                    <button type="button" class="btn btn-light" data-bs-dismiss="modal" style="border-radius: 8px;">Cancel</button>
+                                                    <button type="submit" class="btn btn-danger" style="border-radius: 8px;">
+                                                        <i class="bi bi-x-lg me-1"></i>
+                                                        Reject Request
+                                                    </button>
+                                                </div>
+                                            </form>
+                                        </div>
+                                    </div>
+                                </div>
+                            }
+                        </tbody>
+                    </table>
+                </div>
+            }
+            else
+            {
+                <div class="empty-state">
+                    <i class="bi bi-inbox"></i>
+                    <h4 class="fw-bold">No Pending E-bill Requests</h4>
+                    <p>All e-bill requests have been processed.</p>
+                </div>
+            }
+        </div>
+
+        <!-- Processed Requests Tab -->
+        <div class="tab-pane fade" id="processed" role="tabpanel">
+            @if (Model.ProcessedRequests.Any())
+            {
+                <div class="table-responsive">
+                    <table class="table minimal-table">
+                        <thead>
+                            <tr>
+                                <th>Request</th>
+                                <th>Staff</th>
+                                <th>Bill Details</th>
+                                <th>Amount</th>
+                                <th>Status</th>
+                                <th>Processed</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            @foreach (var request in Model.ProcessedRequests)
+                            {
+                                <tr>
+                                    <td>
+                                        <div class="d-flex align-items-center">
+                                            <i class="bi bi-receipt text-success me-3 fs-5"></i>
+                                            <span class="request-id">#@request.Id</span>
+                                        </div>
+                                    </td>
+                                    <td>
+                                        <div class="Staff-name">@request.FullName</div>
+                                        <div class="Staff-details">@request.Email</div>
+                                    </td>
+                                    <td>
+                                        <div class="small">
+                                            <div><strong>@request.BillType</strong></div>
+                                            <div class="text-muted">@request.BillMonth</div>
+                                        </div>
+                                    </td>
+                                    <td>
+                                        <div class="bill-amount">$@request.BillAmount.ToString("N2")</div>
+                                    </td>
+                                    <td>
+                                        <span class="status-badge status-approved">
+                                            <i class="bi bi-check-circle"></i>
+                                            Approved
+                                        </span>
+                                    </td>
+                                    <td>
+                                        <span class="text-muted">@request.ProcessedDate?.ToString("MMM dd, yyyy HH:mm")</span>
+                                    </td>
+                                </tr>
+                            }
+                        </tbody>
+                    </table>
+                </div>
+            }
+            else
+            {
+                <div class="empty-state">
+                    <i class="bi bi-check-circle"></i>
+                    <h4 class="fw-bold">No Processed Requests</h4>
+                    <p>No e-bill requests have been processed yet.</p>
+                </div>
+            }
+        </div>
+
+        <!-- Rejected Requests Tab -->
+        <div class="tab-pane fade" id="rejected" role="tabpanel">
+            @if (Model.RejectedRequests.Any())
+            {
+                <div class="table-responsive">
+                    <table class="table minimal-table">
+                        <thead>
+                            <tr>
+                                <th>Request</th>
+                                <th>Staff</th>
+                                <th>Bill Details</th>
+                                <th>Amount</th>
+                                <th>Reason</th>
+                                <th>Rejected</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            @foreach (var request in Model.RejectedRequests)
+                            {
+                                <tr>
+                                    <td>
+                                        <div class="d-flex align-items-center">
+                                            <i class="bi bi-receipt text-danger me-3 fs-5"></i>
+                                            <span class="request-id">#@request.Id</span>
+                                        </div>
+                                    </td>
+                                    <td>
+                                        <div class="Staff-name">@request.FullName</div>
+                                        <div class="Staff-details">@request.Email</div>
+                                    </td>
+                                    <td>
+                                        <div class="small">
+                                            <div><strong>@request.BillType</strong></div>
+                                            <div class="text-muted">@request.BillMonth</div>
+                                        </div>
+                                    </td>
+                                    <td>
+                                        <div class="bill-amount">$@request.BillAmount.ToString("N2")</div>
+                                    </td>
+                                    <td>
+                                        @if (!string.IsNullOrEmpty(request.SupervisorRemarks))
+                                        {
+                                            <div class="bill-details">
+                                                @request.SupervisorRemarks
+                                            </div>
+                                        }
+                                        else
+                                        {
+                                            <span class="text-muted">—</span>
+                                        }
+                                    </td>
+                                    <td>
+                                        <span class="text-muted">@request.ProcessedDate?.ToString("MMM dd, yyyy HH:mm")</span>
+                                    </td>
+                                </tr>
+                            }
+                        </tbody>
+                    </table>
+                </div>
+            }
+            else
+            {
+                <div class="empty-state">
+                    <i class="bi bi-x-circle"></i>
+                    <h4 class="fw-bold">No Rejected Requests</h4>
+                    <p>No e-bill requests have been rejected.</p>
+                </div>
+            }
+        </div>
+    </div>
+</div>
+
+@section Scripts {
+    <script>
+        // Auto-hide alerts after 5 seconds
+        setTimeout(function() {
+            $('.alert').fadeOut();
+        }, 5000);
+        
+        // Add smooth transitions
+        document.addEventListener('DOMContentLoaded', function() {
+            // Animate cards on load
+            const cards = document.querySelectorAll('.minimal-card');
+            cards.forEach((card, index) => {
+                card.style.opacity = '0';
+                card.style.transform = 'translateY(20px)';
+                setTimeout(() => {
+                    card.style.transition = 'all 0.5s ease';
+                    card.style.opacity = '1';
+                    card.style.transform = 'translateY(0)';
+                }, index * 100);
+            });
+        });
+    </script>
+} 

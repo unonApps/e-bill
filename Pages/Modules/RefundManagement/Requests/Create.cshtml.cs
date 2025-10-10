@@ -1,0 +1,341 @@
+using Microsoft.AspNetCore.Authorization;
+using Microsoft.AspNetCore.Identity;
+using Microsoft.AspNetCore.Mvc;
+using Microsoft.AspNetCore.Mvc.RazorPages;
+using Microsoft.AspNetCore.Mvc.Rendering;
+using Microsoft.EntityFrameworkCore;
+using TAB.Web.Data;
+using TAB.Web.Models;
+using TAB.Web.Services;
+
+namespace TAB.Web.Pages.Modules.RefundManagement.Requests
+{
+    [Authorize]
+    public class CreateModel : PageModel
+    {
+        private readonly ApplicationDbContext _context;
+        private readonly UserManager<ApplicationUser> _userManager;
+        private readonly IWebHostEnvironment _environment;
+        private readonly ILogger<CreateModel> _logger;
+        private readonly INotificationService _notificationService;
+        private readonly IAuditLogService _auditLogService;
+
+        public CreateModel(
+            ApplicationDbContext context,
+            UserManager<ApplicationUser> userManager,
+            IWebHostEnvironment environment,
+            ILogger<CreateModel> logger,
+            INotificationService notificationService,
+            IAuditLogService auditLogService)
+        {
+            _context = context;
+            _userManager = userManager;
+            _environment = environment;
+            _logger = logger;
+            _notificationService = notificationService;
+            _auditLogService = auditLogService;
+        }
+
+        [BindProperty]
+        public RefundRequest RefundRequest { get; set; } = new RefundRequest();
+
+        public List<SelectListItem> Supervisors { get; set; } = new List<SelectListItem>();
+        public List<SelectListItem> ClassOfServices { get; set; } = new List<SelectListItem>();
+        
+        // Add these properties for the form dropdowns
+        public List<Organization> Organizations { get; set; } = new List<Organization>();
+        public List<ClassOfService> ClassesOfService { get; set; } = new List<ClassOfService>();
+
+        [TempData]
+        public string? StatusMessage { get; set; }
+
+        public async Task<IActionResult> OnGetAsync()
+        {
+            await LoadSupervisorsAsync();
+            await LoadClassOfServicesAsync();
+            // await LoadOfficesAsync(); // Removed - Office table no longer exists
+            await LoadOrganizationsAsync();
+            await LoadClassesOfServiceAsync();
+            return Page();
+        }
+
+        public async Task<IActionResult> OnPostAsync(string action, IFormFile? receiptFile)
+        {
+            _logger.LogInformation("=== FORM SUBMISSION DEBUG ===");
+            _logger.LogInformation("Action: {Action}", action);
+            _logger.LogInformation("Receipt file: {FileName}", receiptFile?.FileName ?? "No file");
+            _logger.LogInformation("RefundRequest bound: {IsBound}", RefundRequest != null);
+            
+            if (RefundRequest != null)
+            {
+                _logger.LogInformation("Key fields received:");
+                _logger.LogInformation("  MobileNumberAssignedTo: '{Value}'", RefundRequest.MobileNumberAssignedTo ?? "null");
+                _logger.LogInformation("  PrimaryMobileNumber: '{Value}'", RefundRequest.PrimaryMobileNumber ?? "null");
+                _logger.LogInformation("  DevicePurchaseAmount: {Value}", RefundRequest.DevicePurchaseAmount);
+                _logger.LogInformation("  Supervisor: '{Value}'", RefundRequest.Supervisor ?? "null");
+            }
+            // Handle file upload
+            if (receiptFile != null && receiptFile.Length > 0)
+            {
+                if (receiptFile.ContentType != "application/pdf")
+                {
+                    ModelState.AddModelError("ReceiptFile", "Only PDF files are allowed.");
+                }
+                else if (receiptFile.Length > 10 * 1024 * 1024) // 10MB limit
+                {
+                    ModelState.AddModelError("ReceiptFile", "File size cannot exceed 10MB.");
+                }
+                else
+                {
+                    // Save the file
+                    var uploadsFolder = Path.Combine(_environment.WebRootPath, "uploads", "receipts");
+                    Directory.CreateDirectory(uploadsFolder);
+                    
+                    var fileName = $"{Guid.NewGuid()}_{receiptFile.FileName}";
+                    var filePath = Path.Combine(uploadsFolder, fileName);
+                    
+                    using (var stream = new FileStream(filePath, FileMode.Create))
+                    {
+                        await receiptFile.CopyToAsync(stream);
+                    }
+                    
+                    RefundRequest.PurchaseReceiptPath = $"/uploads/receipts/{fileName}";
+                }
+            }
+            else if (action == "submit")
+            {
+                // For submit, receipt is required but we'll handle it as a warning, not a hard error
+                if (string.IsNullOrEmpty(RefundRequest.PurchaseReceiptPath))
+                {
+                    RefundRequest.PurchaseReceiptPath = ""; // Set to empty string to pass validation
+                    ModelState.AddModelError("ReceiptFile", "Purchase receipt is recommended but not required.");
+                }
+            }
+            else if (action == "save")
+            {
+                // For drafts, remove the PurchaseReceiptPath validation
+                ModelState.Remove("RefundRequest.PurchaseReceiptPath");
+                RefundRequest.PurchaseReceiptPath = ""; // Set empty for drafts
+            }
+
+            if (!ModelState.IsValid)
+            {
+                _logger.LogWarning("ModelState is invalid for RefundRequest submission");
+                foreach (var modelState in ModelState)
+                {
+                    if (modelState.Value?.Errors.Count > 0)
+                    {
+                        foreach (var error in modelState.Value.Errors)
+                        {
+                            _logger.LogWarning("Validation error for field {Field}: {Error}", 
+                                modelState.Key, error.ErrorMessage);
+                        }
+                    }
+                }
+                await LoadSupervisorsAsync();
+                await LoadClassOfServicesAsync();
+                // await LoadOfficesAsync(); // Removed - Office table no longer exists
+                await LoadOrganizationsAsync();
+                await LoadClassesOfServiceAsync();
+                return Page();
+            }
+
+            // Set system fields
+            var currentUser = await _userManager.GetUserAsync(User);
+            RefundRequest.RequestedBy = currentUser?.Id;
+            RefundRequest.RequestDate = DateTime.UtcNow;
+
+            // Parse supervisor email from the selected supervisor value
+            if (!string.IsNullOrEmpty(RefundRequest.Supervisor))
+            {
+                // Extract email from format "First Name Last Name (email@domain.com)"
+                var emailMatch = System.Text.RegularExpressions.Regex.Match(RefundRequest.Supervisor, @"\(([^)]+)\)");
+                if (emailMatch.Success)
+                {
+                    RefundRequest.SupervisorEmail = emailMatch.Groups[1].Value;
+                    
+                    // Also set supervisor name by getting user details
+                    var supervisorUser = await _context.Users
+                        .FirstOrDefaultAsync(u => u.Email == RefundRequest.SupervisorEmail);
+                    if (supervisorUser != null)
+                    {
+                        RefundRequest.SupervisorName = $"{supervisorUser.FirstName} {supervisorUser.LastName}";
+                    }
+                }
+            }
+
+            if (action == "submit")
+            {
+                RefundRequest.Status = RefundRequestStatus.PendingSupervisor;
+                RefundRequest.SubmittedToSupervisor = true;
+                StatusMessage = "Your mobile device reimbursement request has been submitted to your supervisor for approval.";
+            }
+            else
+            {
+                RefundRequest.Status = RefundRequestStatus.Draft;
+                RefundRequest.SubmittedToSupervisor = false;
+                StatusMessage = "Your mobile device reimbursement request has been saved as a draft.";
+            }
+
+            try
+            {
+                _context.RefundRequests.Add(RefundRequest);
+                await _context.SaveChangesAsync();
+
+                // Send notification if submitted to supervisor
+                if (action == "submit")
+                {
+                    var supervisorUser = await _context.Users
+                        .FirstOrDefaultAsync(u => u.Email == RefundRequest.SupervisorEmail);
+
+                    if (supervisorUser != null)
+                    {
+                        await _notificationService.NotifyRefundRequestSubmittedAsync(
+                            RefundRequest.Id,
+                            RefundRequest.RequestedBy ?? currentUser.Id,
+                            supervisorUser.Id
+                        );
+
+                        // Log audit trail - get index number from EbillUser
+                        var ebillUser = await _context.EbillUsers
+                            .FirstOrDefaultAsync(u => u.Email == currentUser.Email);
+
+                        await _auditLogService.LogRefundRequestSubmittedAsync(
+                            RefundRequest.Id,
+                            RefundRequest.MobileNumberAssignedTo ?? "N/A",
+                            ebillUser?.IndexNumber ?? RefundRequest.IndexNo ?? "N/A",
+                            RefundRequest.DevicePurchaseAmount,
+                            RefundRequest.PrimaryMobileNumber ?? "N/A",
+                            currentUser.Id,
+                            HttpContext.Connection.RemoteIpAddress?.ToString()
+                        );
+                    }
+                }
+
+                return RedirectToPage("./Index", new { message = StatusMessage });
+            }
+            catch (Exception)
+            {
+                ModelState.AddModelError("", "An error occurred while saving your request. Please try again.");
+                await LoadSupervisorsAsync();
+                await LoadClassOfServicesAsync();
+                // await LoadOfficesAsync(); // Removed - Office table no longer exists
+                await LoadOrganizationsAsync();
+                await LoadClassesOfServiceAsync();
+                return Page();
+            }
+        }
+
+        public async Task<IActionResult> OnGetClassOfServiceAllowanceAsync(int classOfServiceId)
+        {
+            try
+            {
+                var classOfService = await _context.ClassOfServices
+                    .FirstOrDefaultAsync(c => c.Id == classOfServiceId && c.ServiceStatus == ServiceStatus.Active);
+
+                if (classOfService == null)
+                {
+                    return new JsonResult(new { success = false, message = "Class of Service not found" });
+                }
+
+                return new JsonResult(new 
+                { 
+                    success = true, 
+                    handsetAllowance = classOfService.HandsetAllowance ?? "0",
+                    airtimeAllowance = classOfService.AirtimeAllowance ?? "",
+                    dataAllowance = classOfService.DataAllowance ?? "",
+                    service = classOfService.Service
+                });
+            }
+            catch (Exception)
+            {
+                return new JsonResult(new { success = false, message = "Error retrieving allowance information" });
+            }
+        }
+
+        private async Task LoadSupervisorsAsync()
+        {
+            var supervisors = new List<ApplicationUser>();
+            
+            // Try to get users from multiple roles that can act as supervisors
+            var supervisorUsers = await _userManager.GetUsersInRoleAsync("Supervisor");
+            supervisors.AddRange(supervisorUsers);
+            
+            // Also include Budget Officers who can supervise
+            var budgetOfficers = await _userManager.GetUsersInRoleAsync("Budget Officer");
+            supervisors.AddRange(budgetOfficers);
+            
+            // Also include BudgetOfficer (in case role name variations exist)
+            var budgetOfficersAlt = await _userManager.GetUsersInRoleAsync("BudgetOfficer");
+            supervisors.AddRange(budgetOfficersAlt);
+            
+            // If still no supervisors found, fall back to Admin users
+            if (!supervisors.Any())
+            {
+                var adminUsers = await _userManager.GetUsersInRoleAsync("Admin");
+                supervisors.AddRange(adminUsers);
+            }
+            
+            // Remove duplicates (in case a user has multiple roles)
+            supervisors = supervisors.GroupBy(u => u.Id).Select(g => g.First()).ToList();
+            
+            Supervisors = supervisors.Select(s => new SelectListItem
+            {
+                Value = $"{s.FirstName} {s.LastName} ({s.Email})",
+                Text = $"{s.FirstName} {s.LastName} - {s.Email}"
+            }).OrderBy(s => s.Text).ToList();
+            
+            // Add debugging information
+            TempData["SupervisorCount"] = Supervisors.Count;
+            TempData["SupervisorDebug"] = $"Found {Supervisors.Count} potential supervisors from roles: Supervisor, Budget Officer, Admin";
+        }
+
+        private async Task LoadClassOfServicesAsync()
+        {
+            var classOfServices = await _context.ClassOfServices
+                .Where(c => c.ServiceStatus == ServiceStatus.Active)
+                .OrderBy(c => c.Class)
+                .ThenBy(c => c.Service)
+                .ToListAsync();
+
+            ClassOfServices = classOfServices.Select(c => new SelectListItem
+            {
+                Value = c.Id.ToString(),
+                Text = $"{c.Class} - {c.Service}",
+                // Store the handset allowance in a data attribute for JavaScript access
+            }).ToList();
+
+            // Add a default "Select Class of Service" option
+            ClassOfServices.Insert(0, new SelectListItem
+            {
+                Value = "",
+                Text = "-- Select Class of Service --",
+                Selected = true
+            });
+        }
+        
+        // Removed - Office table no longer exists
+        // private async Task LoadOfficesAsync()
+        // {
+        //     Offices = await _context.Offices
+        //         .OrderBy(o => o.Name)
+        //         .ToListAsync();
+        // }
+        
+        private async Task LoadOrganizationsAsync()
+        {
+            Organizations = await _context.Organizations
+                .OrderBy(o => o.Name)
+                .ToListAsync();
+        }
+        
+        private async Task LoadClassesOfServiceAsync()
+        {
+            ClassesOfService = await _context.ClassOfServices
+                .Where(c => c.ServiceStatus == ServiceStatus.Active)
+                .OrderBy(c => c.Class)
+                .ThenBy(c => c.Service)
+                .ToListAsync();
+        }
+    }
+} 

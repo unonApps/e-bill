@@ -1,0 +1,712 @@
+@page "{id:int}"
+@model TAB.Web.Pages.Modules.SimManagement.Requests.DetailsModel
+@using TAB.Web.Models
+@{
+    ViewData["Title"] = "SIM Request Details";
+    ViewData["PageIcon"] = "bi-eye";
+    ViewData["PageTitle"] = "SIM Request Details";
+    ViewData["Breadcrumb"] = "Services / SIM Card Requests / Details";
+}
+
+<style>
+    /* Container and Layout */
+    .details-container {
+        max-width: 1200px;
+        margin: 0 auto;
+        padding: 0 1rem;
+    }
+    
+    .details-card {
+        background: #ffffff;
+        border: none;
+        border-radius: 12px;
+        box-shadow: 0 1px 3px 0 rgba(0, 0, 0, 0.1), 0 1px 2px 0 rgba(0, 0, 0, 0.06);
+        overflow: hidden;
+    }
+    
+    .details-header {
+        background-color: #009EDB; /* UN Blue */
+        color: white;
+        padding: 1rem 1.25rem;
+        position: relative;
+        border-radius: 12px 12px 0 0;
+        margin-bottom: 0;
+    }
+    
+    .details-header h1 {
+        font-size: 1.25rem;
+        font-weight: 600;
+        margin: 0;
+        display: flex;
+        align-items: center;
+        gap: 0.5rem;
+    }
+    
+    .details-header h1 i {
+        font-size: 1.1rem;
+    }
+    
+    .request-number {
+        font-size: 0.875rem;
+        opacity: 0.95;
+        margin-top: 0.25rem;
+    }
+    
+    /* Tab Styles */
+    .nav-tabs {
+        background: #E3EDF6; /* UN Blue Extra Light */
+        padding: 0.75rem 1.25rem 0;
+        border-bottom: 2px solid #C5DFEF; /* UN Blue Light */
+        border-radius: 0;
+        margin-bottom: 0;
+    }
+    
+    .nav-tabs .nav-link {
+        color: #6E6259; /* UN Gray Dark */
+        background: transparent;
+        border: none;
+        border-bottom: 3px solid transparent;
+        padding: 0.75rem 1.5rem;
+        font-weight: 500;
+        font-size: 0.875rem;
+        transition: all 0.3s ease;
+        border-radius: 8px 8px 0 0;
+        margin-right: 0.5rem;
+        position: relative;
+    }
+    
+    .nav-tabs .nav-link:hover {
+        color: #009EDB; /* UN Blue */
+        background: rgba(0, 158, 219, 0.05);
+        border-bottom-color: rgba(0, 158, 219, 0.3);
+    }
+    
+    .nav-tabs .nav-link.active {
+        color: #009EDB; /* UN Blue */
+        background: white;
+        border-bottom-color: #009EDB;
+        font-weight: 600;
+    }
+    
+    .nav-tabs .nav-link i {
+        margin-right: 0.5rem;
+        font-size: 1rem;
+    }
+    
+    .tab-content {
+        background: white;
+        padding: 1.5rem;
+        min-height: 400px;
+    }
+    
+    .tab-pane {
+        animation: fadeIn 0.3s ease;
+    }
+    
+    @@keyframes fadeIn {
+        from {
+            opacity: 0;
+            transform: translateY(10px);
+        }
+        to {
+            opacity: 1;
+            transform: translateY(0);
+        }
+    }
+    
+    /* Status Banner */
+    .status-banner {
+        margin: 1rem 1.25rem;
+        padding: 1rem;
+        border-radius: 8px;
+        display: flex;
+        align-items: center;
+        gap: 1rem;
+    }
+    
+    .status-draft {
+        background: #EBEAE6; /* UN Gray Extra Light */
+        border-left: 4px solid #AEA29A; /* UN Gray */
+    }
+    
+    .status-pending {
+        background: #FFEAD5; /* UN Orange Extra Light */
+        border-left: 4px solid #F58220; /* UN Orange */
+    }
+    
+    .status-approved {
+        background: #E6EFD0; /* UN Green Extra Light */
+        border-left: 4px solid #72BF44; /* UN Green */
+    }
+    
+    .status-completed {
+        background: #E4D7E8; /* UN Purple Extra Light */
+        border-left: 4px solid #A05FB4; /* UN Purple */
+    }
+    
+    .status-rejected {
+        background: #F7DFDF; /* UN Red Extra Light */
+        border-left: 4px solid #ED1847; /* UN Red */
+    }
+    
+    /* Section Headers */
+    .section-header {
+        font-size: 0.875rem;
+        font-weight: 600;
+        color: #004987; /* UN Blue Dark */
+        margin-bottom: 1rem;
+        padding-bottom: 0.5rem;
+        border-bottom: 2px solid #E3EDF6; /* UN Blue Extra Light */
+        display: flex;
+        align-items: center;
+    }
+    
+    .section-icon {
+        color: #009EDB; /* UN Blue */
+        margin-right: 0.5rem;
+        font-size: 1rem;
+    }
+    
+    /* Detail Fields */
+    .detail-group {
+        margin-bottom: 1.5rem;
+    }
+    
+    .detail-label {
+        color: #6E6259; /* UN Gray Dark */
+        font-size: 0.75rem;
+        font-weight: 600;
+        text-transform: uppercase;
+        letter-spacing: 0.5px;
+        margin-bottom: 0.25rem;
+    }
+    
+    .detail-value {
+        color: #000000; /* UN Black */
+        font-weight: 600;
+        font-size: 0.875rem;
+    }
+    
+    .detail-value-primary {
+        color: #009EDB; /* UN Blue */
+    }
+    
+    /* Badges */
+    .badge-sim-type {
+        padding: 0.5rem 1rem;
+        border-radius: 20px;
+        font-size: 0.75rem;
+        font-weight: 600;
+        text-transform: uppercase;
+        letter-spacing: 0.5px;
+    }
+    
+    .badge-physical {
+        background-color: #009EDB; /* UN Blue */
+        color: white;
+    }
+    
+    .badge-esim {
+        background-color: #72BF44; /* UN Green */
+        color: white;
+    }
+    
+    /* Action Buttons */
+    .action-buttons {
+        padding: 1rem 1.25rem;
+        background: #E3EDF6; /* UN Blue Extra Light */
+        border-top: 2px solid #C5DFEF; /* UN Blue Light */
+        border-radius: 0 0 12px 12px;
+        margin-top: 0;
+    }
+    
+    .btn-primary {
+        background-color: #009EDB; /* UN Blue */
+        color: white;
+        border: none;
+        padding: 0.625rem 1.25rem;
+        border-radius: 8px;
+        font-weight: 500;
+        font-size: 0.8125rem;
+        transition: all 0.3s ease;
+    }
+    
+    .btn-primary:hover {
+        background-color: #0077B8; /* UN Blue Dark */
+        transform: translateY(-1px);
+        box-shadow: 0 4px 12px rgba(0, 158, 219, 0.35);
+    }
+    
+    .btn-outline-secondary {
+        background: white;
+        color: #6E6259; /* UN Gray Dark */
+        border: 1px solid #DED9D5; /* UN Gray Light */
+        padding: 0.625rem 1.25rem;
+        border-radius: 8px;
+        font-weight: 500;
+        font-size: 0.8125rem;
+        transition: all 0.3s ease;
+    }
+    
+    .btn-outline-secondary:hover {
+        background: #EBEAE6; /* UN Gray Extra Light */
+        color: #000000;
+        transform: translateY(-1px);
+    }
+    
+    /* Timeline Styles */
+    .timeline-item {
+        position: relative;
+        padding-left: 2rem;
+    }
+    
+    .timeline-item::before {
+        content: '';
+        position: absolute;
+        left: 0.5rem;
+        top: 2rem;
+        bottom: -1rem;
+        width: 2px;
+        background: #DED9D5; /* UN Gray Light */
+    }
+    
+    .timeline-item:last-child::before {
+        display: none;
+    }
+    
+    .timeline-icon {
+        position: absolute;
+        left: 0;
+        top: 0;
+        width: 1.25rem;
+        height: 1.25rem;
+        background: white;
+        border: 2px solid #009EDB; /* UN Blue */
+        border-radius: 50%;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        font-size: 0.625rem;
+    }
+    
+    .timeline-icon-success {
+        background: #72BF44; /* UN Green */
+        border-color: #72BF44;
+        color: white;
+    }
+    
+    .timeline-icon-warning {
+        background: #F58220; /* UN Orange */
+        border-color: #F58220;
+        color: white;
+    }
+    
+    .timeline-icon-danger {
+        background: #ED1847; /* UN Red */
+        border-color: #ED1847;
+        color: white;
+    }
+    
+    /* Responsive Design */
+    @@media (max-width: 768px) {
+        .details-header {
+            padding: 1rem;
+        }
+        
+        .tab-content {
+            padding: 1rem;
+        }
+        
+        .nav-tabs {
+            padding: 0.5rem;
+        }
+        
+        .nav-tabs .nav-link {
+            padding: 0.5rem 1rem;
+            font-size: 0.75rem;
+        }
+        
+        .action-buttons {
+            padding: 1rem;
+        }
+        
+        .action-buttons .btn {
+            width: 100%;
+            margin-bottom: 0.5rem;
+        }
+    }
+</style>
+
+@if (Model.SimRequest != null)
+{
+    <!-- Details Container -->
+    <div class="details-container">
+        <div class="details-card">
+            <!-- Compact Details Header -->
+            <div class="details-header">
+                <h1><i class="bi bi-sim"></i> SIM Request Details</h1>
+                <div class="request-number">Request #@Model.SimRequest.IndexNo</div>
+            </div>
+
+            <!-- Status Banner -->
+            <div class="status-banner status-@(GetStatusClass(Model.SimRequest.Status))">
+                <i class="@TAB.Web.Pages.Modules.SimManagement.Requests.DetailsModel.GetStatusIcon(Model.SimRequest.Status)" style="font-size: 1.5rem;"></i>
+                <div class="flex-grow-1">
+                    <div class="fw-bold">@Model.SimRequest.Status.GetDisplayName()</div>
+                    <small class="opacity-75">Requested on @Model.SimRequest.RequestDate.ToString("MMMM dd, yyyy 'at' hh:mm tt")</small>
+                </div>
+                @if (Model.SimRequest.Status == RequestStatus.Draft)
+                {
+                    <small class="text-muted">You can still edit this request</small>
+                }
+                else if (Model.SimRequest.Status == RequestStatus.PendingSupervisor)
+                {
+                    <small class="text-muted">Waiting for supervisor approval</small>
+                }
+                else if (Model.SimRequest.Status == RequestStatus.PendingAdmin)
+                {
+                    <small class="text-muted">Under admin review</small>
+                }
+                else if (Model.SimRequest.Status == RequestStatus.Approved)
+                {
+                    <small style="color: #72BF44;">Approved and ready for processing</small>
+                }
+                else if (Model.SimRequest.Status == RequestStatus.Completed)
+                {
+                    <small style="color: #A05FB4;">Request completed successfully</small>
+                }
+                else if (Model.SimRequest.Status == RequestStatus.Rejected)
+                {
+                    <small style="color: #ED1847;">Request was rejected</small>
+                }
+            </div>
+
+            <!-- Tab Navigation -->
+            <ul class="nav nav-tabs" id="detailsTabs" role="tablist">
+                <li class="nav-item" role="presentation">
+                    <button class="nav-link active" id="personal-tab" data-bs-toggle="tab" data-bs-target="#personal"
+                            type="button" role="tab" aria-controls="personal" aria-selected="true">
+                        <i class="bi bi-person-circle"></i>Personal Information
+                    </button>
+                </li>
+                <li class="nav-item" role="presentation">
+                    <button class="nav-link" id="sim-config-tab" data-bs-toggle="tab" data-bs-target="#sim-config"
+                            type="button" role="tab" aria-controls="sim-config" aria-selected="false">
+                        <i class="bi bi-sim"></i>SIM Configuration
+                    </button>
+                </li>
+                <li class="nav-item" role="presentation">
+                    <button class="nav-link" id="history-tab" data-bs-toggle="tab" data-bs-target="#history"
+                            type="button" role="tab" aria-controls="history" aria-selected="false">
+                        <i class="bi bi-clock-history"></i>History
+                    </button>
+                </li>
+            </ul>
+
+            <!-- Tab Content -->
+            <div class="tab-content" id="detailsTabContent">
+                <!-- Personal Information Tab -->
+                <div class="tab-pane fade show active" id="personal" role="tabpanel" aria-labelledby="personal-tab">
+                    <!-- Personal Information Section -->
+                    <div class="detail-group">
+                        <h6 class="section-header">
+                            <i class="bi bi-person section-icon"></i>Personal Information
+                        </h6>
+                        <div class="row g-3">
+                            <div class="col-md-4">
+                                <div class="detail-label">Index Number</div>
+                                <div class="detail-value detail-value-primary">@Model.SimRequest.IndexNo</div>
+                            </div>
+                            <div class="col-md-4">
+                                <div class="detail-label">First Name</div>
+                                <div class="detail-value">@Model.SimRequest.FirstName</div>
+                            </div>
+                            <div class="col-md-4">
+                                <div class="detail-label">Last Name</div>
+                                <div class="detail-value">@Model.SimRequest.LastName</div>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Organization & Office Section -->
+                    <div class="detail-group">
+                        <h6 class="section-header">
+                            <i class="bi bi-building section-icon"></i>Organization & Office
+                        </h6>
+                        <div class="row g-3">
+                            <div class="col-md-6">
+                                <div class="detail-label">Organization</div>
+                                <div class="detail-value">@Model.SimRequest.Organization</div>
+                            </div>
+                            <div class="col-md-6">
+                                <div class="detail-label">Office</div>
+                                <div class="detail-value">@Model.SimRequest.Office</div>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Position Information Section -->
+                    @if (!string.IsNullOrEmpty(Model.SimRequest.Grade) || !string.IsNullOrEmpty(Model.SimRequest.FunctionalTitle))
+                    {
+                        <div class="detail-group">
+                            <h6 class="section-header">
+                                <i class="bi bi-briefcase section-icon"></i>Position Information
+                            </h6>
+                            <div class="row g-3">
+                                @if (!string.IsNullOrEmpty(Model.SimRequest.Grade))
+                                {
+                                    <div class="col-md-6">
+                                        <div class="detail-label">Grade</div>
+                                        <div class="detail-value">@Model.SimRequest.Grade</div>
+                                    </div>
+                                }
+                                @if (!string.IsNullOrEmpty(Model.SimRequest.FunctionalTitle))
+                                {
+                                    <div class="col-md-6">
+                                        <div class="detail-label">Functional Title</div>
+                                        <div class="detail-value">@Model.SimRequest.FunctionalTitle</div>
+                                    </div>
+                                }
+                            </div>
+                        </div>
+                    }
+
+                    <!-- Contact Information Section -->
+                    <div class="detail-group">
+                        <h6 class="section-header">
+                            <i class="bi bi-telephone section-icon"></i>Contact Information
+                        </h6>
+                        <div class="row g-3">
+                            @if (!string.IsNullOrEmpty(Model.SimRequest.OfficialEmail))
+                            {
+                                <div class="col-md-6">
+                                    <div class="detail-label">Official Email</div>
+                                    <div class="detail-value">
+                                        <a href="mailto:@Model.SimRequest.OfficialEmail" class="text-decoration-none" style="color: #009EDB;">
+                                            <i class="bi bi-envelope me-1"></i>@Model.SimRequest.OfficialEmail
+                                        </a>
+                                    </div>
+                                </div>
+                            }
+                            @if (!string.IsNullOrEmpty(Model.SimRequest.OfficeExtension))
+                            {
+                                <div class="col-md-6">
+                                    <div class="detail-label">Office Extension</div>
+                                    <div class="detail-value">@Model.SimRequest.OfficeExtension</div>
+                                </div>
+                            }
+                        </div>
+                    </div>
+                </div>
+
+                <!-- SIM Configuration Tab -->
+                <div class="tab-pane fade" id="sim-config" role="tabpanel" aria-labelledby="sim-config-tab">
+                    <!-- SIM Type Section -->
+                    <div class="detail-group">
+                        <h6 class="section-header">
+                            <i class="bi bi-sim section-icon"></i>SIM Type Selection
+                        </h6>
+                        <div class="row g-3">
+                            <div class="col-md-6">
+                                <div class="detail-label">SIM Type</div>
+                                <div>
+                                    <span class="badge-sim-type @(Model.SimRequest.SimType == SimType.Physical ? "badge-physical" : "badge-esim")">
+                                        <i class="bi bi-@(Model.SimRequest.SimType == SimType.Physical ? "sim" : "phone") me-2"></i>
+                                        @Model.SimRequest.SimType.GetDisplayName()
+                                    </span>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Service Provider Section -->
+                    <div class="detail-group">
+                        <h6 class="section-header">
+                            <i class="bi bi-broadcast section-icon"></i>Service Provider
+                        </h6>
+                        <div class="row g-3">
+                            <div class="col-md-6">
+                                <div class="detail-label">Provider Name</div>
+                                <div class="detail-value">
+                                    <i class="bi bi-building me-2"></i>
+                                    @(Model.SimRequest.ServiceProvider?.ServiceProviderName ?? "Not Assigned")
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Additional Information Section -->
+                    <div class="detail-group">
+                        <h6 class="section-header">
+                            <i class="bi bi-info-circle section-icon"></i>Additional Information
+                        </h6>
+                        <div class="row g-3">
+                            @if (!string.IsNullOrEmpty(Model.SimRequest.Supervisor))
+                            {
+                                <div class="col-md-6">
+                                    <div class="detail-label">Supervisor</div>
+                                    <div class="detail-value">@Model.SimRequest.Supervisor</div>
+                                </div>
+                            }
+                            @if (!string.IsNullOrEmpty(Model.SimRequest.PreviouslyAssignedLines))
+                            {
+                                <div class="col-md-6">
+                                    <div class="detail-label">Previously Assigned Lines</div>
+                                    <div class="detail-value">
+                                        @if (Model.SimRequest.PreviouslyAssignedLines == "Yes")
+                                        {
+                                            <span style="color: #F58220;">⚠️ @Model.SimRequest.PreviouslyAssignedLines</span>
+                                        }
+                                        else
+                                        {
+                                            <span style="color: #72BF44;">✓ @Model.SimRequest.PreviouslyAssignedLines</span>
+                                        }
+                                    </div>
+                                </div>
+                            }
+                            @if (!string.IsNullOrEmpty(Model.SimRequest.Remarks))
+                            {
+                                <div class="col-12">
+                                    <div class="detail-label">Remarks / Justification</div>
+                                    <div class="detail-value">@Model.SimRequest.Remarks</div>
+                                </div>
+                            }
+                        </div>
+                    </div>
+
+                    <!-- Processing Information Section -->
+                    @if (Model.SimRequest.Status != RequestStatus.Draft)
+                    {
+                        <div class="detail-group">
+                            <h6 class="section-header">
+                                <i class="bi bi-gear section-icon"></i>Processing Information
+                            </h6>
+                            <div class="row g-3">
+                                @if (Model.SimRequest.SubmittedToSupervisor)
+                                {
+                                    <div class="col-md-6">
+                                        <div class="detail-label">Submitted to Supervisor</div>
+                                        <div class="detail-value" style="color: #72BF44;">✓ Yes</div>
+                                    </div>
+                                }
+                                @if (Model.SimRequest.SupervisorApprovalDate.HasValue)
+                                {
+                                    <div class="col-md-6">
+                                        <div class="detail-label">Supervisor Approval Date</div>
+                                        <div class="detail-value">@Model.SimRequest.SupervisorApprovalDate.Value.ToString("MMM dd, yyyy 'at' hh:mm tt")</div>
+                                    </div>
+                                }
+                                @if (!string.IsNullOrEmpty(Model.SimRequest.SupervisorNotes))
+                                {
+                                    <div class="col-12">
+                                        <div class="detail-label">Supervisor Notes</div>
+                                        <div class="detail-value">@Model.SimRequest.SupervisorNotes</div>
+                                    </div>
+                                }
+                                @if (Model.SimRequest.ProcessedDate.HasValue)
+                                {
+                                    <div class="col-md-6">
+                                        <div class="detail-label">Processed Date</div>
+                                        <div class="detail-value">@Model.SimRequest.ProcessedDate.Value.ToString("MMM dd, yyyy 'at' hh:mm tt")</div>
+                                    </div>
+                                }
+                                @if (!string.IsNullOrEmpty(Model.SimRequest.ProcessedBy))
+                                {
+                                    <div class="col-md-6">
+                                        <div class="detail-label">Processed By</div>
+                                        <div class="detail-value">@Model.SimRequest.ProcessedBy</div>
+                                    </div>
+                                }
+                                @if (!string.IsNullOrEmpty(Model.SimRequest.ProcessingNotes))
+                                {
+                                    <div class="col-12">
+                                        <div class="detail-label">Processing Notes</div>
+                                        <div class="detail-value">@Model.SimRequest.ProcessingNotes</div>
+                                    </div>
+                                }
+                            </div>
+                        </div>
+                    }
+                </div>
+
+                <!-- History Tab -->
+                <div class="tab-pane fade" id="history" role="tabpanel" aria-labelledby="history-tab">
+                    <div class="detail-group">
+                        <h6 class="section-header">
+                            <i class="bi bi-clock-history section-icon"></i>Request History
+                        </h6>
+                        @if (Model.History.Any())
+                        {
+                            <div class="timeline">
+                                @foreach (var historyItem in Model.History)
+                                {
+                                    <div class="timeline-item mb-3">
+                                        <div class="timeline-icon @Model.GetHistoryBadgeClass(historyItem.Action)"></div>
+                                        <div class="ms-3">
+                                            <div class="fw-bold">@historyItem.Action</div>
+                                            <div class="small text-muted">
+                                                <i class="bi bi-person me-1"></i>@historyItem.UserName
+                                                <span class="ms-3"><i class="bi bi-calendar me-1"></i>@historyItem.Timestamp.ToString("MMM dd, yyyy 'at' hh:mm tt")</span>
+                                            </div>
+                                            @if (!string.IsNullOrEmpty(historyItem.Comments))
+                                            {
+                                                <div class="mt-2 p-2 bg-light rounded">
+                                                    <small>@historyItem.Comments</small>
+                                                </div>
+                                            }
+                                        </div>
+                                    </div>
+                                }
+                            </div>
+                        }
+                        else
+                        {
+                            <div class="text-center text-muted py-4">
+                                <i class="bi bi-clock-history" style="font-size: 2rem; color: #C5DFEF;"></i>
+                                <p class="mt-2">No history available for this request</p>
+                            </div>
+                        }
+                    </div>
+                </div>
+            </div>
+
+            <!-- Action Buttons -->
+            <div class="action-buttons">
+                <div class="d-flex gap-2 justify-content-between flex-wrap">
+                    <a asp-page="Index" class="btn btn-outline-secondary">
+                        <i class="bi bi-arrow-left me-2"></i>Back to List
+                    </a>
+                    @if (Model.SimRequest?.Status == RequestStatus.Draft)
+                    {
+                        <a asp-page="Edit" asp-route-id="@Model.SimRequest?.Id" class="btn btn-primary">
+                            <i class="bi bi-pencil me-2"></i>Edit Request
+                        </a>
+                    }
+                </div>
+            </div>
+        </div>
+    </div>
+}
+else
+{
+    <div class="alert alert-warning">
+        <i class="bi bi-exclamation-triangle me-2"></i>
+        Request not found or you don't have permission to view this request.
+    </div>
+}
+
+@functions {
+    private string GetStatusClass(RequestStatus status)
+    {
+        return status switch
+        {
+            RequestStatus.Draft => "draft",
+            RequestStatus.PendingSupervisor => "pending",
+            RequestStatus.PendingAdmin => "pending",
+            RequestStatus.Approved => "approved",
+            RequestStatus.Completed => "completed",
+            RequestStatus.Rejected => "rejected",
+            _ => "draft"
+        };
+    }
+}

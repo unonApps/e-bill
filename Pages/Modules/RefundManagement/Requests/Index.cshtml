@@ -1,0 +1,1407 @@
+@page
+@model TAB.Web.Pages.Modules.RefundManagement.Requests.IndexModel
+@{
+    ViewData["Title"] = "My Refund Requests";
+}
+
+<style>
+    /* Pagination Styles */
+    .pagination {
+        gap: 0.25rem;
+    }
+
+    .page-link {
+        color: #009EDB;
+        border: 1px solid #e5e7eb;
+        padding: 0.5rem 0.75rem;
+        font-size: 0.875rem;
+        font-weight: 500;
+        border-radius: 8px;
+        margin: 0 2px;
+    }
+
+    .page-link:hover {
+        background-color: #f3f4f6;
+        border-color: #009EDB;
+        color: #007ab8;
+    }
+
+    .page-item.active .page-link {
+        background-color: #009EDB;
+        border-color: #009EDB;
+        color: white;
+    }
+
+    .page-item.disabled .page-link {
+        background-color: #f9fafb;
+        border-color: #e5e7eb;
+        color: #9ca3af;
+    }
+
+    /* Page Header Bar */
+    .page-header-bar {
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        margin-bottom: 2rem;
+        padding-bottom: 1.5rem;
+        border-bottom: 2px solid #e5e7eb;
+        flex-wrap: wrap;
+        gap: 1rem;
+    }
+
+    .page-info {
+        flex: 1;
+    }
+
+    .module-badge {
+        display: inline-flex;
+        align-items: center;
+        padding: 0.375rem 0.875rem;
+        background: linear-gradient(135deg, #009EDB 0%, #0084c7 100%);
+        color: white;
+        border-radius: 6px;
+        font-size: 0.75rem;
+        font-weight: 600;
+        text-transform: uppercase;
+        letter-spacing: 0.5px;
+        margin-bottom: 0.5rem;
+    }
+
+    .page-title-main {
+        font-size: 1.75rem;
+        font-weight: 700;
+        color: #1f2937;
+        margin: 0;
+        letter-spacing: -0.02em;
+    }
+
+    .btn-create {
+        display: inline-flex;
+        align-items: center;
+        gap: 0.5rem;
+        padding: 0.625rem 1.25rem;
+        background: #009EDB;
+        color: white;
+        border: none;
+        border-radius: 8px;
+        text-decoration: none;
+        font-weight: 600;
+        font-size: 0.875rem;
+        transition: all 0.3s ease;
+    }
+
+    .btn-create:hover {
+        background: #0084c7;
+        color: white;
+        text-decoration: none;
+        transform: translateY(-2px);
+        box-shadow: 0 4px 12px rgba(0, 158, 219, 0.3);
+    }
+
+    /* Dashboard Header Styles */
+    .dashboard-header {
+        background: linear-gradient(135deg, #009EDB 0%, #0084c7 100%);
+        border-radius: 12px;
+        padding: 1.5rem 2rem;
+        margin-bottom: 2rem;
+        color: white;
+        box-shadow: 0 4px 20px rgba(0, 158, 219, 0.2);
+    }
+    
+    .header-content {
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        flex-wrap: wrap;
+        gap: 1rem;
+    }
+    
+    .welcome-section {
+        flex: 1;
+    }
+    
+    .dashboard-title {
+        font-size: 1.75rem;
+        font-weight: 600;
+        margin-bottom: 0.3rem;
+        color: white;
+    }
+    
+    .dashboard-subtitle {
+        font-size: 1rem;
+        opacity: 0.95;
+        margin: 0;
+    }
+    
+    .header-actions {
+        display: flex;
+        align-items: center;
+        gap: 1rem;
+    }
+    
+    .current-date {
+        background: rgba(255, 255, 255, 0.2);
+        backdrop-filter: blur(10px);
+        padding: 0.5rem 1rem;
+        border-radius: 8px;
+        display: flex;
+        align-items: center;
+        gap: 0.5rem;
+        font-size: 0.9rem;
+    }
+    
+    /* Professional Filter Section with UN Blue Color Scheme */
+    .filter-section {
+        background: #ffffff;
+        border: 1px solid #e5e7eb;
+        border-radius: 12px;
+        padding: 1.5rem;
+        box-shadow: 0 2px 8px rgba(0, 0, 0, 0.04);
+        margin-bottom: 2rem;
+    }
+    
+    .filter-form {
+        width: 100%;
+    }
+    
+    .filter-grid {
+        display: grid;
+        grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+        gap: 1rem;
+        align-items: end;
+    }
+    
+    .filter-group {
+        display: flex;
+        flex-direction: column;
+        gap: 0.5rem;
+    }
+    
+    .filter-label {
+        font-size: 0.875rem;
+        font-weight: 600;
+        color: #475569;
+        display: flex;
+        align-items: center;
+        gap: 0.5rem;
+    }
+    
+    .filter-label i {
+        color: #009EDB;
+        font-size: 1rem;
+    }
+    
+    .filter-select,
+    .filter-input {
+        width: 100%;
+        padding: 0.625rem 0.875rem;
+        border: 1px solid #d1d5db;
+        border-radius: 8px;
+        font-size: 0.875rem;
+        background: #ffffff;
+        color: #1e293b;
+        transition: all 0.2s;
+        appearance: none;
+    }
+    
+    .filter-select {
+        background-image: url("data:image/svg+xml,%3csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 16 16'%3e%3cpath fill='none' stroke='%23475569' stroke-linecap='round' stroke-linejoin='round' stroke-width='2' d='M2 5l6 6 6-6'/%3e%3c/svg%3e");
+        background-repeat: no-repeat;
+        background-position: right 12px center;
+        background-size: 14px 10px;
+        padding-right: 2.5rem;
+    }
+    
+    .filter-select:hover,
+    .filter-input:hover {
+        border-color: #009EDB;
+    }
+    
+    .filter-select:focus,
+    .filter-input:focus {
+        outline: none;
+        border-color: #009EDB;
+        box-shadow: 0 0 0 3px rgba(0, 158, 219, 0.1);
+    }
+    
+    .filter-input::placeholder {
+        color: #9ca3af;
+    }
+    
+    .filter-actions {
+        display: flex;
+        gap: 0.75rem;
+        align-items: flex-end;
+        grid-column: span 1;
+    }
+    
+    .filter-btn {
+        background: #009EDB;
+        color: #ffffff;
+        border: none;
+        padding: 0.625rem 1.25rem;
+        border-radius: 8px;
+        font-size: 0.875rem;
+        font-weight: 600;
+        cursor: pointer;
+        transition: all 0.2s;
+        display: inline-flex;
+        align-items: center;
+        gap: 0.5rem;
+        white-space: nowrap;
+    }
+    
+    .filter-btn:hover {
+        background: #0084c7;
+        transform: translateY(-1px);
+        box-shadow: 0 4px 12px rgba(0, 158, 219, 0.2);
+    }
+    
+    .filter-btn:active {
+        transform: translateY(0);
+    }
+    
+    .clear-filter-btn {
+        background: #ffffff;
+        color: #ef4444;
+        border: 1px solid #ef4444;
+        padding: 0.625rem 1.25rem;
+        border-radius: 8px;
+        font-size: 0.875rem;
+        font-weight: 600;
+        cursor: pointer;
+        transition: all 0.2s;
+        display: inline-flex;
+        align-items: center;
+        gap: 0.5rem;
+        text-decoration: none;
+        white-space: nowrap;
+    }
+    
+    .clear-filter-btn:hover {
+        background: #fef2f2;
+        color: #dc2626;
+        border-color: #dc2626;
+        text-decoration: none;
+        transform: translateY(-1px);
+    }
+    
+    .clear-filter-btn:active {
+        transform: translateY(0);
+    }
+    
+    /* Responsive adjustments for filter section */
+    @@media (min-width: 1200px) {
+        .filter-grid {
+            grid-template-columns: repeat(3, 1fr) repeat(2, minmax(180px, 1fr)) auto;
+        }
+        
+        .filter-actions {
+            grid-column: span 1;
+        }
+    }
+    
+    @@media (min-width: 768px) and (max-width: 1199px) {
+        .filter-grid {
+            grid-template-columns: repeat(2, 1fr);
+        }
+        
+        .filter-actions {
+            grid-column: span 2;
+            justify-content: flex-start;
+        }
+    }
+
+    /* Statistics Grid - MyCallLogs Style */
+    .stats-grid {
+        display: grid;
+        grid-template-columns: repeat(auto-fit, minmax(240px, 1fr));
+        gap: 1.25rem;
+        margin-bottom: 2rem;
+    }
+
+    .stat-card {
+        background: white;
+        border-radius: 12px;
+        padding: 1.5rem;
+        border: 1px solid #e5e7eb;
+        position: relative;
+        overflow: hidden;
+        transition: all 0.3s ease;
+    }
+
+    .stat-card::before {
+        content: '';
+        position: absolute;
+        top: 0;
+        left: 0;
+        right: 0;
+        height: 4px;
+        background: linear-gradient(90deg, var(--gradient-start), var(--gradient-end));
+    }
+
+    .stat-card:nth-child(1)::before {
+        --gradient-start: #3b82f6;
+        --gradient-end: #60a5fa;
+    }
+
+    .stat-card:nth-child(2)::before {
+        --gradient-start: #f59e0b;
+        --gradient-end: #fbbf24;
+    }
+
+    .stat-card:nth-child(3)::before {
+        --gradient-start: #10b981;
+        --gradient-end: #34d399;
+    }
+
+    .stat-card:nth-child(4)::before {
+        --gradient-start: #ef4444;
+        --gradient-end: #f87171;
+    }
+
+    .stat-card:hover {
+        box-shadow: 0 10px 30px rgba(0, 0, 0, 0.1);
+    }
+
+    .stat-content {
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+    }
+
+    .stat-icon {
+        width: 50px;
+        height: 50px;
+        border-radius: 12px;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        font-size: 1.5rem;
+    }
+
+    .stat-icon-primary {
+        background: linear-gradient(135deg, #3b82f6, #60a5fa);
+        color: white;
+    }
+
+    .stat-icon-warning {
+        background: linear-gradient(135deg, #f59e0b, #fbbf24);
+        color: white;
+    }
+
+    .stat-icon-success {
+        background: linear-gradient(135deg, #10b981, #34d399);
+        color: white;
+    }
+
+    .stat-icon-danger {
+        background: linear-gradient(135deg, #ef4444, #f87171);
+        color: white;
+    }
+
+    .stat-details {
+        text-align: right;
+    }
+
+    .stat-number {
+        font-size: 1.75rem;
+        font-weight: 700;
+        color: #1f2937;
+        line-height: 1;
+        margin-bottom: 0.25rem;
+    }
+
+    .stat-label {
+        font-size: 0.875rem;
+        color: #6b7280;
+        font-weight: 500;
+    }
+    
+    .minimal-table {
+        background: white;
+        border-radius: 12px;
+        overflow: hidden;
+        box-shadow: 0 2px 12px rgba(0, 0, 0, 0.04);
+        border: none;
+    }
+    
+    .minimal-table thead th {
+        background: #f8fafc;
+        border: none;
+        padding: 20px 16px;
+        font-weight: 600;
+        font-size: 14px;
+        color: #475569;
+        text-transform: uppercase;
+        letter-spacing: 0.5px;
+    }
+    
+    .minimal-table tbody td {
+        border: none;
+        padding: 20px 16px;
+        border-bottom: 1px solid #f1f5f9;
+        vertical-align: middle;
+    }
+    
+    .minimal-table tbody tr:last-child td {
+        border-bottom: none;
+    }
+    
+    .minimal-table tbody tr:hover {
+        background: #f8fafc;
+    }
+    
+    .request-id {
+        font-weight: 600;
+        color: #1e293b;
+        font-size: 16px;
+    }
+    
+    .Staff-name {
+        font-weight: 600;
+        color: #1e293b;
+        margin-bottom: 4px;
+    }
+    
+    .Staff-details {
+        color: #64748b;
+        font-size: 13px;
+        line-height: 1.4;
+    }
+    
+    .status-badge {
+        padding: 8px 16px;
+        border-radius: 20px;
+        font-size: 12px;
+        font-weight: 600;
+        display: inline-flex;
+        align-items: center;
+        gap: 6px;
+    }
+    
+    .status-pending {
+        background: #f59e0b;
+        color: white;
+    }
+    
+    .status-approved {
+        background: #10b981;
+        color: white;
+    }
+    
+    .status-rejected {
+        background: #ef4444;
+        color: white;
+    }
+    
+    .status-draft {
+        background: #64748b;
+        color: white;
+    }
+
+    .status-completed {
+        background: #7c3aed;
+        color: white;
+    }
+
+    .status-cancelled {
+        background: #dc2626;
+        color: white;
+    }
+    
+    .action-btn {
+        padding: 8px 16px;
+        border-radius: 8px;
+        font-size: 12px;
+        font-weight: 500;
+        border: 1px solid;
+        transition: all 0.2s ease;
+        display: flex;
+        align-items: center;
+        gap: 6px;
+        justify-content: center;
+        min-width: 100px;
+        text-decoration: none;
+    }
+    
+    .action-btn:hover {
+        transform: translateY(-1px);
+        box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
+        text-decoration: none;
+    }
+    
+    .btn-view {
+        background: #f0f9ff;
+        border-color: #0ea5e9;
+        color: #0c4a6e;
+    }
+    
+    .btn-view:hover {
+        background: #0ea5e9;
+        color: white;
+    }
+    
+    .btn-edit {
+        background: #dcfce7;
+        border-color: #16a34a;
+        color: #15803d;
+    }
+    
+    .btn-edit:hover {
+        background: #16a34a;
+        color: white;
+    }
+    
+    .btn-cancel {
+        background: #fef2f2;
+        border-color: #ef4444;
+        color: #dc2626;
+    }
+    
+    .btn-cancel:hover {
+        background: #ef4444;
+        color: white;
+    }
+    
+    .amount-details {
+        background: #f8fafc;
+        border: 1px solid #e2e8f0;
+        border-radius: 8px;
+        padding: 8px 12px;
+        font-size: 13px;
+        color: #475569;
+        font-weight: 500;
+    }
+    
+    .page-header {
+        margin-bottom: 32px;
+    }
+    
+    .page-title {
+        font-size: 28px;
+        font-weight: 700;
+        color: #1e293b;
+        margin-bottom: 8px;
+    }
+    
+    .page-subtitle {
+        color: #64748b;
+        font-size: 16px;
+        margin: 0;
+    }
+    
+    .empty-state {
+        text-align: center;
+        padding: 80px 20px;
+        color: #94a3b8;
+    }
+    
+    .empty-state i {
+        font-size: 64px;
+        margin-bottom: 16px;
+        opacity: 0.5;
+    }
+    
+    .alert-minimal {
+        border: none;
+        border-radius: 12px;
+        padding: 16px 20px;
+        margin-bottom: 24px;
+    }
+    
+    .request-date {
+        font-size: 13px;
+        color: #64748b;
+    }
+
+    .create-btn {
+        background: rgba(255, 255, 255, 0.95);
+        color: #009EDB;
+        border: 2px solid rgba(255, 255, 255, 0.3);
+        padding: 10px 20px;
+        border-radius: 8px;
+        text-decoration: none;
+        font-weight: 600;
+        font-size: 14px;
+        transition: all 0.3s ease;
+        display: inline-flex;
+        align-items: center;
+        gap: 8px;
+        backdrop-filter: blur(10px);
+    }
+    
+    .create-btn:hover {
+        background: white;
+        color: #0084c7;
+        text-decoration: none;
+        transform: translateY(-2px);
+        box-shadow: 0 8px 24px rgba(0, 0, 0, 0.15);
+    }
+    
+    .create-btn-lg {
+        padding: 10px 20px;
+        font-size: 15px;
+        gap: 8px;
+    }
+
+    @@media (max-width: 768px) {
+        .dashboard-header {
+            padding: 1.25rem;
+        }
+        
+        .dashboard-title {
+            font-size: 1.25rem;
+        }
+        
+        .dashboard-subtitle {
+            font-size: 0.875rem;
+        }
+        
+        .header-content {
+            flex-direction: column;
+            align-items: flex-start;
+        }
+        
+        .header-actions {
+            width: 100%;
+            flex-direction: column;
+            gap: 0.75rem;
+        }
+        
+        .current-date {
+            width: 100%;
+            justify-content: center;
+        }
+        
+        .create-btn {
+            width: 100%;
+            justify-content: center;
+        }
+        
+        .filter-section {
+            padding: 1rem;
+        }
+        
+        .filter-grid {
+            grid-template-columns: 1fr;
+            gap: 0.75rem;
+        }
+        
+        .filter-actions {
+            grid-column: span 1;
+            flex-direction: column;
+            width: 100%;
+        }
+        
+        .filter-btn,
+        .clear-filter-btn {
+            width: 100%;
+            justify-content: center;
+        }
+        
+        .stats-grid {
+            grid-template-columns: repeat(2, 1fr);
+            gap: 1rem;
+        }
+        
+        .stat-card {
+            padding: 1rem;
+        }
+        
+        .stat-number {
+            font-size: 1.5rem;
+        }
+        
+        .stat-icon {
+            width: 44px;
+            height: 44px;
+            font-size: 20px;
+        }
+        
+        .minimal-table {
+            font-size: 14px;
+        }
+        
+        .action-btn {
+            padding: 6px 12px;
+            font-size: 11px;
+        }
+    }
+
+    /* Enhanced Modal Styles - Beautiful & Minimalist */
+    .detail-label {
+        font-size: 13px;
+        color: #6b7280;
+        margin-bottom: 6px;
+        font-weight: 500;
+        letter-spacing: 0.025em;
+    }
+    .detail-value {
+        font-size: 14px;
+        color: #1f2937;
+        font-weight: 500;
+        line-height: 1.4;
+    }
+    
+    /* Timeline Styles - Modern & Elegant */
+    .workflow-timeline {
+        position: relative;
+        padding-left: 0;
+    }
+    .timeline-item {
+        display: flex;
+        margin-bottom: 32px;
+        position: relative;
+        align-items: flex-start;
+    }
+    .timeline-marker {
+        width: 40px;
+        height: 40px;
+        border-radius: 50%;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        margin-right: 20px;
+        flex-shrink: 0;
+        background: linear-gradient(135deg, #f1f5f9, #e2e8f0);
+        border: 3px solid white;
+        color: #6b7280;
+        font-size: 16px;
+        font-weight: 600;
+        box-shadow: 0 4px 12px rgba(0,0,0,0.1);
+        transition: all 0.3s ease;
+        position: relative;
+        z-index: 2;
+    }
+    .timeline-approved {
+        background: linear-gradient(135deg, #10b981, #059669);
+        color: white;
+        border-color: #d1fae5;
+        box-shadow: 0 4px 12px rgba(16, 185, 129, 0.3);
+    }
+    .timeline-current {
+        background: linear-gradient(135deg, #3b82f6, #2563eb);
+        color: white;
+        border-color: #dbeafe;
+        box-shadow: 0 4px 12px rgba(59, 130, 246, 0.3);
+        animation: pulse-current 2s infinite;
+    }
+    .timeline-rejected {
+        background: linear-gradient(135deg, #ef4444, #dc2626);
+        color: white;
+        border-color: #fecaca;
+        box-shadow: 0 4px 12px rgba(239, 68, 68, 0.3);
+    }
+    .timeline-content {
+        flex: 1;
+        padding-top: 6px;
+        background: white;
+        padding: 20px;
+        border-radius: 12px;
+        border: 1px solid #e5e7eb;
+        margin-left: -8px;
+        box-shadow: 0 2px 8px rgba(0,0,0,0.04);
+        position: relative;
+    }
+    .timeline-content::before {
+        content: '';
+        position: absolute;
+        left: -8px;
+        top: 50%;
+        transform: translateY(-50%);
+        width: 0;
+        height: 0;
+        border-top: 8px solid transparent;
+        border-bottom: 8px solid transparent;
+        border-right: 8px solid white;
+    }
+    .timeline-header {
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        margin-bottom: 8px;
+    }
+    .timeline-title {
+        font-size: 15px;
+        font-weight: 600;
+        color: #1f2937;
+        margin-bottom: 0;
+    }
+    .timeline-date {
+        font-size: 12px;
+        color: #6b7280;
+        background: #f9fafb;
+        padding: 4px 8px;
+        border-radius: 6px;
+        font-weight: 500;
+    }
+    .timeline-description {
+        font-size: 13px;
+        color: #6b7280;
+        margin-bottom: 12px;
+        line-height: 1.5;
+    }
+    .timeline-remarks {
+        background: linear-gradient(135deg, #f8fafc, #f1f5f9);
+        padding: 12px 16px;
+        border-radius: 8px;
+        border: 1px solid #e2e8f0;
+        font-size: 13px;
+        color: #4b5563;
+        line-height: 1.5;
+        margin-top: 8px;
+    }
+    .timeline-remarks strong {
+        color: #1f2937;
+    }
+    
+    /* Timeline connector line */
+    .timeline-item:not(:last-child)::after {
+        content: '';
+        position: absolute;
+        left: 19px;
+        top: 40px;
+        width: 2px;
+        height: calc(100% - 8px);
+        background: linear-gradient(to bottom, #e5e7eb, #f3f4f6);
+        z-index: 1;
+    }
+    
+    /* Pulse animation for current step */
+    @@keyframes pulse-current {
+        0%, 100% {
+            box-shadow: 0 4px 12px rgba(59, 130, 246, 0.3);
+        }
+        50% {
+            box-shadow: 0 4px 20px rgba(59, 130, 246, 0.5);
+        }
+    }
+    
+    /* Hover effects */
+    .timeline-content:hover {
+        box-shadow: 0 4px 16px rgba(0,0,0,0.08);
+        transform: translateY(-1px);
+        transition: all 0.2s ease;
+    }
+    
+    /* Button hover effects */
+    .btn:hover {
+        transform: translateY(-1px);
+        box-shadow: 0 4px 12px rgba(0,0,0,0.15);
+    }
+    
+    /* Hide mobile cards by default */
+    .mobile-cards {
+        display: none;
+    }
+    
+    /* Additional responsive adjustments */
+    @@media (max-width: 768px) {
+        /* Hide text on action buttons in table */
+        .minimal-table .action-btn span {
+            display: none;
+        }
+        
+        .minimal-table .action-btn i {
+            margin: 0 !important;
+        }
+    }
+    
+    @@media (max-width: 576px) {
+        /* Show button text on mobile cards */
+        .mobile-card-actions .action-btn span {
+            display: inline;
+            font-size: 11px;
+            margin-left: 0.25rem;
+        }
+    }
+</style>
+
+<div class="container-fluid px-3 px-md-4">
+    <!-- Page Header -->
+    <div class="page-header-bar">
+        <div class="page-info">
+            <div class="module-badge">
+                <i class="bi bi-cash-coin me-2"></i>
+                Refund Management
+            </div>
+            <h1 class="page-title-main">Mobile Device Reimbursement Requests</h1>
+        </div>
+        <div class="header-actions">
+            <div class="current-date">
+                <i class="bi bi-calendar3"></i>
+                <span>@DateTime.Now.ToString("dddd, MMMM dd, yyyy")</span>
+            </div>
+            <a href="/Modules/RefundManagement/Requests/Create" class="btn-create">
+                <i class="bi bi-plus-circle"></i>
+                <span>New Request</span>
+            </a>
+        </div>
+    </div>
+
+    <!-- Filters Card (Collapsible) -->
+    <div class="card border-0 shadow-sm mb-4" style="border-radius: 20px;">
+        <div class="card-header bg-white border-0 p-3" style="cursor: pointer; border-radius: 20px 20px 0 0;" data-bs-toggle="collapse" data-bs-target="#filterCollapse">
+            <div class="d-flex justify-content-between align-items-center">
+                <h6 class="mb-0 fw-bold">
+                    <i class="bi bi-funnel me-2"></i>Filters
+                </h6>
+                <i class="bi bi-chevron-down"></i>
+            </div>
+        </div>
+        <div class="collapse" id="filterCollapse">
+            <div class="card-body p-4">
+                <form method="get" class="filter-form" id="filterForm">
+                    <div class="row g-3">
+                        @if (Model.IsAdmin && Model.AvailableUsers.Any())
+                        {
+                            <div class="col-md-3">
+                                <label class="form-label text-muted small">User</label>
+                                <select name="SelectedUserId" id="userFilter" class="form-select border-0 bg-light filter-auto-submit" style="border-radius: 12px;">
+                                    <option value="">All Users</option>
+                                    @foreach (var user in Model.AvailableUsers)
+                                    {
+                                        var displayName = !string.IsNullOrEmpty(user.FirstName) && !string.IsNullOrEmpty(user.LastName)
+                                            ? $"{user.FirstName} {user.LastName}"
+                                            : user.UserName;
+                                        <option value="@user.Id" selected="@(Model.SelectedUserId == user.Id)">
+                                            @displayName
+                                        </option>
+                                    }
+                                </select>
+                            </div>
+                        }
+
+                        <div class="col-md-3">
+                            <label class="form-label text-muted small">Status</label>
+                            <select name="SelectedStatus" id="statusFilter" class="form-select border-0 bg-light filter-auto-submit" style="border-radius: 12px;">
+                                <option value="">All Status</option>
+                                <option value="@((int)RefundRequestStatus.Draft)" selected="@(Model.SelectedStatus == RefundRequestStatus.Draft)">Draft</option>
+                                <option value="@((int)RefundRequestStatus.PendingSupervisor)" selected="@(Model.SelectedStatus == RefundRequestStatus.PendingSupervisor)">Pending Supervisor</option>
+                                <option value="@((int)RefundRequestStatus.PendingBudgetOfficer)" selected="@(Model.SelectedStatus == RefundRequestStatus.PendingBudgetOfficer)">Pending Budget Officer</option>
+                                <option value="@((int)RefundRequestStatus.PendingStaffClaimsUnit)" selected="@(Model.SelectedStatus == RefundRequestStatus.PendingStaffClaimsUnit)">Pending Claims Unit</option>
+                                <option value="@((int)RefundRequestStatus.PendingPaymentApproval)" selected="@(Model.SelectedStatus == RefundRequestStatus.PendingPaymentApproval)">Pending Payment</option>
+                                <option value="@((int)RefundRequestStatus.Completed)" selected="@(Model.SelectedStatus == RefundRequestStatus.Completed)">Completed</option>
+                                <option value="@((int)RefundRequestStatus.Cancelled)" selected="@(Model.SelectedStatus == RefundRequestStatus.Cancelled)">Cancelled</option>
+                            </select>
+                        </div>
+
+                        <div class="col-md-2">
+                            <label class="form-label text-muted small">From Date</label>
+                            <input type="date" name="StartDate" id="startDate" class="form-control border-0 bg-light filter-auto-submit" style="border-radius: 12px;" value="@Model.StartDate?.ToString("yyyy-MM-dd")" />
+                        </div>
+
+                        <div class="col-md-2">
+                            <label class="form-label text-muted small">To Date</label>
+                            <input type="date" name="EndDate" id="endDate" class="form-control border-0 bg-light filter-auto-submit" style="border-radius: 12px;" value="@Model.EndDate?.ToString("yyyy-MM-dd")" />
+                        </div>
+
+                        <div class="col-md-2">
+                            <label class="form-label text-muted small">Search</label>
+                            <input type="text" name="SearchTerm" id="searchTerm" class="form-control border-0 bg-light filter-search-input" style="border-radius: 12px;" placeholder="Mobile, Index..." value="@Model.SearchTerm" />
+                        </div>
+
+                    </div>
+                    <div class="row mt-2">
+                        <div class="col-md-12">
+                            @if (Model.SelectedUserId != null || Model.SelectedStatus != null || Model.StartDate != null || Model.EndDate != null || !string.IsNullOrEmpty(Model.SearchTerm))
+                            {
+                                <a href="/Modules/RefundManagement/Requests" class="btn btn-outline-secondary btn-sm" style="border-radius: 12px;">
+                                    <i class="bi bi-x-circle me-1"></i> Clear Filters
+                                </a>
+                            }
+                        </div>
+                    </div>
+                </form>
+            </div>
+        </div>
+    </div>
+    
+    <script>
+        // Auto-submit form on filter change
+        document.addEventListener('DOMContentLoaded', function() {
+            // Handle select and date input changes
+            const autoSubmitElements = document.querySelectorAll('.filter-auto-submit');
+            autoSubmitElements.forEach(element => {
+                element.addEventListener('change', function() {
+                    document.getElementById('filterForm').submit();
+                });
+            });
+            
+            // Handle search input with debounce
+            let searchTimeout;
+            const searchInput = document.querySelector('.filter-search-input');
+            if (searchInput) {
+                searchInput.addEventListener('input', function() {
+                    clearTimeout(searchTimeout);
+                    searchTimeout = setTimeout(() => {
+                        document.getElementById('filterForm').submit();
+                    }, 500); // Wait 500ms after user stops typing
+                });
+                
+                // Also submit on Enter key
+                searchInput.addEventListener('keypress', function(e) {
+                    if (e.key === 'Enter') {
+                        e.preventDefault();
+                        clearTimeout(searchTimeout);
+                        document.getElementById('filterForm').submit();
+                    }
+                });
+            }
+        });
+    </script>
+
+    <!-- Statistics Cards -->
+    <div class="stats-grid mb-3">
+        <div class="stat-card">
+            <div class="stat-content">
+                <div class="stat-icon stat-icon-primary">
+                    <i class="bi bi-collection"></i>
+                </div>
+                <div class="stat-details">
+                    <div class="stat-number">@Model.TotalRequests</div>
+                    <div class="stat-label">Total Requests</div>
+                </div>
+            </div>
+        </div>
+
+        <div class="stat-card">
+            <div class="stat-content">
+                <div class="stat-icon stat-icon-warning">
+                    <i class="bi bi-clock"></i>
+                </div>
+                <div class="stat-details">
+                    <div class="stat-number">@Model.PendingRequests</div>
+                    <div class="stat-label">Pending</div>
+                </div>
+            </div>
+        </div>
+
+        <div class="stat-card">
+            <div class="stat-content">
+                <div class="stat-icon stat-icon-success">
+                    <i class="bi bi-check-circle"></i>
+                </div>
+                <div class="stat-details">
+                    <div class="stat-number">@Model.ApprovedRequests</div>
+                    <div class="stat-label">Completed</div>
+                </div>
+            </div>
+        </div>
+
+        <div class="stat-card">
+            <div class="stat-content">
+                <div class="stat-icon stat-icon-danger">
+                    <i class="bi bi-x-circle"></i>
+                </div>
+                <div class="stat-details">
+                    <div class="stat-number">@Model.CancelledRequests</div>
+                    <div class="stat-label">Cancelled</div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Requests List -->
+    @if (Model.RefundRequests.Any())
+    {
+        <div class="minimal-table">
+            <table class="table table-hover mb-0">
+                <thead>
+                    <tr>
+                        <th>Request Info</th>
+                        @if (Model.IsAdmin)
+                        {
+                            <th>Requester</th>
+                        }
+                        <th>Staff Details</th>
+                        <th>Financial Details</th>
+                        <th>Status</th>
+                        <th>Actions</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    @foreach (var request in Model.RefundRequests)
+                    {
+                        <tr>
+                            <td>
+                                <div class="request-id">Request #@request.Id</div>
+                                <div class="request-date">@request.RequestDate.ToString("MMM dd, yyyy")</div>
+                            </td>
+                            @if (Model.IsAdmin)
+                            {
+                                <td>
+                                    <div class="Staff-name">@request.MobileNumberAssignedTo</div>
+                                    <div class="Staff-details text-muted">
+                                        Requested by: @request.RequestedBy
+                                    </div>
+                                </td>
+                            }
+                            <td>
+                                <div class="Staff-name">@request.MobileNumberAssignedTo</div>
+                                <div class="Staff-details">
+                                    Mobile: @request.PrimaryMobileNumber<br>
+                                    Index: @request.IndexNo
+                                </div>
+                            </td>
+                            <td>
+                                <div class="amount-details mb-2">
+                                    Device Allowance: $@request.DeviceAllowance.ToString("N2")
+                                </div>
+                                <div class="amount-details">
+                                    Purchase: @request.DevicePurchaseCurrency @request.DevicePurchaseAmount.ToString("N2")
+                                </div>
+                            </td>
+                            <td>
+                                <span class="status-badge @GetStatusClass(request.Status)">
+                                    <i class="@GetStatusIcon(request.Status)"></i>
+                                    @request.Status.ToString().Replace("PendingSupervisor", "Pending Supervisor").Replace("PendingBudgetOfficer", "Pending Budget Officer").Replace("PendingStaffClaimsUnit", "Pending Claims Unit").Replace("PendingPaymentApproval", "Pending Payment")
+                                </span>
+                            </td>
+                            <td>
+                                <div class="d-flex gap-2">
+                                    <a href="/Modules/RefundManagement/Requests/View/@request.Id" class="action-btn btn-view">
+                                        <i class="bi bi-eye"></i>
+                                        <span>View</span>
+                                    </a>
+                                    @if (request.Status == RefundRequestStatus.Draft)
+                                    {
+                                        <a href="/Modules/RefundManagement/Requests/Edit/@request.Id" class="action-btn btn-edit">
+                                            <i class="bi bi-pencil"></i>
+                                            <span>Edit</span>
+                                        </a>
+                                        <a href="#" class="action-btn btn-cancel" onclick="cancelRequest(@request.Id)">
+                                            <i class="bi bi-x"></i>
+                                            <span>Cancel</span>
+                                        </a>
+                                    }
+                                </div>
+                            </td>
+                        </tr>
+                    }
+                </tbody>
+            </table>
+        </div>
+
+        <!-- Pagination Controls -->
+        @if (Model.TotalPages > 1)
+        {
+            <div class="d-flex justify-content-center mt-4 mb-3">
+                <nav aria-label="Page navigation">
+                    <ul class="pagination mb-0">
+                        <!-- First Page -->
+                        <li class="page-item @(Model.PageNumber == 1 ? "disabled" : "")">
+                            <a class="page-link" asp-page="/Modules/RefundManagement/Requests/Index"
+                               asp-route-pageNumber="1"
+                               asp-route-selectedUserId="@Model.SelectedUserId"
+                               asp-route-selectedStatus="@Model.SelectedStatus"
+                               asp-route-startDate="@Model.StartDate?.ToString("yyyy-MM-dd")"
+                               asp-route-endDate="@Model.EndDate?.ToString("yyyy-MM-dd")"
+                               asp-route-searchTerm="@Model.SearchTerm"
+                               aria-label="First">
+                                <span aria-hidden="true">&laquo;&laquo;</span>
+                            </a>
+                        </li>
+
+                        <!-- Previous Page -->
+                        <li class="page-item @(Model.PageNumber == 1 ? "disabled" : "")">
+                            <a class="page-link" asp-page="/Modules/RefundManagement/Requests/Index"
+                               asp-route-pageNumber="@(Model.PageNumber - 1)"
+                               asp-route-selectedUserId="@Model.SelectedUserId"
+                               asp-route-selectedStatus="@Model.SelectedStatus"
+                               asp-route-startDate="@Model.StartDate?.ToString("yyyy-MM-dd")"
+                               asp-route-endDate="@Model.EndDate?.ToString("yyyy-MM-dd")"
+                               asp-route-searchTerm="@Model.SearchTerm"
+                               aria-label="Previous">
+                                <span aria-hidden="true">&laquo;</span>
+                            </a>
+                        </li>
+
+                        <!-- Page Numbers -->
+                        @{
+                            int startPage = Math.Max(1, Model.PageNumber - 2);
+                            int endPage = Math.Min(Model.TotalPages, Model.PageNumber + 2);
+
+                            if (startPage > 1)
+                            {
+                                <li class="page-item">
+                                    <a class="page-link" asp-page="/Modules/RefundManagement/Requests/Index"
+                                       asp-route-pageNumber="1"
+                                       asp-route-selectedUserId="@Model.SelectedUserId"
+                                       asp-route-selectedStatus="@Model.SelectedStatus"
+                                       asp-route-startDate="@Model.StartDate?.ToString("yyyy-MM-dd")"
+                                       asp-route-endDate="@Model.EndDate?.ToString("yyyy-MM-dd")"
+                                       asp-route-searchTerm="@Model.SearchTerm">1</a>
+                                </li>
+                                if (startPage > 2)
+                                {
+                                    <li class="page-item disabled"><span class="page-link">...</span></li>
+                                }
+                            }
+
+                            for (int i = startPage; i <= endPage; i++)
+                            {
+                                <li class="page-item @(i == Model.PageNumber ? "active" : "")">
+                                    <a class="page-link" asp-page="/Modules/RefundManagement/Requests/Index"
+                                       asp-route-pageNumber="@i"
+                                       asp-route-selectedUserId="@Model.SelectedUserId"
+                                       asp-route-selectedStatus="@Model.SelectedStatus"
+                                       asp-route-startDate="@Model.StartDate?.ToString("yyyy-MM-dd")"
+                                       asp-route-endDate="@Model.EndDate?.ToString("yyyy-MM-dd")"
+                                       asp-route-searchTerm="@Model.SearchTerm">@i</a>
+                                </li>
+                            }
+
+                            if (endPage < Model.TotalPages)
+                            {
+                                if (endPage < Model.TotalPages - 1)
+                                {
+                                    <li class="page-item disabled"><span class="page-link">...</span></li>
+                                }
+                                <li class="page-item">
+                                    <a class="page-link" asp-page="/Modules/RefundManagement/Requests/Index"
+                                       asp-route-pageNumber="@Model.TotalPages"
+                                       asp-route-selectedUserId="@Model.SelectedUserId"
+                                       asp-route-selectedStatus="@Model.SelectedStatus"
+                                       asp-route-startDate="@Model.StartDate?.ToString("yyyy-MM-dd")"
+                                       asp-route-endDate="@Model.EndDate?.ToString("yyyy-MM-dd")"
+                                       asp-route-searchTerm="@Model.SearchTerm">@Model.TotalPages</a>
+                                </li>
+                            }
+                        }
+
+                        <!-- Next Page -->
+                        <li class="page-item @(Model.PageNumber == Model.TotalPages ? "disabled" : "")">
+                            <a class="page-link" asp-page="/Modules/RefundManagement/Requests/Index"
+                               asp-route-pageNumber="@(Model.PageNumber + 1)"
+                               asp-route-selectedUserId="@Model.SelectedUserId"
+                               asp-route-selectedStatus="@Model.SelectedStatus"
+                               asp-route-startDate="@Model.StartDate?.ToString("yyyy-MM-dd")"
+                               asp-route-endDate="@Model.EndDate?.ToString("yyyy-MM-dd")"
+                               asp-route-searchTerm="@Model.SearchTerm"
+                               aria-label="Next">
+                                <span aria-hidden="true">&raquo;</span>
+                            </a>
+                        </li>
+
+                        <!-- Last Page -->
+                        <li class="page-item @(Model.PageNumber == Model.TotalPages ? "disabled" : "")">
+                            <a class="page-link" asp-page="/Modules/RefundManagement/Requests/Index"
+                               asp-route-pageNumber="@Model.TotalPages"
+                               asp-route-selectedUserId="@Model.SelectedUserId"
+                               asp-route-selectedStatus="@Model.SelectedStatus"
+                               asp-route-startDate="@Model.StartDate?.ToString("yyyy-MM-dd")"
+                               asp-route-endDate="@Model.EndDate?.ToString("yyyy-MM-dd")"
+                               asp-route-searchTerm="@Model.SearchTerm"
+                               aria-label="Last">
+                                <span aria-hidden="true">&raquo;&raquo;</span>
+                            </a>
+                        </li>
+                    </ul>
+                </nav>
+            </div>
+        }
+
+        <!-- Mobile Card View -->
+        <div class="mobile-cards">
+            @foreach (var request in Model.RefundRequests)
+            {
+                <div class="mobile-card">
+                    <div class="mobile-card-header">
+                        <div>
+                            <div class="request-id">Request #@request.Id</div>
+                            <div class="request-date">@request.RequestDate.ToString("MMM dd, yyyy")</div>
+                        </div>
+                        <span class="status-badge @GetStatusClass(request.Status)" style="font-size: 10px !important;">
+                            <i class="@GetStatusIcon(request.Status)"></i>
+                            @request.Status.ToString().Replace("PendingSupervisor", "Pending").Replace("PendingBudgetOfficer", "Budget").Replace("PendingStaffClaimsUnit", "Claims").Replace("PendingPaymentApproval", "Payment")
+                        </span>
+                    </div>
+                    <div class="mobile-card-body">
+                        <div class="mobile-card-row">
+                            <span class="mobile-card-label">Staff:</span>
+                            <span class="mobile-card-value">@request.MobileNumberAssignedTo</span>
+                        </div>
+                        <div class="mobile-card-row">
+                            <span class="mobile-card-label">Mobile:</span>
+                            <span class="mobile-card-value">@request.PrimaryMobileNumber</span>
+                        </div>
+                        <div class="mobile-card-row">
+                            <span class="mobile-card-label">Amount:</span>
+                            <span class="mobile-card-value">@request.DevicePurchaseCurrency @request.DevicePurchaseAmount.ToString("N2")</span>
+                        </div>
+                        <div class="mobile-card-row">
+                            <span class="mobile-card-label">Allowance:</span>
+                            <span class="mobile-card-value">$@request.DeviceAllowance.ToString("N2")</span>
+                        </div>
+                    </div>
+                    <div class="mobile-card-actions">
+                        <a href="/Modules/RefundManagement/Requests/View/@request.Id" class="action-btn btn-view">
+                            <i class="bi bi-eye"></i>
+                            <span>View</span>
+                        </a>
+                        @if (request.Status == RefundRequestStatus.Draft)
+                        {
+                            <a href="/Modules/RefundManagement/Requests/Edit/@request.Id" class="action-btn btn-edit">
+                                <i class="bi bi-pencil"></i>
+                                <span>Edit</span>
+                            </a>
+                            <a href="#" class="action-btn btn-cancel" onclick="cancelRequest(@request.Id)">
+                                <i class="bi bi-x"></i>
+                                <span>Cancel</span>
+                            </a>
+                        }
+                    </div>
+                </div>
+            }
+        </div>
+    }
+    else
+    {
+        <div class="empty-state">
+            <i class="bi bi-inbox"></i>
+            <h4>No Requests Yet</h4>
+            <p>You haven't submitted any refund requests yet. Create your first request to get started.</p>
+            <a href="/Modules/RefundManagement/Requests/Create" class="create-btn create-btn-lg">
+                <i class="bi bi-plus-circle"></i>
+                <span>Create First Request</span>
+            </a>
+        </div>
+    }
+
+</div>
+
+@functions {
+    string GetStatusClass(RefundRequestStatus status)
+    {
+        return status switch
+        {
+            RefundRequestStatus.Draft => "status-draft",
+            RefundRequestStatus.PendingSupervisor or 
+            RefundRequestStatus.PendingBudgetOfficer or 
+            RefundRequestStatus.PendingStaffClaimsUnit or 
+            RefundRequestStatus.PendingPaymentApproval => "status-pending",
+            RefundRequestStatus.Completed => "status-approved",
+            RefundRequestStatus.Cancelled => "status-cancelled",
+            _ => "status-draft"
+        };
+    }
+    
+    string GetStatusIcon(RefundRequestStatus status)
+    {
+        return status switch
+        {
+            RefundRequestStatus.Draft => "bi-file-earmark",
+            RefundRequestStatus.PendingSupervisor or 
+            RefundRequestStatus.PendingBudgetOfficer or 
+            RefundRequestStatus.PendingStaffClaimsUnit or 
+            RefundRequestStatus.PendingPaymentApproval => "bi-clock",
+            RefundRequestStatus.Completed => "bi-check-circle",
+            RefundRequestStatus.Cancelled => "bi-x-circle",
+            _ => "bi-file-earmark"
+        };
+    }
+} 
+

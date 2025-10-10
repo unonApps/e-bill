@@ -1,0 +1,236 @@
+@page
+@model TAB.Web.Pages.Modules.EBillManagement.CallRecords.ApprovalHistoryModel
+@{
+    ViewData["Title"] = "Approval History";
+    ViewData["PageIcon"] = "bi-clock-history";
+    ViewData["PageTitle"] = "Approval History";
+    ViewData["Breadcrumb"] = "E-Bill / Call Records / Approval History";
+}
+
+<!-- Status Message -->
+@if (!string.IsNullOrEmpty(Model.StatusMessage))
+{
+    <div class="alert alert-@(Model.StatusMessageClass ?? "info") alert-dismissible fade show" role="alert">
+        <i class="bi bi-@(Model.StatusMessageClass == "success" ? "check-circle" : Model.StatusMessageClass == "danger" ? "exclamation-triangle" : "info-circle") me-2"></i>
+        @Model.StatusMessage
+        <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
+    </div>
+}
+
+<!-- Header Card -->
+<div class="card border-0 shadow-sm mb-4" style="border-radius: 20px;">
+    <div class="card-body p-4">
+        <div class="d-flex align-items-center justify-content-between">
+            <div class="d-flex align-items-center">
+                <div class="bg-info bg-opacity-10 rounded-circle d-flex align-items-center justify-content-center me-3"
+                     style="width: 60px; height: 60px;">
+                    <i class="bi bi-clock-history text-info" style="font-size: 24px;"></i>
+                </div>
+                <div>
+                    <h5 class="card-title mb-1">Approval History</h5>
+                    <p class="text-muted mb-0">Historical record of all supervisor approvals</p>
+                </div>
+            </div>
+            <div>
+                <a asp-page-handler="Export" class="btn btn-outline-primary" style="border-radius: 12px;">
+                    <i class="bi bi-download me-1"></i>Export
+                </a>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Filters Card -->
+<div class="card border-0 shadow-sm mb-4" style="border-radius: 20px;">
+    <div class="card-body p-4">
+        <form method="get" class="row g-3">
+            <div class="col-md-3">
+                <label for="FilterStartDate" class="form-label small fw-semibold">Start Date</label>
+                <input type="date" class="form-control border-0 bg-light" id="FilterStartDate" name="FilterStartDate"
+                       value="@Model.FilterStartDate?.ToString("yyyy-MM-dd")" style="border-radius: 12px;" />
+            </div>
+            <div class="col-md-3">
+                <label for="FilterEndDate" class="form-label small fw-semibold">End Date</label>
+                <input type="date" class="form-control border-0 bg-light" id="FilterEndDate" name="FilterEndDate"
+                       value="@Model.FilterEndDate?.ToString("yyyy-MM-dd")" style="border-radius: 12px;" />
+            </div>
+            <div class="col-md-3">
+                <label for="FilterActionType" class="form-label small fw-semibold">Action Type</label>
+                <select class="form-select border-0 bg-light" id="FilterActionType" name="FilterActionType" style="border-radius: 12px;">
+                    <option value="">All Actions</option>
+                    <option value="Approved" selected="@(Model.FilterActionType == "Approved")">Approved</option>
+                    <option value="PartiallyApproved" selected="@(Model.FilterActionType == "PartiallyApproved")">Partially Approved</option>
+                    <option value="Rejected" selected="@(Model.FilterActionType == "Rejected")">Rejected</option>
+                    <option value="Reverted" selected="@(Model.FilterActionType == "Reverted")">Reverted</option>
+                </select>
+            </div>
+            <div class="col-md-3">
+                <label for="FilterUser" class="form-label small fw-semibold">Staff Member</label>
+                <input type="text" class="form-control border-0 bg-light" id="FilterUser" name="FilterUser"
+                       value="@Model.FilterUser" placeholder="Index Number" style="border-radius: 12px;" />
+            </div>
+            <div class="col-12">
+                <button type="submit" class="btn btn-primary" style="border-radius: 12px;">
+                    <i class="bi bi-filter me-1"></i>Apply Filters
+                </button>
+                <a asp-page="/Modules/EBillManagement/CallRecords/ApprovalHistory" class="btn btn-outline-secondary" style="border-radius: 12px;">
+                    <i class="bi bi-x-circle me-1"></i>Clear
+                </a>
+            </div>
+        </form>
+    </div>
+</div>
+
+<!-- History Table -->
+<div class="card border-0 shadow-sm" style="border-radius: 20px;">
+    <div class="card-header bg-light border-0 py-3" style="border-radius: 20px 20px 0 0;">
+        <h6 class="mb-0 text-muted fw-semibold">
+            <i class="bi bi-list-ul me-2"></i>
+            Approval Records (@Model.TotalRecords total, showing page @Model.PageNumber of @Model.TotalPages)
+        </h6>
+    </div>
+    <div class="card-body p-0">
+        @if (Model.ApprovalRecords.Any())
+        {
+            <div class="table-responsive">
+                <table class="table table-hover mb-0">
+                    <thead class="bg-light">
+                        <tr>
+                            <th>Date Approved</th>
+                            <th>Staff Member</th>
+                            <th>Call Details</th>
+                            <th>Amount</th>
+                            <th>Action</th>
+                            <th>Comments</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        @foreach (var record in Model.ApprovalRecords)
+                        {
+                            <tr>
+                                <td>
+                                    @record.ApprovedDate?.ToString("MMM dd, yyyy")<br />
+                                    <small class="text-muted">@record.ApprovedDate?.ToString("hh:mm tt")</small>
+                                </td>
+                                <td>
+                                    <strong>@record.UserName</strong><br />
+                                    <small class="text-muted">@record.UserIndexNumber</small>
+                                </td>
+                                <td>
+                                    @record.CallDestination<br />
+                                    <small class="text-muted">
+                                        <i class="bi bi-calendar me-1"></i>@record.CallDate.ToString("MMM dd, yyyy")
+                                    </small>
+                                </td>
+                                <td>
+                                    <div class="fw-semibold">$@record.ActualAmount.ToString("N2")</div>
+                                    @if (record.ApprovedAmount.HasValue && record.ApprovedAmount != record.ActualAmount)
+                                    {
+                                        <small class="text-success">
+                                            <i class="bi bi-check-circle me-1"></i>Approved: $@record.ApprovedAmount.Value.ToString("N2")
+                                        </small>
+                                    }
+                                    @if (record.IsOverage)
+                                    {
+                                        <br />
+                                        <span class="badge bg-warning text-dark">Overage</span>
+                                    }
+                                </td>
+                                <td>
+                                    @if (record.ApprovalStatus == "Approved")
+                                    {
+                                        <span class="badge bg-success">
+                                            <i class="bi bi-check-circle me-1"></i>Approved
+                                        </span>
+                                    }
+                                    else if (record.ApprovalStatus == "PartiallyApproved")
+                                    {
+                                        <span class="badge bg-info">
+                                            <i class="bi bi-check-circle-fill me-1"></i>Partially Approved
+                                        </span>
+                                    }
+                                    else if (record.ApprovalStatus == "Rejected")
+                                    {
+                                        <span class="badge bg-danger">
+                                            <i class="bi bi-x-circle me-1"></i>Rejected
+                                        </span>
+                                    }
+                                    else if (record.ApprovalStatus == "Reverted")
+                                    {
+                                        <span class="badge bg-warning text-dark">
+                                            <i class="bi bi-arrow-counterclockwise me-1"></i>Reverted
+                                        </span>
+                                    }
+                                </td>
+                                <td>
+                                    @if (!string.IsNullOrEmpty(record.Comments))
+                                    {
+                                        <small class="text-muted">@record.Comments</small>
+                                    }
+                                    else
+                                    {
+                                        <small class="text-muted fst-italic">No comments</small>
+                                    }
+                                </td>
+                            </tr>
+                        }
+                    </tbody>
+                </table>
+            </div>
+
+            <!-- Pagination -->
+            @if (Model.TotalPages > 1)
+            {
+                <div class="card-footer bg-light border-0 py-3">
+                    <nav>
+                        <ul class="pagination pagination-sm justify-content-center mb-0">
+                            <li class="page-item @(Model.PageNumber == 1 ? "disabled" : "")">
+                                <a class="page-link" asp-page="/Modules/EBillManagement/CallRecords/ApprovalHistory"
+                                   asp-route-PageNumber="@(Model.PageNumber - 1)"
+                                   asp-route-FilterStartDate="@Model.FilterStartDate?.ToString("yyyy-MM-dd")"
+                                   asp-route-FilterEndDate="@Model.FilterEndDate?.ToString("yyyy-MM-dd")"
+                                   asp-route-FilterActionType="@Model.FilterActionType"
+                                   asp-route-FilterUser="@Model.FilterUser">
+                                    Previous
+                                </a>
+                            </li>
+
+                            @for (int i = Math.Max(1, Model.PageNumber - 2); i <= Math.Min(Model.TotalPages, Model.PageNumber + 2); i++)
+                            {
+                                <li class="page-item @(i == Model.PageNumber ? "active" : "")">
+                                    <a class="page-link" asp-page="/Modules/EBillManagement/CallRecords/ApprovalHistory"
+                                       asp-route-PageNumber="@i"
+                                       asp-route-FilterStartDate="@Model.FilterStartDate?.ToString("yyyy-MM-dd")"
+                                       asp-route-FilterEndDate="@Model.FilterEndDate?.ToString("yyyy-MM-dd")"
+                                       asp-route-FilterActionType="@Model.FilterActionType"
+                                       asp-route-FilterUser="@Model.FilterUser">
+                                        @i
+                                    </a>
+                                </li>
+                            }
+
+                            <li class="page-item @(Model.PageNumber == Model.TotalPages ? "disabled" : "")">
+                                <a class="page-link" asp-page="/Modules/EBillManagement/CallRecords/ApprovalHistory"
+                                   asp-route-PageNumber="@(Model.PageNumber + 1)"
+                                   asp-route-FilterStartDate="@Model.FilterStartDate?.ToString("yyyy-MM-dd")"
+                                   asp-route-FilterEndDate="@Model.FilterEndDate?.ToString("yyyy-MM-dd")"
+                                   asp-route-FilterActionType="@Model.FilterActionType"
+                                   asp-route-FilterUser="@Model.FilterUser">
+                                    Next
+                                </a>
+                            </li>
+                        </ul>
+                    </nav>
+                </div>
+            }
+        }
+        else
+        {
+            <div class="p-5 text-center">
+                <i class="bi bi-inbox display-4 text-muted"></i>
+                <p class="text-muted mt-3">No approval history found</p>
+                <p class="small text-muted">Approval records will appear here after you process submissions</p>
+            </div>
+        }
+    </div>
+</div>

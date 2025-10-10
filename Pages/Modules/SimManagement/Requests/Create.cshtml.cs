@@ -1,0 +1,276 @@
+using Microsoft.AspNetCore.Authorization;
+using Microsoft.AspNetCore.Identity;
+using Microsoft.AspNetCore.Mvc;
+using Microsoft.AspNetCore.Mvc.RazorPages;
+using Microsoft.AspNetCore.Mvc.Rendering;
+using Microsoft.EntityFrameworkCore;
+using System.Linq;
+using TAB.Web.Data;
+using TAB.Web.Models;
+using TAB.Web.Services;
+
+namespace TAB.Web.Pages.Modules.SimManagement.Requests
+{
+    [Authorize]
+    public class CreateModel : PageModel
+    {
+        private readonly ApplicationDbContext _context;
+        private readonly UserManager<ApplicationUser> _userManager;
+        private readonly ISimRequestHistoryService _historyService;
+        private readonly INotificationService _notificationService;
+        private readonly IAuditLogService _auditLogService;
+
+        public CreateModel(ApplicationDbContext context, UserManager<ApplicationUser> userManager, ISimRequestHistoryService historyService, INotificationService notificationService, IAuditLogService auditLogService)
+        {
+            _context = context;
+            _userManager = userManager;
+            _historyService = historyService;
+            _notificationService = notificationService;
+            _auditLogService = auditLogService;
+        }
+
+        [BindProperty]
+        public Models.SimRequest SimRequest { get; set; } = new();
+
+        public List<SelectListItem> ServiceProviders { get; set; } = new();
+        public List<SelectListItem> Organizations { get; set; } = new();
+        public List<SelectListItem> Offices { get; set; } = new();
+        public List<SelectListItem> Supervisors { get; set; } = new();
+
+        public string? StatusMessage { get; set; }
+        public string? StatusMessageClass { get; set; }
+
+        public async Task OnGetAsync()
+        {
+            await LoadDropdownDataAsync();
+            await PopulateUserInfoAsync();
+        }
+
+        public async Task<IActionResult> OnPostAsync(string action)
+        {
+            await LoadDropdownDataAsync();
+
+            if (!ModelState.IsValid)
+            {
+                // Build detailed error message
+                var errors = ModelState
+                    .Where(x => x.Value.Errors.Count > 0)
+                    .Select(x => new { 
+                        Field = x.Key.Replace("SimRequest.", ""), 
+                        Errors = x.Value.Errors.Select(e => e.ErrorMessage) 
+                    })
+                    .ToList();
+                
+                if (errors.Any())
+                {
+                    var errorMessages = string.Join("; ", 
+                        errors.SelectMany(e => e.Errors.Select(err => $"{e.Field}: {err}")));
+                    StatusMessage = $"Please correct the following errors: {errorMessages}";
+                }
+                else
+                {
+                    StatusMessage = "Please correct the errors below.";
+                }
+                
+                StatusMessageClass = "danger";
+                return Page();
+            }
+
+            var currentUser = await _userManager.GetUserAsync(User);
+            if (currentUser == null)
+            {
+                StatusMessage = "User not found.";
+                StatusMessageClass = "danger";
+                return Page();
+            }
+
+            // Note: Multiple SIM requests are allowed for the same Index Number
+            // as one staff member can have multiple SIM cards (e.g., personal, official)
+
+            // Get supervisor details from the selected supervisor email
+            var supervisorUser = await _context.Users
+                .FirstOrDefaultAsync(u => u.Email == SimRequest.Supervisor);
+
+            // Set request properties
+            SimRequest.RequestedBy = currentUser.Id;
+            SimRequest.RequestDate = DateTime.UtcNow;
+            SimRequest.Status = action == "submit" ? RequestStatus.PendingSupervisor : RequestStatus.Draft;
+            SimRequest.SubmittedToSupervisor = action == "submit";
+
+            // Set supervisor details if found
+            if (supervisorUser != null)
+            {
+                SimRequest.SupervisorEmail = supervisorUser.Email ?? string.Empty;
+                SimRequest.SupervisorName = $"{supervisorUser.FirstName ?? ""} {supervisorUser.LastName ?? ""}".Trim();
+                // Keep the email in the Supervisor field for backward compatibility
+                SimRequest.Supervisor = supervisorUser.Email ?? string.Empty;
+            }
+
+            // Validate and trim required string properties
+            if (string.IsNullOrWhiteSpace(SimRequest.IndexNo) ||
+                string.IsNullOrWhiteSpace(SimRequest.FirstName) ||
+                string.IsNullOrWhiteSpace(SimRequest.LastName) ||
+                string.IsNullOrWhiteSpace(SimRequest.Organization) ||
+                string.IsNullOrWhiteSpace(SimRequest.Office) ||
+                string.IsNullOrWhiteSpace(SimRequest.Grade) ||
+                string.IsNullOrWhiteSpace(SimRequest.FunctionalTitle) ||
+                string.IsNullOrWhiteSpace(SimRequest.OfficialEmail))
+            {
+                StatusMessage = "Please fill in all required fields marked with *.";
+                StatusMessageClass = "danger";
+                await LoadDropdownDataAsync();
+                return Page();
+            }
+
+            // Trim string properties
+            SimRequest.IndexNo = SimRequest.IndexNo?.Trim() ?? string.Empty;
+            SimRequest.FirstName = SimRequest.FirstName?.Trim() ?? string.Empty;
+            SimRequest.LastName = SimRequest.LastName?.Trim() ?? string.Empty;
+            SimRequest.Organization = SimRequest.Organization?.Trim() ?? string.Empty;
+            SimRequest.Office = SimRequest.Office?.Trim() ?? string.Empty;
+            SimRequest.Grade = SimRequest.Grade?.Trim() ?? string.Empty;
+            SimRequest.FunctionalTitle = SimRequest.FunctionalTitle?.Trim() ?? string.Empty;
+            SimRequest.OfficeExtension = SimRequest.OfficeExtension?.Trim();
+            SimRequest.OfficialEmail = SimRequest.OfficialEmail?.Trim() ?? string.Empty;
+            SimRequest.Supervisor = SimRequest.Supervisor?.Trim();
+            SimRequest.PreviouslyAssignedLines = SimRequest.PreviouslyAssignedLines?.Trim();
+            SimRequest.Remarks = SimRequest.Remarks?.Trim();
+
+            try
+            {
+                _context.SimRequests.Add(SimRequest);
+                await _context.SaveChangesAsync();
+
+                // Add history entry only for workflow changes
+                var ipAddress = HttpContext.Connection.RemoteIpAddress?.ToString();
+                var userName = $"{currentUser.FirstName ?? ""} {currentUser.LastName ?? ""}".Trim();
+                
+                if (action == "submit")
+                {
+                    // Track submission to supervisor as a workflow change
+                    await _historyService.AddSubmissionHistoryAsync(
+                        SimRequest.Id,
+                        currentUser.Id,
+                        userName,
+                        ipAddress ?? string.Empty
+                    );
+
+                    // Send notifications to requester and supervisor
+                    if (supervisorUser != null)
+                    {
+                        await _notificationService.NotifySimRequestSubmittedAsync(
+                            SimRequest.Id,
+                            currentUser.Id,
+                            supervisorUser.Id
+                        );
+
+                        // Log audit trail
+                        await _auditLogService.LogSimRequestSubmittedAsync(
+                            SimRequest.Id,
+                            $"{SimRequest.FirstName} {SimRequest.LastName}",
+                            SimRequest.IndexNo ?? "",
+                            SimRequest.ServiceProvider?.ServiceProviderName ?? "N/A",
+                            currentUser.Id,
+                            ipAddress
+                        );
+                    }
+                }
+                // Note: Draft saves are not tracked as they're not workflow changes
+
+                StatusMessage = action == "submit" 
+                    ? "Your SIM request has been submitted successfully and sent to your supervisor for approval."
+                    : "Your SIM request has been saved as draft successfully.";
+                StatusMessageClass = "success";
+
+                return RedirectToPage("./Index");
+            }
+            catch (Exception ex)
+            {
+                // Log the actual error for debugging
+                var errorDetails = ex.InnerException != null ? ex.InnerException.Message : ex.Message;
+                
+                // Check for specific database errors
+                if (ex.InnerException != null && ex.InnerException.Message.Contains("FOREIGN KEY"))
+                {
+                    StatusMessage = "Invalid selection: Please ensure all dropdown selections are valid.";
+                }
+                else if (ex.InnerException != null && ex.InnerException.Message.Contains("NULL"))
+                {
+                    StatusMessage = "Required field missing: Please fill in all required fields marked with *.";
+                }
+                else
+                {
+                    // For development/debugging - show the actual error
+                    StatusMessage = $"An error occurred while saving your request: {errorDetails}";
+                }
+                
+                StatusMessageClass = "danger";
+                
+                // Reload dropdown data before returning the page
+                await LoadDropdownDataAsync();
+                return Page();
+            }
+        }
+
+        private async Task LoadDropdownDataAsync()
+        {
+            // Load Service Providers
+            ServiceProviders = await _context.ServiceProviders
+                .Where(sp => sp.SPStatus == ServiceProviderStatus.Active)
+                .Select(sp => new SelectListItem
+                {
+                    Value = sp.Id.ToString(),
+                    Text = sp.ServiceProviderName ?? "Unknown Provider"
+                })
+                .ToListAsync();
+
+            // Load Organizations
+            Organizations = await _context.Organizations
+                .Select(o => new SelectListItem
+                {
+                    Value = o.Name,
+                    Text = o.Name ?? "Unknown Organization"
+                })
+                .ToListAsync();
+
+            // Load Offices with Organization relationship
+            Offices = await _context.Offices
+                .Include(o => o.Organization)
+                .Select(o => new SelectListItem
+                {
+                    Value = o.Name,
+                    Text = o.Name ?? "Unknown Office",
+                    Group = new SelectListGroup { Name = o.Organization.Name ?? "Unknown" }
+                })
+                .ToListAsync();
+
+            // Load Active Users as Supervisors (excluding current user)
+            var currentUserId = _userManager.GetUserId(User) ?? string.Empty;
+            Supervisors = await _context.Users
+                .Where(u => u.Status == UserStatus.Active && u.Id != currentUserId)
+                .Select(u => new SelectListItem
+                {
+                    Value = u.Email ?? string.Empty,
+                    Text = $"{u.FirstName ?? ""} {u.LastName ?? ""} ({u.Email ?? ""})".Trim()
+                })
+                .ToListAsync();
+        }
+
+        private async Task PopulateUserInfoAsync()
+        {
+            var currentUser = await _context.Users
+                .Include(u => u.Organization)
+                .Include(u => u.Office)
+                .FirstOrDefaultAsync(u => u.Id == (_userManager.GetUserId(User) ?? string.Empty));
+
+            if (currentUser != null)
+            {
+                SimRequest.FirstName = currentUser.FirstName;
+                SimRequest.LastName = currentUser.LastName;
+                SimRequest.Organization = currentUser.Organization?.Name;
+                SimRequest.Office = currentUser.Office?.Name;
+                SimRequest.OfficialEmail = currentUser.Email ?? string.Empty;
+            }
+        }
+    }
+} 

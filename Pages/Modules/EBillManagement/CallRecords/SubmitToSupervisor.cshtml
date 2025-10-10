@@ -1,0 +1,471 @@
+@page
+@model TAB.Web.Pages.Modules.EBillManagement.CallRecords.SubmitToSupervisorModel
+@{
+    ViewData["Title"] = "Submit to Supervisor";
+    ViewData["PageIcon"] = "bi-send";
+    ViewData["PageTitle"] = "Submit to Supervisor";
+    ViewData["Breadcrumb"] = "E-Bill / Call Records / Submit";
+}
+
+<style>
+    /* Statistics Grid */
+    .stats-grid {
+        display: grid;
+        grid-template-columns: repeat(auto-fit, minmax(240px, 1fr));
+        gap: 1.25rem;
+        margin-bottom: 2rem;
+    }
+
+    .stat-card {
+        background: white;
+        border-radius: 16px;
+        padding: 1.5rem;
+        border: 1px solid #e5e7eb;
+        position: relative;
+        overflow: hidden;
+        transition: all 0.3s ease;
+    }
+
+    .stat-card::before {
+        content: '';
+        position: absolute;
+        top: 0;
+        left: 0;
+        right: 0;
+        height: 4px;
+        background: linear-gradient(90deg, var(--gradient-start), var(--gradient-end));
+    }
+
+    .stat-card:nth-child(1)::before {
+        --gradient-start: #3b82f6;
+        --gradient-end: #60a5fa;
+    }
+
+    .stat-card:nth-child(2)::before {
+        --gradient-start: #10b981;
+        --gradient-end: #34d399;
+    }
+
+    .stat-card:nth-child(3)::before {
+        --gradient-start: #f59e0b;
+        --gradient-end: #fbbf24;
+    }
+
+    .stat-card:nth-child(4)::before {
+        --gradient-start: #ef4444;
+        --gradient-end: #f87171;
+    }
+
+    .stat-card:hover {
+        transform: translateY(-5px);
+        box-shadow: 0 10px 30px rgba(0, 0, 0, 0.1);
+    }
+
+    .stat-content {
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+    }
+
+    .stat-icon {
+        width: 50px;
+        height: 50px;
+        border-radius: 12px;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        font-size: 1.5rem;
+    }
+
+    .stat-icon-primary {
+        background: linear-gradient(135deg, #3b82f6, #60a5fa);
+        color: white;
+    }
+
+    .stat-icon-success {
+        background: linear-gradient(135deg, #10b981, #34d399);
+        color: white;
+    }
+
+    .stat-icon-warning {
+        background: linear-gradient(135deg, #f59e0b, #fbbf24);
+        color: white;
+    }
+
+    .stat-icon-danger {
+        background: linear-gradient(135deg, #ef4444, #f87171);
+        color: white;
+    }
+
+    .stat-details {
+        flex: 1;
+        text-align: right;
+    }
+
+    .stat-number {
+        font-size: 1.75rem;
+        font-weight: 700;
+        color: #1f2937;
+        line-height: 1.2;
+    }
+
+    .stat-label {
+        font-size: 0.875rem;
+        color: #6b7280;
+        margin-top: 0.25rem;
+    }
+
+    /* Enhanced Table Styling */
+    .modern-table {
+        border-radius: 16px;
+        overflow: hidden;
+        box-shadow: 0 1px 3px rgba(0, 0, 0, 0.1);
+    }
+
+    .modern-table thead {
+        background: linear-gradient(135deg, #f8f9fa 0%, #e9ecef 100%);
+    }
+
+    .modern-table thead th {
+        border-bottom: 2px solid #dee2e6;
+        font-weight: 600;
+        color: #495057;
+        text-transform: uppercase;
+        font-size: 0.75rem;
+        letter-spacing: 0.5px;
+        padding: 1rem;
+    }
+
+    .modern-table tbody tr {
+        transition: all 0.2s ease;
+    }
+
+    .modern-table tbody tr:hover {
+        background-color: #f8f9fa;
+        transform: scale(1.01);
+    }
+
+    .modern-table tbody td {
+        padding: 1rem;
+        vertical-align: middle;
+    }
+
+    .modern-table tfoot {
+        background: linear-gradient(135deg, #f8f9fa 0%, #e9ecef 100%);
+        font-weight: 600;
+    }
+
+    .modern-table tfoot td {
+        padding: 1rem;
+        border-top: 2px solid #dee2e6;
+    }
+
+    /* Submit Button Styling */
+    .btn-submit-primary {
+        background: linear-gradient(135deg, #3b82f6, #2563eb);
+        border: none;
+        padding: 0.875rem 2rem;
+        font-size: 1.125rem;
+        font-weight: 600;
+        border-radius: 16px;
+        box-shadow: 0 4px 15px rgba(59, 130, 246, 0.4);
+        transition: all 0.3s ease;
+        color: white;
+    }
+
+    .btn-submit-primary:hover {
+        background: linear-gradient(135deg, #2563eb, #1d4ed8);
+        transform: translateY(-2px);
+        box-shadow: 0 6px 25px rgba(59, 130, 246, 0.5);
+        color: white;
+    }
+
+    .btn-submit-primary:active {
+        transform: translateY(0);
+    }
+
+    /* Overage Card Styling */
+    .overage-card {
+        border: 2px solid #fbbf24;
+        border-radius: 16px;
+        background: linear-gradient(135deg, #fef3c7 0%, #fde68a 100%);
+    }
+</style>
+
+<!-- Status Message -->
+@if (!string.IsNullOrEmpty(Model.StatusMessage))
+{
+    <div class="alert alert-@(Model.StatusMessageClass ?? "info") alert-dismissible fade show" role="alert">
+        <i class="bi bi-@(Model.StatusMessageClass == "success" ? "check-circle" : Model.StatusMessageClass == "danger" ? "exclamation-triangle" : "info-circle") me-2"></i>
+        @Model.StatusMessage
+        <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
+    </div>
+}
+
+<!-- Overage Warning Banner -->
+@if (Model.HasOverage)
+{
+    <div class="alert alert-warning alert-dismissible fade show mb-4" role="alert">
+        <div class="d-flex align-items-center">
+            <i class="bi bi-exclamation-triangle-fill me-3" style="font-size: 2rem;"></i>
+            <div>
+                <h5 class="alert-heading mb-1">⚠️ Class of Service Allowance Exceeded</h5>
+                <p class="mb-2">
+                    Your official calls for <strong>@(new DateTime(Model.CallYear, Model.CallMonth, 1).ToString("MMMM yyyy"))</strong> have exceeded your monthly allowance by
+                    <strong class="text-danger">$@Model.OverageAmount.ToString("N2")</strong>.
+                </p>
+                <hr class="my-2">
+                <p class="mb-0 small">
+                    <i class="bi bi-info-circle me-1"></i>
+                    You <strong>must provide a justification</strong> and <strong>upload a supporting document</strong> (approval letter, authorization, etc.) to proceed with submission.
+                </p>
+            </div>
+        </div>
+    </div>
+}
+
+<!-- Summary Cards -->
+<div class="stats-grid">
+    <div class="stat-card">
+        <div class="stat-content">
+            <div class="stat-icon stat-icon-primary">
+                <i class="bi bi-list-check"></i>
+            </div>
+            <div class="stat-details">
+                <div class="stat-number">@Model.TotalCalls</div>
+                <div class="stat-label">Official Calls to Submit</div>
+            </div>
+        </div>
+    </div>
+
+    <div class="stat-card">
+        <div class="stat-content">
+            <div class="stat-icon stat-icon-success">
+                <i class="bi bi-briefcase"></i>
+            </div>
+            <div class="stat-details">
+                <div class="stat-number @(Model.HasOverage ? "text-danger" : "")">$@Model.OfficialCallsCost.ToString("N2")</div>
+                <div class="stat-label">
+                    @if (Model.MonthlyAllowance > 0)
+                    {
+                        <span>Limit: $@Model.MonthlyAllowance.ToString("N2")</span>
+                    }
+                    else
+                    {
+                        <span>Unlimited Allowance</span>
+                    }
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <div class="stat-card">
+        <div class="stat-content">
+            <div class="stat-icon stat-icon-warning">
+                <i class="bi bi-person"></i>
+            </div>
+            <div class="stat-details">
+                <div class="stat-number">$@Model.PersonalCallsCost.ToString("N2")</div>
+                <div class="stat-label">Personal Calls (Self-paid)</div>
+            </div>
+        </div>
+    </div>
+
+    <div class="stat-card">
+        <div class="stat-content">
+            <div class="stat-icon stat-icon-@(Model.HasOverage ? "danger" : "warning")">
+                <i class="bi bi-@(Model.HasOverage ? "exclamation-triangle" : "currency-dollar")"></i>
+            </div>
+            <div class="stat-details">
+                <div class="stat-number @(Model.HasOverage ? "text-danger" : "")">
+                    $@(Model.HasOverage ? Model.OverageAmount.ToString("N2") : Model.TotalCost.ToString("N2"))
+                </div>
+                <div class="stat-label">@(Model.HasOverage ? "Overage Amount" : "Official Cost Total")</div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Submission Form -->
+<div class="card border-0 shadow-sm" style="border-radius: 20px;">
+    <div class="card-header bg-gradient border-0 py-4" style="background: linear-gradient(135deg, #f8f9fa 0%, #e9ecef 100%); border-radius: 20px 20px 0 0;">
+        <h5 class="card-title mb-0 fw-bold">
+            <i class="bi bi-send me-2 text-primary"></i>Review & Submit
+        </h5>
+    </div>
+    <div class="card-body p-4">
+        <form method="post" enctype="multipart/form-data">
+            @Html.AntiForgeryToken()
+
+            <!-- Hidden field with call record IDs -->
+            @foreach (var call in Model.CallRecordsToSubmit)
+            {
+                <input type="hidden" name="callRecordIds" value="@call.Id" />
+            }
+
+            <!-- Call Records Summary Table -->
+            <div class="mb-4">
+                <h6 class="fw-bold mb-3">
+                    <i class="bi bi-table me-2 text-primary"></i>
+                    Official Calls to Submit (@Model.TotalCalls calls)
+                </h6>
+                <div class="table-responsive modern-table">
+                    <table class="table table-hover mb-0">
+                        <thead class="table-light">
+                            <tr>
+                                <th>Date</th>
+                                <th>Number</th>
+                                <th>Destination</th>
+                                <th>Class of Service</th>
+                                <th>Type</th>
+                                <th class="text-end">Amount</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            @foreach (var call in Model.CallRecordsToSubmit)
+                            {
+                                <tr>
+                                    <td>@call.CallDate.ToString("MMM dd, yyyy")</td>
+                                    <td>@call.CallNumber</td>
+                                    <td>@call.CallDestination</td>
+                                    <td>
+                                        @if (call.UserPhone?.ClassOfService != null)
+                                        {
+                                            var allowance = call.UserPhone.ClassOfService.AirtimeAllowanceAmount;
+                                            <div>
+                                                <span class="badge bg-info bg-opacity-10 text-info">
+                                                    @call.UserPhone.ClassOfService.Class
+                                                </span>
+                                                @if (allowance.HasValue && allowance.Value > 0)
+                                                {
+                                                    <br />
+                                                    <small class="text-muted">Limit: $@allowance.Value.ToString("N2")</small>
+                                                }
+                                                else
+                                                {
+                                                    <br />
+                                                    <small class="text-muted">Unlimited</small>
+                                                }
+                                            </div>
+                                        }
+                                        else
+                                        {
+                                            <span class="text-muted small">N/A</span>
+                                        }
+                                    </td>
+                                    <td>
+                                        <span class="badge bg-@(call.VerificationType == "Official" ? "success" : "warning") bg-opacity-10 text-@(call.VerificationType == "Official" ? "success" : "warning")">
+                                            @call.VerificationType
+                                        </span>
+                                    </td>
+                                    <td class="text-end">$@call.CallCostUSD.ToString("N2")</td>
+                                </tr>
+                            }
+                        </tbody>
+                        <tfoot class="table-light fw-bold">
+                            <tr>
+                                <td colspan="5" class="text-end">Total:</td>
+                                <td class="text-end">$@Model.TotalCost.ToString("N2")</td>
+                            </tr>
+                        </tfoot>
+                    </table>
+                </div>
+            </div>
+
+            <!-- Overage Justification Section (only if overage exists) -->
+            @if (Model.HasOverage)
+            {
+                <div class="overage-card p-4 mb-4">
+                    <h6 class="fw-bold text-warning mb-3">
+                        <i class="bi bi-exclamation-triangle me-2"></i>Overage Justification Required
+                    </h6>
+
+                    <div class="mb-3">
+                        <label for="overageJustification" class="form-label fw-semibold">
+                            Justification <span class="text-danger">*</span>
+                        </label>
+                        <textarea class="form-control"
+                                  id="overageJustification"
+                                  name="overageJustification"
+                                  rows="4"
+                                  required
+                                  placeholder="Please explain why your official calls exceeded the monthly allowance of $@Model.MonthlyAllowance.ToString("N2"). Include details such as business needs, urgent projects, client requirements, etc."></textarea>
+                        <small class="text-muted">
+                            <i class="bi bi-info-circle me-1"></i>
+                            Your justification will be reviewed by your supervisor along with the supporting document.
+                        </small>
+                    </div>
+
+                    <div class="mb-3">
+                        <label for="overageDocument" class="form-label fw-semibold">
+                            Supporting Document <span class="text-danger">*</span>
+                        </label>
+                        <input type="file"
+                               class="form-control"
+                               id="overageDocument"
+                               name="overageDocument"
+                               required
+                               accept=".pdf,.doc,.docx,.jpg,.jpeg,.png" />
+                        <small class="text-muted">
+                            <i class="bi bi-paperclip me-1"></i>
+                            Upload approval letter, authorization, or other supporting documentation (PDF, Word, or Image).
+                        </small>
+                    </div>
+                </div>
+            }
+
+            <!-- Supervisor Info -->
+            @if (Model.CurrentUser != null)
+            {
+                <div class="alert alert-info mb-4">
+                    <div class="d-flex align-items-center">
+                        <i class="bi bi-person-badge me-3" style="font-size: 2rem;"></i>
+                        <div>
+                            <strong>Supervisor:</strong> @Model.CurrentUser.SupervisorIndexNumber
+                            <br />
+                            <small>Your call verifications will be sent to your supervisor for approval.</small>
+                        </div>
+                    </div>
+                </div>
+            }
+
+            <!-- Action Buttons -->
+            <div class="d-flex justify-content-between align-items-center">
+                <a asp-page="/Modules/EBillManagement/CallRecords/MyCallLogs" class="btn btn-outline-secondary" style="border-radius: 12px; padding: 0.75rem 1.5rem;">
+                    <i class="bi bi-arrow-left me-2"></i>Back to My Calls
+                </a>
+                <button type="submit" class="btn btn-submit-primary">
+                    <i class="bi bi-send me-2"></i>Submit to Supervisor
+                </button>
+            </div>
+        </form>
+    </div>
+</div>
+
+@section Scripts {
+    <script>
+        // Form validation feedback
+        document.querySelector('form').addEventListener('submit', function (e) {
+            const hasOverage = @Model.HasOverage.ToString().ToLower();
+
+            if (hasOverage) {
+                const justification = document.getElementById('overageJustification').value.trim();
+                const document = document.getElementById('overageDocument').files[0];
+
+                if (!justification) {
+                    e.preventDefault();
+                    alert('Please provide a justification for the overage.');
+                    document.getElementById('overageJustification').focus();
+                    return false;
+                }
+
+                if (!document) {
+                    e.preventDefault();
+                    alert('Please upload a supporting document for the overage.');
+                    document.getElementById('overageDocument').focus();
+                    return false;
+                }
+            }
+        });
+    </script>
+}
