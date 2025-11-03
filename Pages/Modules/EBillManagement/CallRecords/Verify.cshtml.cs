@@ -123,32 +123,23 @@ namespace TAB.Web.Pages.Modules.EBillManagement.CallRecords
             CallMonth = CallRecord.CallMonth;
             CallYear = CallRecord.CallYear;
 
-            // Load ALL calls for this extension in the same month
-            // Include calls where user is responsible OR calls assigned to them (accepted)
-            AllExtensionCalls = await _context.CallRecords
-                .Where(c => c.ExtensionNumber == ExtensionNumber &&
-                           c.CallMonth == CallMonth &&
-                           c.CallYear == CallYear &&
-                           (c.ResponsibleIndexNumber == UserIndexNumber ||
-                            (c.PayingIndexNumber == UserIndexNumber && c.AssignmentStatus == "Accepted")))
-                .OrderBy(c => c.CallDate)
-                .ToListAsync();
+            // Only load the specific call record that was clicked
+            AllExtensionCalls = new List<CallRecord> { CallRecord };
 
-            // Group calls by dialed number
-            GroupedCalls = AllExtensionCalls
-                .GroupBy(c => c.CallNumber)
-                .Select(g => new GroupedCallSummary
+            // Create a single group for this call record
+            GroupedCalls = new List<GroupedCallSummary>
+            {
+                new GroupedCallSummary
                 {
-                    DialedNumber = g.Key,
-                    ContactName = "", // Can be populated from a contacts table if you have one
-                    CallCount = g.Count(),
-                    TotalDurationMinutes = g.Sum(c => c.CallDuration) / 60.0m,
-                    TotalCostUSD = g.Sum(c => c.CallCostUSD),
-                    TotalCostKSH = g.Sum(c => c.CallCostKSHS),
-                    Calls = g.OrderBy(c => c.CallDate).ToList()
-                })
-                .OrderByDescending(g => g.TotalCostUSD)
-                .ToList();
+                    DialedNumber = CallRecord.CallNumber,
+                    ContactName = "",
+                    CallCount = 1,
+                    TotalDurationMinutes = CallRecord.CallDuration / 60.0m,
+                    TotalCostUSD = CallRecord.CallCostUSD,
+                    TotalCostKSH = CallRecord.CallCostKSHS,
+                    Calls = new List<CallRecord> { CallRecord }
+                }
+            };
 
             // Load class of service and allowance info
             ClassOfService = await _calculationService.GetUserClassOfServiceAsync(UserIndexNumber);

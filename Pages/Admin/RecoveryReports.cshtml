@@ -1,0 +1,511 @@
+@page
+@model TAB.Web.Pages.Admin.RecoveryReportsModel
+@{
+    ViewData["Title"] = "Recovery Reports";
+    Layout = "~/Pages/Shared/_Layout.cshtml";
+}
+
+<style>
+    .page-header {
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        margin-bottom: 2rem;
+        padding-bottom: 1rem;
+        border-bottom: 2px solid #e5e7eb;
+    }
+
+    .page-title-section h1 {
+        font-size: 1.875rem;
+        font-weight: 700;
+        color: #111827;
+        margin: 0 0 0.5rem 0;
+        display: flex;
+        align-items: center;
+        gap: 0.75rem;
+    }
+
+    .page-subtitle {
+        color: #6b7280;
+        font-size: 0.95rem;
+        margin: 0.25rem 0;
+    }
+
+    .breadcrumb-modern {
+        background: none;
+        padding: 0;
+        margin: 0.5rem 0 0 0;
+        font-size: 0.875rem;
+    }
+
+    .breadcrumb-modern .breadcrumb-item + .breadcrumb-item::before {
+        content: "›";
+        color: #9ca3af;
+    }
+
+    .breadcrumb-modern a {
+        color: #009edb;
+        text-decoration: none;
+    }
+
+    .breadcrumb-modern a:hover {
+        text-decoration: underline;
+    }
+
+    .breadcrumb-modern .active {
+        color: #6b7280;
+    }
+
+    .btn-export {
+        background: linear-gradient(135deg, #f59e0b 0%, #d97706 100%);
+        border: none;
+        color: white;
+        padding: 0.625rem 1.25rem;
+        border-radius: 12px;
+        font-weight: 600;
+        transition: all 0.2s;
+        display: inline-flex;
+        align-items: center;
+        gap: 0.5rem;
+    }
+
+    .btn-export:hover {
+        transform: translateY(-2px);
+        box-shadow: 0 4px 12px rgba(245, 158, 11, 0.3);
+        color: white;
+    }
+
+    .modern-card {
+        background: white;
+        border-radius: 16px;
+        box-shadow: 0 2px 4px rgba(0, 0, 0, 0.06);
+        border: none;
+        overflow: hidden;
+        margin-bottom: 1.5rem;
+    }
+
+    .modern-card-header {
+        background: linear-gradient(135deg, #f8f9fa 0%, #e9ecef 100%);
+        border: none;
+        padding: 1.25rem 1.5rem;
+        border-bottom: 2px solid #e5e7eb;
+    }
+
+    .modern-card-title {
+        font-size: 1.1rem;
+        font-weight: 700;
+        color: #1f2937;
+        margin: 0;
+        display: flex;
+        align-items: center;
+        gap: 0.5rem;
+    }
+
+    .modern-card-body {
+        padding: 1.5rem;
+    }
+
+    .info-alert {
+        background: rgba(59, 130, 246, 0.1);
+        border-left: 4px solid #3b82f6;
+        padding: 1rem 1.25rem;
+        border-radius: 12px;
+        margin-bottom: 1.5rem;
+        display: flex;
+        align-items: center;
+        gap: 0.75rem;
+        flex-wrap: wrap;
+    }
+
+    .info-alert strong {
+        color: #1e40af;
+    }
+
+    .currency-badge {
+        display: inline-flex;
+        align-items: center;
+        gap: 0.375rem;
+        padding: 0.35rem 0.75rem;
+        border-radius: 12px;
+        font-size: 0.813rem;
+        font-weight: 600;
+        background: rgba(16, 185, 129, 0.1);
+        color: #059669;
+        margin-left: 0.5rem;
+    }
+
+    .modern-table {
+        width: 100%;
+        margin: 0;
+    }
+
+    .modern-table thead {
+        background-color: rgba(245, 158, 11, 0.1);
+    }
+
+    .modern-table thead th {
+        color: #4a5568;
+        font-weight: 600;
+        padding: 0.875rem 1rem;
+        border: none;
+        font-size: 0.813rem;
+        text-transform: uppercase;
+        letter-spacing: 0.5px;
+    }
+
+    .modern-table tbody td {
+        padding: 1rem;
+        vertical-align: middle;
+        border-bottom: 1px solid #f3f4f6;
+        font-size: 0.938rem;
+    }
+
+    .modern-table tbody tr:hover {
+        background-color: #f9fafb;
+    }
+
+    .modern-table tbody tr:last-child td {
+        border-bottom: none;
+    }
+
+    .modern-table tfoot {
+        background-color: #f9fafb;
+        border-top: 2px solid #e5e7eb;
+    }
+
+    .modern-table tfoot td {
+        padding: 1rem;
+        font-weight: 600;
+    }
+
+    .empty-state {
+        text-align: center;
+        padding: 4rem 2rem;
+    }
+
+    .empty-icon {
+        font-size: 4rem;
+        color: #d1d5db;
+        margin-bottom: 1rem;
+    }
+
+    .empty-text {
+        color: #6b7280;
+        font-size: 1.1rem;
+        margin-bottom: 0.5rem;
+    }
+
+    .empty-hint {
+        color: #9ca3af;
+        font-size: 0.938rem;
+    }
+</style>
+
+<div class="container-fluid mt-4">
+    <!-- Page Header -->
+    <div class="page-header">
+        <div class="page-title-section">
+            <h1>
+                <i class="bi bi-cash-coin text-primary"></i>
+                Finance Recovery Report
+            </h1>
+            <nav aria-label="breadcrumb">
+                <ol class="breadcrumb breadcrumb-modern">
+                    <li class="breadcrumb-item"><a asp-page="/Admin/Index">Admin</a></li>
+                    <li class="breadcrumb-item"><a asp-page="/Admin/RecoveryDashboard">Recovery Dashboard</a></li>
+                    <li class="breadcrumb-item active">Finance Report</li>
+                </ol>
+            </nav>
+            <p class="page-subtitle">Payroll Deduction Report for Personal Call Recoveries</p>
+        </div>
+        <div>
+            <button type="button" class="btn-export" onclick="document.getElementById('exportFinanceForm').submit()" title="Export Finance Report for Payroll Deductions">
+                <i class="bi bi-download"></i>Export Finance Report
+            </button>
+        </div>
+    </div>
+
+    <!-- Filters Card (Collapsible) -->
+    <div class="card border-0 shadow-sm mb-4" style="border-radius: 20px;">
+        <div class="card-header bg-white border-0 p-3" style="cursor: pointer; border-radius: 20px 20px 0 0;" data-bs-toggle="collapse" data-bs-target="#filterCollapse">
+            <div class="d-flex justify-content-between align-items-center">
+                <h6 class="mb-0 fw-bold">
+                    <i class="bi bi-funnel me-2"></i>Filters
+                </h6>
+                <i class="bi bi-chevron-down"></i>
+            </div>
+        </div>
+        <div class="collapse" id="filterCollapse">
+            <div class="card-body p-4">
+                <form method="get">
+                    <!-- Main Filters -->
+                    <div class="row g-3 mb-3">
+                        <div class="col-md-3">
+                            <label for="StartDate" class="form-label text-muted small">Start Date</label>
+                            <input type="date" class="form-control border-0 bg-light" style="border-radius: 12px;" id="StartDate" name="StartDate"
+                                   value="@(Model.StartDate?.ToString("yyyy-MM-dd"))" />
+                        </div>
+                        <div class="col-md-3">
+                            <label for="EndDate" class="form-label text-muted small">End Date</label>
+                            <input type="date" class="form-control border-0 bg-light" style="border-radius: 12px;" id="EndDate" name="EndDate"
+                                   value="@(Model.EndDate?.ToString("yyyy-MM-dd"))" />
+                        </div>
+                        <div class="col-md-3">
+                            <label for="BatchId" class="form-label text-muted small">Batch</label>
+                            <select class="form-select border-0 bg-light" style="border-radius: 12px;" id="BatchId" name="BatchId">
+                                <option value="">All Batches</option>
+                                @foreach (var batch in Model.AvailableBatches)
+                                {
+                                    <option value="@batch.BatchId" selected="@(Model.BatchId == batch.BatchId)">
+                                        @batch.BatchName (@batch.RecoveryDate?.ToString("MMM dd") - @batch.TotalRecovered.ToString("C0"))
+                                    </option>
+                                }
+                            </select>
+                        </div>
+                        <div class="col-md-3">
+                            <label for="RecoveryType" class="form-label text-muted small">Recovery Type</label>
+                            <select class="form-select border-0 bg-light" style="border-radius: 12px;" id="RecoveryType" name="RecoveryType">
+                                <option value="">All Types</option>
+                                <option value="Expired Verification" selected="@(Model.RecoveryType == "Expired Verification")">Expired Verification</option>
+                                <option value="Expired Approval" selected="@(Model.RecoveryType == "Expired Approval")">Expired Approval</option>
+                                <option value="Reverted" selected="@(Model.RecoveryType == "Reverted")">Reverted</option>
+                            </select>
+                        </div>
+                    </div>
+
+                    <!-- Additional Filters for Finance Report -->
+                    <div class="row g-3">
+                        <div class="col-md-2">
+                            <label for="FilterYear" class="form-label text-muted small">Year</label>
+                            <select name="FilterYear" id="FilterYear" class="form-select border-0 bg-light" style="border-radius: 12px;">
+                                <option value="">All Years</option>
+                                @for (int year = DateTime.Now.Year; year >= DateTime.Now.Year - 5; year--)
+                                {
+                                    <option value="@year" selected="@(Model.FilterYear == year)">@year</option>
+                                }
+                            </select>
+                        </div>
+                        <div class="col-md-2">
+                            <label for="FilterMonth" class="form-label text-muted small">Month</label>
+                            <select name="FilterMonth" id="FilterMonth" class="form-select border-0 bg-light" style="border-radius: 12px;">
+                                <option value="">All Months</option>
+                                <option value="1" selected="@(Model.FilterMonth == 1)">January</option>
+                                <option value="2" selected="@(Model.FilterMonth == 2)">February</option>
+                                <option value="3" selected="@(Model.FilterMonth == 3)">March</option>
+                                <option value="4" selected="@(Model.FilterMonth == 4)">April</option>
+                                <option value="5" selected="@(Model.FilterMonth == 5)">May</option>
+                                <option value="6" selected="@(Model.FilterMonth == 6)">June</option>
+                                <option value="7" selected="@(Model.FilterMonth == 7)">July</option>
+                                <option value="8" selected="@(Model.FilterMonth == 8)">August</option>
+                                <option value="9" selected="@(Model.FilterMonth == 9)">September</option>
+                                <option value="10" selected="@(Model.FilterMonth == 10)">October</option>
+                                <option value="11" selected="@(Model.FilterMonth == 11)">November</option>
+                                <option value="12" selected="@(Model.FilterMonth == 12)">December</option>
+                            </select>
+                        </div>
+                        <div class="col-md-2">
+                            <label for="FilterOrganizationId" class="form-label text-muted small">Organization</label>
+                            <select name="FilterOrganizationId" id="FilterOrganizationId" class="form-select border-0 bg-light" style="border-radius: 12px;">
+                                <option value="">All Organizations</option>
+                                @foreach (var org in Model.AvailableOrganizations)
+                                {
+                                    <option value="@org.Id" selected="@(Model.FilterOrganizationId == org.Id)">@org.Name</option>
+                                }
+                            </select>
+                        </div>
+                        <div class="col-md-2">
+                            <label for="FilterOfficeId" class="form-label text-muted small">Office</label>
+                            <select name="FilterOfficeId" id="FilterOfficeId" class="form-select border-0 bg-light" style="border-radius: 12px;">
+                                <option value="">All Offices</option>
+                                @foreach (var office in Model.AvailableOffices)
+                                {
+                                    <option value="@office.Id" selected="@(Model.FilterOfficeId == office.Id)">@office.Name</option>
+                                }
+                            </select>
+                        </div>
+                        <div class="col-md-2">
+                            <label for="FilterSubOfficeId" class="form-label text-muted small">Sub Office</label>
+                            <select name="FilterSubOfficeId" id="FilterSubOfficeId" class="form-select border-0 bg-light" style="border-radius: 12px;">
+                                <option value="">All Sub Offices</option>
+                                @foreach (var subOffice in Model.AvailableSubOffices)
+                                {
+                                    <option value="@subOffice.Id" selected="@(Model.FilterSubOfficeId == subOffice.Id)">@subOffice.Name</option>
+                                }
+                            </select>
+                        </div>
+                        <div class="col-md-2">
+                            <label for="SearchText" class="form-label text-muted small">Search</label>
+                            <input type="text" name="SearchText" id="SearchText" value="@Model.SearchText"
+                                   class="form-control border-0 bg-light" style="border-radius: 12px;" placeholder="Name or Index" />
+                        </div>
+                    </div>
+
+                    <div class="row mt-3">
+                        <div class="col-md-12">
+                            <div class="d-flex gap-2">
+                                <button type="submit" class="btn btn-primary" style="border-radius: 12px;">
+                                    <i class="bi bi-funnel me-1"></i> Apply
+                                </button>
+                                <a asp-page="/Admin/RecoveryReports" class="btn btn-outline-secondary btn-sm" style="border-radius: 12px;">
+                                    <i class="bi bi-x-circle me-1"></i> Clear Filters
+                                </a>
+                            </div>
+                        </div>
+                    </div>
+                </form>
+            </div>
+        </div>
+    </div>
+
+    <!-- Finance Report -->
+    <div class="modern-card">
+        <div class="modern-card-header">
+            <h5 class="modern-card-title">
+                <i class="bi bi-cash-coin" style="color: #f59e0b;"></i>
+                Finance Recovery Report - Payroll Deductions
+            </h5>
+            <small style="color: #6b7280; display: block; margin-top: 0.5rem; font-weight: 400;">Only showing Personal recoveries requiring payroll deduction</small>
+        </div>
+        <div class="modern-card-body">
+                @if (Model.FinanceRecoveryDetails.Any())
+                {
+                    <div class="info-alert">
+                        <i class="bi bi-info-circle" style="font-size: 1.25rem; color: #3b82f6;"></i>
+                        <div style="flex: 1;">
+                            <strong>Total Recoverable:</strong>
+                            @foreach (var currencyGroup in Model.FinanceRecoveryDetails.GroupBy(f => f.Currency).OrderBy(g => g.Key))
+                            {
+                                <span class="currency-badge">
+                                    @currencyGroup.Key: @currencyGroup.Sum(f => f.Amount).ToString("N2")
+                                </span>
+                            }
+                            <strong style="margin-left: 1rem; color: #1e40af;">Total Staff: @Model.FinanceRecoveryDetails.Count</strong>
+                        </div>
+                    </div>
+
+                    <div class="table-responsive">
+                        <table class="modern-table">
+                            <thead>
+                                <tr>
+                                    <th>Index Number</th>
+                                    <th>Staff Name</th>
+                                    <th>Organization</th>
+                                    <th class="text-end">Amount</th>
+                                    <th>Currency</th>
+                                    <th>Phone Number</th>
+                                    <th>Office</th>
+                                    <th>Sub Office</th>
+                                    <th class="text-center">Effective Date</th>
+                                    <th class="text-center">Expiration Date</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                @foreach (var finance in Model.FinanceRecoveryDetails)
+                                {
+                                    <tr>
+                                        <td><strong style="color: #1f2937;">@finance.IndexNumber</strong></td>
+                                        <td style="font-weight: 500;">@finance.StaffName</td>
+                                        <td>
+                                            @if (!string.IsNullOrEmpty(finance.OrgUnit))
+                                            {
+                                                <span style="font-size: 0.875rem; color: #6b7280;">@finance.OrgUnit</span>
+                                            }
+                                            else
+                                            {
+                                                <span class="text-muted">-</span>
+                                            }
+                                        </td>
+                                        <td class="text-end">
+                                            <strong style="color: #dc2626; font-size: 1rem;">@finance.Amount.ToString("N2")</strong>
+                                        </td>
+                                        <td>
+                                            <span class="currency-badge" style="margin-left: 0;">@finance.Currency</span>
+                                        </td>
+                                        <td>
+                                            @if (!string.IsNullOrEmpty(finance.PhoneNumber))
+                                            {
+                                                <span style="font-size: 0.875rem; color: #4b5563;">@finance.PhoneNumber</span>
+                                            }
+                                            else
+                                            {
+                                                <span class="text-muted">-</span>
+                                            }
+                                        </td>
+                                        <td>
+                                            @if (!string.IsNullOrEmpty(finance.Office))
+                                            {
+                                                <span style="font-size: 0.875rem; color: #4b5563;">@finance.Office</span>
+                                            }
+                                            else
+                                            {
+                                                <span class="text-muted">-</span>
+                                            }
+                                        </td>
+                                        <td>
+                                            @if (!string.IsNullOrEmpty(finance.SubOffice))
+                                            {
+                                                <span style="font-size: 0.875rem; color: #4b5563;">@finance.SubOffice</span>
+                                            }
+                                            else
+                                            {
+                                                <span class="text-muted">-</span>
+                                            }
+                                        </td>
+                                        <td class="text-center">
+                                            <span style="font-size: 0.875rem; color: #4b5563;">@finance.EffectiveDate.ToString("yyyy-MM-dd")</span>
+                                        </td>
+                                        <td class="text-center">
+                                            <span style="font-size: 0.875rem; color: #f59e0b; font-weight: 600;">@finance.ExpirationDate.ToString("yyyy-MM-dd")</span>
+                                        </td>
+                                    </tr>
+                                }
+                            </tbody>
+                            <tfoot>
+                                <tr>
+                                    <td colspan="3" class="text-end"><strong>Total:</strong></td>
+                                    <td class="text-end">
+                                        <strong style="color: #dc2626; font-size: 1.1rem;">@Model.FinanceRecoveryDetails.Sum(f => f.Amount).ToString("N2")</strong>
+                                    </td>
+                                    <td colspan="6"></td>
+                                </tr>
+                            </tfoot>
+                        </table>
+                    </div>
+
+                    <div class="mt-4">
+                        <button type="button" class="btn-export" onclick="document.getElementById('exportFinanceForm').submit()">
+                            <i class="bi bi-download"></i>Download Finance Report (CSV)
+                        </button>
+                    </div>
+                }
+                else
+                {
+                    <div class="empty-state">
+                        <i class="bi bi-cash-stack empty-icon"></i>
+                        <div class="empty-text">No personal recoveries found for the selected filters.</div>
+                        <div class="empty-hint">Try adjusting your date range or batch selection.</div>
+                    </div>
+                }
+        </div>
+    </div>
+</div>
+
+<!-- Hidden Export Form -->
+<form id="exportFinanceForm" method="post" asp-page-handler="Export" asp-route-format="finance" style="display:none;">
+    <input type="hidden" name="StartDate" value="@Model.StartDate?.ToString("yyyy-MM-dd")" />
+    <input type="hidden" name="EndDate" value="@Model.EndDate?.ToString("yyyy-MM-dd")" />
+    <input type="hidden" name="BatchId" value="@Model.BatchId" />
+    <input type="hidden" name="RecoveryType" value="@Model.RecoveryType" />
+</form>
+
+@section Scripts {
+    <script>
+        // Auto-submit form when filters change (optional)
+        document.querySelectorAll('#StartDate, #EndDate, #BatchId, #RecoveryType').forEach(element => {
+            element.addEventListener('change', function() {
+                // Uncomment to enable auto-submit
+                // this.form.submit();
+            });
+        });
+    </script>
+}

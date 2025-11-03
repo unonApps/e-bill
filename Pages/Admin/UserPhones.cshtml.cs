@@ -18,19 +18,28 @@ namespace TAB.Web.Pages.Admin
         private readonly ILogger<UserPhonesModel> _logger;
         private readonly IAuditLogService _auditLogService;
         private readonly INotificationService _notificationService;
+        private readonly IUserPhoneHistoryService _historyService;
+        private readonly IEnhancedEmailService _enhancedEmailService;
+        private readonly IHttpContextAccessor _httpContextAccessor;
 
         public UserPhonesModel(
             ApplicationDbContext context,
             IUserPhoneService phoneService,
             ILogger<UserPhonesModel> logger,
             IAuditLogService auditLogService,
-            INotificationService notificationService)
+            INotificationService notificationService,
+            IUserPhoneHistoryService historyService,
+            IEnhancedEmailService enhancedEmailService,
+            IHttpContextAccessor httpContextAccessor)
         {
             _context = context;
             _phoneService = phoneService;
             _logger = logger;
             _auditLogService = auditLogService;
             _notificationService = notificationService;
+            _historyService = historyService;
+            _enhancedEmailService = enhancedEmailService;
+            _httpContextAccessor = httpContextAccessor;
         }
 
         [BindProperty(SupportsGet = true)]
@@ -63,6 +72,10 @@ namespace TAB.Web.Pages.Admin
             [Display(Name = "Phone Type")]
             public string PhoneType { get; set; } = "Mobile";
 
+            [Required]
+            [Display(Name = "Line Type")]
+            public LineType LineType { get; set; } = LineType.Secondary;
+
             [Display(Name = "Location")]
             public string? Location { get; set; }
 
@@ -93,6 +106,10 @@ namespace TAB.Web.Pages.Admin
             [Required]
             [Display(Name = "Phone Type")]
             public string PhoneType { get; set; } = "Mobile";
+
+            [Required]
+            [Display(Name = "Line Type")]
+            public LineType LineType { get; set; } = LineType.Secondary;
 
             [Display(Name = "Location")]
             public string? Location { get; set; }
@@ -136,6 +153,9 @@ namespace TAB.Web.Pages.Admin
             {
                 PhoneNumber = Request.Form["Input.PhoneNumber"].FirstOrDefault() ?? string.Empty,
                 PhoneType = Request.Form["Input.PhoneType"].FirstOrDefault() ?? "Mobile",
+                LineType = Enum.TryParse<LineType>(Request.Form["Input.LineType"], out var lineType)
+                    ? lineType
+                    : LineType.Secondary,
                 Location = Request.Form["Input.Location"].FirstOrDefault(),
                 Notes = Request.Form["Input.Notes"].FirstOrDefault(),
                 IsPrimary = Request.Form["Input.IsPrimary"].FirstOrDefault() == "true",
@@ -146,6 +166,17 @@ namespace TAB.Web.Pages.Admin
                     ? status
                     : PhoneStatus.Active
             };
+
+            // Sync LineType with IsPrimary - they must match
+            if (Input.LineType == LineType.Primary)
+            {
+                Input.IsPrimary = true;
+            }
+            else
+            {
+                // If LineType is not Primary, IsPrimary must be false
+                Input.IsPrimary = false;
+            }
 
             _logger.LogInformation("Manually created Input - PhoneNumber: {PhoneNumber}, PhoneType: {PhoneType}",
                 Input.PhoneNumber, Input.PhoneType);
@@ -253,7 +284,8 @@ namespace TAB.Web.Pages.Admin
                     Input.Notes,
                     Input.ClassOfServiceId,
                     forceReassign,
-                    Input.Status
+                    Input.Status,
+                    Input.LineType
                 );
 
                 if (success)
@@ -456,6 +488,17 @@ namespace TAB.Web.Pages.Admin
 
             try
             {
+                // Sync LineType with IsPrimary - they must match
+                if (EditInput.LineType == LineType.Primary)
+                {
+                    EditInput.IsPrimary = true;
+                }
+                else
+                {
+                    // If LineType is not Primary, IsPrimary must be false
+                    EditInput.IsPrimary = false;
+                }
+
                 // Get the existing phone record
                 var phone = await _context.UserPhones.FindAsync(EditInput.Id);
                 if (phone == null)
@@ -470,6 +513,7 @@ namespace TAB.Web.Pages.Admin
                 {
                     { "PhoneNumber", phone.PhoneNumber },
                     { "PhoneType", phone.PhoneType },
+                    { "LineType", phone.LineType.ToString() },
                     { "Location", phone.Location ?? "" },
                     { "Notes", phone.Notes ?? "" },
                     { "IsPrimary", phone.IsPrimary },
@@ -483,13 +527,14 @@ namespace TAB.Web.Pages.Admin
                 // Update the phone properties
                 phone.PhoneNumber = EditInput.PhoneNumber;
                 phone.PhoneType = EditInput.PhoneType;
+                phone.LineType = EditInput.LineType;
                 phone.Location = EditInput.Location;
                 phone.Notes = EditInput.Notes;
                 phone.IsPrimary = EditInput.IsPrimary;
                 phone.ClassOfServiceId = EditInput.ClassOfServiceId;
                 phone.Status = EditInput.Status;
 
-                // If setting as primary, remove primary from others
+                // If setting as primary, remove primary from others and set their LineType to Secondary
                 if (EditInput.IsPrimary)
                 {
                     var otherPhones = await _context.UserPhones
@@ -499,6 +544,8 @@ namespace TAB.Web.Pages.Admin
                     foreach (var otherPhone in otherPhones)
                     {
                         otherPhone.IsPrimary = false;
+                        // Set LineType to Secondary when removing primary status
+                        otherPhone.LineType = LineType.Secondary;
                     }
                 }
 
@@ -512,11 +559,48 @@ namespace TAB.Web.Pages.Admin
                 var performedBy = base.User.Identity?.Name ?? "System";
                 var ipAddress = HttpContext.Connection.RemoteIpAddress?.ToString();
 
+                // Add history tracking for changed fields
+                var changedFields = new List<string>();
+                if (oldValues["PhoneNumber"].ToString() != EditInput.PhoneNumber) changedFields.Add("PhoneNumber");
+                if (oldValues["PhoneType"].ToString() != EditInput.PhoneType) changedFields.Add("PhoneType");
+                if (oldValues["LineType"].ToString() != EditInput.LineType.ToString()) changedFields.Add("LineType");
+                if ((oldValues["Location"].ToString() ?? "") != (EditInput.Location ?? "")) changedFields.Add("Location");
+                if ((oldValues["Notes"].ToString() ?? "") != (EditInput.Notes ?? "")) changedFields.Add("Notes");
+                if ((bool)oldValues["IsPrimary"] != EditInput.IsPrimary) changedFields.Add("IsPrimary");
+                if ((oldValues["ClassOfServiceId"].ToString() ?? "") != (EditInput.ClassOfServiceId?.ToString() ?? "")) changedFields.Add("ClassOfService");
+                if (oldStatus != EditInput.Status) changedFields.Add("Status");
+
+                if (changedFields.Count > 0)
+                {
+                    // Generate description based on what changed
+                    string description = $"Phone updated: {string.Join(", ", changedFields)}";
+                    if (changedFields.Contains("LineType"))
+                    {
+                        description = $"Line type changed from {oldValues["LineType"]} to {EditInput.LineType}";
+                    }
+                    else if (changedFields.Contains("IsPrimary") && EditInput.IsPrimary)
+                    {
+                        description = "Set as primary phone";
+                    }
+                    else if (changedFields.Contains("Status"))
+                    {
+                        description = $"Status changed from {oldStatus} to {EditInput.Status}";
+                    }
+
+                    await _historyService.AddHistoryAsync(
+                        phone.Id,
+                        changedFields.Contains("LineType") || changedFields.Contains("IsPrimary") ? "LineTypeChanged" : "Updated",
+                        description,
+                        performedBy
+                    );
+                }
+
                 // Prepare new values for audit
                 var newValues = new Dictionary<string, object>
                 {
                     { "PhoneNumber", EditInput.PhoneNumber },
                     { "PhoneType", EditInput.PhoneType },
+                    { "LineType", EditInput.LineType.ToString() },
                     { "Location", EditInput.Location ?? "" },
                     { "Notes", EditInput.Notes ?? "" },
                     { "IsPrimary", EditInput.IsPrimary },
@@ -558,6 +642,17 @@ namespace TAB.Web.Pages.Admin
                             EditInput.Status
                         );
                     }
+
+                    // Send email notification for status change
+                    var userWithEmail = await _context.EbillUsers
+                        .Include(u => u.ApplicationUser)
+                        .FirstOrDefaultAsync(u => u.IndexNumber == phone.IndexNumber);
+
+                    if (userWithEmail?.ApplicationUser != null && !string.IsNullOrEmpty(userWithEmail.Email))
+                    {
+                        await SendPhoneStatusChangedEmailAsync(userWithEmail, phone.PhoneNumber, oldStatus, EditInput.Status);
+                        _logger.LogInformation($"Sent phone status changed email for {phone.PhoneNumber}: {oldStatus} → {EditInput.Status}");
+                    }
                 }
 
                 // If phone number changed, send notification
@@ -568,6 +663,24 @@ namespace TAB.Web.Pages.Admin
                         oldPhoneNumber,
                         EditInput.PhoneNumber
                     );
+                }
+
+                // If LineType changed, send email notification
+                if (changedFields.Contains("LineType") && ebillUser != null)
+                {
+                    // Load ApplicationUser for email
+                    var userWithEmail = await _context.EbillUsers
+                        .Include(u => u.ApplicationUser)
+                        .FirstOrDefaultAsync(u => u.IndexNumber == phone.IndexNumber);
+
+                    if (userWithEmail?.ApplicationUser != null && !string.IsNullOrEmpty(userWithEmail.Email))
+                    {
+                        var oldLineType = (LineType)Enum.Parse(typeof(LineType), oldValues["LineType"].ToString()!);
+                        var newLineType = EditInput.LineType;
+
+                        await SendPhoneTypeChangedEmailAsync(userWithEmail, phone.PhoneNumber, oldLineType, newLineType);
+                        _logger.LogInformation($"Sent phone type changed email for {phone.PhoneNumber}: {oldLineType} → {newLineType}");
+                    }
                 }
 
                 StatusMessage = "Phone updated successfully.";
@@ -581,6 +694,20 @@ namespace TAB.Web.Pages.Admin
             }
 
             return RedirectToPage(new { IndexNumber });
+        }
+
+        public async Task<JsonResult> OnGetPhoneHistoryAsync(int phoneId)
+        {
+            try
+            {
+                var history = await _historyService.GetHistoryForPhoneAsync(phoneId);
+                return new JsonResult(history);
+            }
+            catch (Exception ex)
+            {
+                _logger.LogError(ex, "Error fetching history for phone {PhoneId}", phoneId);
+                return new JsonResult(new List<UserPhoneHistory>());
+            }
         }
 
         private async Task LoadDataAsync()
@@ -609,6 +736,189 @@ namespace TAB.Web.Pages.Admin
                 .Where(p => p.IsActive)
                 .OrderBy(p => p.PhoneNumber)
                 .ToListAsync();
+        }
+
+        // Email notification helper methods
+        private async Task SendPhoneTypeChangedEmailAsync(EbillUser user, string phoneNumber, LineType oldLineType, LineType newLineType)
+        {
+            try
+            {
+                if (user.ApplicationUser == null || string.IsNullOrEmpty(user.Email))
+                {
+                    _logger.LogWarning("Cannot send phone type changed email: User {IndexNumber} has no email", user.IndexNumber);
+                    return;
+                }
+
+                var userPhonesUrl = GetUserPhonesUrl(user.IndexNumber);
+                var (badgeColor, textColor) = GetLineTypeBadgeColors(newLineType);
+                var statusDescription = GetLineTypeDescription(newLineType);
+
+                var emailData = new Dictionary<string, string>
+                {
+                    { "FirstName", user.FirstName },
+                    { "LastName", user.LastName },
+                    { "PhoneNumber", phoneNumber },
+                    { "OldLineType", oldLineType.ToString() },
+                    { "NewLineType", newLineType.ToString() },
+                    { "LineTypeBadgeColor", badgeColor },
+                    { "LineTypeTextColor", textColor },
+                    { "StatusDescription", statusDescription },
+                    { "IndexNumber", user.IndexNumber },
+                    { "ChangeDate", DateTime.Now.ToString("MMMM dd, yyyy 'at' hh:mm tt") },
+                    { "UserPhonesUrl", userPhonesUrl }
+                };
+
+                await _enhancedEmailService.SendTemplatedEmailAsync(
+                    to: user.Email,
+                    templateCode: "PHONE_TYPE_CHANGED",
+                    data: emailData,
+                    createdBy: "System"
+                );
+
+                _logger.LogInformation("Sent phone type changed email to {Email} for phone {PhoneNumber}", user.Email, phoneNumber);
+            }
+            catch (Exception ex)
+            {
+                _logger.LogError(ex, "Failed to send phone type changed email to {Email}", user.Email);
+            }
+        }
+
+        private string GetUserPhonesUrl(string indexNumber)
+        {
+            var request = _httpContextAccessor.HttpContext?.Request;
+            if (request != null)
+            {
+                var baseUrl = $"{request.Scheme}://{request.Host}";
+                return $"{baseUrl}/Admin/UserPhones?indexNumber={indexNumber}";
+            }
+            return $"/Admin/UserPhones?indexNumber={indexNumber}";
+        }
+
+        private (string badgeColor, string textColor) GetLineTypeBadgeColors(LineType lineType)
+        {
+            return lineType switch
+            {
+                LineType.Primary => ("#10b981", "#ffffff"), // Green background, white text
+                LineType.Secondary => ("#dbeafe", "#1e40af"), // Light blue background, dark blue text
+                LineType.Reserved => ("#fef3c7", "#92400e"), // Light yellow background, dark yellow text
+                _ => ("#e5e7eb", "#1f2937") // Gray fallback
+            };
+        }
+
+        private string GetLineTypeDescription(LineType lineType)
+        {
+            return lineType switch
+            {
+                LineType.Primary => @"
+                    <li>This is now your official primary phone number</li>
+                    <li>It will be used as your main contact number in the system</li>
+                    <li>All official communications will reference this number</li>
+                    <li>You are responsible for all calls made on this number</li>
+                    <li>This number will appear on your official records and reports</li>",
+
+                LineType.Secondary => @"
+                    <li>This is a secondary phone number assigned to your account</li>
+                    <li>It serves as an additional contact line</li>
+                    <li>You remain responsible for calls made on this number</li>
+                    <li>This number is for official UNON business use</li>
+                    <li>Secondary numbers appear in your phone list but are not your primary contact</li>",
+
+                LineType.Reserved => @"
+                    <li>This phone number has been reserved for your account</li>
+                    <li>Reserved numbers are held for future assignment or special purposes</li>
+                    <li>You may have limited or no active usage on this line</li>
+                    <li>Contact ICTS if you need this number activated</li>
+                    <li>This status is typically temporary pending activation or assignment</li>",
+
+                _ => @"<li>Line type status updated</li>"
+            };
+        }
+
+        private async Task SendPhoneStatusChangedEmailAsync(EbillUser user, string phoneNumber, PhoneStatus oldStatus, PhoneStatus newStatus)
+        {
+            try
+            {
+                if (user.ApplicationUser == null || string.IsNullOrEmpty(user.Email))
+                {
+                    _logger.LogWarning("Cannot send phone status changed email: User {IndexNumber} has no email", user.IndexNumber);
+                    return;
+                }
+
+                var userPhonesUrl = GetUserPhonesUrl(user.IndexNumber);
+                var (oldBadgeColor, oldTextColor) = GetStatusBadgeColors(oldStatus);
+                var (newBadgeColor, newTextColor) = GetStatusBadgeColors(newStatus);
+                var statusDescription = GetStatusDescription(newStatus);
+
+                var emailData = new Dictionary<string, string>
+                {
+                    { "FirstName", user.FirstName },
+                    { "LastName", user.LastName },
+                    { "PhoneNumber", phoneNumber },
+                    { "OldStatus", oldStatus.ToString() },
+                    { "NewStatus", newStatus.ToString() },
+                    { "OldStatusBadgeColor", oldBadgeColor },
+                    { "OldStatusTextColor", oldTextColor },
+                    { "NewStatusBadgeColor", newBadgeColor },
+                    { "NewStatusTextColor", newTextColor },
+                    { "StatusDescription", statusDescription },
+                    { "IndexNumber", user.IndexNumber },
+                    { "ChangeDate", DateTime.Now.ToString("MMMM dd, yyyy 'at' hh:mm tt") },
+                    { "UserPhonesUrl", userPhonesUrl }
+                };
+
+                await _enhancedEmailService.SendTemplatedEmailAsync(
+                    to: user.Email,
+                    templateCode: "PHONE_STATUS_CHANGED",
+                    data: emailData,
+                    createdBy: "System"
+                );
+
+                _logger.LogInformation("Sent phone status changed email to {Email} for phone {PhoneNumber}", user.Email, phoneNumber);
+            }
+            catch (Exception ex)
+            {
+                _logger.LogError(ex, "Failed to send phone status changed email to {Email}", user.Email);
+            }
+        }
+
+        private (string badgeColor, string textColor) GetStatusBadgeColors(PhoneStatus status)
+        {
+            return status switch
+            {
+                PhoneStatus.Active => ("#10b981", "#ffffff"), // Green background, white text
+                PhoneStatus.Suspended => ("#fbbf24", "#78350f"), // Yellow background, dark text
+                PhoneStatus.Deactivated => ("#ef4444", "#ffffff"), // Red background, white text
+                _ => ("#9ca3af", "#1f2937") // Gray background, dark text
+            };
+        }
+
+        private string GetStatusDescription(PhoneStatus status)
+        {
+            return status switch
+            {
+                PhoneStatus.Active => @"
+                    <li>Your phone line is now active and fully operational</li>
+                    <li>You can make and receive calls on this number</li>
+                    <li>Call charges will be billed to your account</li>
+                    <li>You are responsible for all usage on this line</li>
+                    <li>Please review call logs regularly to ensure accuracy</li>",
+
+                PhoneStatus.Suspended => @"
+                    <li>Your phone line has been temporarily suspended</li>
+                    <li>You may have limited or no ability to make calls</li>
+                    <li>This is typically due to administrative review or policy compliance</li>
+                    <li>Contact ICTS Service Desk for more information</li>
+                    <li>The line may be reactivated once issues are resolved</li>",
+
+                PhoneStatus.Deactivated => @"
+                    <li>Your phone line has been deactivated</li>
+                    <li>You cannot make or receive calls on this number</li>
+                    <li>This may be due to end of assignment, policy violation, or administrative action</li>
+                    <li>Historical call logs remain available for your records</li>
+                    <li>Contact ICTS if you believe this is in error</li>",
+
+                _ => @"<li>Phone status has been updated</li>"
+            };
         }
     }
 }

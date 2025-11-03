@@ -5,268 +5,6 @@
 }
 
 <style>
-    /* Dashboard Header Styles */
-    .dashboard-header {
-        background: linear-gradient(135deg, #009EDB 0%, #0084c7 100%);
-        border-radius: 12px;
-        padding: 1.5rem 2rem;
-        margin-bottom: 2rem;
-        color: white;
-        box-shadow: 0 4px 20px rgba(0, 158, 219, 0.2);
-    }
-    
-    .header-content {
-        display: flex;
-        justify-content: space-between;
-        align-items: center;
-        flex-wrap: wrap;
-        gap: 1rem;
-    }
-    
-    .welcome-section {
-        flex: 1;
-    }
-    
-    .dashboard-title {
-        font-size: 1.75rem;
-        font-weight: 600;
-        margin-bottom: 0.3rem;
-        color: white;
-    }
-    
-    .dashboard-subtitle {
-        font-size: 1rem;
-        opacity: 0.95;
-        margin: 0;
-    }
-    
-    .header-actions {
-        display: flex;
-        align-items: center;
-        gap: 1rem;
-    }
-    
-    .current-date {
-        background: rgba(255, 255, 255, 0.2);
-        backdrop-filter: blur(10px);
-        padding: 0.5rem 1rem;
-        border-radius: 8px;
-        display: flex;
-        align-items: center;
-        gap: 0.5rem;
-        font-size: 0.9rem;
-    }
-    
-    .create-user-btn {
-        background: rgba(255, 255, 255, 0.95);
-        color: #009EDB;
-        border: 2px solid rgba(255, 255, 255, 0.3);
-        padding: 10px 20px;
-        border-radius: 8px;
-        text-decoration: none;
-        font-weight: 600;
-        font-size: 14px;
-        transition: all 0.3s ease;
-        display: inline-flex;
-        align-items: center;
-        gap: 8px;
-        backdrop-filter: blur(10px);
-        cursor: pointer;
-    }
-    
-    .create-user-btn:hover {
-        background: white;
-        color: #0084c7;
-        text-decoration: none;
-        transform: translateY(-2px);
-        box-shadow: 0 8px 24px rgba(0, 0, 0, 0.15);
-    }
-    
-    /* Professional Filter Section with UN Blue Color Scheme */
-    .filter-section {
-        background: #ffffff;
-        border: 1px solid #e5e7eb;
-        border-radius: 12px;
-        padding: 1.5rem;
-        box-shadow: 0 2px 8px rgba(0, 0, 0, 0.04);
-        margin-bottom: 2rem;
-    }
-    
-    .filter-form {
-        width: 100%;
-    }
-    
-    .filter-grid {
-        display: grid;
-        grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
-        gap: 1rem;
-        align-items: end;
-    }
-    
-    .filter-group {
-        display: flex;
-        flex-direction: column;
-        gap: 0.5rem;
-    }
-    
-    .filter-label {
-        font-size: 0.875rem;
-        font-weight: 600;
-        color: #475569;
-        display: flex;
-        align-items: center;
-        gap: 0.5rem;
-    }
-    
-    .filter-label i {
-        color: #009EDB;
-        font-size: 1rem;
-    }
-    
-    .filter-select,
-    .filter-input {
-        width: 100%;
-        padding: 0.625rem 0.875rem;
-        border: 1px solid #d1d5db;
-        border-radius: 8px;
-        font-size: 0.875rem;
-        background: #ffffff;
-        color: #1e293b;
-        transition: all 0.2s;
-        appearance: none;
-    }
-    
-    .filter-select {
-        background-image: url("data:image/svg+xml,%3csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 16 16'%3e%3cpath fill='none' stroke='%23475569' stroke-linecap='round' stroke-linejoin='round' stroke-width='2' d='M2 5l6 6 6-6'/%3e%3c/svg%3e");
-        background-repeat: no-repeat;
-        background-position: right 12px center;
-        background-size: 14px 10px;
-        padding-right: 2.5rem;
-    }
-    
-    .filter-select:hover,
-    .filter-input:hover {
-        border-color: #009EDB;
-    }
-    
-    .filter-select:focus,
-    .filter-input:focus {
-        outline: none;
-        border-color: #009EDB;
-        box-shadow: 0 0 0 3px rgba(0, 158, 219, 0.1);
-    }
-    
-    .filter-input::placeholder {
-        color: #9ca3af;
-    }
-    
-    .filter-actions {
-        display: flex;
-        gap: 0.75rem;
-        align-items: flex-end;
-        grid-column: span 1;
-    }
-    
-    .filter-btn {
-        background: #009EDB;
-        color: #ffffff;
-        border: none;
-        padding: 0.625rem 1.25rem;
-        border-radius: 8px;
-        font-size: 0.875rem;
-        font-weight: 600;
-        cursor: pointer;
-        transition: all 0.2s;
-        display: inline-flex;
-        align-items: center;
-        gap: 0.5rem;
-        white-space: nowrap;
-    }
-    
-    .filter-btn:hover {
-        background: #0084c7;
-        transform: translateY(-1px);
-        box-shadow: 0 4px 12px rgba(0, 158, 219, 0.2);
-    }
-    
-    .filter-btn:active {
-        transform: translateY(0);
-    }
-    
-    .clear-filter-btn {
-        background: #ffffff;
-        color: #ef4444;
-        border: 1px solid #ef4444;
-        padding: 0.625rem 1.25rem;
-        border-radius: 8px;
-        font-size: 0.875rem;
-        font-weight: 600;
-        cursor: pointer;
-        transition: all 0.2s;
-        display: inline-flex;
-        align-items: center;
-        gap: 0.5rem;
-        text-decoration: none;
-        white-space: nowrap;
-    }
-    
-    .clear-filter-btn:hover {
-        background: #fef2f2;
-        color: #dc2626;
-        border-color: #dc2626;
-        text-decoration: none;
-        transform: translateY(-1px);
-    }
-    
-    .clear-filter-btn:active {
-        transform: translateY(0);
-    }
-    
-    /* Responsive adjustments for filter section */
-    @@media (min-width: 1200px) {
-        .filter-grid {
-            grid-template-columns: repeat(3, 1fr) repeat(2, minmax(180px, 1fr)) auto;
-        }
-        
-        .filter-actions {
-            grid-column: span 1;
-        }
-    }
-    
-    @@media (min-width: 768px) and (max-width: 1199px) {
-        .filter-grid {
-            grid-template-columns: repeat(2, 1fr);
-        }
-        
-        .filter-actions {
-            grid-column: span 2;
-            justify-content: flex-start;
-        }
-    }
-    
-    @@media (max-width: 768px) {
-        .filter-section {
-            padding: 1rem;
-        }
-        
-        .filter-grid {
-            grid-template-columns: 1fr;
-            gap: 0.75rem;
-        }
-        
-        .filter-actions {
-            grid-column: span 1;
-            flex-direction: column;
-            width: 100%;
-        }
-        
-        .filter-btn,
-        .clear-filter-btn {
-            width: 100%;
-            justify-content: center;
-        }
-    }
-    
     /* Updated Stats Grid */
     .stats-grid {
         display: grid;
@@ -274,7 +12,7 @@
         gap: 1.5rem;
         margin-bottom: 2rem;
     }
-    
+
     .stat-card {
         background: white;
         border-radius: 12px;
@@ -282,19 +20,51 @@
         box-shadow: 0 2px 12px rgba(0, 0, 0, 0.06);
         transition: all 0.3s ease;
         border: 1px solid #f1f5f9;
+        position: relative;
+        overflow: hidden;
     }
-    
+
+    .stat-card::before {
+        content: '';
+        position: absolute;
+        top: 0;
+        left: 0;
+        right: 0;
+        height: 4px;
+        background: linear-gradient(90deg, var(--gradient-start), var(--gradient-end));
+    }
+
+    .stat-card.stat-card-primary {
+        --gradient-start: #009EDB;
+        --gradient-end: #0084c7;
+    }
+
+    .stat-card.stat-card-success {
+        --gradient-start: #10b981;
+        --gradient-end: #059669;
+    }
+
+    .stat-card.stat-card-warning {
+        --gradient-start: #f59e0b;
+        --gradient-end: #d97706;
+    }
+
+    .stat-card.stat-card-info {
+        --gradient-start: #06b6d4;
+        --gradient-end: #0891b2;
+    }
+
     .stat-card:hover {
         transform: translateY(-4px);
         box-shadow: 0 8px 24px rgba(0, 0, 0, 0.12);
     }
-    
+
     .stat-content {
         display: flex;
         align-items: center;
-        gap: 1rem;
+        justify-content: space-between;
     }
-    
+
     .stat-icon {
         width: 56px;
         height: 56px;
@@ -303,30 +73,33 @@
         align-items: center;
         justify-content: center;
         font-size: 24px;
-        color: white;
         flex-shrink: 0;
     }
-    
-    .stat-icon-primary { 
-        background: linear-gradient(135deg, #009EDB, #0084c7); 
+
+    .stat-icon-primary {
+        background: rgba(0, 158, 219, 0.1);
+        color: #009EDB;
     }
-    
-    .stat-icon-success { 
-        background: linear-gradient(135deg, #10b981, #059669); 
+
+    .stat-icon-success {
+        background: rgba(16, 185, 129, 0.1);
+        color: #10b981;
     }
-    
-    .stat-icon-warning { 
-        background: linear-gradient(135deg, #f59e0b, #d97706); 
+
+    .stat-icon-warning {
+        background: rgba(245, 158, 11, 0.1);
+        color: #f59e0b;
     }
-    
-    .stat-icon-info { 
-        background: linear-gradient(135deg, #06b6d4, #0891b2); 
+
+    .stat-icon-info {
+        background: rgba(6, 182, 212, 0.1);
+        color: #06b6d4;
     }
-    
+
     .stat-details {
-        flex: 1;
+        text-align: right;
     }
-    
+
     .stat-number {
         font-size: 2rem;
         font-weight: 700;
@@ -334,7 +107,7 @@
         line-height: 1;
         margin-bottom: 0.25rem;
     }
-    
+
     .stat-label {
         font-size: 0.875rem;
         color: #64748b;
@@ -700,271 +473,472 @@
     
     /* Responsive Styles */
     @@media (max-width: 768px) {
-        .dashboard-header {
-            padding: 1.25rem;
+        /* Card header mobile adjustments */
+        .card-header.border-0.py-4 {
+            padding: 1rem !important;
         }
-        
-        .dashboard-title {
-            font-size: 1.25rem;
-        }
-        
-        .dashboard-subtitle {
-            font-size: 0.875rem;
-        }
-        
-        .header-content {
-            flex-direction: column;
-            align-items: flex-start;
-        }
-        
-        .header-actions {
-            width: 100%;
-            flex-direction: column;
-            gap: 0.75rem;
-        }
-        
-        .current-date {
-            width: 100%;
-            justify-content: center;
-        }
-        
-        .create-user-btn {
-            width: 100%;
-            justify-content: center;
-        }
-        
-        .stats-grid {
-            grid-template-columns: repeat(2, 1fr);
+
+        .card-header .d-flex {
+            flex-direction: column !important;
             gap: 1rem;
         }
-        
+
+        .card-header .input-group {
+            max-width: 100% !important;
+        }
+
+        /* Filter section mobile */
+        .card-body.p-4 {
+            padding: 1rem !important;
+        }
+
+        .col-md-4,
+        .col-md-6 {
+            flex: 0 0 100%;
+            max-width: 100%;
+        }
+
+        /* Statistics cards - better mobile layout */
+        .row.g-3.mb-4 {
+            margin-left: -0.5rem !important;
+            margin-right: -0.5rem !important;
+            gap: 0.5rem !important;
+        }
+
+        .row.g-3.mb-4 .col-lg-3 {
+            flex: 0 0 calc(50% - 0.5rem);
+            max-width: calc(50% - 0.5rem);
+            padding: 0 !important;
+        }
+
         .stat-card {
-            padding: 1rem;
+            padding: 0.75rem;
+            margin-bottom: 0;
         }
-        
-        .stat-number {
-            font-size: 1.5rem;
+
+        .stat-card::before {
+            height: 3px;
         }
-        
+
+        .stat-content {
+            flex-direction: column;
+            align-items: flex-start;
+            gap: 0.5rem;
+        }
+
         .stat-icon {
-            width: 44px;
-            height: 44px;
-            font-size: 20px;
+            width: 40px;
+            height: 40px;
+            font-size: 18px;
+        }
+
+        .stat-details {
+            text-align: left;
+        }
+
+        .stat-number {
+            font-size: 1.75rem;
+            font-weight: 800;
+        }
+
+        .stat-label {
+            font-size: 0.7rem;
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
+            font-weight: 600;
+        }
+
+        /* Transform table to mobile cards */
+        .table-responsive {
+            overflow: visible !important;
+        }
+
+        .table-responsive table {
+            border: none !important;
+        }
+
+        .table-responsive thead {
+            display: none;
+        }
+
+        .table-responsive tbody {
+            display: block;
+        }
+
+        /* Mobile user cards */
+        .user-row {
+            display: block !important;
+            background: white;
+            border: 1px solid #e5e7eb;
+            border-radius: 12px;
+            margin-bottom: 1rem;
+            padding: 1rem;
+            box-shadow: 0 1px 3px rgba(0, 0, 0, 0.1);
+        }
+
+        .user-row td {
+            display: block;
+            border: none;
+            padding: 0.5rem 0 !important;
+        }
+
+        .user-row td::before {
+            content: attr(data-label);
+            font-weight: 600;
+            color: #64748b;
+            font-size: 0.75rem;
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
+            display: block;
+            margin-bottom: 0.25rem;
+        }
+
+        .user-row td:first-child::before {
+            content: "User";
+        }
+
+        .user-row td:nth-child(2)::before {
+            content: "Assignment";
+        }
+
+        .user-row td:nth-child(3)::before {
+            content: "Roles";
+        }
+
+        .user-row td:nth-child(4)::before {
+            content: "Status";
+        }
+
+        .user-row td:last-child::before {
+            content: "Actions";
+        }
+
+        /* User avatar smaller on mobile */
+        .user-row .rounded-circle {
+            width: 40px !important;
+            height: 40px !important;
+        }
+
+        .user-row .rounded-circle span {
+            font-size: 14px !important;
+        }
+
+        /* Mobile action buttons */
+        .user-row .btn-group {
+            display: flex !important;
+            flex-direction: row;
+            gap: 0.5rem;
+            width: 100%;
+        }
+
+        .user-row .btn-group .btn {
+            flex: 1;
+            font-size: 0.875rem;
+        }
+
+        /* Badges wrap better on mobile */
+        .user-row .d-flex.flex-wrap {
+            gap: 0.25rem !important;
+        }
+
+        .user-row .badge {
+            font-size: 0.7rem;
+            padding: 2px 6px !important;
+        }
+
+        /* Modal mobile adjustments */
+        .modal-dialog {
+            margin: 0.5rem !important;
+            max-width: calc(100% - 1rem) !important;
+        }
+
+        .modal-header,
+        .modal-body,
+        .modal-footer {
+            padding: 1rem !important;
+        }
+
+        .modal-title {
+            font-size: 1.1rem !important;
+        }
+
+        .modal-body .row .col-md-6 {
+            flex: 0 0 100%;
+            max-width: 100%;
+        }
+
+        .modal-footer {
+            flex-direction: column;
+            gap: 0.5rem;
+        }
+
+        .modal-footer .btn {
+            width: 100%;
+            margin: 0 !important;
+        }
+
+        /* Form controls in modal */
+        .form-control-modern,
+        .form-select-modern {
+            height: 42px !important;
+            font-size: 14px !important;
+        }
+
+        .form-label-modern {
+            font-size: 11px !important;
+        }
+    }
+
+    @@media (max-width: 576px) {
+        /* Optimized single column on very small screens */
+        .row.g-3.mb-4 .col-lg-3 {
+            flex: 0 0 100%;
+            max-width: 100%;
+        }
+
+        /* Compact horizontal stat cards */
+        .stat-card {
+            padding: 0.875rem;
+        }
+
+        .stat-content {
+            flex-direction: row;
+            align-items: center;
+            justify-content: space-between;
+        }
+
+        .stat-icon {
+            width: 50px;
+            height: 50px;
+            font-size: 22px;
+            flex-shrink: 0;
+        }
+
+        .stat-details {
+            text-align: right;
+            flex: 1;
+        }
+
+        .stat-number {
+            font-size: 2rem;
+            font-weight: 800;
+        }
+
+        .stat-label {
+            font-size: 0.75rem;
+        }
+
+        /* Smaller card title */
+        .card-title {
+            font-size: 1rem !important;
+        }
+
+        .card-title + p {
+            font-size: 0.75rem !important;
+        }
+
+        /* Modal adjustments for very small screens */
+        .modal-dialog {
+            margin: 0.25rem !important;
+            max-width: calc(100% - 0.5rem) !important;
+        }
+
+        .modal-header .bg-primary {
+            width: 48px !important;
+            height: 48px !important;
+        }
+
+        .modal-header .bg-primary i {
+            font-size: 20px !important;
+        }
+
+        .modal-title {
+            font-size: 1rem !important;
+        }
+
+        .modal-content {
+            border-radius: 16px !important;
         }
     }
 </style>
 
-<!-- Welcome Banner -->
-<div class="dashboard-header">
-    <div class="header-content">
-        <div class="welcome-section">
-            <h1 class="dashboard-title">
-                <i class="bi bi-people me-2"></i>
-                Welcome Back, @Model.CurrentUserName
-            </h1>
-            <p class="dashboard-subtitle">
-                Manage user accounts, roles, and permissions across the organization
-            </p>
-        </div>
-        <div class="header-actions">
-            <div class="current-date">
-                <i class="bi bi-calendar3"></i>
-                <span>@DateTime.Now.ToString("dddd, MMMM dd, yyyy")</span>
-            </div>
-            <button type="button" class="create-user-btn" data-bs-toggle="modal" data-bs-target="#createUserModal">
-                <i class="bi bi-person-plus"></i>
-                <span>Add New User</span>
-            </button>
-        </div>
-    </div>
-</div>
-
 <!-- Summary Statistics Cards -->
-<div class="stats-grid mb-3">
-    <div class="stat-card">
-        <div class="stat-content">
-            <div class="stat-icon stat-icon-primary">
-                <i class="bi bi-people"></i>
-            </div>
-            <div class="stat-details">
-                <div class="stat-number">@Model.Users.Count</div>
-                <div class="stat-label">Total Users</div>
-            </div>
-        </div>
-    </div>
-    
-    <div class="stat-card">
-        <div class="stat-content">
-            <div class="stat-icon stat-icon-success">
-                <i class="bi bi-person-check"></i>
-            </div>
-            <div class="stat-details">
-                <div class="stat-number">@Model.TotalActiveUsers</div>
-                <div class="stat-label">Active Users</div>
+<div class="row g-3 mb-4">
+    <div class="col-lg-3 col-md-6">
+        <div class="stat-card stat-card-primary">
+            <div class="stat-content">
+                <div class="stat-icon stat-icon-primary">
+                    <i class="bi bi-people"></i>
+                </div>
+                <div class="stat-details">
+                    <div class="stat-number">@Model.Users.Count</div>
+                    <div class="stat-label">Total Users</div>
+                </div>
             </div>
         </div>
     </div>
-    
-    <div class="stat-card">
-        <div class="stat-content">
-            <div class="stat-icon stat-icon-warning">
-                <i class="bi bi-shield-check"></i>
-            </div>
-            <div class="stat-details">
-                <div class="stat-number">@Model.AvailableRoles.Count</div>
-                <div class="stat-label">Available Roles</div>
+
+    <div class="col-lg-3 col-md-6">
+        <div class="stat-card stat-card-success">
+            <div class="stat-content">
+                <div class="stat-icon stat-icon-success">
+                    <i class="bi bi-person-check"></i>
+                </div>
+                <div class="stat-details">
+                    <div class="stat-number">@Model.TotalActiveUsers</div>
+                    <div class="stat-label">Active Users</div>
+                </div>
             </div>
         </div>
     </div>
-    
-    <div class="stat-card">
-        <div class="stat-content">
-            <div class="stat-icon stat-icon-info">
-                <i class="bi bi-building"></i>
+
+    <div class="col-lg-3 col-md-6">
+        <div class="stat-card stat-card-warning">
+            <div class="stat-content">
+                <div class="stat-icon stat-icon-warning">
+                    <i class="bi bi-shield-check"></i>
+                </div>
+                <div class="stat-details">
+                    <div class="stat-number">@Model.AvailableRoles.Count</div>
+                    <div class="stat-label">Available Roles</div>
+                </div>
             </div>
-            <div class="stat-details">
-                <div class="stat-number">@Model.OrganizationUserCounts.Count</div>
-                <div class="stat-label">Organizations</div>
+        </div>
+    </div>
+
+    <div class="col-lg-3 col-md-6">
+        <div class="stat-card stat-card-info">
+            <div class="stat-content">
+                <div class="stat-icon stat-icon-info">
+                    <i class="bi bi-building"></i>
+                </div>
+                <div class="stat-details">
+                    <div class="stat-number">@Model.OrganizationUserCounts.Count</div>
+                    <div class="stat-label">Organizations</div>
+                </div>
             </div>
         </div>
     </div>
 </div>
 
 <!-- Filter Section (Collapsible) -->
-<div class="mb-3">
-    <button class="btn btn-outline-primary" type="button" data-bs-toggle="collapse" data-bs-target="#filterCollapse" aria-expanded="false" aria-controls="filterCollapse">
-        <i class="bi bi-funnel"></i> Show Filters
-    </button>
-</div>
-<div class="collapse" id="filterCollapse">
-<div class="filter-section">
-    <form method="get" class="filter-form" id="filterForm">
-        <div class="filter-grid">
-            <div class="filter-group">
-                <label class="filter-label" for="searchFilter">
-                    <i class="bi bi-search"></i> Search
-                </label>
-                <input type="text" name="SearchTerm" id="searchFilter" class="filter-input filter-search-input" 
-                       placeholder="Name, Email, Username..." value="@Model.SearchTerm" />
-            </div>
-            
-            <div class="filter-group">
-                <label class="filter-label" for="roleFilter">
-                    <i class="bi bi-shield"></i> Role
-                </label>
-                <select name="SelectedRole" id="roleFilter" class="filter-select filter-auto-submit">
-                    <option value="">All Roles</option>
-                    @foreach (var role in Model.AvailableRoles)
-                    {
-                        <option value="@role" selected="@(Model.SelectedRole == role)">@role</option>
-                    }
-                </select>
-            </div>
-            
-            <div class="filter-group">
-                <label class="filter-label" for="statusFilter">
-                    <i class="bi bi-flag"></i> Status
-                </label>
-                <select name="SelectedStatus" id="statusFilter" class="filter-select filter-auto-submit">
-                    <option value="">All Status</option>
-                    <option value="@((int)TAB.Web.Models.UserStatus.Active)" selected="@(Model.SelectedStatus == TAB.Web.Models.UserStatus.Active)">Active</option>
-                    <option value="@((int)TAB.Web.Models.UserStatus.Inactive)" selected="@(Model.SelectedStatus == TAB.Web.Models.UserStatus.Inactive)">Inactive</option>
-                </select>
-            </div>
-            
-            <div class="filter-group">
-                <label class="filter-label" for="orgFilter">
-                    <i class="bi bi-building"></i> Organization
-                </label>
-                <select name="SelectedOrganizationId" id="orgFilter" class="filter-select filter-auto-submit">
-                    <option value="">All Organizations</option>
-                    @foreach (var org in Model.AvailableOrganizations)
-                    {
-                        <option value="@org.Value" selected="@(Model.SelectedOrganizationId?.ToString() == org.Value)">
-                            @org.Text
-                        </option>
-                    }
-                </select>
-            </div>
-            
-            <div class="filter-group">
-                <label class="filter-label" for="officeFilter">
-                    <i class="bi bi-geo-alt"></i> Office
-                </label>
-                <select name="SelectedOfficeId" id="officeFilter" class="filter-select filter-auto-submit">
-                    <option value="">All Offices</option>
-                    @foreach (var office in Model.AvailableOffices)
-                    {
-                        <option value="@office.Value" selected="@(Model.SelectedOfficeId?.ToString() == office.Value)">
-                            @office.Text
-                        </option>
-                    }
-                </select>
-            </div>
-            
-            <div class="filter-actions">
-                @if (!string.IsNullOrEmpty(Model.SearchTerm) || !string.IsNullOrEmpty(Model.SelectedRole) || 
-                     Model.SelectedStatus != null || Model.SelectedOrganizationId != null || Model.SelectedOfficeId != null)
-                {
-                    <a href="/Admin/UserManagement" class="clear-filter-btn">
-                        <i class="bi bi-x-circle"></i> Clear All
-                    </a>
-                }
+<div class="card border-0 shadow-sm mb-4" style="border-radius: 20px;">
+    <div class="card-header bg-white border-0 p-3" style="cursor: pointer; border-radius: 20px 20px 0 0;" data-bs-toggle="collapse" data-bs-target="#filterCollapse">
+        <div class="d-flex justify-content-between align-items-center">
+            <h6 class="mb-0 fw-bold">
+                <i class="bi bi-funnel me-2"></i>Filters
+            </h6>
+            <div class="d-flex align-items-center gap-3">
+                <span class="badge bg-light text-dark" style="font-weight: 500;">
+                    Showing @Model.Users.Count results
+                </span>
+                <i class="bi bi-chevron-down"></i>
             </div>
         </div>
-    </form>
-</div>
+    </div>
+    <div class="collapse @((!string.IsNullOrEmpty(Model.SearchTerm) || !string.IsNullOrEmpty(Model.SelectedRole) || Model.SelectedStatus != null || Model.SelectedOrganizationId != null || Model.SelectedOfficeId != null) ? "show" : "")" id="filterCollapse">
+        <div class="card-body p-4">
+            <form method="get" id="filterForm">
+                <div class="row g-3">
+                    <div class="col-md-4">
+                        <label for="searchFilter" class="form-label">
+                            <i class="bi bi-search text-primary me-1"></i>Search
+                        </label>
+                        <input type="text" name="SearchTerm" id="searchFilter" class="form-control border-0 bg-light"
+                               style="border-radius: 12px;" placeholder="Name, Email, Username..." value="@Model.SearchTerm" />
+                    </div>
+
+                    <div class="col-md-4">
+                        <label for="roleFilter" class="form-label">
+                            <i class="bi bi-shield text-primary me-1"></i>Role
+                        </label>
+                        <select name="SelectedRole" id="roleFilter" class="form-select border-0 bg-light" style="border-radius: 12px;">
+                            <option value="">All Roles</option>
+                            @foreach (var role in Model.AvailableRoles)
+                            {
+                                <option value="@role" selected="@(Model.SelectedRole == role)">@role</option>
+                            }
+                        </select>
+                    </div>
+
+                    <div class="col-md-4">
+                        <label for="statusFilter" class="form-label">
+                            <i class="bi bi-flag text-primary me-1"></i>Status
+                        </label>
+                        <select name="SelectedStatus" id="statusFilter" class="form-select border-0 bg-light" style="border-radius: 12px;">
+                            <option value="">All Status</option>
+                            <option value="@((int)TAB.Web.Models.UserStatus.Active)" selected="@(Model.SelectedStatus == TAB.Web.Models.UserStatus.Active)">Active</option>
+                            <option value="@((int)TAB.Web.Models.UserStatus.Inactive)" selected="@(Model.SelectedStatus == TAB.Web.Models.UserStatus.Inactive)">Inactive</option>
+                        </select>
+                    </div>
+
+                    <div class="col-md-6">
+                        <label for="orgFilter" class="form-label">
+                            <i class="bi bi-building text-primary me-1"></i>Organization
+                        </label>
+                        <select name="SelectedOrganizationId" id="orgFilter" class="form-select border-0 bg-light" style="border-radius: 12px;">
+                            <option value="">All Organizations</option>
+                            @foreach (var org in Model.AvailableOrganizations)
+                            {
+                                <option value="@org.Value" selected="@(Model.SelectedOrganizationId?.ToString() == org.Value)">
+                                    @org.Text
+                                </option>
+                            }
+                        </select>
+                    </div>
+
+                    <div class="col-md-6">
+                        <label for="officeFilter" class="form-label">
+                            <i class="bi bi-geo-alt text-primary me-1"></i>Office
+                        </label>
+                        <select name="SelectedOfficeId" id="officeFilter" class="form-select border-0 bg-light" style="border-radius: 12px;">
+                            <option value="">All Offices</option>
+                            @foreach (var office in Model.AvailableOffices)
+                            {
+                                <option value="@office.Value" selected="@(Model.SelectedOfficeId?.ToString() == office.Value)">
+                                    @office.Text
+                                </option>
+                            }
+                        </select>
+                    </div>
+
+                    <div class="col-12">
+                        <div class="d-flex gap-2 justify-content-end mt-2">
+                            <button type="submit" class="btn btn-primary" style="border-radius: 12px; padding: 0.5rem 1.5rem;">
+                                <i class="bi bi-funnel-fill me-2"></i>Filter
+                            </button>
+                            <a href="/Admin/UserManagement" class="btn btn-outline-secondary" style="border-radius: 12px; padding: 0.5rem 1.5rem;">
+                                <i class="bi bi-x-circle me-2"></i>Clear
+                            </a>
+                        </div>
+                    </div>
+                </div>
+            </form>
+        </div>
+    </div>
 </div>
 
 <script>
-    // Auto-submit form on filter change
+    // Chevron rotation for collapsible filter
     document.addEventListener('DOMContentLoaded', function() {
-        // Handle select changes
-        const autoSubmitElements = document.querySelectorAll('.filter-auto-submit');
-        autoSubmitElements.forEach(element => {
-            element.addEventListener('change', function() {
-                document.getElementById('filterForm').submit();
-            });
-        });
-        
-        // Handle search input with debounce
-        let searchTimeout;
-        const searchInput = document.querySelector('.filter-search-input');
-        if (searchInput) {
-            searchInput.addEventListener('input', function() {
-                clearTimeout(searchTimeout);
-                searchTimeout = setTimeout(() => {
-                    document.getElementById('filterForm').submit();
-                }, 500); // Wait 500ms after user stops typing
-            });
-            
-            // Also submit on Enter key
-            searchInput.addEventListener('keypress', function(e) {
-                if (e.key === 'Enter') {
-                    e.preventDefault();
-                    clearTimeout(searchTimeout);
-                    document.getElementById('filterForm').submit();
-                }
-            });
-        }
-        
-        // Update button text when filters are shown/hidden
-        const filterToggle = document.querySelector('[data-bs-target="#filterCollapse"]');
         const filterCollapse = document.getElementById('filterCollapse');
-        if (filterToggle && filterCollapse) {
+        const chevronIcon = document.querySelector('[data-bs-toggle="collapse"][data-bs-target="#filterCollapse"] .bi-chevron-down');
+
+        if (filterCollapse && chevronIcon) {
             filterCollapse.addEventListener('show.bs.collapse', function () {
-                filterToggle.innerHTML = '<i class="bi bi-funnel-fill"></i> Hide Filters';
+                chevronIcon.classList.remove('bi-chevron-down');
+                chevronIcon.classList.add('bi-chevron-up');
             });
+
             filterCollapse.addEventListener('hide.bs.collapse', function () {
-                filterToggle.innerHTML = '<i class="bi bi-funnel"></i> Show Filters';
+                chevronIcon.classList.remove('bi-chevron-up');
+                chevronIcon.classList.add('bi-chevron-down');
             });
-            
-            // Check if any filters are active and show the filter section
-            const hasActiveFilters = @Html.Raw((!string.IsNullOrEmpty(Model.SearchTerm) || !string.IsNullOrEmpty(Model.SelectedRole) || Model.SelectedStatus != null || Model.SelectedOrganizationId != null || Model.SelectedOfficeId != null).ToString().ToLower());
-            if (hasActiveFilters) {
-                filterCollapse.classList.add('show');
-                filterToggle.innerHTML = '<i class="bi bi-funnel-fill"></i> Hide Filters';
-                filterToggle.setAttribute('aria-expanded', 'true');
+
+            // Check if filter is already shown (due to active filters) and update chevron
+            if (filterCollapse.classList.contains('show')) {
+                chevronIcon.classList.remove('bi-chevron-down');
+                chevronIcon.classList.add('bi-chevron-up');
             }
         }
     });
@@ -993,20 +967,20 @@
         
         <!-- Users List Card -->
         <div class="card border-0 shadow-sm" style="border-radius: 16px;">
-            <div class="card-header bg-gradient border-0 py-4" style="background: linear-gradient(135deg, #3b82f6 0%, #1e40af 100%); border-radius: 16px 16px 0 0;">
+            <div class="card-header border-0 py-4" style="background: white; border-bottom: 3px solid #3b82f6; border-radius: 16px 16px 0 0;">
                 <div class="d-flex justify-content-between align-items-center">
                     <div>
-                        <h5 class="card-title mb-1 text-white fw-bold">
-                            <i class="bi bi-people-fill me-2"></i>Users Directory
+                        <h5 class="card-title mb-1 fw-bold" style="color: #1e293b; font-size: 1.25rem;">
+                            <i class="bi bi-people-fill me-2" style="color: #3b82f6;"></i>Users Directory
                         </h5>
-                        <p class="text-white-50 mb-0">Manage system users and their permissions</p>
+                        <p class="mb-0" style="color: #64748b; font-size: 0.9rem;">Manage system users and their permissions</p>
                     </div>
                     <div class="input-group" style="max-width: 300px;">
-                        <span class="input-group-text bg-white bg-opacity-10 border-0 text-white">
+                        <span class="input-group-text bg-light border-0" style="color: #64748b;">
                             <i class="bi bi-search"></i>
                         </span>
-                        <input type="text" class="form-control bg-white bg-opacity-10 border-0 text-white placeholder-white-50" 
-                               id="searchUsers" placeholder="Search users..." 
+                        <input type="text" class="form-control border-0 bg-light"
+                               id="searchUsers" placeholder="Search users..."
                                style="border-radius: 0 8px 8px 0;">
                     </div>
                 </div>
@@ -1014,21 +988,21 @@
             <div class="card-body p-0">
                 <div class="table-responsive">
                     <table class="table table-hover mb-0" id="usersTable">
-                        <thead style="background-color: #f8f9fa;">
+                        <thead style="background-color: #f1f5f9;">
                             <tr>
-                                <th class="border-0 px-4 py-3" style="font-weight: 600; color: #4a5568; text-transform: uppercase; font-size: 12px; letter-spacing: 0.5px;">
+                                <th class="border-0 px-4 py-3" style="font-weight: 700; color: #1e293b; text-transform: uppercase; font-size: 13px; letter-spacing: 0.5px;">
                                     <i class="bi bi-person me-2"></i>User Details
                                 </th>
-                                <th class="border-0 px-3 py-3" style="font-weight: 600; color: #4a5568; text-transform: uppercase; font-size: 12px; letter-spacing: 0.5px;">
+                                <th class="border-0 px-3 py-3" style="font-weight: 700; color: #1e293b; text-transform: uppercase; font-size: 13px; letter-spacing: 0.5px;">
                                     <i class="bi bi-building me-2"></i>Assignment
                                 </th>
-                                <th class="border-0 px-3 py-3" style="font-weight: 600; color: #4a5568; text-transform: uppercase; font-size: 12px; letter-spacing: 0.5px;">
+                                <th class="border-0 px-3 py-3" style="font-weight: 700; color: #1e293b; text-transform: uppercase; font-size: 13px; letter-spacing: 0.5px;">
                                     <i class="bi bi-shield-check me-2"></i>Roles
                                 </th>
-                                <th class="border-0 px-3 py-3 text-center" style="font-weight: 600; color: #4a5568; text-transform: uppercase; font-size: 12px; letter-spacing: 0.5px;">
+                                <th class="border-0 px-3 py-3 text-center" style="font-weight: 700; color: #1e293b; text-transform: uppercase; font-size: 13px; letter-spacing: 0.5px;">
                                     <i class="bi bi-toggle2-on me-2"></i>Status
                                 </th>
-                                <th class="border-0 px-3 py-3 text-center" style="font-weight: 600; color: #4a5568; text-transform: uppercase; font-size: 12px; letter-spacing: 0.5px; width: 120px;">
+                                <th class="border-0 px-3 py-3 text-center" style="font-weight: 700; color: #1e293b; text-transform: uppercase; font-size: 13px; letter-spacing: 0.5px; width: 120px;">
                                     <i class="bi bi-gear me-2"></i>Actions
                                 </th>
                             </tr>

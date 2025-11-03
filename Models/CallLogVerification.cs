@@ -78,6 +78,19 @@ namespace TAB.Web.Models
         [MaxLength(500)]
         public string? RejectionReason { get; set; }
 
+        // Deadline Tracking
+        public Guid? BatchId { get; set; }
+
+        public DateTime? SubmissionDeadline { get; set; }
+
+        public DateTime? ApprovalDeadline { get; set; }
+
+        public bool DeadlineMissed { get; set; } = false;
+
+        public DateTime? RevertDeadline { get; set; }
+
+        public int RevertCount { get; set; } = 0;
+
         // Audit
         public DateTime CreatedDate { get; set; } = DateTime.UtcNow;
 
@@ -86,6 +99,9 @@ namespace TAB.Web.Models
         // Navigation Properties
         [ForeignKey("CallRecordId")]
         public virtual CallRecord CallRecord { get; set; } = null!;
+
+        [ForeignKey("BatchId")]
+        public virtual StagingBatch? StagingBatch { get; set; }
 
         [ForeignKey("ClassOfServiceId")]
         public virtual ClassOfService? ClassOfService { get; set; }

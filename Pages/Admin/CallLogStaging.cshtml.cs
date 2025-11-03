@@ -38,6 +38,15 @@ namespace TAB.Web.Pages.Admin
         public Dictionary<string, int> BatchStatistics { get; set; } = new();
         public string CurrentUserName { get; set; } = string.Empty;
 
+        // Recovery Status tracking - maps staging log properties to their recovery status from CallRecords
+        public Dictionary<int, (string Status, DateTime? Date)> RecoveryStatusMap { get; set; } = new();
+
+        // Deadline information for production records from this batch
+        public DateTime? BatchVerificationDeadline { get; set; }
+        public DateTime? BatchApprovalDeadline { get; set; }
+        public int ProductionRecordsCount { get; set; }
+        public int DefaultApprovalDays { get; set; } = 5;
+
         // Filter Properties
         [BindProperty(SupportsGet = true)]
         public Guid? BatchId { get; set; }
@@ -111,6 +120,17 @@ namespace TAB.Web.Pages.Admin
 
             await LoadPageDataAsync();
 
+            // Load system configuration for approval days
+            var config = await _context.RecoveryConfigurations
+                .FirstOrDefaultAsync(rc => rc.RuleName == "SystemConfiguration");
+            DefaultApprovalDays = config?.DefaultApprovalDays ?? 5;
+
+            // Load recovery status for the staged logs
+            await LoadRecoveryStatusAsync();
+
+            // Load deadline information for production records
+            await LoadDeadlineInformationAsync();
+
             // Calculate statistics
             await CalculateStatisticsAsync();
 
@@ -158,8 +178,8 @@ namespace TAB.Web.Pages.Admin
                     : currentUser.UserName ?? "Administrator";
             }
 
-            // Load recent batches
-            RecentBatches = await _stagingService.GetRecentBatchesAsync(5);
+            // Load recent batches (increased to 20 to support "Show More" functionality)
+            RecentBatches = await _stagingService.GetRecentBatchesAsync(20);
 
             // Load batch dropdown
             BatchList = RecentBatches.Select(b => new SelectListItem
@@ -222,6 +242,120 @@ namespace TAB.Web.Pages.Admin
             TotalAnomaliesDetected = await _context.CallLogStagings
                 .Where(c => c.HasAnomalies)
                 .CountAsync();
+        }
+
+        /// <summary>
+        /// Load recovery status for staged logs by matching them to CallRecords
+        /// </summary>
+        private async Task LoadRecoveryStatusAsync()
+        {
+            if (!StagedLogs.Items.Any() || !BatchId.HasValue)
+            {
+                RecoveryStatusMap = new Dictionary<int, (string Status, DateTime? Date)>();
+                return;
+            }
+
+            // Get all CallRecords for this batch
+            var callRecords = await _context.CallRecords
+                .Where(cr => cr.SourceBatchId == BatchId.Value)
+                .Select(cr => new
+                {
+                    cr.SourceStagingId,
+                    cr.RecoveryStatus,
+                    cr.RecoveryDate,
+                    cr.CallNumber,
+                    cr.CallDate,
+                    cr.ResponsibleIndexNumber
+                })
+                .ToListAsync();
+
+            // Create lookup by staging ID if available
+            var statusByStagingId = callRecords
+                .Where(cr => cr.SourceStagingId.HasValue)
+                .GroupBy(cr => cr.SourceStagingId!.Value)
+                .ToDictionary(
+                    g => g.Key,
+                    g => (g.First().RecoveryStatus ?? "NotProcessed", g.First().RecoveryDate)
+                );
+
+            // For records without SourceStagingId, try to match by call properties
+            var callRecordsByProperties = callRecords
+                .Where(cr => !cr.SourceStagingId.HasValue)
+                .ToList();
+
+            RecoveryStatusMap = new Dictionary<int, (string Status, DateTime? Date)>();
+
+            foreach (var stagedLog in StagedLogs.Items)
+            {
+                // First try matching by SourceStagingId
+                if (statusByStagingId.ContainsKey(stagedLog.Id))
+                {
+                    RecoveryStatusMap[stagedLog.Id] = statusByStagingId[stagedLog.Id];
+                }
+                else
+                {
+                    // Try matching by call properties (call number, date, responsible user)
+                    var matchedRecord = callRecordsByProperties.FirstOrDefault(cr =>
+                        cr.CallNumber == stagedLog.CallNumber &&
+                        cr.CallDate.Date == stagedLog.CallDate.Date &&
+                        cr.ResponsibleIndexNumber == stagedLog.ResponsibleIndexNumber);
+
+                    if (matchedRecord != null)
+                    {
+                        RecoveryStatusMap[stagedLog.Id] = (matchedRecord.RecoveryStatus ?? "NotProcessed", matchedRecord.RecoveryDate);
+                    }
+                    else
+                    {
+                        // Not pushed to production yet or no match found
+                        RecoveryStatusMap[stagedLog.Id] = ("NotPushed", null);
+                    }
+                }
+            }
+        }
+
+        /// <summary>
+        /// Load deadline information for production records from this batch
+        /// </summary>
+        private async Task LoadDeadlineInformationAsync()
+        {
+            if (!BatchId.HasValue)
+            {
+                return;
+            }
+
+            // Get deadline information from production records
+            var deadlineInfo = await _context.CallRecords
+                .Where(cr => cr.SourceBatchId == BatchId.Value)
+                .GroupBy(cr => 1)
+                .Select(g => new
+                {
+                    VerificationDeadline = g.Max(cr => cr.VerificationPeriod),
+                    ApprovalDeadline = g.Max(cr => cr.ApprovalPeriod),
+                    Count = g.Count()
+                })
+                .FirstOrDefaultAsync();
+
+            if (deadlineInfo != null)
+            {
+                BatchVerificationDeadline = deadlineInfo.VerificationDeadline;
+                BatchApprovalDeadline = deadlineInfo.ApprovalDeadline;
+                ProductionRecordsCount = deadlineInfo.Count;
+
+                // For backwards compatibility: if ApprovalPeriod is not set but VerificationPeriod is,
+                // calculate ApprovalPeriod from system settings (for old batches pushed before we added ApprovalPeriod)
+                if (!BatchApprovalDeadline.HasValue && BatchVerificationDeadline.HasValue)
+                {
+                    var config = await _context.RecoveryConfigurations
+                        .FirstOrDefaultAsync(rc => rc.RuleName == "SystemConfiguration");
+
+                    var approvalDays = config?.DefaultApprovalDays ?? 5;
+                    BatchApprovalDeadline = BatchVerificationDeadline.Value.AddDays(approvalDays);
+
+                    _logger.LogInformation(
+                        "Calculated ApprovalDeadline for old batch {BatchId}: {ApprovalDeadline} ({Days} days after verification deadline)",
+                        BatchId, BatchApprovalDeadline, approvalDays);
+                }
+            }
         }
 
         public async Task<IActionResult> OnPostConsolidateAsync()
@@ -365,9 +499,18 @@ namespace TAB.Web.Pages.Admin
 
                 if (count > 0)
                 {
-                    var periodMessage = verificationDeadline.HasValue
-                        ? $" (Verification deadline: {verificationDeadline.Value:MMM dd, yyyy})"
-                        : "";
+                    var periodMessage = "";
+                    if (verificationDeadline.HasValue)
+                    {
+                        // Load config to calculate approval deadline
+                        var config = await _context.RecoveryConfigurations
+                            .FirstOrDefaultAsync(rc => rc.RuleName == "SystemConfiguration");
+
+                        var approvalDays = config?.DefaultApprovalDays ?? 5;
+                        var approvalDeadline = verificationDeadline.Value.AddDays(approvalDays);
+
+                        periodMessage = $" (Staff verification: {verificationDeadline.Value:MMM dd, yyyy} | Supervisor approval: {approvalDeadline:MMM dd, yyyy})";
+                    }
                     StatusMessage = $"Successfully pushed {count} records to production{periodMessage}";
                     StatusMessageClass = "success";
                 }
@@ -685,12 +828,20 @@ namespace TAB.Web.Pages.Admin
                     return new JsonResult(new { success = false, error = "Staff member not found" });
                 }
 
-                // Parse dates
-                if (!DateTime.TryParse(input.InterimStartDate, out var startDate) ||
-                    !DateTime.TryParse(input.InterimEndDate, out var endDate))
+                // Validate month and year
+                if (!input.InterimBillingMonth.HasValue || !input.InterimBillingYear.HasValue)
                 {
-                    return new JsonResult(new { success = false, error = "Invalid date format" });
+                    return new JsonResult(new { success = false, error = "Please select billing month and year" });
                 }
+
+                if (input.InterimBillingMonth.Value < 1 || input.InterimBillingMonth.Value > 12)
+                {
+                    return new JsonResult(new { success = false, error = "Invalid month selected" });
+                }
+
+                var billingMonth = input.InterimBillingMonth.Value;
+                var billingYear = input.InterimBillingYear.Value;
+                var importedBy = User.Identity?.Name ?? "System";
 
                 // Create interim batch
                 var batch = new StagingBatch
@@ -699,43 +850,53 @@ namespace TAB.Web.Pages.Admin
                     BatchName = $"INTERIM - {input.StaffName} - {DateTime.Parse(input.SeparationDate):yyyy-MM-dd}",
                     BatchType = "Manual",
                     BatchCategory = "INTERIM",
-                    CreatedBy = User.Identity?.Name ?? "System",
+                    CreatedBy = importedBy,
                     CreatedDate = DateTime.UtcNow,
                     BatchStatus = BatchStatus.Created,
-                    Notes = $"Staff Separation: {input.SeparationReason}. Index: {input.StaffIndexNumber}"
+                    Notes = $"Staff Separation: {input.SeparationReason}. Index: {input.StaffIndexNumber}. Billing Period: {billingMonth}/{billingYear}"
                 };
 
                 _context.StagingBatches.Add(batch);
                 await _context.SaveChangesAsync();
 
-                // Get user's phone numbers
+                // Get active UserPhones for this user (need full objects to get IDs)
                 var userPhones = await _context.UserPhones
                     .Where(up => up.IndexNumber == input.StaffIndexNumber && up.IsActive)
-                    .Select(up => up.PhoneNumber)
                     .ToListAsync();
 
-                if (!userPhones.Any())
+                var phoneNumbers = userPhones.Select(up => up.PhoneNumber).ToList();
+
+                if (!phoneNumbers.Any())
                 {
                     _logger.LogWarning($"No active phone numbers found for staff {input.StaffIndexNumber}");
+                    return new JsonResult(new
+                    {
+                        success = false,
+                        error = $"No active phone numbers found for staff member {input.StaffName}. Please ensure this staff member has active phone numbers assigned in the system."
+                    });
                 }
 
                 var recordsImported = 0;
 
-                // Import from Safaricom
+                // Import from Safaricom - filter by month/year and staff's phone numbers
                 var safaricomRecords = await _context.Safaricoms
-                    .Where(s => userPhones.Contains(s.IndexNumber ?? "") &&
-                               s.CallDate >= startDate &&
-                               s.CallDate <= endDate &&
-                               (s.ProcessingStatus == ProcessingStatus.Staged || s.ProcessingStatus == ProcessingStatus.Failed))
+                    .Where(s => phoneNumbers.Contains(s.Ext ?? "") &&
+                               s.CallMonth == billingMonth &&
+                               s.CallYear == billingYear &&
+                               (s.ProcessingStatus == ProcessingStatus.Staged || s.ProcessingStatus == ProcessingStatus.Failed) &&
+                               s.StagingBatchId == null)
                     .ToListAsync();
 
                 foreach (var record in safaricomRecords)
                 {
+                    // Find the UserPhone that matches this extension
+                    var userPhone = userPhones.FirstOrDefault(up => up.PhoneNumber == record.Ext);
+
                     var stagingRecord = new CallLogStaging
                     {
                         BatchId = batch.Id,
                         ImportType = "INTERIM",
-                        ExtensionNumber = record.IndexNumber ?? "",
+                        ExtensionNumber = record.Ext ?? "",
                         CallDate = record.CallDate ?? DateTime.MinValue,
                         CallNumber = record.Dialed ?? "",
                         CallDestination = record.Dest ?? "",
@@ -744,8 +905,14 @@ namespace TAB.Web.Pages.Admin
                         CallCurrencyCode = "KES",
                         CallCost = record.Cost ?? 0,
                         CallCostUSD = (record.Cost ?? 0) / 125, // Convert KES to USD using approximate rate
+                        CallCostKSHS = record.Cost ?? 0, // KES amount from Safaricom
+                        CallMonth = record.CallMonth ?? billingMonth,
+                        CallYear = record.CallYear ?? billingYear,
                         ResponsibleIndexNumber = input.StaffIndexNumber,
                         ResponsibleUser = staffMember,
+                        UserPhoneId = userPhone?.Id, // Link to UserPhone
+                        ImportedBy = importedBy, // Track who imported
+                        ImportedDate = DateTime.UtcNow,
                         SourceSystem = "Safaricom",
                         SourceRecordId = record.Id.ToString(),
                         VerificationStatus = VerificationStatus.Pending,
@@ -754,24 +921,29 @@ namespace TAB.Web.Pages.Admin
 
                     _context.CallLogStagings.Add(stagingRecord);
                     record.ProcessingStatus = ProcessingStatus.Processing;
+                    record.StagingBatchId = batch.Id; // Mark record as assigned to this batch
                     recordsImported++;
                 }
 
-                // Import from Airtel
+                // Import from Airtel - filter by month/year and staff's phone numbers
                 var airtelRecords = await _context.Airtels
-                    .Where(a => userPhones.Contains(a.IndexNumber ?? "") &&
-                               a.CallDate >= startDate &&
-                               a.CallDate <= endDate &&
-                               (a.ProcessingStatus == ProcessingStatus.Staged || a.ProcessingStatus == ProcessingStatus.Failed))
+                    .Where(a => phoneNumbers.Contains(a.Ext ?? "") &&
+                               a.CallMonth == billingMonth &&
+                               a.CallYear == billingYear &&
+                               (a.ProcessingStatus == ProcessingStatus.Staged || a.ProcessingStatus == ProcessingStatus.Failed) &&
+                               a.StagingBatchId == null)
                     .ToListAsync();
 
                 foreach (var record in airtelRecords)
                 {
+                    // Find the UserPhone that matches this extension
+                    var userPhone = userPhones.FirstOrDefault(up => up.PhoneNumber == record.Ext);
+
                     var stagingRecord = new CallLogStaging
                     {
                         BatchId = batch.Id,
                         ImportType = "INTERIM",
-                        ExtensionNumber = record.IndexNumber ?? "",
+                        ExtensionNumber = record.Ext ?? "",
                         CallDate = record.CallDate ?? DateTime.MinValue,
                         CallNumber = record.Dialed ?? "",
                         CallDestination = record.Dest ?? "",
@@ -780,8 +952,14 @@ namespace TAB.Web.Pages.Admin
                         CallCurrencyCode = "KES",
                         CallCost = record.Cost ?? 0,
                         CallCostUSD = (record.Cost ?? 0) / 125, // Convert KES to USD using approximate rate
+                        CallCostKSHS = record.Cost ?? 0, // KES amount from Airtel
+                        CallMonth = record.CallMonth ?? billingMonth,
+                        CallYear = record.CallYear ?? billingYear,
                         ResponsibleIndexNumber = input.StaffIndexNumber,
                         ResponsibleUser = staffMember,
+                        UserPhoneId = userPhone?.Id, // Link to UserPhone
+                        ImportedBy = importedBy, // Track who imported
+                        ImportedDate = DateTime.UtcNow,
                         SourceSystem = "Airtel",
                         SourceRecordId = record.Id.ToString(),
                         VerificationStatus = VerificationStatus.Pending,
@@ -790,6 +968,101 @@ namespace TAB.Web.Pages.Admin
 
                     _context.CallLogStagings.Add(stagingRecord);
                     record.ProcessingStatus = ProcessingStatus.Processing;
+                    record.StagingBatchId = batch.Id; // Mark record as assigned to this batch
+                    recordsImported++;
+                }
+
+                // Import from PSTN - filter by month/year and staff's phone numbers
+                var pstnRecords = await _context.PSTNs
+                    .Where(p => phoneNumbers.Contains(p.Extension ?? "") &&
+                               p.CallMonth == billingMonth &&
+                               p.CallYear == billingYear &&
+                               (p.ProcessingStatus == ProcessingStatus.Staged || p.ProcessingStatus == ProcessingStatus.Failed) &&
+                               p.StagingBatchId == null)
+                    .ToListAsync();
+
+                foreach (var record in pstnRecords)
+                {
+                    // Find the UserPhone that matches this extension
+                    var userPhone = userPhones.FirstOrDefault(up => up.PhoneNumber == record.Extension);
+
+                    var stagingRecord = new CallLogStaging
+                    {
+                        BatchId = batch.Id,
+                        ImportType = "INTERIM",
+                        ExtensionNumber = record.Extension ?? "",
+                        CallDate = record.CallDate ?? DateTime.MinValue,
+                        CallNumber = record.DialedNumber ?? "",
+                        CallDestination = record.Destination ?? "",
+                        CallEndTime = record.CallDate ?? DateTime.MinValue,
+                        CallDuration = (int)(record.Duration ?? 0),
+                        CallCurrencyCode = "KES",
+                        CallCost = record.TotalCost,
+                        CallCostUSD = record.TotalCost / 125,
+                        CallCostKSHS = record.AmountKSH ?? 0, // KES amount from PSTN
+                        CallMonth = record.CallMonth > 0 ? record.CallMonth : billingMonth,
+                        CallYear = record.CallYear > 0 ? record.CallYear : billingYear,
+                        ResponsibleIndexNumber = input.StaffIndexNumber,
+                        ResponsibleUser = staffMember,
+                        UserPhoneId = userPhone?.Id, // Link to UserPhone
+                        ImportedBy = importedBy, // Track who imported
+                        ImportedDate = DateTime.UtcNow,
+                        SourceSystem = "PSTN",
+                        SourceRecordId = record.Id.ToString(),
+                        VerificationStatus = VerificationStatus.Pending,
+                        CreatedDate = DateTime.UtcNow
+                    };
+
+                    _context.CallLogStagings.Add(stagingRecord);
+                    record.ProcessingStatus = ProcessingStatus.Processing;
+                    record.StagingBatchId = batch.Id; // Mark record as assigned to this batch
+                    recordsImported++;
+                }
+
+                // Import from PrivateWire - filter by month/year and staff's phone numbers
+                var privateWireRecords = await _context.PrivateWires
+                    .Where(pw => phoneNumbers.Contains(pw.Extension ?? "") &&
+                                pw.CallMonth == billingMonth &&
+                                pw.CallYear == billingYear &&
+                                (pw.ProcessingStatus == ProcessingStatus.Staged || pw.ProcessingStatus == ProcessingStatus.Failed) &&
+                                pw.StagingBatchId == null)
+                    .ToListAsync();
+
+                foreach (var record in privateWireRecords)
+                {
+                    // Find the UserPhone that matches this extension
+                    var userPhone = userPhones.FirstOrDefault(up => up.PhoneNumber == record.Extension);
+
+                    var stagingRecord = new CallLogStaging
+                    {
+                        BatchId = batch.Id,
+                        ImportType = "INTERIM",
+                        ExtensionNumber = record.Extension ?? "",
+                        CallDate = record.CallDate ?? DateTime.MinValue,
+                        CallNumber = record.DialedNumber ?? "",
+                        CallDestination = record.Destination ?? "",
+                        CallEndTime = record.CallDate ?? DateTime.MinValue,
+                        CallDuration = (int)(record.Duration ?? 0),
+                        CallCurrencyCode = "USD",
+                        CallCost = record.TotalCostKSH,
+                        CallCostUSD = record.TotalCostUSD,
+                        CallCostKSHS = record.AmountKSH ?? 0, // KES amount from PrivateWire
+                        CallMonth = record.CallMonth > 0 ? record.CallMonth : billingMonth,
+                        CallYear = record.CallYear > 0 ? record.CallYear : billingYear,
+                        ResponsibleIndexNumber = input.StaffIndexNumber,
+                        ResponsibleUser = staffMember,
+                        UserPhoneId = userPhone?.Id, // Link to UserPhone
+                        ImportedBy = importedBy, // Track who imported
+                        ImportedDate = DateTime.UtcNow,
+                        SourceSystem = "PrivateWire",
+                        SourceRecordId = record.Id.ToString(),
+                        VerificationStatus = VerificationStatus.Pending,
+                        CreatedDate = DateTime.UtcNow
+                    };
+
+                    _context.CallLogStagings.Add(stagingRecord);
+                    record.ProcessingStatus = ProcessingStatus.Processing;
+                    record.StagingBatchId = batch.Id; // Mark record as assigned to this batch
                     recordsImported++;
                 }
 
@@ -825,8 +1098,8 @@ namespace TAB.Web.Pages.Admin
             public string StaffName { get; set; } = "";
             public string SeparationDate { get; set; } = "";
             public string SeparationReason { get; set; } = "";
-            public string InterimStartDate { get; set; } = "";
-            public string InterimEndDate { get; set; } = "";
+            public int? InterimBillingMonth { get; set; }
+            public int? InterimBillingYear { get; set; }
         }
 
         public async Task<IActionResult> OnPostDeleteBatchAsync(Guid batchId)
@@ -873,5 +1146,6 @@ namespace TAB.Web.Pages.Admin
                 return new JsonResult(new { canDelete = false, error = ex.Message });
             }
         }
+
     }
 }

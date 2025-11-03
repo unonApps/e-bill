@@ -541,16 +541,16 @@
                             <div class="row">
                                 <div class="col-md-6">
                                     <div class="form-floating">
-                                        <input type="tel" class="form-control" id="primaryMobileNumber" 
+                                        <input type="tel" class="form-control" id="primaryMobileNumber"
                                                name="RefundRequest.PrimaryMobileNumber" placeholder=" " required
-                                               pattern="\d{9}" maxlength="9">
-                                        <label for="primaryMobileNumber" class="required-field">Primary Mobile Number (9 digits)</label>
+                                               pattern="\d{9,15}" maxlength="15">
+                                        <label for="primaryMobileNumber" class="required-field">Primary Mobile Number</label>
                                         <span class="invalid-feedback"></span>
                                     </div>
                                 </div>
                                 <div class="col-md-6">
                                     <div class="form-floating">
-                                        <input type="text" class="form-control" id="officeExtension" 
+                                        <input type="text" class="form-control" id="officeExtension"
                                                name="RefundRequest.OfficeExtension" placeholder=" ">
                                         <label for="officeExtension">Office Extension</label>
                                     </div>
@@ -567,29 +567,23 @@
                             <div class="row">
                                 <div class="col-md-6">
                                     <div class="form-floating">
-                                        <select class="form-select" id="office" name="RefundRequest.Office" required>
-                                            <option value="">Select Office</option>
-                                            @* Temporarily commented - Offices being recreated
-                                            @foreach (var office in Model.Offices)
+                                        <select class="form-select" id="organization" name="RefundRequest.Organization" required data-organization-id="">
+                                            <option value="">Select Organization</option>
+                                            @foreach (var org in Model.Organizations)
                                             {
-                                                <option value="@office.Name">@office.Name</option>
+                                                <option value="@org.Name" data-org-id="@org.Id">@org.Name</option>
                                             }
-                                            *@
                                         </select>
-                                        <label for="office" class="required-field">Office</label>
+                                        <label for="organization" class="required-field">Organization</label>
                                         <span class="invalid-feedback"></span>
                                     </div>
                                 </div>
                                 <div class="col-md-6">
                                     <div class="form-floating">
-                                        <select class="form-select" id="organization" name="RefundRequest.Organization" required>
-                                            <option value="">Select Organization</option>
-                                            @foreach (var org in Model.Organizations)
-                                            {
-                                                <option value="@org.Name">@org.Name</option>
-                                            }
+                                        <select class="form-select" id="office" name="RefundRequest.Office" required disabled>
+                                            <option value="">Select Organization First</option>
                                         </select>
-                                        <label for="organization" class="required-field">Organization</label>
+                                        <label for="office" class="required-field">Office</label>
                                         <span class="invalid-feedback"></span>
                                     </div>
                                 </div>
@@ -598,9 +592,14 @@
                             <div class="row">
                                 <div class="col-md-12">
                                     <div class="form-floating">
-                                        <input type="text" class="form-control" id="supervisor" 
-                                               name="RefundRequest.Supervisor" placeholder=" " required>
-                                        <label for="supervisor" class="required-field">Supervisor Name</label>
+                                        <select class="form-select" id="supervisor" name="RefundRequest.Supervisor" required>
+                                            <option value="">Select Supervisor</option>
+                                            @foreach (var supervisor in Model.Supervisors)
+                                            {
+                                                <option value="@supervisor.Value">@supervisor.Text</option>
+                                            }
+                                        </select>
+                                        <label for="supervisor" class="required-field">Supervisor</label>
                                         <span class="invalid-feedback"></span>
                                     </div>
                                 </div>
@@ -1024,13 +1023,60 @@
             populateReviewSummary();
         }
         
+        // Organization - Populate offices based on selection
+        document.getElementById('organization').addEventListener('change', function() {
+            const officeSelect = document.getElementById('office');
+            const selected = this.options[this.selectedIndex];
+            const organizationId = selected.getAttribute('data-org-id');
+
+            // Reset office dropdown
+            officeSelect.innerHTML = '<option value="">Loading...</option>';
+            officeSelect.disabled = true;
+
+            if (!organizationId) {
+                officeSelect.innerHTML = '<option value="">Select Organization First</option>';
+                officeSelect.disabled = true;
+                return;
+            }
+
+            // Fetch offices for selected organization
+            fetch(`/Modules/RefundManagement/Requests/Create?handler=OfficesByOrganization&organizationId=${organizationId}`)
+                .then(response => response.json())
+                .then(data => {
+                    if (data.success && data.offices) {
+                        officeSelect.innerHTML = '<option value="">Select Office</option>';
+                        data.offices.forEach(office => {
+                            const option = document.createElement('option');
+                            option.value = office.name;
+                            option.textContent = office.name;
+                            officeSelect.appendChild(option);
+                        });
+                        officeSelect.disabled = false;
+
+                        // If no offices found
+                        if (data.offices.length === 0) {
+                            officeSelect.innerHTML = '<option value="">No offices available for this organization</option>';
+                            officeSelect.disabled = true;
+                        }
+                    } else {
+                        officeSelect.innerHTML = '<option value="">Error loading offices</option>';
+                        officeSelect.disabled = true;
+                    }
+                })
+                .catch(err => {
+                    console.error('Error fetching offices:', err);
+                    officeSelect.innerHTML = '<option value="">Error loading offices</option>';
+                    officeSelect.disabled = true;
+                });
+        });
+
         // Class of Service - Auto-populate allowance
         document.getElementById('classOfService').addEventListener('change', function() {
             const selected = this.options[this.selectedIndex];
             const allowance = selected.getAttribute('data-allowance');
             const deviceAllowanceField = document.getElementById('deviceAllowance');
             deviceAllowanceField.value = allowance || '0';
-            
+
             // Also fetch from server to get accurate data
             if (this.value) {
                 fetch(`/Modules/RefundManagement/Requests/Create?handler=ClassOfServiceAllowance&classOfServiceId=${this.value}`)

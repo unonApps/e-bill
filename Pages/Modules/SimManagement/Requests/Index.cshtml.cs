@@ -52,7 +52,7 @@ namespace TAB.Web.Pages.Modules.SimManagement.Requests
         [BindProperty(SupportsGet = true)]
         public int PageNumber { get; set; } = 1;
 
-        public int PageSize { get; set; } = 20;
+        public int PageSize { get; set; } = 10;
         public int TotalPages { get; set; }
         public int TotalRecords { get; set; }
 
@@ -132,50 +132,49 @@ namespace TAB.Web.Pages.Modules.SimManagement.Requests
             {
                 // Check if user is admin
                 var isAdmin = await _userManager.IsInRoleAsync(currentUser, "Admin");
-                
+
                 // Build base query
-                var query = _context.SimRequests
+                var baseQuery = _context.SimRequests
                     .Include(r => r.ServiceProvider)
                     .AsQueryable();
-                
+
                 if (isAdmin)
                 {
                     // Apply user filter for admin
                     if (!string.IsNullOrEmpty(SelectedUserId))
                     {
-                        query = query.Where(r => r.RequestedBy == SelectedUserId);
+                        baseQuery = baseQuery.Where(r => r.RequestedBy == SelectedUserId);
                     }
                 }
                 else
                 {
                     // Regular users see only their own requests
-                    query = query.Where(r => r.RequestedBy == currentUser.Id);
+                    baseQuery = baseQuery.Where(r => r.RequestedBy == currentUser.Id);
                 }
-                
-                // Apply filters
-                query = ApplyFilters(query);
 
-                // Get total count before pagination (for statistics)
-                var allRequests = await query.ToListAsync();
-
-                // Calculate statistics from all filtered results
-                TotalRequests = allRequests.Count;
-                PendingRequests = allRequests.Count(r =>
+                // Calculate statistics from UNFILTERED data (before applying status/date/search filters)
+                var allRequestsForStats = await baseQuery.ToListAsync();
+                TotalRequests = allRequestsForStats.Count;
+                PendingRequests = allRequestsForStats.Count(r =>
                     r.Status == RequestStatus.Draft ||
                     r.Status == RequestStatus.PendingSupervisor ||
                     r.Status == RequestStatus.PendingIcts ||
                     r.Status == RequestStatus.PendingAdmin ||
                     r.Status == RequestStatus.PendingServiceProvider ||
                     r.Status == RequestStatus.PendingSIMCollection);
-                ApprovedRequests = allRequests.Count(r => r.Status == RequestStatus.Approved || r.Status == RequestStatus.Completed);
-                RejectedRequests = allRequests.Count(r => r.Status == RequestStatus.Rejected || r.Status == RequestStatus.Cancelled);
+                ApprovedRequests = allRequestsForStats.Count(r => r.Status == RequestStatus.Approved || r.Status == RequestStatus.Completed);
+                RejectedRequests = allRequestsForStats.Count(r => r.Status == RequestStatus.Rejected || r.Status == RequestStatus.Cancelled);
 
-                // Calculate pagination
-                TotalRecords = allRequests.Count;
+                // Now apply filters for the table display
+                var filteredQuery = ApplyFilters(baseQuery);
+                var filteredRequests = await filteredQuery.ToListAsync();
+
+                // Calculate pagination based on filtered results
+                TotalRecords = filteredRequests.Count;
                 TotalPages = (int)Math.Ceiling(TotalRecords / (double)PageSize);
 
                 // Apply pagination
-                UserRequests = allRequests
+                UserRequests = filteredRequests
                     .OrderByDescending(r => r.RequestDate)
                     .Skip((PageNumber - 1) * PageSize)
                     .Take(PageSize)

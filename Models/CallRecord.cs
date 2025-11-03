@@ -79,6 +79,21 @@ namespace TAB.Web.Models
         [Column("verification_period")]
         public DateTime? VerificationPeriod { get; set; }
 
+        // Approval period (deadline for supervisor approval)
+        [Column("approval_period")]
+        public DateTime? ApprovalPeriod { get; set; }
+
+        // Revert tracking
+        [Column("revert_count")]
+        public int RevertCount { get; set; } = 0;
+
+        [Column("last_revert_date")]
+        public DateTime? LastRevertDate { get; set; }
+
+        [Column("revert_reason")]
+        [MaxLength(500)]
+        public string? RevertReason { get; set; }
+
         // Verification Type (Personal/Official)
         [MaxLength(20)]
         [Column("verification_type")]
@@ -107,6 +122,25 @@ namespace TAB.Web.Models
 
         [Column("supervisor_approved_date")]
         public DateTime? SupervisorApprovedDate { get; set; }
+
+        // Recovery Tracking
+        [MaxLength(50)]
+        [Column("recovery_status")]
+        public string? RecoveryStatus { get; set; } = "NotProcessed";
+
+        [Column("recovery_date")]
+        public DateTime? RecoveryDate { get; set; }
+
+        [MaxLength(100)]
+        [Column("recovery_processed_by")]
+        public string? RecoveryProcessedBy { get; set; }
+
+        [MaxLength(50)]
+        [Column("final_assignment_type")]
+        public string? FinalAssignmentType { get; set; }
+
+        [Column("recovery_amount", TypeName = "decimal(18,2)")]
+        public decimal? RecoveryAmount { get; set; }
 
         // Certification indicators
         [Column("call_cert_ind")]
@@ -150,6 +184,16 @@ namespace TAB.Web.Models
 
         [ForeignKey("PayingIndexNumber")]
         public virtual EbillUser? PayingUser { get; set; }
+
+        // Computed Properties
+        [NotMapped]
+        public decimal Amount => CallCostUSD;
+
+        [NotMapped]
+        public string IndexNumber => ResponsibleIndexNumber ?? string.Empty;
+
+        [NotMapped]
+        public string PhoneNumber => ExtensionNumber;
 
         // Helper Methods
         public string GetCallTypeIcon()

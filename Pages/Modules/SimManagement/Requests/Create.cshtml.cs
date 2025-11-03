@@ -19,14 +19,25 @@ namespace TAB.Web.Pages.Modules.SimManagement.Requests
         private readonly ISimRequestHistoryService _historyService;
         private readonly INotificationService _notificationService;
         private readonly IAuditLogService _auditLogService;
+        private readonly IEnhancedEmailService _emailService;
+        private readonly ILogger<CreateModel> _logger;
 
-        public CreateModel(ApplicationDbContext context, UserManager<ApplicationUser> userManager, ISimRequestHistoryService historyService, INotificationService notificationService, IAuditLogService auditLogService)
+        public CreateModel(
+            ApplicationDbContext context,
+            UserManager<ApplicationUser> userManager,
+            ISimRequestHistoryService historyService,
+            INotificationService notificationService,
+            IAuditLogService auditLogService,
+            IEnhancedEmailService emailService,
+            ILogger<CreateModel> logger)
         {
             _context = context;
             _userManager = userManager;
             _historyService = historyService;
             _notificationService = notificationService;
             _auditLogService = auditLogService;
+            _emailService = emailService;
+            _logger = logger;
         }
 
         [BindProperty]
@@ -173,6 +184,23 @@ namespace TAB.Web.Pages.Modules.SimManagement.Requests
                             currentUser.Id,
                             ipAddress
                         );
+
+                        // Send email notifications using templates
+                        try
+                        {
+                            // 1. Send confirmation email to requester
+                            await SendSubmittedConfirmationEmailAsync(SimRequest, currentUser);
+
+                            // 2. Send notification to supervisor
+                            await SendSupervisorNotificationEmailAsync(SimRequest, supervisorUser);
+
+                            _logger.LogInformation("Email notifications sent successfully for SIM request {RequestId}", SimRequest.Id);
+                        }
+                        catch (Exception emailEx)
+                        {
+                            // Log error but don't fail the request
+                            _logger.LogError(emailEx, "Failed to send email notifications for SIM request {RequestId}", SimRequest.Id);
+                        }
                     }
                 }
                 // Note: Draft saves are not tracked as they're not workflow changes
@@ -271,6 +299,68 @@ namespace TAB.Web.Pages.Modules.SimManagement.Requests
                 SimRequest.Office = currentUser.Office?.Name;
                 SimRequest.OfficialEmail = currentUser.Email ?? string.Empty;
             }
+        }
+
+        private async Task SendSubmittedConfirmationEmailAsync(Models.SimRequest request, ApplicationUser requester)
+        {
+            var placeholders = new Dictionary<string, string>
+            {
+                { "RequestId", request.Id.ToString() },
+                { "RequestDate", request.RequestDate.ToString("MMMM dd, yyyy") },
+                { "FirstName", request.FirstName ?? "" },
+                { "LastName", request.LastName ?? "" },
+                { "SimType", request.SimType.ToString() },
+                { "ServiceProvider", request.ServiceProvider?.ServiceProviderName ?? "N/A" },
+                { "IndexNo", request.IndexNo ?? "" },
+                { "Organization", request.Organization ?? "" },
+                { "Office", request.Office ?? "" },
+                { "SupervisorName", request.SupervisorName ?? "" },
+                { "ViewRequestLink", $"{Request.Scheme}://{Request.Host}/Modules/SimManagement/Requests/Index" },
+                { "Year", DateTime.Now.Year.ToString() }
+            };
+
+            await _emailService.SendTemplatedEmailAsync(
+                to: request.OfficialEmail ?? requester.Email ?? "",
+                templateCode: "SIM_REQUEST_SUBMITTED",
+                data: placeholders
+            );
+
+            _logger.LogInformation("Sent submission confirmation email to {Email} for request {RequestId}",
+                request.OfficialEmail, request.Id);
+        }
+
+        private async Task SendSupervisorNotificationEmailAsync(Models.SimRequest request, ApplicationUser supervisor)
+        {
+            var placeholders = new Dictionary<string, string>
+            {
+                { "RequestId", request.Id.ToString() },
+                { "RequestDate", request.RequestDate.ToString("MMMM dd, yyyy") },
+                { "SimType", request.SimType.ToString() },
+                { "ServiceProvider", request.ServiceProvider?.ServiceProviderName ?? "N/A" },
+                { "Remarks", request.Remarks ?? "" },
+                { "FirstName", request.FirstName ?? "" },
+                { "LastName", request.LastName ?? "" },
+                { "IndexNo", request.IndexNo ?? "" },
+                { "Organization", request.Organization ?? "" },
+                { "Office", request.Office ?? "" },
+                { "Grade", request.Grade ?? "" },
+                { "FunctionalTitle", request.FunctionalTitle ?? "" },
+                { "OfficialEmail", request.OfficialEmail ?? "" },
+                { "OfficeExtension", request.OfficeExtension ?? "N/A" },
+                { "SupervisorName", request.SupervisorName ?? "" },
+                { "SupervisorEmail", request.SupervisorEmail ?? supervisor.Email ?? "" },
+                { "ApprovalLink", $"{Request.Scheme}://{Request.Host}/Modules/SimManagement/Approvals/Supervisor" },
+                { "Year", DateTime.Now.Year.ToString() }
+            };
+
+            await _emailService.SendTemplatedEmailAsync(
+                to: supervisor.Email ?? request.SupervisorEmail ?? "",
+                templateCode: "SIM_REQUEST_SUPERVISOR_NOTIFICATION",
+                data: placeholders
+            );
+
+            _logger.LogInformation("Sent supervisor notification email to {Email} for request {RequestId}",
+                supervisor.Email, request.Id);
         }
     }
 } 

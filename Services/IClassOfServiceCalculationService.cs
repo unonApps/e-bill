@@ -25,6 +25,26 @@ namespace TAB.Web.Services
         /// </summary>
         Task<decimal?> GetAllowanceLimitAsync(string indexNumber);
 
+        // ===================================================================
+        // Phone-Specific Methods (Per UserPhone, not per User)
+        // ===================================================================
+
+        /// <summary>
+        /// Gets the allowance limit for a specific phone
+        /// Returns NULL for unlimited allowance
+        /// </summary>
+        Task<decimal?> GetPhoneAllowanceLimitAsync(int userPhoneId);
+
+        /// <summary>
+        /// Gets total usage for a specific phone in a specific month
+        /// </summary>
+        Task<decimal> GetPhoneMonthlyUsageAsync(int userPhoneId, int month, int year);
+
+        /// <summary>
+        /// Checks if a specific phone is within its allowance for a specific month
+        /// </summary>
+        Task<bool> IsPhoneWithinAllowanceAsync(int userPhoneId, decimal amount, int month, int year);
+
         /// <summary>
         /// Gets overage report for a user in a specific period
         /// </summary>

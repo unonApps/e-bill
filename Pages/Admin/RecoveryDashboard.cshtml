@@ -1,0 +1,1118 @@
+@page
+@model TAB.Web.Pages.Admin.RecoveryDashboardModel
+@{
+    ViewData["Title"] = "Recovery Dashboard";
+    ViewData["PageIcon"] = "bi-graph-up-arrow";
+    ViewData["PageTitle"] = "Recovery Analytics";
+    ViewData["Breadcrumb"] = "Admin / Recovery Dashboard";
+}
+
+<style>
+    .page-header {
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        margin-bottom: 2rem;
+        padding-bottom: 1rem;
+        border-bottom: 2px solid #e5e7eb;
+    }
+
+    .page-title-section h1 {
+        font-size: 1.875rem;
+        font-weight: 700;
+        color: #111827;
+        margin: 0 0 0.5rem 0;
+        display: flex;
+        align-items: center;
+        gap: 0.75rem;
+    }
+
+    .page-subtitle {
+        color: #6b7280;
+        font-size: 0.95rem;
+        margin: 0;
+    }
+
+    .header-actions {
+        display: flex;
+        gap: 0.75rem;
+    }
+
+    .btn-settings {
+        background: white;
+        border: 2px solid #e5e7eb;
+        color: #374151;
+        padding: 0.625rem 1.25rem;
+        border-radius: 12px;
+        font-weight: 600;
+        transition: all 0.2s;
+        text-decoration: none;
+        display: inline-flex;
+        align-items: center;
+        gap: 0.5rem;
+    }
+
+    .btn-settings:hover {
+        background: #f9fafb;
+        border-color: #009edb;
+        color: #009edb;
+        text-decoration: none;
+    }
+
+    .btn-job-history {
+        background: linear-gradient(135deg, #009edb 0%, #0086c3 100%);
+        border: none;
+        color: white;
+        padding: 0.625rem 1.25rem;
+        border-radius: 12px;
+        font-weight: 600;
+        transition: all 0.2s;
+        text-decoration: none;
+        display: inline-flex;
+        align-items: center;
+        gap: 0.5rem;
+    }
+
+    .btn-job-history:hover {
+        transform: translateY(-2px);
+        box-shadow: 0 4px 12px rgba(0, 158, 219, 0.3);
+        color: white;
+        text-decoration: none;
+    }
+
+    .metric-card {
+        background: white;
+        border-radius: 16px;
+        border: 2px solid #e5e7eb;
+        padding: 1.5rem;
+        transition: all 0.2s;
+        height: 100%;
+    }
+
+    .metric-card:hover {
+        transform: translateY(-2px);
+        box-shadow: 0 4px 12px rgba(0, 0, 0, 0.08);
+        border-color: #009edb;
+    }
+
+    .metric-card-header {
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        margin-bottom: 1rem;
+    }
+
+    .metric-icon {
+        width: 50px;
+        height: 50px;
+        border-radius: 12px;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        font-size: 1.5rem;
+    }
+
+    .trend-badge {
+        font-size: 0.75rem;
+        padding: 0.25rem 0.5rem;
+        border-radius: 8px;
+        font-weight: 600;
+        display: inline-flex;
+        align-items: center;
+        gap: 0.25rem;
+    }
+
+    .metric-label {
+        font-size: 0.813rem;
+        color: #6b7280;
+        text-transform: uppercase;
+        letter-spacing: 0.5px;
+        font-weight: 600;
+        margin-bottom: 0.5rem;
+    }
+
+    .metric-value {
+        font-size: 2rem;
+        font-weight: 700;
+        line-height: 1;
+        margin-bottom: 0.75rem;
+    }
+
+    .metric-footer {
+        font-size: 0.875rem;
+        color: #6b7280;
+        display: flex;
+        align-items: center;
+        gap: 0.375rem;
+        padding-top: 0.75rem;
+        border-top: 1px solid #f3f4f6;
+    }
+
+    .modern-card {
+        background: white;
+        border-radius: 16px;
+        box-shadow: 0 2px 4px rgba(0, 0, 0, 0.06);
+        border: none;
+        overflow: hidden;
+    }
+
+    .modern-card-header {
+        background: linear-gradient(135deg, #f8f9fa 0%, #e9ecef 100%);
+        border: none;
+        padding: 1.25rem 1.5rem;
+        border-bottom: 2px solid #e5e7eb;
+    }
+
+    .modern-card-title {
+        font-size: 1.1rem;
+        font-weight: 700;
+        color: #1f2937;
+        margin: 0;
+        display: flex;
+        align-items: center;
+        gap: 0.5rem;
+    }
+
+    .modern-card-body {
+        padding: 1.5rem;
+    }
+
+    .chart-container {
+        position: relative;
+        height: 300px;
+    }
+
+    .compliance-display {
+        text-align: center;
+        margin-bottom: 1.5rem;
+    }
+
+    .compliance-value {
+        font-size: 3rem;
+        font-weight: 700;
+        line-height: 1;
+    }
+
+    .compliance-label {
+        color: #6b7280;
+        font-size: 0.875rem;
+        margin-top: 0.5rem;
+    }
+
+    .stat-box {
+        background: #f9fafb;
+        padding: 1rem;
+        border-radius: 12px;
+        text-align: center;
+        border: 2px solid #f3f4f6;
+        transition: all 0.2s;
+    }
+
+    .stat-box:hover {
+        border-color: #e5e7eb;
+        background: #f3f4f6;
+    }
+
+    .stat-value {
+        font-weight: 700;
+        font-size: 1.5rem;
+        margin-bottom: 0.25rem;
+    }
+
+    .stat-label {
+        font-size: 0.813rem;
+        color: #6b7280;
+        font-weight: 500;
+    }
+
+    .modern-table {
+        width: 100%;
+        margin: 0;
+    }
+
+    .modern-table thead {
+        background-color: #f8f9fa;
+    }
+
+    .modern-table thead th {
+        color: #4a5568;
+        font-weight: 600;
+        padding: 0.75rem 1rem;
+        border: none;
+        font-size: 0.75rem;
+        text-transform: uppercase;
+        letter-spacing: 0.5px;
+    }
+
+    .modern-table tbody td {
+        padding: 1rem;
+        vertical-align: middle;
+        border-bottom: 1px solid #f3f4f6;
+    }
+
+    .modern-table tbody tr:hover {
+        background-color: #f9fafb;
+    }
+
+    .modern-table tbody tr:last-child td {
+        border-bottom: none;
+    }
+
+    .rank-badge {
+        display: inline-flex;
+        align-items: center;
+        gap: 0.25rem;
+        padding: 0.35rem 0.75rem;
+        border-radius: 12px;
+        font-size: 0.813rem;
+        font-weight: 600;
+    }
+
+    .activity-item {
+        border-left: 4px solid #009edb;
+        padding: 1.25rem;
+        margin-bottom: 1rem;
+        border-radius: 0 12px 12px 0;
+        background: #f9fafb;
+        transition: all 0.2s;
+    }
+
+    .activity-item:hover {
+        background: #f3f4f6;
+        border-left-width: 5px;
+        box-shadow: 0 2px 4px rgba(0, 0, 0, 0.05);
+    }
+
+    .activity-header {
+        display: flex;
+        justify-content: space-between;
+        align-items: start;
+        margin-bottom: 0.75rem;
+    }
+
+    .activity-title {
+        font-weight: 600;
+        color: #1f2937;
+        font-size: 1rem;
+    }
+
+    .activity-meta {
+        font-size: 0.875rem;
+        color: #6b7280;
+        display: flex;
+        flex-wrap: wrap;
+        gap: 1rem;
+        margin-top: 0.5rem;
+    }
+
+    .activity-stats {
+        display: flex;
+        flex-wrap: wrap;
+        gap: 1.5rem;
+        font-size: 0.875rem;
+        color: #6b7280;
+        padding-top: 0.75rem;
+        border-top: 1px solid #e5e7eb;
+    }
+
+    .activity-amount {
+        font-weight: 700;
+        font-size: 1.25rem;
+        color: #10b981;
+    }
+
+    .activity-records {
+        font-size: 0.875rem;
+        color: #6b7280;
+    }
+
+    .run-type-badge {
+        padding: 0.25rem 0.75rem;
+        border-radius: 12px;
+        font-size: 0.75rem;
+        font-weight: 600;
+        display: inline-flex;
+        align-items: center;
+        gap: 0.25rem;
+    }
+
+    .badge-manual {
+        background: rgba(6, 182, 212, 0.1);
+        color: #0891b2;
+    }
+
+    .badge-scheduled {
+        background: rgba(16, 185, 129, 0.1);
+        color: #059669;
+    }
+
+    .empty-state {
+        text-align: center;
+        padding: 4rem 2rem;
+    }
+
+    .empty-icon {
+        font-size: 4rem;
+        color: #d1d5db;
+        margin-bottom: 1rem;
+    }
+
+    .empty-text {
+        color: #6b7280;
+        font-size: 1.1rem;
+    }
+</style>
+
+<!-- Page Header -->
+<div class="page-header">
+    <div class="page-title-section">
+        <h1>
+            <i class="bi bi-graph-up-arrow text-primary"></i>
+            Recovery Dashboard
+        </h1>
+        <p class="page-subtitle">Comprehensive analytics and insights into the recovery system</p>
+    </div>
+    <div class="header-actions">
+        <a href="/Admin/RecoverySettings" class="btn-settings">
+            <i class="bi bi-gear"></i>Settings
+        </a>
+        <a href="/Admin/RecoveryJobStatus" class="btn-job-history">
+            <i class="bi bi-list-task"></i>Job History
+        </a>
+    </div>
+</div>
+
+<!-- Filters Card (Collapsible) -->
+<div class="card border-0 shadow-sm mb-4" style="border-radius: 20px;">
+    <div class="card-header bg-white border-0 p-3" style="cursor: pointer; border-radius: 20px 20px 0 0;" data-bs-toggle="collapse" data-bs-target="#filterCollapse">
+        <div class="d-flex justify-content-between align-items-center">
+            <h6 class="mb-0 fw-bold">
+                <i class="bi bi-funnel me-2"></i>Filters
+            </h6>
+            <i class="bi bi-chevron-down"></i>
+        </div>
+    </div>
+    <div class="collapse" id="filterCollapse">
+        <div class="card-body p-4">
+            <form method="get" id="filterForm">
+            <div class="row g-3">
+                <div class="col-md-3">
+                    <label class="form-label fw-semibold">
+                        <i class="bi bi-calendar-range"></i> Date Range
+                    </label>
+                    <div class="row g-2">
+                        <div class="col-6">
+                            <input type="date" name="startDate" class="form-control"
+                                   value="@Model.Filters.StartDate.ToString("yyyy-MM-dd")" />
+                        </div>
+                        <div class="col-6">
+                            <input type="date" name="endDate" class="form-control"
+                                   value="@Model.Filters.EndDate.ToString("yyyy-MM-dd")" />
+                        </div>
+                    </div>
+                </div>
+
+                <div class="col-md-2">
+                    <label class="form-label fw-semibold">
+                        <i class="bi bi-building"></i> Providers
+                    </label>
+                    <div class="d-flex flex-column gap-1" style="font-size: 0.875rem;">
+                        <div class="form-check">
+                            <input class="form-check-input" type="checkbox" name="providers" value="Safaricom"
+                                   @(Model.Filters.Providers.Contains("Safaricom") ? "checked" : "") id="provSafaricom">
+                            <label class="form-check-label" for="provSafaricom">Safaricom</label>
+                        </div>
+                        <div class="form-check">
+                            <input class="form-check-input" type="checkbox" name="providers" value="Airtel"
+                                   @(Model.Filters.Providers.Contains("Airtel") ? "checked" : "") id="provAirtel">
+                            <label class="form-check-label" for="provAirtel">Airtel</label>
+                        </div>
+                        <div class="form-check">
+                            <input class="form-check-input" type="checkbox" name="providers" value="PSTN"
+                                   @(Model.Filters.Providers.Contains("PSTN") ? "checked" : "") id="provPSTN">
+                            <label class="form-check-label" for="provPSTN">PSTN</label>
+                        </div>
+                        <div class="form-check">
+                            <input class="form-check-input" type="checkbox" name="providers" value="PrivateWire"
+                                   @(Model.Filters.Providers.Contains("PrivateWire") ? "checked" : "") id="provPrivateWire">
+                            <label class="form-check-label" for="provPrivateWire">PrivateWire</label>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="col-md-2">
+                    <label class="form-label fw-semibold">
+                        <i class="bi bi-tag"></i> Recovery Type
+                    </label>
+                    <div class="d-flex flex-column gap-1" style="font-size: 0.875rem;">
+                        <div class="form-check">
+                            <input class="form-check-input" type="checkbox" name="recoveryTypes" value="Personal"
+                                   @(Model.Filters.RecoveryTypes.Contains("Personal") ? "checked" : "") id="typePersonal">
+                            <label class="form-check-label" for="typePersonal">Personal</label>
+                        </div>
+                        <div class="form-check">
+                            <input class="form-check-input" type="checkbox" name="recoveryTypes" value="Official"
+                                   @(Model.Filters.RecoveryTypes.Contains("Official") ? "checked" : "") id="typeOfficial">
+                            <label class="form-check-label" for="typeOfficial">Official</label>
+                        </div>
+                        <div class="form-check">
+                            <input class="form-check-input" type="checkbox" name="recoveryTypes" value="ClassOfService"
+                                   @(Model.Filters.RecoveryTypes.Contains("ClassOfService") ? "checked" : "") id="typeCOS">
+                            <label class="form-check-label" for="typeCOS">Class of Service</label>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="col-md-3">
+                    <label class="form-label fw-semibold">
+                        <i class="bi bi-person"></i> User Index Number
+                    </label>
+                    <input type="text" name="userIndexNumber" class="form-control"
+                           placeholder="Enter index number" value="@Model.Filters.UserIndexNumber" />
+                </div>
+
+                <div class="col-md-2 d-flex align-items-end">
+                    <div class="btn-group w-100">
+                        <button type="submit" class="btn btn-primary">
+                            <i class="bi bi-funnel"></i> Apply Filters
+                        </button>
+                        <a href="/Admin/RecoveryDashboard" class="btn btn-outline-secondary">
+                            <i class="bi bi-x-circle"></i> Clear
+                        </a>
+                    </div>
+                </div>
+            </div>
+
+            @if (Model.Filters.HasFilters)
+            {
+                <div class="alert alert-info mt-3 mb-0" style="font-size: 0.875rem;">
+                    <i class="bi bi-info-circle"></i>
+                    <strong>Filters active:</strong> Showing filtered results for the selected criteria.
+                </div>
+            }
+        </form>
+    </div>
+</div>
+
+<!-- Telecom Provider Summary (Full Width) -->
+<div class="row g-3 mb-4">
+    <div class="col-12">
+        <div style="border: none; box-shadow: none;">
+            <div class="metric-label" style="margin-bottom: 0.75rem;">Telecom Provider Summary</div>
+
+            <!-- Provider Grid (Horizontal) -->
+            <div class="row g-3">
+                @foreach (var provider in new[] { "Safaricom", "Airtel", "PSTN", "PrivateWire" })
+                {
+                    <div class="col-md-3 col-sm-6">
+                        @if (Model.ProviderSummaries.ContainsKey(provider))
+                        {
+                            var summary = Model.ProviderSummaries[provider];
+                            <div style="background: linear-gradient(135deg, #f8fafc, #f1f5f9); border-radius: 0.5rem; padding: 0.75rem; border-left: 3px solid #10b981; height: 100%; position: relative;">
+                                <!-- Icon on the right side -->
+                                <i class="bi bi-telephone-fill" style="position: absolute; top: 0.75rem; right: 0.75rem; color: #10b981; font-size: 1.75rem; opacity: 0.3;"></i>
+
+                                <!-- Content -->
+                                <div style="padding-right: 2rem;">
+                                    <div style="font-weight: 600; color: #1f2937; margin-bottom: 0.5rem; font-size: 0.875rem;">@provider</div>
+                                    <div style="font-size: 1.5rem; font-weight: 700; color: #059669; margin-bottom: 0.25rem; line-height: 1;">
+                                        @if (summary.Currency == "USD")
+                                        {
+                                            <text>$@summary.AmountUSD.ToString("N2")</text>
+                                        }
+                                        else
+                                        {
+                                            <text>KSH @summary.AmountKSH.ToString("N0")</text>
+                                        }
+                                    </div>
+                                    <div style="font-size: 0.75rem; color: #64748b;">
+                                        @summary.CallCount calls
+                                    </div>
+                                </div>
+                            </div>
+                        }
+                        else
+                        {
+                            <div style="background: #f8fafc; border-radius: 0.5rem; padding: 0.75rem; border-left: 3px solid #d1d5db; height: 100%; position: relative;">
+                                <!-- Icon on the right side -->
+                                <i class="bi bi-telephone-fill" style="position: absolute; top: 0.75rem; right: 0.75rem; color: #9ca3af; font-size: 1.75rem; opacity: 0.3;"></i>
+
+                                <!-- Content -->
+                                <div style="padding-right: 2rem;">
+                                    <div style="font-weight: 600; color: #6b7280; margin-bottom: 0.5rem; font-size: 0.875rem;">@provider</div>
+                                    <div style="font-size: 1.25rem; font-weight: 700; color: #9ca3af;">
+                                        No data
+                                    </div>
+                                </div>
+                            </div>
+                        }
+                    </div>
+                }
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Personal vs Official Charts Row -->
+<div class="row g-4 mb-4">
+    <!-- Monthly Bar Chart -->
+    <div class="col-md-8">
+        <div class="modern-card" style="height: 100%;">
+            <div class="modern-card-header">
+                <h6 class="modern-card-title">
+                    <i class="bi bi-bar-chart text-primary"></i>Personal vs Official Calls by Billing Month
+                </h6>
+            </div>
+            <div class="modern-card-body">
+                <div class="chart-container" style="height: 400px;">
+                    <canvas id="monthlyTrendChart"></canvas>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Doughnut Chart -->
+    @if (Model.RecoveryByType != null)
+    {
+        <div class="col-md-4">
+            <div class="modern-card" style="height: 100%;">
+                <div class="modern-card-header">
+                    <h6 class="modern-card-title">
+                        <i class="bi bi-pie-chart text-primary"></i> Personal vs Official Calls
+                    </h6>
+                </div>
+                <div class="modern-card-body">
+                    <div class="chart-container" style="height: 250px;">
+                        <canvas id="personalVsOfficialChart"></canvas>
+                    </div>
+
+                    <!-- Legend with amounts -->
+                    <div style="margin-top: 1.5rem; display: flex; flex-direction: column; gap: 1rem;">
+                        <div style="text-align: center;">
+                            <div style="display: flex; align-items: center; justify-content: center; margin-bottom: 0.5rem;">
+                                <div style="width: 16px; height: 16px; background-color: #ef4444; border-radius: 3px; margin-right: 0.5rem;"></div>
+                                <span style="font-weight: 600; color: #6b7280;">Personal (Staff Pays)</span>
+                            </div>
+                            <div style="font-size: 1.25rem; font-weight: 700; color: #ef4444;">
+                                KSH @Model.RecoveryByType.PersonalKSH.ToString("N0")
+                            </div>
+                            <div style="font-size: 0.875rem; color: #9ca3af;">
+                                @Model.RecoveryByType.PersonalCallCount calls (@Model.RecoveryByType.PersonalPercentage.ToString("F1")%)
+                            </div>
+                        </div>
+                        <div style="text-align: center;">
+                            <div style="display: flex; align-items: center; justify-content: center; margin-bottom: 0.5rem;">
+                                <div style="width: 16px; height: 16px; background-color: #3b82f6; border-radius: 3px; margin-right: 0.5rem;"></div>
+                                <span style="font-weight: 600; color: #6b7280;">Official (Org Pays)</span>
+                            </div>
+                            <div style="font-size: 1.25rem; font-weight: 700; color: #3b82f6;">
+                                KSH @Model.RecoveryByType.OfficialKSH.ToString("N0")
+                            </div>
+                            <div style="font-size: 0.875rem; color: #9ca3af;">
+                                @Model.RecoveryByType.OfficialCallCount calls (@Model.RecoveryByType.OfficialPercentage.ToString("F1")%)
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    }
+</div>
+
+<!-- Deadline Compliance & Top Batches Row -->
+<div class="row g-4 mb-4">
+    <!-- Deadline Compliance -->
+    <div class="col-md-4">
+        <div class="modern-card">
+            <div class="modern-card-header">
+                <h6 class="modern-card-title">
+                    <i class="bi bi-clock-history text-primary"></i>Deadline Compliance
+                </h6>
+            </div>
+            <div class="modern-card-body">
+                <div class="compliance-display">
+                    <div class="compliance-value" style="color: @(Model.DeadlineCompliance.ComplianceRate >= 90 ? "#10b981" : Model.DeadlineCompliance.ComplianceRate >= 70 ? "#f59e0b" : "#ef4444");">
+                        @Model.DeadlineCompliance.ComplianceRate.ToString("F1")%
+                    </div>
+                    <div class="compliance-label">Compliance Rate</div>
+                </div>
+
+                <div class="row g-2">
+                    <div class="col-6">
+                        <div class="stat-box">
+                            <div class="stat-value" style="color: #10b981;">@Model.DeadlineCompliance.MetDeadlines</div>
+                            <div class="stat-label">Met</div>
+                        </div>
+                    </div>
+                    <div class="col-6">
+                        <div class="stat-box">
+                            <div class="stat-value" style="color: #ef4444;">@Model.DeadlineCompliance.MissedDeadlines</div>
+                            <div class="stat-label">Missed</div>
+                        </div>
+                    </div>
+                    <div class="col-6">
+                        <div class="stat-box">
+                            <div class="stat-value" style="color: #06b6d4;">@Model.DeadlineCompliance.ExtendedDeadlines</div>
+                            <div class="stat-label">Extended</div>
+                        </div>
+                    </div>
+                    <div class="col-6">
+                        <div class="stat-box">
+                            <div class="stat-value" style="color: #f59e0b;">@Model.DeadlineCompliance.DeadlinesAtRisk</div>
+                            <div class="stat-label">At Risk</div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Top Batches by Recovery Amount -->
+    <div class="col-md-8">
+        <div class="modern-card">
+            <div class="modern-card-header">
+                <h6 class="modern-card-title">
+                    <i class="bi bi-trophy text-primary"></i>Top 10 Batches by Recovery Amount
+                </h6>
+            </div>
+            <div class="modern-card-body" style="padding: 0; max-height: 450px; overflow-y: auto;">
+                @if (Model.TopBatches.Any())
+                {
+                    <div class="table-responsive">
+                        <table class="modern-table">
+                            <thead>
+                                <tr>
+                                    <th>Rank</th>
+                                    <th>Batch Name</th>
+                                    <th class="text-end">Amount (KSH)</th>
+                                    <th class="text-end">Amount (USD)</th>
+                                    <th class="text-end">Records</th>
+                                    <th>Date</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                @for (int i = 0; i < Model.TopBatches.Count; i++)
+                                {
+                                    var batch = Model.TopBatches[i];
+                                    var rank = i + 1;
+                                    var rankBadgeStyle = rank == 1 ? "background: rgba(234, 179, 8, 0.1); color: #ca8a04;" :
+                                                        rank == 2 ? "background: rgba(148, 163, 184, 0.1); color: #64748b;" :
+                                                        rank == 3 ? "background: rgba(6, 182, 212, 0.1); color: #0891b2;" :
+                                                        "background: rgba(107, 114, 128, 0.1); color: #4b5563;";
+
+                                    <tr>
+                                        <td>
+                                            <span class="rank-badge" style="@rankBadgeStyle">
+                                                @if (rank == 1) { <i class="bi bi-trophy-fill"></i> }
+                                                @rank
+                                            </span>
+                                        </td>
+                                        <td>
+                                            <a href="/Admin/CallLogStaging?BatchId=@batch.BatchId" style="text-decoration: none; color: #009edb; font-weight: 600;">
+                                                @batch.BatchName
+                                            </a>
+                                        </td>
+                                        <td class="text-end" style="font-weight: 700; color: @(batch.PrimaryCurrency == "KSH" ? "#10b981" : "#6b7280");">
+                                            KSH @batch.TotalAmountKSH.ToString("N0")
+                                        </td>
+                                        <td class="text-end" style="font-weight: 700; color: @(batch.PrimaryCurrency == "USD" ? "#10b981" : "#6b7280");">
+                                            $@batch.TotalAmountUSD.ToString("N2")
+                                        </td>
+                                        <td class="text-end" style="color: #6b7280;">@batch.TotalRecords</td>
+                                        <td style="color: #6b7280; font-size: 0.875rem;">
+                                            @(batch.RecoveryDate?.ToLocalTime().ToString("MMM dd, yyyy") ?? "N/A")
+                                        </td>
+                                    </tr>
+                                }
+                            </tbody>
+                        </table>
+                    </div>
+                }
+                else
+                {
+                    <div class="empty-state">
+                        <div class="empty-icon">
+                            <i class="bi bi-inbox"></i>
+                        </div>
+                        <p class="empty-text">No recovery data available yet</p>
+                    </div>
+                }
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Provider Breakdown and Top Users -->
+<div class="row g-4 mb-4">
+    <!-- Recovery by Provider -->
+    <div class="col-md-6">
+        <div class="modern-card">
+            <div class="modern-card-header">
+                <h6 class="modern-card-title">
+                    <i class="bi bi-building text-primary"></i>Recovery by Provider
+                </h6>
+            </div>
+            <div class="modern-card-body">
+                @if (Model.RecoveryByProvider.Any())
+                {
+                    <div class="table-responsive">
+                        <table class="modern-table">
+                            <thead>
+                                <tr>
+                                    <th>Provider</th>
+                                    <th class="text-end">Native Currency</th>
+                                    <th class="text-end">KSH</th>
+                                    <th class="text-end">USD</th>
+                                    <th class="text-end">Calls</th>
+                                    <th class="text-end">Share</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                @foreach (var provider in Model.RecoveryByProvider)
+                                {
+                                    var providerColor = provider.Provider.ToLower() switch
+                                    {
+                                        "safaricom" => "#10b981",
+                                        "airtel" => "#ef4444",
+                                        "pstn" => "#3b82f6",
+                                        "privatewire" => "#8b5cf6",
+                                        _ => "#6b7280"
+                                    };
+
+                                    <tr>
+                                        <td>
+                                            <span style="font-weight: 600; color: @providerColor;">
+                                                @provider.Provider
+                                            </span>
+                                            <br>
+                                            <small style="color: #6b7280;">@provider.NativeCurrency</small>
+                                        </td>
+                                        <td class="text-end" style="font-weight: 700; color: #1f2937;">
+                                            @if (provider.NativeCurrency == "USD")
+                                            {
+                                                <text>$@provider.AmountInNativeCurrency.ToString("N2")</text>
+                                            }
+                                            else
+                                            {
+                                                <text>KSH @provider.AmountInNativeCurrency.ToString("N2")</text>
+                                            }
+                                        </td>
+                                        <td class="text-end" style="color: #6b7280;">
+                                            @provider.AmountInKSH.ToString("N2")
+                                        </td>
+                                        <td class="text-end" style="color: #6b7280;">
+                                            $@provider.AmountInUSD.ToString("N2")
+                                        </td>
+                                        <td class="text-end" style="color: #6b7280;">
+                                            @provider.CallCount.ToString("N0")
+                                        </td>
+                                        <td class="text-end">
+                                            <span class="badge" style="background: rgba(@(providerColor == "#10b981" ? "16, 185, 129" : providerColor == "#ef4444" ? "239, 68, 68" : providerColor == "#3b82f6" ? "59, 130, 246" : "139, 92, 246"), 0.1); color: @providerColor;">
+                                                @provider.PercentageOfTotal.ToString("F1")%
+                                            </span>
+                                        </td>
+                                    </tr>
+                                }
+                            </tbody>
+                        </table>
+                    </div>
+                }
+                else
+                {
+                    <div class="empty-state">
+                        <div class="empty-icon">
+                            <i class="bi bi-inbox"></i>
+                        </div>
+                        <p class="empty-text">No provider data available</p>
+                    </div>
+                }
+            </div>
+        </div>
+    </div>
+
+    <!-- Top User Recoveries -->
+    <div class="col-md-6">
+        <div class="modern-card">
+            <div class="modern-card-header">
+                <h6 class="modern-card-title">
+                    <i class="bi bi-people text-primary"></i>Top Users by Recovery
+                </h6>
+            </div>
+            <div class="modern-card-body" style="max-height: 500px; overflow-y: auto;">
+                @if (Model.TopUserRecoveries.Any())
+                {
+                    <div class="table-responsive">
+                        <table class="modern-table">
+                            <thead>
+                                <tr>
+                                    <th>Rank</th>
+                                    <th>User</th>
+                                    <th class="text-end">Amount (KSH)</th>
+                                    <th class="text-center">Type</th>
+                                    <th class="text-end">Calls</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                @foreach (var user in Model.TopUserRecoveries)
+                                {
+                                    var rankBadgeStyle = user.Rank == 1 ? "background: rgba(234, 179, 8, 0.1); color: #ca8a04;" :
+                                                        user.Rank == 2 ? "background: rgba(148, 163, 184, 0.1); color: #64748b;" :
+                                                        user.Rank == 3 ? "background: rgba(6, 182, 212, 0.1); color: #0891b2;" :
+                                                        "background: rgba(107, 114, 128, 0.1); color: #4b5563;";
+
+                                    var primaryTypeColor = user.PrimaryType switch
+                                    {
+                                        "Personal" => "#ef4444",
+                                        "Official" => "#3b82f6",
+                                        "COS" => "#f59e0b",
+                                        _ => "#6b7280"
+                                    };
+
+                                    <tr>
+                                        <td>
+                                            <span class="rank-badge" style="@rankBadgeStyle">
+                                                @if (user.Rank == 1) { <i class="bi bi-trophy-fill"></i> }
+                                                @user.Rank
+                                            </span>
+                                        </td>
+                                        <td>
+                                            <div style="font-weight: 600; color: #1f2937;">@user.FullName</div>
+                                            <small style="color: #6b7280;">@user.IndexNumber</small>
+                                            <br>
+                                            <small style="color: #6b7280;">@user.OrganizationName</small>
+                                        </td>
+                                        <td class="text-end" style="font-weight: 700; color: #10b981;">
+                                            @user.TotalKSH.ToString("N2")
+                                            <br>
+                                            <small style="color: #6b7280;">$@user.TotalUSD.ToString("N2")</small>
+                                        </td>
+                                        <td class="text-center">
+                                            <span class="badge" style="background: rgba(@(primaryTypeColor == "#ef4444" ? "239, 68, 68" : primaryTypeColor == "#3b82f6" ? "59, 130, 246" : "245, 158, 11"), 0.1); color: @primaryTypeColor; font-size: 0.75rem;">
+                                                @user.PrimaryType
+                                            </span>
+                                        </td>
+                                        <td class="text-end" style="color: #6b7280;">
+                                            @user.CallCount
+                                            <br>
+                                            <small>P:@user.PersonalCalls O:@user.OfficialCalls C:@user.COSCalls</small>
+                                        </td>
+                                    </tr>
+                                }
+                            </tbody>
+                        </table>
+                    </div>
+                }
+                else
+                {
+                    <div class="empty-state">
+                        <div class="empty-icon">
+                            <i class="bi bi-inbox"></i>
+                        </div>
+                        <p class="empty-text">No user recovery data available</p>
+                    </div>
+                }
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Recovery by Organization -->
+@if (Model.RecoveryByOrganization.Any())
+{
+    <div class="row mb-4">
+        <div class="col-12">
+            <div class="modern-card">
+                <div class="modern-card-header">
+                    <h6 class="modern-card-title">
+                        <i class="bi bi-diagram-3 text-primary"></i>Recovery by Organization
+                    </h6>
+                </div>
+                <div class="modern-card-body">
+                    <div class="table-responsive">
+                        <table class="modern-table">
+                            <thead>
+                                <tr>
+                                    <th>Organization</th>
+                                    <th class="text-end">Total (KSH)</th>
+                                    <th class="text-end">Total (USD)</th>
+                                    <th class="text-end">Personal</th>
+                                    <th class="text-end">Official</th>
+                                    <th class="text-end">COS</th>
+                                    <th class="text-end">Users</th>
+                                    <th class="text-end">Avg/User</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                @foreach (var org in Model.RecoveryByOrganization)
+                                {
+                                    <tr>
+                                        <td style="font-weight: 600; color: #1f2937;">@org.OrganizationName</td>
+                                        <td class="text-end" style="font-weight: 700; color: #10b981;">
+                                            KSH @org.TotalKSH.ToString("N2")
+                                        </td>
+                                        <td class="text-end" style="color: #6b7280;">
+                                            $@org.TotalUSD.ToString("N2")
+                                        </td>
+                                        <td class="text-end">
+                                            <span class="badge bg-danger">@org.PersonalCount (@org.PersonalPercentage.ToString("F0")%)</span>
+                                        </td>
+                                        <td class="text-end">
+                                            <span class="badge bg-primary">@org.OfficialCount (@org.OfficialPercentage.ToString("F0")%)</span>
+                                        </td>
+                                        <td class="text-end">
+                                            <span class="badge bg-warning text-dark">@org.COSCount (@org.COSPercentage.ToString("F0")%)</span>
+                                        </td>
+                                        <td class="text-end" style="color: #6b7280;">@org.UserCount</td>
+                                        <td class="text-end" style="color: #6b7280;">KSH @org.AvgPerUser.ToString("N2")</td>
+                                    </tr>
+                                }
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+}
+
+@section Scripts {
+<script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+<script>
+    // Toggle Filters Visibility
+    function toggleFilters() {
+        const filterSection = document.getElementById('filterSection');
+        const filterText = document.getElementById('filterToggleText');
+        const filterIcon = document.getElementById('filterIcon');
+
+        if (filterSection.style.display === 'none') {
+            filterSection.style.display = 'block';
+            filterText.textContent = 'Hide Filters';
+            filterIcon.className = 'bi bi-funnel-fill';
+        } else {
+            filterSection.style.display = 'none';
+            filterText.textContent = 'Show Filters';
+            filterIcon.className = 'bi bi-funnel';
+        }
+    }
+
+    // Recovery Trend Chart
+    // Monthly Trend Chart - Personal vs Official
+    const monthlyTrendCtx = document.getElementById('monthlyTrendChart');
+    if (monthlyTrendCtx) {
+        const monthlyTrendChart = new Chart(monthlyTrendCtx.getContext('2d'), {
+            type: 'bar',
+            data: {
+                labels: [@Html.Raw(string.Join(",", Model.MonthlyRecoveryTrends.Select(t => $"'{t.MonthYear}'")))],
+                datasets: [
+                    {
+                        label: 'Personal (Staff Pays)',
+                        data: [@Html.Raw(string.Join(",", Model.MonthlyRecoveryTrends.Select(t => t.PersonalAmountKSH)))],
+                        backgroundColor: '#ef4444',
+                        borderColor: '#dc2626',
+                        borderWidth: 1
+                    },
+                    {
+                        label: 'Official (Org Pays)',
+                        data: [@Html.Raw(string.Join(",", Model.MonthlyRecoveryTrends.Select(t => t.OfficialAmountKSH)))],
+                        backgroundColor: '#3b82f6',
+                        borderColor: '#2563eb',
+                        borderWidth: 1
+                    }
+                ]
+            },
+            options: {
+                responsive: true,
+                maintainAspectRatio: false,
+                plugins: {
+                    legend: {
+                        display: true,
+                        position: 'top',
+                        labels: {
+                            usePointStyle: true,
+                            padding: 15,
+                            font: {
+                                size: 12,
+                                weight: '500'
+                            }
+                        }
+                    },
+                    tooltip: {
+                        callbacks: {
+                            label: function(context) {
+                                let label = context.dataset.label || '';
+                                if (label) {
+                                    label += ': ';
+                                }
+                                label += 'KSH ' + context.parsed.y.toLocaleString();
+                                return label;
+                            }
+                        }
+                    }
+                },
+                scales: {
+                    x: {
+                        grid: {
+                            display: false
+                        }
+                    },
+                    y: {
+                        beginAtZero: true,
+                        grid: {
+                            color: 'rgba(0, 0, 0, 0.05)'
+                        },
+                        ticks: {
+                            callback: function(value) {
+                                return 'KSH ' + value.toLocaleString();
+                            }
+                        }
+                    }
+                }
+            }
+        });
+    }
+
+    // Personal vs Official Calls Chart
+    const personalVsOfficialCtx = document.getElementById('personalVsOfficialChart');
+    if (personalVsOfficialCtx) {
+        const personalVsOfficialChart = new Chart(personalVsOfficialCtx.getContext('2d'), {
+            type: 'doughnut',
+            data: {
+                labels: ['Personal (Staff Pays)', 'Official (Org Pays)'],
+                datasets: [{
+                    data: [
+                        @(Model.RecoveryByType?.PersonalKSH ?? 0),
+                        @(Model.RecoveryByType?.OfficialKSH ?? 0)
+                    ],
+                    backgroundColor: [
+                        '#ef4444',
+                        '#3b82f6'
+                    ],
+                    borderWidth: 2,
+                    borderColor: '#ffffff'
+                }]
+            },
+            options: {
+                responsive: true,
+                maintainAspectRatio: false,
+                plugins: {
+                    legend: {
+                        display: false
+                    },
+                    tooltip: {
+                        callbacks: {
+                            label: function(context) {
+                                let label = context.label || '';
+                                if (label) {
+                                    label += ': ';
+                                }
+                                label += 'KSH ' + context.parsed.toLocaleString();
+                                return label;
+                            }
+                        }
+                    }
+                }
+            }
+        });
+    }
+</script>
+}

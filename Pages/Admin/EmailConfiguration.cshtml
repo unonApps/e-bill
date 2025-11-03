@@ -1,0 +1,878 @@
+@page
+@model TAB.Web.Pages.Admin.EmailConfigurationModel
+@{
+    ViewData["Title"] = "Email Configuration";
+}
+
+<style>
+    .page-header {
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        margin-bottom: 2rem;
+        padding-bottom: 1rem;
+        border-bottom: 2px solid #e5e7eb;
+    }
+
+    .page-title {
+        font-size: 1.875rem;
+        font-weight: 700;
+        color: #111827;
+        margin: 0;
+        display: flex;
+        align-items: center;
+        gap: 0.75rem;
+    }
+
+    .btn-view-all {
+        background: white;
+        border: 2px solid #009edb;
+        color: #009edb;
+        padding: 0.625rem 1.25rem;
+        border-radius: 12px;
+        font-weight: 600;
+        transition: all 0.2s;
+        display: inline-flex;
+        align-items: center;
+        gap: 0.5rem;
+    }
+
+    .btn-view-all:hover {
+        background: rgba(0, 158, 219, 0.1);
+        color: #0086c3;
+        text-decoration: none;
+    }
+
+    .modern-card {
+        background: white;
+        border-radius: 16px;
+        box-shadow: 0 2px 4px rgba(0, 0, 0, 0.06);
+        border: none;
+        overflow: hidden;
+        margin-bottom: 1.5rem;
+    }
+
+    .modern-card-header {
+        background: linear-gradient(135deg, #f8f9fa 0%, #e9ecef 100%);
+        border: none;
+        padding: 1.5rem;
+        border-bottom: 2px solid #e5e7eb;
+    }
+
+    .modern-card-title {
+        font-size: 1.25rem;
+        font-weight: 700;
+        color: #1f2937;
+        margin: 0;
+        display: flex;
+        align-items: center;
+        gap: 0.5rem;
+    }
+
+    .modern-card-body {
+        padding: 2rem;
+    }
+
+    .info-alert {
+        background: rgba(59, 130, 246, 0.1);
+        border-left: 4px solid #3b82f6;
+        padding: 1rem 1.25rem;
+        border-radius: 12px;
+        margin-bottom: 1.5rem;
+    }
+
+    .info-alert strong {
+        color: #1e40af;
+        display: flex;
+        align-items: center;
+        gap: 0.5rem;
+        margin-bottom: 0.5rem;
+    }
+
+    .info-alert ul {
+        margin: 0.5rem 0 0 0;
+        padding-left: 1.25rem;
+        color: #374151;
+    }
+
+    .info-alert ul li {
+        margin: 0.25rem 0;
+        font-size: 0.875rem;
+    }
+
+    .form-label-modern {
+        color: #374151;
+        font-weight: 600;
+        font-size: 0.95rem;
+        margin-bottom: 0.625rem;
+        display: block;
+    }
+
+    .form-control-modern {
+        border-radius: 12px;
+        border: none;
+        background-color: #f3f4f6;
+        padding: 0.875rem 1.25rem;
+        transition: all 0.2s;
+        font-size: 1rem;
+        line-height: 1.5;
+        width: 100%;
+    }
+
+    .form-control-modern:focus {
+        background-color: #e5e7eb;
+        border-color: transparent;
+        box-shadow: 0 0 0 3px rgba(0, 158, 219, 0.1);
+    }
+
+    .form-control-modern::placeholder {
+        color: #9ca3af;
+    }
+
+    textarea.form-control-modern {
+        resize: vertical;
+        font-family: inherit;
+    }
+
+    .help-text {
+        display: block;
+        margin-top: 0.5rem;
+        font-size: 0.875rem;
+        color: #6b7280;
+    }
+
+    .help-text a {
+        color: #009edb;
+        text-decoration: none;
+    }
+
+    .help-text a:hover {
+        text-decoration: underline;
+    }
+
+    .help-text.text-success {
+        color: #059669 !important;
+        display: flex;
+        align-items: center;
+        gap: 0.375rem;
+    }
+
+    .checkbox-group-modern {
+        display: flex;
+        flex-wrap: wrap;
+        gap: 1.5rem;
+        padding-top: 0.5rem;
+    }
+
+    .checkbox-modern {
+        display: flex;
+        align-items: center;
+        gap: 0.5rem;
+    }
+
+    .checkbox-modern input[type="checkbox"] {
+        width: 1.25rem;
+        height: 1.25rem;
+        cursor: pointer;
+        accent-color: #009edb;
+    }
+
+    .checkbox-modern label {
+        cursor: pointer;
+        margin: 0;
+        font-weight: 500;
+        color: #374151;
+    }
+
+    .btn-save-config {
+        background: linear-gradient(135deg, #009edb 0%, #0086c3 100%);
+        border: none;
+        color: white;
+        padding: 0.75rem 1.5rem;
+        border-radius: 12px;
+        font-weight: 600;
+        transition: all 0.2s;
+        display: inline-flex;
+        align-items: center;
+        gap: 0.5rem;
+    }
+
+    .btn-save-config:hover {
+        transform: translateY(-2px);
+        box-shadow: 0 4px 12px rgba(0, 158, 219, 0.3);
+        color: white;
+    }
+
+    .sidebar-card {
+        background: white;
+        border-radius: 16px;
+        box-shadow: 0 2px 4px rgba(0, 0, 0, 0.06);
+        border: none;
+        margin-bottom: 1.5rem;
+    }
+
+    .sidebar-card-header {
+        background: linear-gradient(135deg, #f8f9fa 0%, #e9ecef 100%);
+        padding: 1rem 1.5rem;
+        border-bottom: 2px solid #e5e7eb;
+        border-radius: 16px 16px 0 0;
+    }
+
+    .sidebar-card-title {
+        font-size: 1rem;
+        font-weight: 700;
+        color: #1f2937;
+        margin: 0;
+        display: flex;
+        align-items: center;
+        gap: 0.5rem;
+    }
+
+    .sidebar-card-body {
+        padding: 1.5rem;
+    }
+
+    .btn-test {
+        background: linear-gradient(135deg, #3b82f6 0%, #2563eb 100%);
+        border: none;
+        color: white;
+        padding: 0.75rem 1.5rem;
+        border-radius: 12px;
+        font-weight: 600;
+        transition: all 0.2s;
+        width: 100%;
+        display: inline-flex;
+        align-items: center;
+        justify-content: center;
+        gap: 0.5rem;
+    }
+
+    .btn-test:hover {
+        transform: translateY(-2px);
+        box-shadow: 0 4px 12px rgba(59, 130, 246, 0.3);
+        color: white;
+    }
+
+    .btn-send-test {
+        background: linear-gradient(135deg, #06b6d4 0%, #0891b2 100%);
+        border: none;
+        color: white;
+        padding: 0.75rem 1.5rem;
+        border-radius: 12px;
+        font-weight: 600;
+        transition: all 0.2s;
+        width: 100%;
+        display: inline-flex;
+        align-items: center;
+        justify-content: center;
+        gap: 0.5rem;
+    }
+
+    .btn-send-test:hover {
+        transform: translateY(-2px);
+        box-shadow: 0 4px 12px rgba(6, 182, 212, 0.3);
+        color: white;
+    }
+
+    .workflow-guide {
+        background: rgba(16, 185, 129, 0.1);
+        border-left: 4px solid #10b981;
+        padding: 1rem;
+        border-radius: 12px;
+    }
+
+    .workflow-guide strong {
+        color: #065f46;
+        display: flex;
+        align-items: center;
+        gap: 0.5rem;
+        font-size: 0.875rem;
+        margin-bottom: 0.5rem;
+    }
+
+    .workflow-guide ol {
+        margin: 0.5rem 0 0 0;
+        padding-left: 1.25rem;
+        font-size: 0.813rem;
+        color: #374151;
+    }
+
+    .workflow-guide ol li {
+        margin: 0.375rem 0;
+    }
+
+    .btn-quick-link {
+        background: white;
+        border: 2px solid #e5e7eb;
+        color: #374151;
+        padding: 0.75rem 1rem;
+        border-radius: 12px;
+        font-weight: 600;
+        transition: all 0.2s;
+        width: 100%;
+        display: inline-flex;
+        align-items: center;
+        gap: 0.5rem;
+        text-decoration: none;
+    }
+
+    .btn-quick-link:hover {
+        background: #f9fafb;
+        border-color: #009edb;
+        color: #009edb;
+        text-decoration: none;
+    }
+
+    /* Modal Styling */
+    .modal-content {
+        border: none;
+        border-radius: 20px;
+        box-shadow: 0 10px 40px rgba(0, 0, 0, 0.15);
+        overflow: hidden;
+    }
+
+    .modal-header {
+        background: #009edb;
+        color: white;
+        border: none;
+        padding: 1.5rem;
+    }
+
+    .modal-header .modal-title {
+        font-size: 1.25rem;
+        font-weight: 700;
+        display: flex;
+        align-items: center;
+        gap: 0.5rem;
+    }
+
+    .modal-header .btn-close {
+        filter: brightness(0) invert(1);
+        opacity: 0.8;
+    }
+
+    .modal-header .btn-close:hover {
+        opacity: 1;
+    }
+
+    .modal-body {
+        padding: 2rem;
+    }
+
+    .modal-footer {
+        border: none;
+        padding: 1.5rem;
+        background: #f9fafb;
+    }
+
+    .modal-footer .btn {
+        border-radius: 12px;
+        padding: 0.625rem 1.5rem;
+        font-weight: 600;
+        transition: all 0.2s;
+    }
+
+    .modern-table {
+        width: 100%;
+        margin: 0;
+    }
+
+    .modern-table thead {
+        background-color: #f8f9fa;
+    }
+
+    .modern-table thead th {
+        color: #4a5568;
+        font-weight: 600;
+        padding: 0.75rem 1rem;
+        border: none;
+        font-size: 0.75rem;
+        text-transform: uppercase;
+        letter-spacing: 0.5px;
+    }
+
+    .modern-table tbody td {
+        padding: 1rem;
+        vertical-align: middle;
+        border-bottom: 1px solid #f3f4f6;
+    }
+
+    .modern-table tbody tr:hover {
+        background-color: #f9fafb;
+    }
+
+    .modern-table tbody tr:last-child td {
+        border-bottom: none;
+    }
+
+    .status-badge {
+        padding: 0.35rem 0.75rem;
+        border-radius: 12px;
+        font-size: 0.813rem;
+        font-weight: 600;
+        display: inline-flex;
+        align-items: center;
+        gap: 0.375rem;
+    }
+
+    .badge-success {
+        background: rgba(16, 185, 129, 0.1);
+        color: #059669;
+    }
+
+    .badge-secondary {
+        background: rgba(107, 114, 128, 0.1);
+        color: #4b5563;
+    }
+
+    .action-btn-group {
+        display: flex;
+        gap: 0.5rem;
+    }
+
+    .action-btn-group .btn {
+        padding: 0.5rem 0.75rem;
+        border-radius: 8px;
+        font-size: 0.813rem;
+        font-weight: 600;
+        border: none;
+        transition: all 0.2s;
+    }
+
+    .action-btn-group .btn:hover {
+        transform: translateY(-2px);
+    }
+</style>
+
+<div class="page-header">
+    <h1 class="page-title">
+        <i class="bi bi-gear"></i>
+        Email Configuration
+    </h1>
+    <div>
+        <button type="button" class="btn-view-all" data-bs-toggle="modal" data-bs-target="#viewAllModal">
+            <i class="bi bi-list"></i> View All Configurations
+        </button>
+    </div>
+</div>
+
+@if (Model.StatusMessage != null)
+{
+    <div class="alert alert-@Model.StatusMessageClass alert-dismissible fade show" role="alert" style="border-radius: 16px; border-left: 4px solid;">
+        <i class="bi bi-@(Model.StatusMessageClass == "success" ? "check-circle" : Model.StatusMessageClass == "danger" ? "x-circle" : "info-circle")"></i>
+        @Model.StatusMessage
+        <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
+    </div>
+}
+
+<div class="row">
+    <div class="col-lg-8">
+        <div class="modern-card">
+            <div class="modern-card-header">
+                <h5 class="modern-card-title">
+                    <i class="bi bi-server text-primary"></i>
+                    SMTP Configuration
+                </h5>
+            </div>
+            <div class="modern-card-body">
+                <div class="info-alert">
+                    <strong><i class="bi bi-info-circle"></i> Note:</strong>
+                    <p style="margin: 0.5rem 0 0.5rem 0; font-size: 0.875rem;">Configure your SMTP server settings to send emails. Supported providers:</p>
+                    <ul>
+                        <li>Gmail SMTP (smtp.gmail.com:587)</li>
+                        <li>Microsoft 365 / Outlook (smtp.office365.com:587)</li>
+                        <li>SendGrid, Mailgun, or other transactional email services</li>
+                    </ul>
+                </div>
+
+                <form method="post">
+                    <input type="hidden" asp-for="Configuration.Id" />
+
+                    <div class="row mb-3">
+                        <div class="col-md-8">
+                            <label asp-for="Configuration.SmtpServer" class="form-label-modern">SMTP Server <span class="text-danger">*</span></label>
+                            <input asp-for="Configuration.SmtpServer" class="form-control-modern" required placeholder="smtp.gmail.com" />
+                            <span asp-validation-for="Configuration.SmtpServer" class="text-danger"></span>
+                        </div>
+                        <div class="col-md-4">
+                            <label asp-for="Configuration.SmtpPort" class="form-label-modern">Port <span class="text-danger">*</span></label>
+                            <input asp-for="Configuration.SmtpPort" class="form-control-modern" required placeholder="587" />
+                            <span asp-validation-for="Configuration.SmtpPort" class="text-danger"></span>
+                        </div>
+                    </div>
+
+                    <div class="row mb-3">
+                        <div class="col-md-6">
+                            <label asp-for="Configuration.FromEmail" class="form-label-modern">From Email <span class="text-danger">*</span></label>
+                            <input asp-for="Configuration.FromEmail" class="form-control-modern" type="email" placeholder="noreply@example.com" required />
+                            <span asp-validation-for="Configuration.FromEmail" class="text-danger"></span>
+                        </div>
+                        <div class="col-md-6">
+                            <label asp-for="Configuration.FromName" class="form-label-modern">From Name <span class="text-danger">*</span></label>
+                            <input asp-for="Configuration.FromName" class="form-control-modern" placeholder="Your Organization" required />
+                            <span asp-validation-for="Configuration.FromName" class="text-danger"></span>
+                        </div>
+                    </div>
+
+                    <div class="row mb-3">
+                        <div class="col-md-6">
+                            <label asp-for="Configuration.Username" class="form-label-modern">Username <span class="text-danger">*</span></label>
+                            <input asp-for="Configuration.Username" class="form-control-modern" placeholder="your-email@example.com" required />
+                            <span asp-validation-for="Configuration.Username" class="text-danger"></span>
+                        </div>
+                        <div class="col-md-6">
+                            <label asp-for="Configuration.Password" class="form-label-modern">Password <span class="text-danger">*</span></label>
+                            @if (Model.Configuration.Id > 0 && !string.IsNullOrEmpty(Model.Configuration.Password))
+                            {
+                                <input asp-for="Configuration.Password" class="form-control-modern" type="password" placeholder="Leave empty to keep current password" />
+                                <small class="help-text text-success"><i class="bi bi-check-circle"></i> Password is saved</small>
+                            }
+                            else
+                            {
+                                <input asp-for="Configuration.Password" class="form-control-modern" type="password" placeholder="Enter password" required />
+                            }
+                            <span asp-validation-for="Configuration.Password" class="text-danger"></span>
+                            <small class="help-text">For Gmail, use an <a href="https://support.google.com/accounts/answer/185833" target="_blank">app password</a></small>
+                        </div>
+                    </div>
+
+                    <div class="row mb-3">
+                        <div class="col-md-4">
+                            <label asp-for="Configuration.Timeout" class="form-label-modern">Timeout (seconds)</label>
+                            <input asp-for="Configuration.Timeout" class="form-control-modern" type="number" min="1" max="300" placeholder="30" />
+                            <span asp-validation-for="Configuration.Timeout" class="text-danger"></span>
+                        </div>
+                        <div class="col-md-8">
+                            <label class="form-label-modern">Options</label>
+                            <div class="checkbox-group-modern">
+                                <div class="checkbox-modern">
+                                    <input asp-for="Configuration.EnableSsl" class="form-check-input" type="checkbox" />
+                                    <label asp-for="Configuration.EnableSsl" class="form-check-label">Enable SSL</label>
+                                </div>
+                                <div class="checkbox-modern">
+                                    <input asp-for="Configuration.UseDefaultCredentials" class="form-check-input" type="checkbox" />
+                                    <label asp-for="Configuration.UseDefaultCredentials" class="form-check-label">Use Default Credentials</label>
+                                </div>
+                                <div class="checkbox-modern">
+                                    <input asp-for="Configuration.IsActive" class="form-check-input" type="checkbox" />
+                                    <label asp-for="Configuration.IsActive" class="form-check-label">Is Active</label>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+
+                    <div class="mb-3">
+                        <label asp-for="Configuration.Notes" class="form-label-modern">Notes</label>
+                        <textarea asp-for="Configuration.Notes" class="form-control-modern" rows="3" placeholder="Optional notes about this configuration"></textarea>
+                        <span asp-validation-for="Configuration.Notes" class="text-danger"></span>
+                    </div>
+
+                    <div class="d-flex gap-3">
+                        <button type="submit" class="btn-save-config">
+                            <i class="bi bi-save"></i> Save Configuration
+                        </button>
+                    </div>
+                </form>
+            </div>
+        </div>
+    </div>
+
+    <div class="col-lg-4">
+        <!-- Test Configuration Card -->
+        <div class="sidebar-card">
+            <div class="sidebar-card-header">
+                <h5 class="sidebar-card-title">
+                    <i class="bi bi-plug text-primary"></i>
+                    Test Configuration
+                </h5>
+            </div>
+            <div class="sidebar-card-body">
+                <!-- Test Connection Button -->
+                <form method="post" asp-page-handler="TestConnection" id="testConnectionForm" class="mb-3">
+                    <!-- Hidden fields to pass configuration for testing -->
+                    <input type="hidden" name="Configuration.Id" value="@Model.Configuration.Id" />
+                    <input type="hidden" name="Configuration.SmtpServer" value="@Model.Configuration.SmtpServer" />
+                    <input type="hidden" name="Configuration.SmtpPort" value="@Model.Configuration.SmtpPort" />
+                    <input type="hidden" name="Configuration.FromEmail" value="@Model.Configuration.FromEmail" />
+                    <input type="hidden" name="Configuration.FromName" value="@Model.Configuration.FromName" />
+                    <input type="hidden" name="Configuration.Username" value="@Model.Configuration.Username" />
+                    <input type="hidden" name="Configuration.Password" value="@Model.Configuration.Password" />
+                    <input type="hidden" name="Configuration.EnableSsl" value="@Model.Configuration.EnableSsl" />
+                    <input type="hidden" name="Configuration.Timeout" value="@Model.Configuration.Timeout" />
+                    <input type="hidden" name="Configuration.UseDefaultCredentials" value="@Model.Configuration.UseDefaultCredentials" />
+
+                    <button type="submit" class="btn-test">
+                        <i class="bi bi-plug"></i> Test Connection
+                    </button>
+                    <small class="help-text" style="text-align: center; display: block; margin-top: 0.75rem;">
+                        Tests SMTP connection without sending email
+                    </small>
+                </form>
+
+                <hr style="border-color: #e5e7eb; margin: 1.5rem 0;" />
+
+                <!-- Send Test Email Form -->
+                <form method="post" asp-page-handler="SendTestEmail" id="testEmailForm">
+                    <!-- Hidden fields to pass configuration for testing -->
+                    <input type="hidden" name="Configuration.Id" value="@Model.Configuration.Id" />
+                    <input type="hidden" name="Configuration.SmtpServer" value="@Model.Configuration.SmtpServer" />
+                    <input type="hidden" name="Configuration.SmtpPort" value="@Model.Configuration.SmtpPort" />
+                    <input type="hidden" name="Configuration.FromEmail" value="@Model.Configuration.FromEmail" />
+                    <input type="hidden" name="Configuration.FromName" value="@Model.Configuration.FromName" />
+                    <input type="hidden" name="Configuration.Username" value="@Model.Configuration.Username" />
+                    <input type="hidden" name="Configuration.Password" value="@Model.Configuration.Password" />
+                    <input type="hidden" name="Configuration.EnableSsl" value="@Model.Configuration.EnableSsl" />
+                    <input type="hidden" name="Configuration.Timeout" value="@Model.Configuration.Timeout" />
+                    <input type="hidden" name="Configuration.UseDefaultCredentials" value="@Model.Configuration.UseDefaultCredentials" />
+
+                    <div class="mb-3">
+                        <label for="TestEmailAddress" class="form-label-modern">Recipient Email</label>
+                        <input asp-for="TestEmailAddress" class="form-control-modern" type="email" placeholder="test@example.com" required />
+                    </div>
+                    <button type="submit" class="btn-send-test">
+                        <i class="bi bi-envelope"></i> Send Test Email
+                    </button>
+                </form>
+
+                <div style="margin-top: 1.5rem;">
+                    <div class="workflow-guide">
+                        <strong><i class="bi bi-info-circle"></i> Testing Workflow:</strong>
+                        <ol>
+                            <li>Fill in SMTP settings on the left</li>
+                            <li>Click "Test Connection" to verify credentials</li>
+                            <li>If successful, send test email to confirm delivery</li>
+                            <li>If both succeed, click "Save Configuration"</li>
+                        </ol>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Quick Links Card -->
+        <div class="sidebar-card">
+            <div class="sidebar-card-header">
+                <h5 class="sidebar-card-title">
+                    <i class="bi bi-link-45deg text-primary"></i>
+                    Quick Links
+                </h5>
+            </div>
+            <div class="sidebar-card-body">
+                <div class="d-grid gap-2">
+                    <a asp-page="/Admin/EmailTemplates" class="btn-quick-link">
+                        <i class="bi bi-file-text"></i> Manage Templates
+                    </a>
+                    <a asp-page="/Admin/EmailLogs" class="btn-quick-link">
+                        <i class="bi bi-clock-history"></i> View Email History
+                    </a>
+                    <a asp-page="/Admin/SendEmail" class="btn-quick-link">
+                        <i class="bi bi-send"></i> Send Email
+                    </a>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- View All Configurations Modal -->
+<div class="modal fade" id="viewAllModal" tabindex="-1">
+    <div class="modal-dialog modal-xl modal-dialog-centered">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title">
+                    <i class="bi bi-list"></i>
+                    All Email Configurations
+                </h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+            </div>
+            <div class="modal-body" style="padding: 0;">
+                <div class="table-responsive">
+                    <table class="modern-table">
+                        <thead>
+                            <tr>
+                                <th>Status</th>
+                                <th>SMTP Server</th>
+                                <th>Port</th>
+                                <th>From Email</th>
+                                <th>From Name</th>
+                                <th>Username</th>
+                                <th>SSL</th>
+                                <th>Created</th>
+                                <th>Actions</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            @foreach (var config in Model.AllConfigurations)
+                            {
+                                <tr>
+                                    <td>
+                                        @if (config.IsActive)
+                                        {
+                                            <span class="status-badge badge-success"><i class="bi bi-check-circle-fill"></i> Active</span>
+                                        }
+                                        else
+                                        {
+                                            <span class="status-badge badge-secondary"><i class="bi bi-x-circle"></i> Inactive</span>
+                                        }
+                                    </td>
+                                    <td style="font-weight: 600; color: #1f2937;">@config.SmtpServer</td>
+                                    <td>@config.SmtpPort</td>
+                                    <td style="font-size: 0.875rem;">@config.FromEmail</td>
+                                    <td>@config.FromName</td>
+                                    <td style="font-size: 0.875rem;">@config.Username</td>
+                                    <td>
+                                        @if (config.EnableSsl)
+                                        {
+                                            <i class="bi bi-check-circle-fill" style="color: #10b981;"></i>
+                                        }
+                                        else
+                                        {
+                                            <i class="bi bi-x-circle" style="color: #ef4444;"></i>
+                                        }
+                                    </td>
+                                    <td style="font-size: 0.875rem; color: #6b7280;">@config.CreatedDate.ToString("MMM dd, yyyy")</td>
+                                    <td>
+                                        <div class="action-btn-group">
+                                            <button type="button" class="btn btn-primary" onclick="loadConfig(@config.Id)" data-bs-dismiss="modal" style="background: #009edb;">
+                                                <i class="bi bi-pencil"></i>
+                                            </button>
+                                            @if (!config.IsActive)
+                                            {
+                                                <form method="post" asp-page-handler="Activate" class="d-inline">
+                                                    <input type="hidden" name="id" value="@config.Id" />
+                                                    <button type="submit" class="btn btn-success" title="Set as Active" style="background: #10b981;">
+                                                        <i class="bi bi-check-circle"></i>
+                                                    </button>
+                                                </form>
+                                            }
+                                            <button type="button" class="btn btn-danger" onclick="confirmDelete(@config.Id, '@config.SmtpServer')" style="background: #ef4444;">
+                                                <i class="bi bi-trash"></i>
+                                            </button>
+                                        </div>
+                                    </td>
+                                </tr>
+                            }
+                        </tbody>
+                    </table>
+                </div>
+                @if (!Model.AllConfigurations.Any())
+                {
+                    <div class="text-center py-5">
+                        <i class="bi bi-inbox" style="font-size: 4rem; color: #d1d5db;"></i>
+                        <p style="color: #6b7280; font-size: 1.1rem; margin-top: 1rem;">No email configurations found.</p>
+                    </div>
+                }
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Close</button>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Delete Confirmation Modal -->
+<div class="modal fade" id="deleteModal" tabindex="-1">
+    <div class="modal-dialog modal-dialog-centered">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title">
+                    <i class="bi bi-trash"></i>
+                    Delete Configuration
+                </h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+            </div>
+            <div class="modal-body">
+                <p style="margin-bottom: 1rem;">Are you sure you want to delete this email configuration?</p>
+                <div style="background: #f3f4f6; padding: 1rem; border-radius: 12px; margin-bottom: 1rem;">
+                    <strong style="color: #1f2937;">Server:</strong>
+                    <span id="deleteServerName" style="color: #6b7280;"></span>
+                </div>
+                <div style="background: rgba(239, 68, 68, 0.1); border-left: 4px solid #ef4444; padding: 0.75rem 1rem; border-radius: 8px;">
+                    <i class="bi bi-exclamation-triangle-fill text-danger me-2"></i>
+                    <span class="text-danger" style="font-weight: 600;">This action cannot be undone.</span>
+                </div>
+            </div>
+            <div class="modal-footer">
+                <form method="post" asp-page-handler="Delete" class="d-flex gap-2 w-100 justify-content-end">
+                    <input type="hidden" name="id" id="deleteConfigId" />
+                    <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">
+                        <i class="bi bi-x-circle me-1"></i> Cancel
+                    </button>
+                    <button type="submit" class="btn btn-danger" style="background: linear-gradient(135deg, #ef4444 0%, #dc2626 100%);">
+                        <i class="bi bi-trash me-1"></i> Delete
+                    </button>
+                </form>
+            </div>
+        </div>
+    </div>
+</div>
+
+@section Scripts {
+    <partial name="_ValidationScriptsPartial" />
+    <script>
+        // Function to sync form values from main configuration form to test forms
+        function syncConfigurationValues(targetForm) {
+            try {
+                // Update hidden fields with current values from main form
+                var mainPassword = document.querySelector('input[name="Configuration.Password"]:not([type="hidden"])').value;
+                var hiddenPassword = targetForm.querySelector('input[name="Configuration.Password"]').value;
+
+                // Only update password if user entered a new one, otherwise keep the saved one
+                if (mainPassword && mainPassword.trim() !== '') {
+                    targetForm.querySelector('input[name="Configuration.Password"]').value = mainPassword;
+                }
+                // If hidden field already has a password (from saved config), keep it
+
+                targetForm.querySelector('input[name="Configuration.SmtpServer"]').value =
+                    document.querySelector('input[name="Configuration.SmtpServer"]:not([type="hidden"])').value || '@Model.Configuration.SmtpServer';
+
+                targetForm.querySelector('input[name="Configuration.SmtpPort"]').value =
+                    document.querySelector('input[name="Configuration.SmtpPort"]:not([type="hidden"])').value || '@Model.Configuration.SmtpPort';
+
+                targetForm.querySelector('input[name="Configuration.FromEmail"]').value =
+                    document.querySelector('input[name="Configuration.FromEmail"]:not([type="hidden"])').value || '@Model.Configuration.FromEmail';
+
+                targetForm.querySelector('input[name="Configuration.FromName"]').value =
+                    document.querySelector('input[name="Configuration.FromName"]:not([type="hidden"])').value || '@Model.Configuration.FromName';
+
+                targetForm.querySelector('input[name="Configuration.Username"]').value =
+                    document.querySelector('input[name="Configuration.Username"]:not([type="hidden"])').value || '@Model.Configuration.Username';
+
+                var enableSslCheckbox = document.querySelector('input[name="Configuration.EnableSsl"]:not([type="hidden"])');
+                targetForm.querySelector('input[name="Configuration.EnableSsl"]').value =
+                    enableSslCheckbox ? enableSslCheckbox.checked : '@Model.Configuration.EnableSsl';
+
+                targetForm.querySelector('input[name="Configuration.Timeout"]').value =
+                    document.querySelector('input[name="Configuration.Timeout"]:not([type="hidden"])').value || '@Model.Configuration.Timeout';
+
+                var defaultCredsCheckbox = document.querySelector('input[name="Configuration.UseDefaultCredentials"]:not([type="hidden"])');
+                targetForm.querySelector('input[name="Configuration.UseDefaultCredentials"]').value =
+                    defaultCredsCheckbox ? defaultCredsCheckbox.checked : '@Model.Configuration.UseDefaultCredentials';
+            } catch (error) {
+                console.error('Error syncing form values:', error);
+            }
+        }
+
+        // Sync configuration values for Test Connection form before submitting
+        document.getElementById('testConnectionForm').addEventListener('submit', function(e) {
+            syncConfigurationValues(this);
+        });
+
+        // Sync configuration values for Test Email form before submitting
+        document.getElementById('testEmailForm').addEventListener('submit', function(e) {
+            syncConfigurationValues(this);
+        });
+
+        // Load configuration for editing
+        function loadConfig(id) {
+            window.location.href = '/Admin/EmailConfiguration?id=' + id;
+        }
+
+        // Confirm delete
+        function confirmDelete(id, serverName) {
+            document.getElementById('deleteConfigId').value = id;
+            document.getElementById('deleteServerName').textContent = serverName;
+            var modal = new bootstrap.Modal(document.getElementById('deleteModal'));
+            modal.show();
+        }
+    </script>
+}

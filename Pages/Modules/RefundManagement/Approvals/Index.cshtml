@@ -2,11 +2,6 @@
 @model TAB.Web.Pages.Modules.RefundManagement.Approvals.IndexModel
 @{
     ViewData["Title"] = "Refund Request Approvals";
-    var activeTab = Request.Query["tab"].ToString();
-    if (string.IsNullOrEmpty(activeTab))
-    {
-        activeTab = "supervisor";
-    }
 }
 
 <style>
@@ -15,14 +10,14 @@
         padding-bottom: 1rem;
         border-bottom: 2px solid #E3EDF6;
     }
-    
+
     .page-title {
         font-size: 28px;
         font-weight: 700;
         color: #000000;
         margin-bottom: 8px;
     }
-    
+
     .page-title i {
         color: #009EDB;
     }
@@ -33,330 +28,636 @@
         margin: 0;
     }
 
-    
-    .nav-tabs {
-        border-bottom: 2px solid #e5e7eb;
-        background: white;
-        border-radius: 12px 12px 0 0;
-        padding: 1rem 1rem 0 1rem;
-        box-shadow: 0 2px 10px rgba(0, 0, 0, 0.06);
+    /* Statistics Cards */
+    .stats-container {
+        display: grid;
+        grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+        gap: 1.5rem;
+        margin-bottom: 2rem;
     }
-    
-    .nav-tabs .nav-link {
-        color: #6b7280;
-        border: none;
-        border-bottom: 3px solid transparent;
-        padding: 0.75rem 1.5rem;
-        font-weight: 500;
-        transition: all 0.3s;
-        background: none;
-        cursor: pointer;
-    }
-    
-    .nav-tabs .nav-link:hover {
-        color: #009edb;
-        border-bottom-color: rgba(0, 158, 219, 0.3);
-    }
-    
-    .nav-tabs .nav-link.active {
-        color: #009edb;
-        background: none;
-        border: none;
-        border-bottom: 3px solid #009edb;
-    }
-    
-    .tab-content {
-        margin-top: 0;
-    }
-    
-    .tab-header {
-        padding: 1rem 1.5rem;
+
+    .stat-card {
         background: white;
         border-radius: 12px;
-        margin-bottom: 1.5rem;
+        padding: 1rem 1.25rem;
         box-shadow: 0 2px 10px rgba(0, 0, 0, 0.06);
+        cursor: pointer;
+        transition: all 0.3s;
+        border: 2px solid transparent;
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        gap: 1rem;
     }
-    
-    .tab-title {
-        font-size: 1.25rem;
-        font-weight: 600;
-        color: #1e293b;
-        margin-bottom: 0.25rem;
+
+    .stat-card:hover {
+        transform: translateY(-2px);
+        box-shadow: 0 6px 20px rgba(0, 0, 0, 0.12);
     }
-    
-    .tab-subtitle {
-        color: #64748b;
-        margin-bottom: 0;
-        font-size: 0.875rem;
+
+    .stat-card.active {
+        border-color: #009EDB;
+        background: #f0f9ff;
     }
-    
-    .role-badge {
-        background: #009edb;
-        color: white;
-        padding: 0.375rem 1rem;
-        border-radius: 20px;
-        font-size: 0.875rem;
-        font-weight: 500;
-    }
-    
-    .workflow-indicator {
+
+    .stat-card-left {
         display: flex;
         align-items: center;
         gap: 1rem;
-        margin-top: 1rem;
-        padding: 0.75rem;
-        background: #f9fafb;
-        border-radius: 8px;
+        flex: 1;
     }
-    
-    .workflow-step {
+
+    .stat-icon {
+        width: 40px;
+        height: 40px;
+        border-radius: 10px;
         display: flex;
         align-items: center;
+        justify-content: center;
+        font-size: 20px;
+        flex-shrink: 0;
+    }
+
+    .stat-icon.all { background: #e0f2fe; color: #0284c7; }
+    .stat-icon.supervisor { background: #fef3c7; color: #f59e0b; }
+    .stat-icon.budget { background: #dbeafe; color: #3b82f6; }
+    .stat-icon.claims { background: #e0e7ff; color: #6366f1; }
+    .stat-icon.payment { background: #d1fae5; color: #10b981; }
+    .stat-icon.completed { background: #dcfce7; color: #22c55e; }
+    .stat-icon.cancelled { background: #fee2e2; color: #ef4444; }
+
+    .stat-label {
+        color: #64748b;
+        font-size: 14px;
+        font-weight: 500;
+        margin: 0;
+    }
+
+    .stat-value {
+        font-size: 28px;
+        font-weight: 700;
+        color: #1e293b;
+        margin: 0;
+        flex-shrink: 0;
+    }
+
+    /* Filter Bar */
+    .filter-bar {
+        background: white;
+        border-radius: 12px;
+        padding: 1.5rem;
+        margin-bottom: 1.5rem;
+        box-shadow: 0 2px 10px rgba(0, 0, 0, 0.06);
+    }
+
+    .filter-row {
+        display: flex;
+        gap: 1rem;
+        align-items: center;
+        flex-wrap: wrap;
+    }
+
+    .filter-item {
+        flex: 1;
+        min-width: 200px;
+    }
+
+    .filter-item label {
+        display: block;
+        font-size: 14px;
+        font-weight: 500;
+        color: #475569;
+        margin-bottom: 0.5rem;
+    }
+
+    .filter-item input,
+    .filter-item select {
+        width: 100%;
+        padding: 0.5rem;
+        border: 1px solid #e2e8f0;
+        border-radius: 8px;
+        font-size: 14px;
+    }
+
+    .filter-actions {
+        display: flex;
         gap: 0.5rem;
-        font-size: 0.85rem;
+        align-items: end;
     }
-    
-    .workflow-step.active {
-        color: #009edb;
+
+    .btn-filter {
+        padding: 0.5rem 1rem;
+        border-radius: 8px;
+        font-size: 14px;
+        font-weight: 500;
+        border: none;
+        cursor: pointer;
+        transition: all 0.2s;
+    }
+
+    .btn-filter-primary {
+        background: #009edb;
+        color: white;
+    }
+
+    .btn-filter-primary:hover {
+        background: #0284c7;
+    }
+
+    .btn-filter-secondary {
+        background: #f1f5f9;
+        color: #475569;
+    }
+
+    .btn-filter-secondary:hover {
+        background: #e2e8f0;
+    }
+
+    /* Table */
+    .table-container {
+        background: white;
+        border-radius: 12px;
+        padding: 1.5rem;
+        box-shadow: 0 2px 10px rgba(0, 0, 0, 0.06);
+    }
+
+    .table-header {
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        margin-bottom: 1.5rem;
+    }
+
+    .table-title {
+        font-size: 18px;
         font-weight: 600;
+        color: #1e293b;
     }
-    
-    .workflow-step.completed {
-        color: #10b981;
+
+    .table-responsive {
+        overflow-x: auto;
     }
-    
-    .workflow-arrow {
-        color: #d1d5db;
+
+    table {
+        width: 100%;
+        border-collapse: collapse;
+    }
+
+    thead {
+        background: #f8fafc;
+        border-bottom: 2px solid #e2e8f0;
+    }
+
+    th {
+        padding: 1rem;
+        text-align: left;
+        font-size: 13px;
+        font-weight: 600;
+        color: #475569;
+        text-transform: uppercase;
+        letter-spacing: 0.5px;
+    }
+
+    td {
+        padding: 1rem;
+        border-bottom: 1px solid #f1f5f9;
+        font-size: 14px;
+        color: #334155;
+    }
+
+    tbody tr {
+        transition: background 0.2s;
+        cursor: pointer;
+    }
+
+    tbody tr:hover {
+        background: #f8fafc;
+    }
+
+    .status-badge {
+        padding: 0.5rem 1rem;
+        border-radius: 20px;
+        font-size: 11px;
+        font-weight: 600;
+        display: inline-flex;
+        align-items: center;
+        gap: 0.5rem;
+        text-transform: uppercase;
+        letter-spacing: 0.8px;
+        white-space: nowrap;
+        box-shadow: 0 2px 8px rgba(0, 0, 0, 0.08);
+        border: 1.5px solid;
+        transition: all 0.2s ease;
+        background-color: transparent;
+    }
+
+    .status-pending-supervisor {
+        color: #d97706;
+        border-color: #f59e0b;
+    }
+
+    .status-pending-supervisor:hover {
+        box-shadow: 0 4px 12px rgba(217, 119, 6, 0.2);
+        transform: translateY(-1px);
+    }
+
+    .status-pending-budget,
+    .status-pending-budgetofficer {
+        color: #2563eb;
+        border-color: #3b82f6;
+    }
+
+    .status-pending-budget:hover,
+    .status-pending-budgetofficer:hover {
+        box-shadow: 0 4px 12px rgba(37, 99, 235, 0.2);
+        transform: translateY(-1px);
+    }
+
+    .status-pending-claims,
+    .status-pending-staffclaimsunit {
+        color: #7c3aed;
+        border-color: #a78bfa;
+    }
+
+    .status-pending-claims:hover,
+    .status-pending-staffclaimsunit:hover {
+        box-shadow: 0 4px 12px rgba(124, 58, 237, 0.2);
+        transform: translateY(-1px);
+    }
+
+    .status-pending-payment,
+    .status-pending-paymentapproval {
+        color: #059669;
+        border-color: #10b981;
+    }
+
+    .status-pending-payment:hover,
+    .status-pending-paymentapproval:hover {
+        box-shadow: 0 4px 12px rgba(5, 150, 105, 0.2);
+        transform: translateY(-1px);
+    }
+
+    .status-completed {
+        color: #2563eb;
+        border-color: #3b82f6;
+    }
+
+    .status-completed:hover {
+        box-shadow: 0 4px 12px rgba(37, 99, 235, 0.2);
+        transform: translateY(-1px);
+    }
+
+    .status-cancelled {
+        color: #dc2626;
+        border-color: #ef4444;
+    }
+
+    .status-cancelled:hover {
+        box-shadow: 0 4px 12px rgba(220, 38, 38, 0.2);
+        transform: translateY(-1px);
+    }
+
+    .priority-badge {
+        display: inline-block;
+        width: 8px;
+        height: 8px;
+        border-radius: 50%;
+        margin-right: 0.5rem;
+    }
+
+    .priority-normal {
+        background: #10b981;
+    }
+
+    .priority-attention {
+        background: #f59e0b;
+    }
+
+    .priority-urgent {
+        background: #ef4444;
+    }
+
+    .empty-state {
+        text-align: center;
+        padding: 4rem 2rem;
+    }
+
+    .empty-state i {
+        font-size: 4rem;
+        color: #cbd5e1;
+        margin-bottom: 1rem;
+    }
+
+    .empty-state h4 {
+        color: #475569;
+        margin-bottom: 0.5rem;
+    }
+
+    .empty-state p {
+        color: #64748b;
+    }
+
+    .action-btn {
+        padding: 0.5rem 1rem;
+        border-radius: 8px;
+        font-size: 13px;
+        font-weight: 500;
+        border: none;
+        cursor: pointer;
+        transition: all 0.2s;
+        text-decoration: none;
+        display: inline-block;
+    }
+
+    .action-btn-primary {
+        background: #009edb;
+        color: white;
+    }
+
+    .action-btn-primary:hover {
+        background: #0284c7;
+        color: white;
     }
 </style>
 
 <div class="container-fluid px-4">
     <div class="page-header">
         <h1 class="page-title"><i class="bi bi-cash-coin me-2"></i>Refund Request Approvals</h1>
-        <p class="page-subtitle">Process device reimbursement requests through the approval workflow</p>
+        <p class="page-subtitle">Review and process pending device reimbursement requests</p>
     </div>
 
-    <!-- Workflow Indicator -->
-    <div class="workflow-indicator">
-        <span class="workflow-step @(activeTab == "supervisor" ? "active" : "completed")">
-            <i class="bi bi-person-check"></i> Supervisor
-        </span>
-        <span class="workflow-arrow">→</span>
-        <span class="workflow-step @(activeTab == "budget" ? "active" : (activeTab == "supervisor" ? "" : "completed"))">
-            <i class="bi bi-calculator"></i> Budget Officer
-        </span>
-        <span class="workflow-arrow">→</span>
-        <span class="workflow-step @(activeTab == "claims" ? "active" : (activeTab == "payment" ? "completed" : ""))">
-            <i class="bi bi-check-circle"></i> Claims Unit
-        </span>
-        <span class="workflow-arrow">→</span>
-        <span class="workflow-step @(activeTab == "payment" ? "active" : "")">
-            <i class="bi bi-credit-card"></i> Payment
-        </span>
+    <!-- Statistics Cards -->
+    <div class="stats-container">
+        @if (Model.TotalRequests > 0)
+        {
+            <div class="stat-card" onclick="filterByStatus('all')" data-filter="all">
+                <div class="stat-card-left">
+                    <div class="stat-icon all">
+                        <i class="bi bi-list-ul"></i>
+                    </div>
+                    <p class="stat-label">Pending Approval</p>
+                </div>
+                <h3 class="stat-value">@Model.TotalRequests</h3>
+            </div>
+        }
+
+        @if ((Model.IsSupervisor || Model.IsAdmin) && Model.PendingSupervisorCount > 0)
+        {
+            <div class="stat-card" onclick="filterByStatus('PendingSupervisor')" data-filter="PendingSupervisor">
+                <div class="stat-card-left">
+                    <div class="stat-icon supervisor">
+                        <i class="bi bi-person-check"></i>
+                    </div>
+                    <p class="stat-label">Pending Supervisor</p>
+                </div>
+                <h3 class="stat-value">@Model.PendingSupervisorCount</h3>
+            </div>
+        }
+
+        @if ((Model.IsBudgetOfficer || Model.IsAdmin) && Model.PendingBudgetCount > 0)
+        {
+            <div class="stat-card" onclick="filterByStatus('PendingBudgetOfficer')" data-filter="PendingBudgetOfficer">
+                <div class="stat-card-left">
+                    <div class="stat-icon budget">
+                        <i class="bi bi-calculator"></i>
+                    </div>
+                    <p class="stat-label">Pending Budget</p>
+                </div>
+                <h3 class="stat-value">@Model.PendingBudgetCount</h3>
+            </div>
+        }
+
+        @if ((Model.IsClaimsUnit || Model.IsAdmin) && Model.PendingClaimsCount > 0)
+        {
+            <div class="stat-card" onclick="filterByStatus('PendingStaffClaimsUnit')" data-filter="PendingStaffClaimsUnit">
+                <div class="stat-card-left">
+                    <div class="stat-icon claims">
+                        <i class="bi bi-check-circle"></i>
+                    </div>
+                    <p class="stat-label">Pending Claims</p>
+                </div>
+                <h3 class="stat-value">@Model.PendingClaimsCount</h3>
+            </div>
+        }
+
+        @if ((Model.IsPaymentApprover || Model.IsAdmin) && Model.PendingPaymentCount > 0)
+        {
+            <div class="stat-card" onclick="filterByStatus('PendingPaymentApproval')" data-filter="PendingPaymentApproval">
+                <div class="stat-card-left">
+                    <div class="stat-icon payment">
+                        <i class="bi bi-credit-card"></i>
+                    </div>
+                    <p class="stat-label">Pending Payment</p>
+                </div>
+                <h3 class="stat-value">@Model.PendingPaymentCount</h3>
+            </div>
+        }
     </div>
 
-    <!-- Tab Navigation -->
-    <ul class="nav nav-tabs mt-3" id="refundApprovalTabs" role="tablist">
-            <li class="nav-item" role="presentation">
-                <button class="nav-link @(activeTab == "supervisor" ? "active" : "")" 
-                        id="supervisor-tab"
-                        data-bs-toggle="tab"
-                        data-bs-target="#supervisor-content"
-                        type="button"
-                        role="tab"
-                        aria-controls="supervisor-content"
-                        aria-selected="@(activeTab == "supervisor" ? "true" : "false")">
-                    <i class="bi bi-person-check me-2"></i>
-                    Supervisor Approval
-                    @if (Model.SupervisorPendingCount > 0)
+    <!-- Filter Bar -->
+    <div class="filter-bar">
+        <div class="filter-row">
+            <div class="filter-item">
+                <label>Search</label>
+                <input type="text" id="searchInput" placeholder="Search by name, ID, or amount..." />
+            </div>
+            <div class="filter-item">
+                <label>Status</label>
+                <select id="statusFilter">
+                    <option value="all">All Statuses</option>
+                    @if (Model.IsSupervisor || Model.IsAdmin)
                     {
-                        <span class="badge bg-danger ms-2">@Model.SupervisorPendingCount</span>
+                        <option value="PendingSupervisor">Pending Supervisor</option>
                     }
+                    @if (Model.IsBudgetOfficer || Model.IsAdmin)
+                    {
+                        <option value="PendingBudgetOfficer">Pending Budget Officer</option>
+                    }
+                    @if (Model.IsClaimsUnit || Model.IsAdmin)
+                    {
+                        <option value="PendingStaffClaimsUnit">Pending Claims Unit</option>
+                    }
+                    @if (Model.IsPaymentApprover || Model.IsAdmin)
+                    {
+                        <option value="PendingPaymentApproval">Pending Payment Approval</option>
+                    }
+                </select>
+            </div>
+            <div class="filter-item">
+                <label>Priority</label>
+                <select id="priorityFilter">
+                    <option value="all">All Priorities</option>
+                    <option value="urgent">Urgent (7+ days)</option>
+                    <option value="attention">Needs Attention (3-7 days)</option>
+                    <option value="normal">Normal</option>
+                </select>
+            </div>
+            <div class="filter-actions">
+                <button class="btn-filter btn-filter-primary" onclick="applyFilters()">
+                    <i class="bi bi-funnel"></i> Filter
                 </button>
-            </li>
-            @if (User.IsInRole("Budget Officer") || User.IsInRole("BudgetOfficer") || User.IsInRole("Admin"))
-            {
-                <li class="nav-item" role="presentation">
-                    <button class="nav-link @(activeTab == "budget" ? "active" : "")" 
-                            id="budget-tab"
-                            data-bs-toggle="tab"
-                            data-bs-target="#budget-content"
-                            type="button"
-                            role="tab"
-                            aria-controls="budget-content"
-                            aria-selected="@(activeTab == "budget" ? "true" : "false")">
-                        <i class="bi bi-calculator me-2"></i>
-                        Budget Review
-                        @if (Model.BudgetPendingCount > 0)
-                        {
-                            <span class="badge bg-warning text-dark ms-2">@Model.BudgetPendingCount</span>
-                        }
-                    </button>
-                </li>
-            }
-            @if (User.IsInRole("Claims Unit Approver") || User.IsInRole("Admin"))
-            {
-                <li class="nav-item" role="presentation">
-                    <button class="nav-link @(activeTab == "claims" ? "active" : "")" 
-                            id="claims-tab"
-                            data-bs-toggle="tab"
-                            data-bs-target="#claims-content"
-                            type="button"
-                            role="tab"
-                            aria-controls="claims-content"
-                            aria-selected="@(activeTab == "claims" ? "true" : "false")">
-                        <i class="bi bi-check-circle me-2"></i>
-                        Claims Unit
-                        @if (Model.ClaimsPendingCount > 0)
-                        {
-                            <span class="badge bg-info ms-2">@Model.ClaimsPendingCount</span>
-                        }
-                    </button>
-                </li>
-            }
-            @if (User.IsInRole("ICTS") || User.IsInRole("Payment Approver") || User.IsInRole("Admin"))
-            {
-                <li class="nav-item" role="presentation">
-                    <button class="nav-link @(activeTab == "payment" ? "active" : "")" 
-                            id="payment-tab"
-                            data-bs-toggle="tab"
-                            data-bs-target="#payment-content"
-                            type="button"
-                            role="tab"
-                            aria-controls="payment-content"
-                            aria-selected="@(activeTab == "payment" ? "true" : "false")">
-                        <i class="bi bi-credit-card me-2"></i>
-                        Payment Approval
-                        @if (Model.PaymentPendingCount > 0)
-                        {
-                            <span class="badge bg-success ms-2">@Model.PaymentPendingCount</span>
-                        }
-                    </button>
-                </li>
-            }
-    </ul>
-
-    <!-- Tab Content -->
-    <div class="tab-content" id="refundApprovalTabContent">
-        <!-- Supervisor Tab -->
-        <div class="tab-pane fade @(activeTab == "supervisor" ? "show active" : "")" 
-             id="supervisor-content" 
-             role="tabpanel" 
-             aria-labelledby="supervisor-tab">
-            <div class="tab-header">
-                <div class="d-flex justify-content-between align-items-center">
-                    <div>
-                        <h2 class="tab-title">Supervisor Approval Queue</h2>
-                        <p class="tab-subtitle">Review and approve refund requests from your team members</p>
-                    </div>
-                    <div>
-                        <span class="role-badge">Supervisor Role</span>
-                    </div>
-                </div>
+                <button class="btn-filter btn-filter-secondary" onclick="clearFilters()">
+                    <i class="bi bi-x-circle"></i> Clear
+                </button>
             </div>
-            
-            <!-- Supervisor Requests Content -->
-            <partial name="_RefundSupervisorPartial" model="Model" />
         </div>
-        
-        <!-- Budget Officer Tab -->
-        @if (User.IsInRole("Budget Officer") || User.IsInRole("BudgetOfficer") || User.IsInRole("Admin"))
+    </div>
+
+    <!-- Table -->
+    <div class="table-container">
+        <div class="table-header">
+            <div class="table-title">
+                <i class="bi bi-table me-2"></i>
+                Refund Requests (<span id="tableCount">@Model.RefundRequests.Count</span>)
+            </div>
+        </div>
+
+        @if (Model.RefundRequests.Any())
         {
-            <div class="tab-pane fade @(activeTab == "budget" ? "show active" : "")" 
-                 id="budget-content" 
-                 role="tabpanel" 
-                 aria-labelledby="budget-tab">
-                <div class="tab-header">
-                    <div class="d-flex justify-content-between align-items-center">
-                        <div>
-                            <h2 class="tab-title">Budget Officer Review</h2>
-                            <p class="tab-subtitle">Verify budget availability and approve refund amounts</p>
-                        </div>
-                        <div>
-                            <span class="role-badge" style="background: #f59e0b;">Budget Officer Role</span>
-                        </div>
-                    </div>
-                </div>
-                
-                <!-- Budget Officer Content -->
-                <partial name="_RefundBudgetPartial" model="Model" />
+            <div class="table-responsive">
+                <table id="requestsTable">
+                    <thead>
+                        <tr>
+                            <th>Request ID</th>
+                            <th>Staff Name</th>
+                            <th>Amount</th>
+                            <th>Request Date</th>
+                            <th>Priority</th>
+                            <th>Status</th>
+                            <th>Action</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        @foreach (var request in Model.RefundRequests)
+                        {
+                            var daysSince = (DateTime.UtcNow - request.RequestDate).Days;
+                            var priority = daysSince > 7 ? "urgent" : daysSince > 3 ? "attention" : "normal";
+                            var statusClass = request.Status.ToString().Replace("Pending", "pending-").ToLower();
+
+                            <tr data-status="@request.Status" data-priority="@priority" data-search="@request.Id @request.MobileNumberAssignedTo @request.DevicePurchaseAmount">
+                                <td><strong>#@request.Id</strong></td>
+                                <td>@request.MobileNumberAssignedTo</td>
+                                <td><strong>@request.DevicePurchaseCurrency @request.DevicePurchaseAmount.ToString("N2")</strong></td>
+                                <td>@request.RequestDate.ToString("MMM dd, yyyy")</td>
+                                <td>
+                                    <span class="priority-badge priority-@priority"></span>
+                                    @(priority == "urgent" ? "Urgent" : priority == "attention" ? "Attention" : "Normal")
+                                    <small class="text-muted">(@daysSince days)</small>
+                                </td>
+                                <td>
+                                    <span class="status-badge status-@statusClass">
+                                        @request.Status.ToString().Replace("Pending", "").Replace("StaffClaimsUnit", "Claims")
+                                    </span>
+                                </td>
+                                <td>
+                                    <a href="javascript:void(0)"
+                                       onclick="navigateToApproval('@request.Status', @request.Id)"
+                                       class="action-btn action-btn-primary">
+                                        <i class="bi bi-eye"></i> View
+                                    </a>
+                                </td>
+                            </tr>
+                        }
+                    </tbody>
+                </table>
             </div>
         }
-        
-        <!-- Claims Unit Tab -->
-        @if (User.IsInRole("Claims Unit Approver") || User.IsInRole("Admin"))
+        else
         {
-            <div class="tab-pane fade @(activeTab == "claims" ? "show active" : "")" 
-                 id="claims-content" 
-                 role="tabpanel" 
-                 aria-labelledby="claims-tab">
-                <div class="tab-header">
-                    <div class="d-flex justify-content-between align-items-center">
-                        <div>
-                            <h2 class="tab-title">Claims Unit Processing</h2>
-                            <p class="tab-subtitle">Process and validate refund claims</p>
-                        </div>
-                        <div>
-                            <span class="role-badge" style="background: #0ea5e9;">Claims Unit Role</span>
-                        </div>
-                    </div>
-                </div>
-                
-                <!-- Claims Unit Content -->
-                <partial name="_RefundClaimsPartial" model="Model" />
-            </div>
-        }
-        
-        <!-- Payment Approver Tab -->
-        @if (User.IsInRole("ICTS") || User.IsInRole("Payment Approver") || User.IsInRole("Admin"))
-        {
-            <div class="tab-pane fade @(activeTab == "payment" ? "show active" : "")" 
-                 id="payment-content" 
-                 role="tabpanel" 
-                 aria-labelledby="payment-tab">
-                <div class="tab-header">
-                    <div class="d-flex justify-content-between align-items-center">
-                        <div>
-                            <h2 class="tab-title">Payment Approval</h2>
-                            <p class="tab-subtitle">Final approval and payment processing</p>
-                        </div>
-                        <div>
-                            <span class="role-badge" style="background: #10b981;">Payment Approver Role</span>
-                        </div>
-                    </div>
-                </div>
-                
-                <!-- Payment Approver Content -->
-                <partial name="_RefundPaymentPartial" model="Model" />
+            <div class="empty-state">
+                <i class="bi bi-inbox"></i>
+                <h4>No Requests Found</h4>
+                <p>There are no refund requests to display.</p>
             </div>
         }
     </div>
 </div>
 
-@section Scripts {
-    <script>
-        document.addEventListener('DOMContentLoaded', function() {
-            // Handle tab persistence with URL
-            var tabButtons = document.querySelectorAll('button[data-bs-toggle="tab"]');
-            tabButtons.forEach(function(button) {
-                button.addEventListener('shown.bs.tab', function (e) {
-                    var tabId = e.target.id.replace('-tab', '');
-                    var url = new URL(window.location);
-                    url.searchParams.set('tab', tabId);
-                    window.history.pushState({}, '', url);
-                });
-            });
-            
-            // Set active tab based on URL parameter
-            var urlParams = new URLSearchParams(window.location.search);
-            var activeTab = urlParams.get('tab');
-            if (activeTab) {
-                var tabButton = document.getElementById(activeTab + '-tab');
-                if (tabButton) {
-                    var tab = new bootstrap.Tab(tabButton);
-                    tab.show();
-                }
+<script>
+    let currentFilter = 'all';
+
+    function filterByStatus(status) {
+        currentFilter = status;
+        document.getElementById('statusFilter').value = status;
+
+        // Update active state
+        document.querySelectorAll('.stat-card').forEach(card => {
+            card.classList.remove('active');
+        });
+        document.querySelector(`[data-filter="${status}"]`)?.classList.add('active');
+
+        applyFilters();
+    }
+
+    function applyFilters() {
+        const searchTerm = document.getElementById('searchInput').value.toLowerCase();
+        const statusFilter = document.getElementById('statusFilter').value;
+        const priorityFilter = document.getElementById('priorityFilter').value;
+
+        const rows = document.querySelectorAll('#requestsTable tbody tr');
+        let visibleCount = 0;
+
+        rows.forEach(row => {
+            const status = row.dataset.status;
+            const priority = row.dataset.priority;
+            const searchText = row.dataset.search.toLowerCase();
+
+            const matchesSearch = searchTerm === '' || searchText.includes(searchTerm);
+            const matchesStatus = statusFilter === 'all' || status === statusFilter;
+            const matchesPriority = priorityFilter === 'all' || priority === priorityFilter;
+
+            if (matchesSearch && matchesStatus && matchesPriority) {
+                row.style.display = '';
+                visibleCount++;
+            } else {
+                row.style.display = 'none';
             }
         });
-    </script>
-}
+
+        document.getElementById('tableCount').textContent = visibleCount;
+    }
+
+    function clearFilters() {
+        document.getElementById('searchInput').value = '';
+        document.getElementById('statusFilter').value = 'all';
+        document.getElementById('priorityFilter').value = 'all';
+        currentFilter = 'all';
+
+        document.querySelectorAll('.stat-card').forEach(card => {
+            card.classList.remove('active');
+        });
+
+        applyFilters();
+    }
+
+    function navigateToApproval(status, requestId) {
+        let url = '';
+
+        switch(status) {
+            case 'PendingSupervisor':
+                url = `/Modules/RefundManagement/Approvals/Supervisor?requestId=${requestId}`;
+                break;
+            case 'PendingBudgetOfficer':
+                url = `/Modules/RefundManagement/Approvals/BudgetOfficer?requestId=${requestId}`;
+                break;
+            case 'PendingStaffClaimsUnit':
+                url = `/Modules/RefundManagement/Approvals/ClaimsUnit?requestId=${requestId}`;
+                break;
+            case 'PendingPaymentApproval':
+                url = `/Modules/RefundManagement/Approvals/PaymentApprover?requestId=${requestId}`;
+                break;
+            case 'Completed':
+            case 'Cancelled':
+                // For completed/cancelled, just view details (could create a view-only page later)
+                url = `/Modules/RefundManagement/Requests/View?id=${requestId}`;
+                break;
+            default:
+                url = `/Modules/RefundManagement/Requests/View?id=${requestId}`;
+        }
+
+        window.location.href = url;
+    }
+
+    // Add search on input
+    document.getElementById('searchInput').addEventListener('input', applyFilters);
+</script>

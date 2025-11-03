@@ -1079,10 +1079,22 @@ namespace TAB.Web.Pages.Admin
             }
         }
 
-        public async Task<IActionResult> OnPostRegisterExtensionAsync(string type, int id, string extension, int userId, string phoneType, bool isPrimary, string? classOfService = null, string? location = null, string? notes = null)
+        public async Task<IActionResult> OnPostRegisterExtensionAsync(string type, int id, string extension, int userId, string phoneType, bool isPrimary, string? classOfService = null, string? location = null, string? notes = null, int lineType = 2)
         {
             try
             {
+                // Sync LineType with IsPrimary - they must match
+                LineType actualLineType = (LineType)lineType;
+                if (actualLineType == LineType.Primary)
+                {
+                    isPrimary = true;
+                }
+                else
+                {
+                    // If LineType is not Primary, IsPrimary must be false
+                    isPrimary = false;
+                }
+
                 var user = await _context.EbillUsers.FindAsync(userId);
                 if (user == null)
                 {
@@ -1098,7 +1110,7 @@ namespace TAB.Web.Pages.Admin
                     return new JsonResult(new { success = false, message = $"Extension {extension} is already registered" });
                 }
 
-                // If this is set as primary, unset other primary phones for this user
+                // If this is set as primary, unset other primary phones for this user and set their LineType to Secondary
                 if (isPrimary)
                 {
                     var userPhones = await _context.UserPhones
@@ -1108,6 +1120,7 @@ namespace TAB.Web.Pages.Admin
                     foreach (var phone in userPhones)
                     {
                         phone.IsPrimary = false;
+                        phone.LineType = LineType.Secondary;
                         _context.Update(phone);
                     }
                 }
@@ -1127,6 +1140,7 @@ namespace TAB.Web.Pages.Admin
                     IndexNumber = user.IndexNumber,
                     PhoneNumber = extension,
                     PhoneType = phoneType,
+                    LineType = actualLineType,
                     IsPrimary = isPrimary,
                     IsActive = true,
                     ClassOfServiceId = classOfServiceId,

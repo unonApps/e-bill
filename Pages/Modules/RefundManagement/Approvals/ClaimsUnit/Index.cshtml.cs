@@ -16,13 +16,17 @@ namespace TAB.Web.Pages.Modules.RefundManagement.Approvals.ClaimsUnit
         private readonly UserManager<ApplicationUser> _userManager;
         private readonly INotificationService _notificationService;
         private readonly IAuditLogService _auditLogService;
+        private readonly IEnhancedEmailService _emailService;
+        private readonly ILogger<IndexModel> _logger;
 
-        public IndexModel(ApplicationDbContext context, UserManager<ApplicationUser> userManager, INotificationService notificationService, IAuditLogService auditLogService)
+        public IndexModel(ApplicationDbContext context, UserManager<ApplicationUser> userManager, INotificationService notificationService, IAuditLogService auditLogService, IEnhancedEmailService emailService, ILogger<IndexModel> logger)
         {
             _context = context;
             _userManager = userManager;
             _notificationService = notificationService;
             _auditLogService = auditLogService;
+            _emailService = emailService;
+            _logger = logger;
         }
 
         public List<RefundRequest> PendingRequests { get; set; } = new();
@@ -157,6 +161,29 @@ namespace TAB.Web.Pages.Modules.RefundManagement.Approvals.ClaimsUnit
                     );
                 }
 
+                // Send email notifications
+                try
+                {
+                    var requester = await _userManager.FindByIdAsync(request.RequestedBy ?? "");
+                    if (requester != null)
+                    {
+                        // 1. Send claims processed email to requester
+                        await SendClaimsProcessedEmailAsync(request, requester);
+
+                        // 2. Send notification to payment approvers
+                        foreach (var approver in paymentApprovers)
+                        {
+                            await SendPaymentApproverNotificationEmailAsync(request, approver);
+                        }
+
+                        _logger.LogInformation("Claims processed email notifications sent successfully for refund request {RequestId}", requestId);
+                    }
+                }
+                catch (Exception emailEx)
+                {
+                    _logger.LogError(emailEx, "Failed to send claims processed email notifications for request {RequestId}", requestId);
+                }
+
                 StatusMessage = $"Request #{requestId} has been approved and forwarded to Payment Approval.";
                 StatusMessageClass = "success";
             }
@@ -277,6 +304,21 @@ namespace TAB.Web.Pages.Modules.RefundManagement.Approvals.ClaimsUnit
                     currentUser.Id,
                     HttpContext.Connection.RemoteIpAddress?.ToString()
                 );
+
+                // Send rejection email notification
+                try
+                {
+                    var requester = await _userManager.FindByIdAsync(request.RequestedBy ?? "");
+                    if (requester != null)
+                    {
+                        await SendRejectionEmailAsync(request, currentUser, requester);
+                        _logger.LogInformation("Rejection email sent successfully for refund request {RequestId}", requestId);
+                    }
+                }
+                catch (Exception emailEx)
+                {
+                    _logger.LogError(emailEx, "Failed to send rejection email for request {RequestId}", requestId);
+                }
 
                 StatusMessage = $"Request #{requestId} has been rejected.";
                 StatusMessageClass = "success";
@@ -435,6 +477,65 @@ namespace TAB.Web.Pages.Modules.RefundManagement.Approvals.ClaimsUnit
                 RefundRequestStatus.Cancelled => "status-cancelled",
                 _ => "status-draft"
             };
+        }
+
+        private async Task SendClaimsProcessedEmailAsync(RefundRequest request, ApplicationUser requester)
+        {
+            var placeholders = new Dictionary<string, string>
+            {
+                { "RequestId", request.Id.ToString() },
+                { "RequesterName", request.MobileNumberAssignedTo ?? $"{requester.FirstName} {requester.LastName}" },
+                { "RefundUsdAmount", request.RefundUsdAmount?.ToString("N2") ?? "0.00" },
+                { "UmojaPaymentDocumentId", request.UmojaPaymentDocumentId ?? "Pending" },
+                { "ClaimsActionDate", request.ClaimsActionDate?.ToString("MMMM dd, yyyy") ?? DateTime.UtcNow.ToString("MMMM dd, yyyy") },
+                { "ViewRequestLink", $"{Request.Scheme}://{Request.Host}/Modules/RefundManagement/Requests/Index" },
+                { "Year", DateTime.Now.Year.ToString() }
+            };
+
+            await _emailService.SendTemplatedEmailAsync(
+                to: requester.Email ?? "",
+                templateCode: "REFUND_CLAIMS_PROCESSED",
+                data: placeholders
+            );
+        }
+
+        private async Task SendPaymentApproverNotificationEmailAsync(RefundRequest request, ApplicationUser approver)
+        {
+            var placeholders = new Dictionary<string, string>
+            {
+                { "RequestId", request.Id.ToString() },
+                { "RequesterName", request.MobileNumberAssignedTo ?? "Staff Member" },
+                { "RefundUsdAmount", request.RefundUsdAmount?.ToString("N2") ?? "0.00" },
+                { "UmojaPaymentDocumentId", request.UmojaPaymentDocumentId ?? "Pending" },
+                { "ApprovalLink", $"{Request.Scheme}://{Request.Host}/Modules/RefundManagement/Approvals/PaymentApprover" },
+                { "Year", DateTime.Now.Year.ToString() }
+            };
+
+            await _emailService.SendTemplatedEmailAsync(
+                to: approver.Email ?? "",
+                templateCode: "REFUND_PAYMENT_APPROVER_NOTIFICATION",
+                data: placeholders
+            );
+        }
+
+        private async Task SendRejectionEmailAsync(RefundRequest request, ApplicationUser rejector, ApplicationUser requester)
+        {
+            var placeholders = new Dictionary<string, string>
+            {
+                { "RequestId", request.Id.ToString() },
+                { "RequesterName", request.MobileNumberAssignedTo ?? $"{requester.FirstName} {requester.LastName}" },
+                { "RejectedBy", $"{rejector.FirstName} {rejector.LastName}" },
+                { "RejectionDate", request.CancellationDate?.ToString("MMMM dd, yyyy") ?? DateTime.UtcNow.ToString("MMMM dd, yyyy") },
+                { "RejectionReason", request.CancellationReason ?? "No reason provided" },
+                { "NewRequestLink", $"{Request.Scheme}://{Request.Host}/Modules/RefundManagement/Requests/Create" },
+                { "Year", DateTime.Now.Year.ToString() }
+            };
+
+            await _emailService.SendTemplatedEmailAsync(
+                to: requester.Email ?? "",
+                templateCode: "REFUND_REQUEST_REJECTED",
+                data: placeholders
+            );
         }
     }
 } 

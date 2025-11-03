@@ -1,0 +1,255 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Call Records Available for Verification</title>
+</head>
+<body style="margin: 0; padding: 0; font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; background-color: #f3f4f6;">
+    <table width="100%" cellpadding="0" cellspacing="0" style="background-color: #f3f4f6; padding: 40px 20px;">
+        <tr>
+            <td align="center">
+                <table width="600" cellpadding="0" cellspacing="0" style="background-color: #ffffff; border-radius: 16px; overflow: hidden; box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);">
+                    <!-- Header with Logo -->
+                    <tr>
+                        <td style="background-color: #009edb; padding: 30px; text-align: center;">
+                            <img src="cid:logo" alt="UNON E-Billing System" style="max-width: 100%; height: auto; display: block; margin: 0 auto;" width="550" />
+                        </td>
+                    </tr>
+
+                    <!-- Content -->
+                    <tr>
+                        <td style="padding: 40px 30px;">
+                            <!-- Greeting -->
+                            <p style="margin: 0 0 20px 0; color: #1f2937; font-size: 16px; line-height: 1.6;">
+                                Dear <strong>{{StaffName}}</strong>,
+                            </p>
+
+                            <p style="margin: 0 0 30px 0; color: #4b5563; font-size: 15px; line-height: 1.6;">
+                                Your call records for <strong>{{Period}}</strong> have been published and are now available for verification. Please review and verify your calls before the deadline.
+                            </p>
+
+                            <!-- Important Notice -->
+                            <div style="background-color: #fef3c7; border-left: 4px solid #f59e0b; padding: 20px; margin-bottom: 30px; border-radius: 8px;">
+                                <p style="margin: 0 0 10px 0; color: #92400e; font-size: 14px; line-height: 1.6; font-weight: 700;">
+                                    <i style="font-size: 16px;">⏰</i> Action Required
+                                </p>
+                                <p style="margin: 0; color: #78350f; font-size: 14px; line-height: 1.6;">
+                                    Please verify your call records by <strong>{{VerificationDeadline}}</strong> to avoid automatic processing.
+                                </p>
+                            </div>
+
+                            <!-- Call Records Summary -->
+                            <table width="100%" cellpadding="0" cellspacing="0" style="margin-bottom: 30px;">
+                                <tr>
+                                    <td colspan="2" style="background-color: #f0f9ff; padding: 12px 20px; border-radius: 8px 8px 0 0; border-bottom: 2px solid #009edb;">
+                                        <h2 style="margin: 0; color: #0c4a6e; font-size: 18px; font-weight: 700;">
+                                            📞 Call Records Summary
+                                        </h2>
+                                    </td>
+                                </tr>
+                                <tr>
+                                    <td style="padding: 15px 20px; border-bottom: 1px solid #e5e7eb; width: 40%;">
+                                        <strong style="color: #6b7280; font-size: 14px;">Index Number:</strong>
+                                    </td>
+                                    <td style="padding: 15px 20px; border-bottom: 1px solid #e5e7eb; text-align: right;">
+                                        <span style="color: #1f2937; font-size: 14px; font-weight: 600;">{{IndexNumber}}</span>
+                                    </td>
+                                </tr>
+                                <tr>
+                                    <td style="padding: 15px 20px; border-bottom: 1px solid #e5e7eb;">
+                                        <strong style="color: #6b7280; font-size: 14px;">Period:</strong>
+                                    </td>
+                                    <td style="padding: 15px 20px; border-bottom: 1px solid #e5e7eb; text-align: right;">
+                                        <span style="color: #1f2937; font-size: 14px; font-weight: 600;">{{Period}}</span>
+                                    </td>
+                                </tr>
+                                <tr>
+                                    <td style="padding: 15px 20px; border-bottom: 1px solid #e5e7eb;">
+                                        <strong style="color: #6b7280; font-size: 14px;">Total Call Records:</strong>
+                                    </td>
+                                    <td style="padding: 15px 20px; border-bottom: 1px solid #e5e7eb; text-align: right;">
+                                        <span style="color: #1f2937; font-size: 16px; font-weight: 700;">{{TotalRecords}}</span>
+                                    </td>
+                                </tr>
+                                <tr>
+                                    <td style="padding: 15px 20px; border-bottom: 1px solid #e5e7eb;">
+                                        <strong style="color: #6b7280; font-size: 14px;">Total Call Cost:</strong>
+                                    </td>
+                                    <td style="padding: 15px 20px; border-bottom: 1px solid #e5e7eb; text-align: right;">
+                                        <span style="color: #009edb; font-size: 18px; font-weight: 700;">USD {{TotalAmount}}</span>
+                                    </td>
+                                </tr>
+                                <tr>
+                                    <td style="padding: 15px 20px;">
+                                        <strong style="color: #6b7280; font-size: 14px;">Source Systems:</strong>
+                                    </td>
+                                    <td style="padding: 15px 20px; text-align: right;">
+                                        <span style="color: #1f2937; font-size: 14px; font-weight: 600;">{{SourceSystems}}</span>
+                                    </td>
+                                </tr>
+                            </table>
+
+                            <!-- Deadlines Section -->
+                            <table width="100%" cellpadding="0" cellspacing="0" style="margin-bottom: 30px; border: 2px solid #f59e0b; border-radius: 8px; overflow: hidden;">
+                                <tr>
+                                    <td colspan="2" style="background-color: #fef3c7; padding: 12px 20px;">
+                                        <h3 style="margin: 0; color: #92400e; font-size: 16px; font-weight: 700;">
+                                            📅 Important Deadlines
+                                        </h3>
+                                    </td>
+                                </tr>
+                                <tr>
+                                    <td style="padding: 15px 20px; border-bottom: 1px solid #fde68a; background-color: #fffbeb; width: 50%;">
+                                        <strong style="color: #78350f; font-size: 14px;">Staff Verification Deadline:</strong>
+                                    </td>
+                                    <td style="padding: 15px 20px; border-bottom: 1px solid #fde68a; background-color: #fffbeb; text-align: right;">
+                                        <span style="color: #92400e; font-size: 15px; font-weight: 700;">{{VerificationDeadline}}</span>
+                                    </td>
+                                </tr>
+                                <tr>
+                                    <td style="padding: 15px 20px; background-color: #fffbeb;">
+                                        <strong style="color: #78350f; font-size: 14px;">Supervisor Approval Deadline:</strong>
+                                    </td>
+                                    <td style="padding: 15px 20px; background-color: #fffbeb; text-align: right;">
+                                        <span style="color: #92400e; font-size: 15px; font-weight: 700;">{{ApprovalDeadline}}</span>
+                                    </td>
+                                </tr>
+                            </table>
+
+                            <!-- What You Need To Do -->
+                            <div style="background-color: #f0f9ff; border-left: 4px solid #009edb; padding: 20px; margin-bottom: 30px; border-radius: 8px;">
+                                <p style="margin: 0 0 15px 0; color: #0c4a6e; font-size: 15px; font-weight: 700;">
+                                    What You Need To Do:
+                                </p>
+                                <ol style="margin: 0; padding-left: 20px; color: #0c4a6e; font-size: 14px; line-height: 1.8;">
+                                    <li><strong>Review</strong> all call records to ensure accuracy</li>
+                                    <li><strong>Classify</strong> each call as Official or Personal</li>
+                                    <li><strong>Verify</strong> the call records before <strong>{{VerificationDeadline}}</strong></li>
+                                    <li><strong>Submit</strong> to your supervisor for approval</li>
+                                </ol>
+                            </div>
+
+                            <!-- Class of Service Info -->
+                            <div style="background-color: #f3f4f6; border-radius: 8px; padding: 20px; margin-bottom: 30px;">
+                                <table width="100%" cellpadding="0" cellspacing="0">
+                                    <tr>
+                                        <td style="padding: 5px 0;">
+                                            <span style="color: #6b7280; font-size: 14px;">Your Class of Service Limit:</span>
+                                        </td>
+                                        <td style="padding: 5px 0; text-align: right;">
+                                            <span style="color: #1f2937; font-size: 15px; font-weight: 700;">USD {{MonthlyAllowance}}</span>
+                                        </td>
+                                    </tr>
+                                    <tr>
+                                        <td colspan="2" style="padding: 10px 0 5px 0;">
+                                            <div style="background-color: #e5e7eb; height: 10px; border-radius: 5px; overflow: hidden;">
+                                                <div style="background: linear-gradient(90deg, #10b981 0%, #059669 100%); height: 100%; width: {{AllowancePercentage}}%;"></div>
+                                            </div>
+                                        </td>
+                                    </tr>
+                                    <tr>
+                                        <td colspan="2" style="padding: 5px 0;">
+                                            <span style="color: #6b7280; font-size: 13px; font-weight: 500;">{{AllowanceUsageMessage}}</span>
+                                        </td>
+                                    </tr>
+                                </table>
+                            </div>
+
+                            <!-- Call to Action Button -->
+                            <div style="text-align: center; margin: 30px 0;">
+                                <a href="{{VerifyCallsLink}}" style="display: inline-block; background: linear-gradient(135deg, #10b981, #059669); color: #ffffff; text-decoration: none; padding: 16px 40px; border-radius: 8px; font-size: 16px; font-weight: 700; box-shadow: 0 4px 12px rgba(16, 185, 129, 0.3); transition: all 0.3s ease;">
+                                    🔍 Verify My Calls Now →
+                                </a>
+                            </div>
+
+                            <!-- Important Reminders -->
+                            <div style="background-color: #fef2f2; border-left: 4px solid #ef4444; padding: 20px; margin-bottom: 30px; border-radius: 8px;">
+                                <p style="margin: 0 0 10px 0; color: #991b1b; font-size: 14px; font-weight: 700;">
+                                    ⚠️ Important Reminders:
+                                </p>
+                                <ul style="margin: 0; padding-left: 20px; color: #7f1d1d; font-size: 13px; line-height: 1.8;">
+                                    <li>Unverified calls after the deadline will be automatically classified as <strong>Personal</strong></li>
+                                    <li>Personal calls exceeding your Class of Service limit will be recovered from your salary</li>
+                                    <li>Official calls require proper justification and supporting documentation</li>
+                                    <li>Supervisor approval is required after your verification</li>
+                                </ul>
+                            </div>
+
+                            <!-- Supervisor Information -->
+                            <div style="background-color: #f9fafb; border-radius: 8px; padding: 20px; margin-bottom: 30px; border: 1px solid #e5e7eb;">
+                                <p style="margin: 0 0 10px 0; color: #6b7280; font-size: 13px; font-weight: 600;">
+                                    📧 Your Supervisor:
+                                </p>
+                                <p style="margin: 0; color: #1f2937; font-size: 14px; font-weight: 700;">
+                                    {{SupervisorName}}
+                                </p>
+                                <p style="margin: 5px 0 0 0; color: #6b7280; font-size: 13px;">
+                                    {{SupervisorEmail}}
+                                </p>
+                            </div>
+
+                            <!-- Need Help Section -->
+                            <div style="background-color: #f0f9ff; border-radius: 8px; padding: 20px; margin-bottom: 30px;">
+                                <p style="margin: 0 0 10px 0; color: #0c4a6e; font-size: 14px; font-weight: 700;">
+                                    💡 Need Help?
+                                </p>
+                                <p style="margin: 0; color: #0369a1; font-size: 13px; line-height: 1.6;">
+                                    If you have questions about your call records or need assistance with the verification process, please contact the ICTS Service Desk at <a href="mailto:ICTS.Servicedesk@un.org" style="color: #009edb; text-decoration: none; font-weight: 600;">ICTS.Servicedesk@un.org</a>
+                                </p>
+                            </div>
+
+                            <!-- Closing -->
+                            <p style="margin: 30px 0 0 0; color: #4b5563; font-size: 14px; line-height: 1.6;">
+                                Best regards,<br>
+                                <strong>UNON E-Billing System Team</strong>
+                            </p>
+                        </td>
+                    </tr>
+
+                    <!-- Footer -->
+                    <tr>
+                        <td style="background-color: #f9fafb; padding: 30px; text-align: center; border-top: 1px solid #e5e7eb;">
+                            <!-- Rainbow SDG Colors -->
+                            <div style="display: flex; height: 5px; margin-bottom: 20px;">
+                                <div style="flex: 1; background-color: #E5243B;"></div>
+                                <div style="flex: 1; background-color: #DDA63A;"></div>
+                                <div style="flex: 1; background-color: #4C9F38;"></div>
+                                <div style="flex: 1; background-color: #C5192D;"></div>
+                                <div style="flex: 1; background-color: #FF3A21;"></div>
+                                <div style="flex: 1; background-color: #26BDE2;"></div>
+                                <div style="flex: 1; background-color: #FCC30B;"></div>
+                                <div style="flex: 1; background-color: #A21942;"></div>
+                                <div style="flex: 1; background-color: #FD6925;"></div>
+                                <div style="flex: 1; background-color: #DD1367;"></div>
+                                <div style="flex: 1; background-color: #FD9D24;"></div>
+                                <div style="flex: 1; background-color: #BF8B2E;"></div>
+                                <div style="flex: 1; background-color: #3F7E44;"></div>
+                                <div style="flex: 1; background-color: #0A97D9;"></div>
+                                <div style="flex: 1; background-color: #56C02B;"></div>
+                                <div style="flex: 1; background-color: #00689D;"></div>
+                                <div style="flex: 1; background-color: #19486A;"></div>
+                            </div>
+
+                            <p style="margin: 0 0 10px 0; color: #6b7280; font-size: 12px;">
+                                <strong>United Nations Office at Nairobi</strong><br>
+                                UN Headquarters in Africa
+                            </p>
+
+                            <p style="margin: 0; color: #9ca3af; font-size: 11px;">
+                                DAS | ICTS | Innovation Business Unit<br>
+                                Powered by UNON © {{Year}}
+                            </p>
+
+                            <p style="margin: 15px 0 0 0; color: #9ca3af; font-size: 11px; line-height: 1.5;">
+                                This is an automated message. Please do not reply to this email.<br>
+                                For inquiries, please contact ICTS Service Desk at ICTS.Servicedesk@un.org
+                            </p>
+                        </td>
+                    </tr>
+                </table>
+            </td>
+        </tr>
+    </table>
+</body>
+</html>

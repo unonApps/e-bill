@@ -1,0 +1,888 @@
+@page
+@model TAB.Web.Pages.Profile.IndexModel
+@{
+    ViewData["Title"] = "My Profile";
+}
+
+<style>
+    /* Statistics Grid */
+    .stats-grid {
+        display: grid;
+        grid-template-columns: repeat(auto-fit, minmax(240px, 1fr));
+        gap: 1.25rem;
+        margin-bottom: 2rem;
+    }
+
+    .stat-card {
+        background: white;
+        border-radius: 12px;
+        padding: 1.5rem;
+        border: 1px solid #e5e7eb;
+        position: relative;
+        overflow: hidden;
+        transition: transform 0.2s, box-shadow 0.2s;
+    }
+
+    .stat-card::before {
+        content: '';
+        position: absolute;
+        top: 0;
+        left: 0;
+        right: 0;
+        height: 4px;
+        background: linear-gradient(90deg, var(--gradient-start), var(--gradient-end));
+    }
+
+    .stat-card:nth-child(1)::before {
+        --gradient-start: #3b82f6;
+        --gradient-end: #60a5fa;
+    }
+
+    .stat-card:nth-child(2)::before {
+        --gradient-start: #10b981;
+        --gradient-end: #34d399;
+    }
+
+    .stat-card:nth-child(3)::before {
+        --gradient-start: #06b6d4;
+        --gradient-end: #22d3ee;
+    }
+
+    .stat-card:nth-child(4)::before {
+        --gradient-start: #f59e0b;
+        --gradient-end: #fbbf24;
+    }
+
+    .stat-card:hover {
+        transform: translateY(-5px);
+        box-shadow: 0 10px 30px rgba(0, 0, 0, 0.1);
+    }
+
+    .stat-content {
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+    }
+
+    .stat-icon {
+        width: 50px;
+        height: 50px;
+        border-radius: 12px;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        font-size: 1.5rem;
+    }
+
+    .stat-icon-primary {
+        background: linear-gradient(135deg, #3b82f6, #60a5fa);
+        color: white;
+    }
+
+    .stat-icon-success {
+        background: linear-gradient(135deg, #10b981, #34d399);
+        color: white;
+    }
+
+    .stat-icon-info {
+        background: linear-gradient(135deg, #06b6d4, #22d3ee);
+        color: white;
+    }
+
+    .stat-icon-warning {
+        background: linear-gradient(135deg, #f59e0b, #fbbf24);
+        color: white;
+    }
+
+    .stat-details {
+        text-align: right;
+    }
+
+    .stat-number {
+        font-size: 1.75rem;
+        font-weight: 700;
+        color: #1f2937;
+        line-height: 1;
+        margin-bottom: 0.25rem;
+    }
+
+    .stat-label {
+        font-size: 0.875rem;
+        color: #6b7280;
+        font-weight: 500;
+    }
+
+    /* Page Header Bar */
+    .page-header-bar {
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        margin-bottom: 2rem;
+        padding-bottom: 1.5rem;
+        border-bottom: 2px solid #e5e7eb;
+        flex-wrap: wrap;
+        gap: 1rem;
+    }
+
+    .page-info {
+        flex: 1;
+    }
+
+    .module-badge {
+        display: inline-flex;
+        align-items: center;
+        padding: 0.375rem 0.875rem;
+        background: linear-gradient(135deg, #009EDB 0%, #0084c7 100%);
+        color: white;
+        border-radius: 6px;
+        font-size: 0.75rem;
+        font-weight: 600;
+        text-transform: uppercase;
+        letter-spacing: 0.5px;
+        margin-bottom: 0.5rem;
+    }
+
+    .page-title-main {
+        font-size: 1.75rem;
+        font-weight: 700;
+        color: #1f2937;
+        margin: 0;
+        letter-spacing: -0.02em;
+    }
+
+    .current-date {
+        display: flex;
+        align-items: center;
+        gap: 0.5rem;
+        padding: 0.625rem 1rem;
+        background: #f3f4f6;
+        border-radius: 8px;
+        color: #4b5563;
+        font-size: 0.875rem;
+        font-weight: 500;
+    }
+
+    .current-date i {
+        color: #009EDB;
+    }
+
+    /* Info Cards */
+    .info-card {
+        background: white;
+        border-radius: 16px;
+        border: 1px solid #e5e7eb;
+        overflow: hidden;
+        margin-bottom: 1.5rem;
+    }
+
+    .info-card-header {
+        background: linear-gradient(135deg, #f8f9fa 0%, #e9ecef 100%);
+        padding: 1.25rem 1.5rem;
+        border-bottom: 1px solid #e5e7eb;
+    }
+
+    .info-card-title {
+        font-size: 1.125rem;
+        font-weight: 700;
+        color: #1f2937;
+        margin: 0;
+    }
+
+    .info-card-body {
+        padding: 1.5rem;
+    }
+
+    .section-divider {
+        border: 0;
+        height: 2px;
+        background: linear-gradient(90deg, transparent, #e5e7eb, transparent);
+        margin: 1.5rem 0;
+    }
+
+    /* Form Styles matching MyCallLogs */
+    .form-label {
+        font-size: 0.875rem;
+        font-weight: 500;
+        color: #6b7280;
+        margin-bottom: 0.5rem;
+        text-transform: uppercase;
+        letter-spacing: 0.5px;
+    }
+
+    .form-control, .form-select {
+        border: 0;
+        background: #f3f4f6;
+        border-radius: 12px;
+        padding: 0.75rem 1rem;
+        font-size: 0.9375rem;
+        transition: all 0.2s ease;
+    }
+
+    .form-control:focus, .form-select:focus {
+        background: white;
+        border: 2px solid #009EDB;
+        box-shadow: 0 0 0 3px rgba(0, 158, 219, 0.1);
+    }
+
+    .form-control::placeholder {
+        color: #9ca3af;
+    }
+
+    /* Read-only fields */
+    .info-readonly {
+        background: #f9fafb;
+        padding: 0.75rem 1rem;
+        border-radius: 12px;
+        border-left: 3px solid #009EDB;
+        font-size: 0.9375rem;
+        color: #1f2937;
+        font-weight: 500;
+    }
+
+    /* Phone Table Styles */
+    .phone-table {
+        margin-bottom: 0;
+    }
+
+    .phone-table td, .phone-table th {
+        padding: 1rem;
+        vertical-align: middle;
+        border-bottom: 1px solid #e5e7eb;
+    }
+
+    .phone-table thead th {
+        background: linear-gradient(135deg, #f8f9fa 0%, #e9ecef 100%);
+        border-bottom: 2px solid #009EDB;
+        white-space: nowrap;
+    }
+
+    .phone-table tbody tr:last-child td {
+        border-bottom: none;
+    }
+
+    .phone-table tbody tr {
+        transition: all 0.2s ease;
+    }
+
+    .phone-table tbody tr:hover {
+        background-color: #f9fafb;
+        transform: scale(1.01);
+        box-shadow: 0 2px 8px rgba(0, 0, 0, 0.05);
+    }
+
+    /* Class of Service Details Styling */
+    .cos-details {
+        padding: 0.5rem;
+        background: linear-gradient(135deg, #eff6ff 0%, #dbeafe 100%);
+        border-radius: 8px;
+        border-left: 3px solid #009EDB;
+    }
+
+    .cos-header {
+        display: flex;
+        align-items: center;
+    }
+
+    .cos-info {
+        margin-left: 1.5rem;
+    }
+
+    .cos-row {
+        display: flex;
+        align-items: center;
+        color: #4b5563;
+    }
+
+    /* Pending Actions Styling */
+    .pending-action-item {
+        display: flex;
+        align-items: center;
+        padding: 0.875rem;
+        background: #ffffff;
+        border: 1px solid #e5e7eb;
+        border-radius: 10px;
+        text-decoration: none;
+        transition: all 0.2s ease;
+        gap: 0.875rem;
+    }
+
+    .pending-action-item:hover {
+        background: #f9fafb;
+        border-color: #009EDB;
+        transform: translateX(4px);
+        box-shadow: 0 2px 8px rgba(0, 158, 219, 0.15);
+        text-decoration: none;
+    }
+
+    .pending-action-icon {
+        width: 40px;
+        height: 40px;
+        border-radius: 8px;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        flex-shrink: 0;
+        color: white;
+        font-size: 1.1rem;
+    }
+
+    .pending-action-content {
+        flex: 1;
+        min-width: 0;
+    }
+
+    .pending-action-title {
+        font-size: 0.875rem;
+        font-weight: 600;
+        color: #1f2937;
+        margin-bottom: 0.125rem;
+    }
+
+    .pending-action-desc {
+        font-size: 0.75rem;
+        color: #6b7280;
+    }
+
+    .pending-action-badge {
+        flex-shrink: 0;
+    }
+
+    .pending-action-badge .badge {
+        font-size: 0.875rem;
+        font-weight: 700;
+        padding: 0.375rem 0.75rem;
+        border-radius: 8px;
+        min-width: 32px;
+        text-align: center;
+    }
+
+    /* Responsive */
+    @@media (max-width: 768px) {
+        .page-header-bar {
+            flex-direction: column;
+            align-items: flex-start;
+        }
+
+        .page-title-main {
+            font-size: 1.5rem;
+        }
+
+        .stats-grid {
+            grid-template-columns: 1fr;
+        }
+
+        .stat-number {
+            font-size: 1.5rem;
+        }
+
+        .table-responsive {
+            font-size: 0.875rem;
+        }
+
+        .phone-table td, .phone-table th {
+            padding: 0.75rem 0.5rem;
+        }
+
+        .cos-details {
+            padding: 0.5rem;
+        }
+
+        .cos-info {
+            margin-left: 1rem;
+        }
+
+        .pending-action-item {
+            padding: 0.75rem;
+        }
+
+        .pending-action-icon {
+            width: 36px;
+            height: 36px;
+            font-size: 1rem;
+        }
+
+        .pending-action-title {
+            font-size: 0.8125rem;
+        }
+
+        .pending-action-desc {
+            font-size: 0.7rem;
+        }
+    }
+</style>
+
+<!-- Page Header -->
+<div class="page-header-bar">
+    <div class="page-info">
+        <div class="module-badge">
+            <i class="bi bi-person-circle me-2"></i>
+            User Profile
+        </div>
+        <h1 class="page-title-main">My Profile</h1>
+    </div>
+    <div class="current-date">
+        <i class="bi bi-calendar3"></i>
+        <span>@DateTime.Now.ToString("dddd, MMMM dd, yyyy")</span>
+    </div>
+</div>
+
+<!-- Status Message -->
+@if (!string.IsNullOrEmpty(Model.StatusMessage))
+{
+    <div class="alert alert-@(Model.StatusMessageClass ?? "info") alert-dismissible fade show border-0" style="border-radius: 12px;" role="alert">
+        <i class="bi bi-@(Model.StatusMessageClass == "success" ? "check-circle" : Model.StatusMessageClass == "danger" ? "exclamation-triangle" : "info-circle") me-2"></i>
+        @Model.StatusMessage
+        <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
+    </div>
+}
+
+<!-- Activity Statistics -->
+@if (Model.EbillUserInfo != null)
+{
+    <div class="stats-grid">
+        <div class="stat-card">
+            <div class="stat-content">
+                <div class="stat-icon stat-icon-primary">
+                    <i class="bi bi-check-circle-fill"></i>
+                </div>
+                <div class="stat-details">
+                    <div class="stat-number">@Model.VerificationsThisMonth</div>
+                    <div class="stat-label">Verifications This Month</div>
+                </div>
+            </div>
+        </div>
+
+        @if (Model.UserRoles.Contains("Supervisor") || Model.UserRoles.Contains("Admin"))
+        {
+            <div class="stat-card">
+                <div class="stat-content">
+                    <div class="stat-icon stat-icon-success">
+                        <i class="bi bi-person-check-fill"></i>
+                    </div>
+                    <div class="stat-details">
+                        <div class="stat-number">@Model.ApprovalsThisMonth</div>
+                        <div class="stat-label">Approvals This Month</div>
+                    </div>
+                </div>
+            </div>
+        }
+
+        <div class="stat-card">
+            <div class="stat-content">
+                <div class="stat-icon stat-icon-info">
+                    <i class="bi bi-bell-fill"></i>
+                </div>
+                <div class="stat-details">
+                    <div class="stat-number">@Model.UnreadNotifications</div>
+                    <div class="stat-label">Unread Notifications</div>
+                </div>
+            </div>
+        </div>
+
+        <div class="stat-card">
+            <div class="stat-content">
+                <div class="stat-icon stat-icon-warning">
+                    <i class="bi bi-hourglass-split"></i>
+                </div>
+                <div class="stat-details">
+                    <div class="stat-number">@(Model.PendingVerifications + Model.PendingApprovals)</div>
+                    <div class="stat-label">Pending Actions</div>
+                </div>
+            </div>
+        </div>
+    </div>
+}
+
+<div class="row">
+    <div class="col-lg-8">
+        <!-- Personal Information Card -->
+        <div class="info-card">
+            <div class="info-card-header">
+                <h2 class="info-card-title">
+                    <i class="bi bi-person-badge text-primary me-2"></i>Personal Information
+                </h2>
+            </div>
+            <div class="info-card-body">
+                @if (Model.EbillUserInfo != null)
+                {
+                    <!-- Read-only fields -->
+                    <div class="row g-3 mb-3">
+                        <div class="col-md-6">
+                            <label class="form-label"><i class="bi bi-hash me-1"></i>Index Number</label>
+                            <div class="info-readonly">@Model.EbillUserInfo.IndexNumber</div>
+                        </div>
+                        <div class="col-md-6">
+                            <label class="form-label"><i class="bi bi-envelope me-1"></i>Email Address</label>
+                            <div class="info-readonly">@Model.EbillUserInfo.Email</div>
+                        </div>
+                    </div>
+
+                    <div class="row g-3 mb-3">
+                        <div class="col-md-6">
+                            <label class="form-label"><i class="bi bi-person me-1"></i>First Name</label>
+                            <div class="info-readonly">@Model.EbillUserInfo.FirstName</div>
+                        </div>
+                        <div class="col-md-6">
+                            <label class="form-label"><i class="bi bi-person me-1"></i>Last Name</label>
+                            <div class="info-readonly">@Model.EbillUserInfo.LastName</div>
+                        </div>
+                    </div>
+
+                    <div class="row g-3 mb-3">
+                        <div class="col-md-6">
+                            <label class="form-label"><i class="bi bi-telephone me-1"></i>Official Mobile</label>
+                            <div class="info-readonly">@Model.EbillUserInfo.OfficialMobileNumber</div>
+                        </div>
+                        <div class="col-md-6">
+                            <label class="form-label"><i class="bi bi-geo-alt me-1"></i>Location</label>
+                            <div class="info-readonly">@(string.IsNullOrEmpty(Model.EbillUserInfo.Location) ? "Not specified" : Model.EbillUserInfo.Location)</div>
+                        </div>
+                    </div>
+
+                    @if (!string.IsNullOrEmpty(Model.EbillUserInfo.IssuedDeviceID))
+                    {
+                        <div class="row g-3 mb-3">
+                            <div class="col-md-6">
+                                <label class="form-label"><i class="bi bi-phone me-1"></i>Issued Device ID</label>
+                                <div class="info-readonly">@Model.EbillUserInfo.IssuedDeviceID</div>
+                            </div>
+                        </div>
+                    }
+
+                    <hr class="section-divider">
+
+                    <!-- Organization Information -->
+                    <div class="row g-3 mb-3">
+                        <div class="col-md-6">
+                            <label class="form-label"><i class="bi bi-building me-1"></i>Organization</label>
+                            <div class="info-readonly">@(Model.Organization?.Name ?? "Not specified")</div>
+                        </div>
+                        <div class="col-md-6">
+                            <label class="form-label"><i class="bi bi-door-open me-1"></i>Office</label>
+                            <div class="info-readonly">@(Model.Office?.Name ?? "Not specified")</div>
+                        </div>
+                    </div>
+
+                    <div class="row g-3 mb-3">
+                        <div class="col-md-6">
+                            <label class="form-label"><i class="bi bi-diagram-3 me-1"></i>Sub Office</label>
+                            <div class="info-readonly">@(Model.SubOffice?.Name ?? "Not specified")</div>
+                        </div>
+                    </div>
+
+                    @if (!string.IsNullOrEmpty(Model.EbillUserInfo.SupervisorName))
+                    {
+                        <hr class="section-divider">
+
+                        <div class="row g-3">
+                            <div class="col-md-6">
+                                <label class="form-label"><i class="bi bi-person-badge me-1"></i>Supervisor Name</label>
+                                <div class="info-readonly">@Model.EbillUserInfo.SupervisorName</div>
+                            </div>
+                            @if (!string.IsNullOrEmpty(Model.EbillUserInfo.SupervisorEmail))
+                            {
+                                <div class="col-md-6">
+                                    <label class="form-label"><i class="bi bi-envelope me-1"></i>Supervisor Email</label>
+                                    <div class="info-readonly">@Model.EbillUserInfo.SupervisorEmail</div>
+                                </div>
+                            }
+                        </div>
+                    }
+                }
+                else if (Model.AppUser != null)
+                {
+                    <div class="alert alert-warning border-0" style="border-radius: 12px;">
+                        <i class="bi bi-exclamation-triangle me-2"></i>
+                        <strong>No E-bill Profile Found</strong>
+                        <p class="mb-0 mt-2">Your account is not linked to an E-bill user profile. Please contact your administrator.</p>
+                    </div>
+                }
+            </div>
+        </div>
+
+        <!-- User Phones Card -->
+        @if (Model.EbillUserInfo != null)
+        {
+            <div class="info-card">
+                <div class="info-card-header">
+                    <h2 class="info-card-title">
+                        <i class="bi bi-telephone-fill text-primary me-2"></i>Assigned Phone Numbers
+                    </h2>
+                </div>
+                <div class="info-card-body">
+                    @if (Model.UserPhones.Any())
+                    {
+                        <div class="table-responsive">
+                            <table class="table table-hover phone-table">
+                                <thead>
+                                    <tr>
+                                        <th style="font-size: 0.75rem; font-weight: 600; color: #6b7280; text-transform: uppercase; letter-spacing: 0.5px; width: 25%;">Phone Details</th>
+                                        <th style="font-size: 0.75rem; font-weight: 600; color: #6b7280; text-transform: uppercase; letter-spacing: 0.5px; width: 20%;">Type & Line</th>
+                                        <th style="font-size: 0.75rem; font-weight: 600; color: #6b7280; text-transform: uppercase; letter-spacing: 0.5px; width: 40%;">Class of Service</th>
+                                        <th style="font-size: 0.75rem; font-weight: 600; color: #6b7280; text-transform: uppercase; letter-spacing: 0.5px; width: 15%;">Status</th>
+                                    </tr>
+                                </thead>
+                                <tbody>
+                                    @foreach (var phone in Model.UserPhones)
+                                    {
+                                        <tr>
+                                            <td>
+                                                <div class="d-flex flex-column">
+                                                    <div class="d-flex align-items-center mb-1">
+                                                        <i class="bi bi-telephone-fill text-primary me-2" style="font-size: 1.1rem;"></i>
+                                                        <strong style="font-size: 1rem;">@phone.PhoneNumber</strong>
+                                                    </div>
+                                                    @if (phone.IsPrimary)
+                                                    {
+                                                        <span class="badge bg-warning bg-opacity-10 text-warning" style="font-size: 0.7rem; padding: 0.25rem 0.5rem; width: fit-content;">
+                                                            <i class="bi bi-star-fill"></i> Primary Line
+                                                        </span>
+                                                    }
+                                                </div>
+                                            </td>
+                                            <td>
+                                                <div class="d-flex flex-column gap-1">
+                                                    <span style="font-size: 0.875rem;">@phone.PhoneTypeDisplay</span>
+                                                    <span class="badge bg-@phone.LineTypeBadgeColor bg-opacity-10 text-@phone.LineTypeBadgeColor" style="font-size: 0.7rem; padding: 0.25rem 0.5rem; width: fit-content;">
+                                                        @phone.LineTypeDisplay
+                                                    </span>
+                                                </div>
+                                            </td>
+                                            <td>
+                                                @if (phone.ClassOfService != null)
+                                                {
+                                                    <div class="cos-details">
+                                                        <div class="cos-header mb-2">
+                                                            <i class="bi bi-award-fill text-info me-1" style="font-size: 0.9rem;"></i>
+                                                            <strong style="color: #009EDB; font-size: 0.9rem;">@phone.ClassOfService.Class</strong>
+                                                        </div>
+                                                        <div class="cos-info">
+                                                            <div class="cos-row">
+                                                                <i class="bi bi-check-circle-fill text-success me-1" style="font-size: 0.75rem;"></i>
+                                                                <span style="font-size: 0.8rem;">@phone.ClassOfService.Service</span>
+                                                            </div>
+                                                            @if (phone.ClassOfService.AirtimeAllowanceAmount.HasValue || phone.ClassOfService.DataAllowanceAmount.HasValue)
+                                                            {
+                                                                <div class="cos-row mt-1">
+                                                                    <i class="bi bi-cash-coin text-warning me-1" style="font-size: 0.75rem;"></i>
+                                                                    <span style="font-size: 0.75rem; color: #6b7280;">
+                                                                        @if (phone.ClassOfService.AirtimeAllowanceAmount.HasValue)
+                                                                        {
+                                                                            <text>Airtime: KES @phone.ClassOfService.AirtimeAllowanceAmount.Value.ToString("N0")</text>
+                                                                        }
+                                                                        @if (phone.ClassOfService.AirtimeAllowanceAmount.HasValue && phone.ClassOfService.DataAllowanceAmount.HasValue)
+                                                                        {
+                                                                            <text> | </text>
+                                                                        }
+                                                                        @if (phone.ClassOfService.DataAllowanceAmount.HasValue)
+                                                                        {
+                                                                            <text>Data: KES @phone.ClassOfService.DataAllowanceAmount.Value.ToString("N0")</text>
+                                                                        }
+                                                                    </span>
+                                                                </div>
+                                                            }
+                                                        </div>
+                                                    </div>
+                                                }
+                                                else
+                                                {
+                                                    <span class="text-muted" style="font-size: 0.875rem;">
+                                                        <i class="bi bi-dash-circle me-1"></i>Not assigned
+                                                    </span>
+                                                }
+                                            </td>
+                                            <td>
+                                                <span class="badge bg-@phone.StatusBadgeColor bg-opacity-10 text-@phone.StatusBadgeColor" style="font-size: 0.75rem; padding: 0.5rem 0.75rem;">
+                                                    <i class="bi bi-circle-fill" style="font-size: 0.5rem;"></i> @phone.StatusBadgeText
+                                                </span>
+                                            </td>
+                                        </tr>
+                                    }
+                                </tbody>
+                            </table>
+                        </div>
+                    }
+                    else
+                    {
+                        <div class="alert alert-info border-0" style="border-radius: 12px; background: linear-gradient(135deg, #eff6ff 0%, #dbeafe 100%); border-left: 4px solid #3b82f6;">
+                            <i class="bi bi-info-circle me-2"></i>
+                            <strong>No phone numbers assigned</strong>
+                            <p class="mb-0 mt-2">You currently have no active phone numbers assigned to your account.</p>
+                        </div>
+                    }
+                </div>
+            </div>
+        }
+    </div>
+
+    <div class="col-lg-4">
+        <!-- Account Status Card -->
+        <div class="info-card">
+            <div class="info-card-header">
+                <h2 class="info-card-title">
+                    <i class="bi bi-shield-check text-success me-2"></i>Account Status
+                </h2>
+            </div>
+            <div class="info-card-body">
+                <div class="mb-3">
+                    <label class="form-label"><i class="bi bi-toggle-on me-1"></i>Status</label>
+                    @if (Model.EbillUserInfo?.IsActive == true)
+                    {
+                        <span class="badge bg-success bg-opacity-10 text-success" style="font-size: 0.875rem; padding: 0.5rem 1rem; border-radius: 8px;">
+                            <i class="bi bi-check-circle-fill me-1"></i> Active
+                        </span>
+                    }
+                    else
+                    {
+                        <span class="badge bg-danger bg-opacity-10 text-danger" style="font-size: 0.875rem; padding: 0.5rem 1rem; border-radius: 8px;">
+                            <i class="bi bi-x-circle-fill me-1"></i> Inactive
+                        </span>
+                    }
+                </div>
+
+                <div class="mb-3">
+                    <label class="form-label"><i class="bi bi-person-badge me-1"></i>User Roles</label>
+                    <div>
+                        @foreach (var role in Model.UserRoles)
+                        {
+                            <span class="badge bg-primary bg-opacity-10 text-primary me-1 mb-1" style="font-size: 0.8125rem; padding: 0.375rem 0.75rem; border-radius: 6px;">
+                                @role
+                            </span>
+                        }
+                    </div>
+                </div>
+
+                @if (Model.EbillUserInfo != null)
+                {
+                    <div class="mb-0">
+                        <label class="form-label"><i class="bi bi-calendar-check me-1"></i>Member Since</label>
+                        <div class="info-readonly">@Model.EbillUserInfo.CreatedDate.ToString("MMMM dd, yyyy")</div>
+                    </div>
+                }
+            </div>
+        </div>
+
+        <!-- Recent Activity Card -->
+        @if (Model.EbillUserInfo != null && (Model.LastVerificationDate.HasValue || Model.LastApprovalDate.HasValue))
+        {
+            <div class="info-card">
+                <div class="info-card-header">
+                    <h2 class="info-card-title">
+                        <i class="bi bi-clock-history text-info me-2"></i>Recent Activity
+                    </h2>
+                </div>
+                <div class="info-card-body">
+                    @if (Model.LastVerificationDate.HasValue)
+                    {
+                        <div class="mb-3">
+                            <label class="form-label"><i class="bi bi-check-square me-1"></i>Last Verification</label>
+                            <div class="info-readonly">@Model.LastVerificationDate.Value.ToString("MMM dd, yyyy h:mm tt")</div>
+                        </div>
+                    }
+                    @if (Model.LastApprovalDate.HasValue)
+                    {
+                        <div class="mb-0">
+                            <label class="form-label"><i class="bi bi-person-check me-1"></i>Last Approval</label>
+                            <div class="info-readonly">@Model.LastApprovalDate.Value.ToString("MMM dd, yyyy h:mm tt")</div>
+                        </div>
+                    }
+                </div>
+            </div>
+        }
+
+        <!-- Pending Actions Card -->
+        @if (Model.EbillUserInfo != null && (Model.PendingVerifications > 0 || Model.PendingApprovals > 0 || Model.PendingRecoveryActions > 0 || Model.UnreadNotifications > 0))
+        {
+            <div class="info-card">
+                <div class="info-card-header">
+                    <h2 class="info-card-title">
+                        <i class="bi bi-exclamation-circle text-warning me-2"></i>Pending Actions
+                    </h2>
+                </div>
+                <div class="info-card-body">
+                    @if (Model.PendingVerifications > 0)
+                    {
+                        <a href="/Modules/EBillManagement/CallRecords/MyCallLogs" class="pending-action-item mb-3">
+                            <div class="pending-action-icon bg-warning">
+                                <i class="bi bi-telephone-fill"></i>
+                            </div>
+                            <div class="pending-action-content">
+                                <div class="pending-action-title">Call Log Verifications</div>
+                                <div class="pending-action-desc">Pending call logs to verify</div>
+                            </div>
+                            <div class="pending-action-badge">
+                                <span class="badge bg-warning">@Model.PendingVerifications</span>
+                            </div>
+                        </a>
+                    }
+
+                    @if ((Model.UserRoles.Contains("Supervisor") || Model.UserRoles.Contains("Admin")) && Model.PendingApprovals > 0)
+                    {
+                        <a href="/Modules/EBillManagement/CallRecords/SupervisorApprovals" class="pending-action-item mb-3">
+                            <div class="pending-action-icon bg-danger">
+                                <i class="bi bi-person-check-fill"></i>
+                            </div>
+                            <div class="pending-action-content">
+                                <div class="pending-action-title">Supervisor Approvals</div>
+                                <div class="pending-action-desc">Verifications awaiting approval</div>
+                            </div>
+                            <div class="pending-action-badge">
+                                <span class="badge bg-danger">@Model.PendingApprovals</span>
+                            </div>
+                        </a>
+                    }
+
+                    @if (Model.PendingRecoveryActions > 0)
+                    {
+                        <a href="/Staff/MyRecoveryReport" class="pending-action-item mb-3">
+                            <div class="pending-action-icon bg-info">
+                                <i class="bi bi-exclamation-triangle-fill"></i>
+                            </div>
+                            <div class="pending-action-content">
+                                <div class="pending-action-title">Recovery Actions</div>
+                                <div class="pending-action-desc">Pending recovery items</div>
+                            </div>
+                            <div class="pending-action-badge">
+                                <span class="badge bg-info">@Model.PendingRecoveryActions</span>
+                            </div>
+                        </a>
+                    }
+
+                    @if (Model.UnreadNotifications > 0)
+                    {
+                        <a href="/Notifications" class="pending-action-item mb-0">
+                            <div class="pending-action-icon bg-primary">
+                                <i class="bi bi-bell-fill"></i>
+                            </div>
+                            <div class="pending-action-content">
+                                <div class="pending-action-title">Notifications</div>
+                                <div class="pending-action-desc">Unread notifications</div>
+                            </div>
+                            <div class="pending-action-badge">
+                                <span class="badge bg-primary">@Model.UnreadNotifications</span>
+                            </div>
+                        </a>
+                    }
+                </div>
+            </div>
+        }
+        else if (Model.EbillUserInfo != null)
+        {
+            <div class="info-card">
+                <div class="info-card-header">
+                    <h2 class="info-card-title">
+                        <i class="bi bi-check-circle text-success me-2"></i>Pending Actions
+                    </h2>
+                </div>
+                <div class="info-card-body">
+                    <div class="alert alert-success border-0 mb-0" style="border-radius: 12px; background: linear-gradient(135deg, #f0fdf4 0%, #dcfce7 100%); border-left: 4px solid #10b981;">
+                        <i class="bi bi-check-circle-fill text-success me-2"></i>
+                        <strong>All caught up!</strong>
+                        <p class="mb-0 mt-2 small">You have no pending actions at this time.</p>
+                    </div>
+                </div>
+            </div>
+        }
+    </div>
+</div>
+

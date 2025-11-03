@@ -21,6 +21,7 @@ namespace TAB.Web.Pages.Admin
         }
 
         public List<ExchangeRate> ExchangeRates { get; set; } = new();
+        public List<ExchangeRate> FilteredExchangeRates { get; set; } = new();
 
         [TempData]
         public string? StatusMessage { get; set; }
@@ -28,8 +29,63 @@ namespace TAB.Web.Pages.Admin
         [TempData]
         public string? StatusMessageClass { get; set; }
 
-        public async Task OnGetAsync()
+        // Filter properties
+        public int? FilterYear { get; set; }
+        public int? FilterMonth { get; set; }
+        public string? SearchTerm { get; set; }
+
+        // Pagination properties
+        public int CurrentPage { get; set; } = 1;
+        public int PageSize { get; set; } = 10;
+        public int TotalRecords { get; set; }
+        public int TotalPages { get; set; }
+
+        public async Task OnGetAsync(int? filterYear, int? filterMonth, string? searchTerm, int pageNumber = 1, int pageSize = 10)
         {
+            FilterYear = filterYear;
+            FilterMonth = filterMonth;
+            SearchTerm = searchTerm;
+            CurrentPage = pageNumber < 1 ? 1 : pageNumber;
+            PageSize = pageSize < 1 ? 10 : pageSize;
+
+            var query = _context.ExchangeRates.AsQueryable();
+
+            // Apply filters
+            if (filterYear.HasValue)
+            {
+                query = query.Where(r => r.Year == filterYear.Value);
+            }
+
+            if (filterMonth.HasValue)
+            {
+                query = query.Where(r => r.Month == filterMonth.Value);
+            }
+
+            if (!string.IsNullOrWhiteSpace(searchTerm))
+            {
+                query = query.Where(r => r.CreatedBy.Contains(searchTerm) ||
+                                        r.UpdatedBy != null && r.UpdatedBy.Contains(searchTerm));
+            }
+
+            // Get total count for pagination
+            TotalRecords = await query.CountAsync();
+            TotalPages = (int)Math.Ceiling(TotalRecords / (double)PageSize);
+
+            // Ensure current page is valid
+            if (CurrentPage > TotalPages && TotalPages > 0)
+            {
+                CurrentPage = TotalPages;
+            }
+
+            // Apply pagination
+            FilteredExchangeRates = await query
+                .OrderByDescending(r => r.Year)
+                .ThenByDescending(r => r.Month)
+                .Skip((CurrentPage - 1) * PageSize)
+                .Take(PageSize)
+                .ToListAsync();
+
+            // Get all for year dropdown
             ExchangeRates = await _context.ExchangeRates
                 .OrderByDescending(r => r.Year)
                 .ThenByDescending(r => r.Month)

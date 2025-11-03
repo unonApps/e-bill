@@ -34,6 +34,7 @@ namespace TAB.Web.Pages.Admin
         public int TotalOffices { get; set; }
         public int TotalOrganizations { get; set; }
         public int TotalUsers { get; set; }
+        public int TotalEbillUsers { get; set; }
         public int ActiveOffices { get; set; }
         public int TotalSubOffices { get; set; }
 
@@ -597,6 +598,7 @@ namespace TAB.Web.Pages.Admin
             TotalOffices = await statsQuery.CountAsync();
             TotalOrganizations = await statsQuery.Select(o => o.OrganizationId).Distinct().CountAsync();
             TotalUsers = await statsQuery.SelectMany(o => o.Users).CountAsync();
+            TotalEbillUsers = await _context.EbillUsers.CountAsync();
             ActiveOffices = await statsQuery.CountAsync(o => o.Users.Any());
             TotalSubOffices = await statsQuery.SelectMany(o => o.SubOffices).CountAsync();
 

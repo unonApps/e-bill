@@ -306,57 +306,6 @@
     }
 </style>
 
-<!-- Statistics Cards -->
-<div class="stats-grid mb-3">
-    <div class="stat-card">
-        <div class="stat-content">
-            <div class="stat-icon stat-icon-primary">
-                <i class="bi bi-collection"></i>
-            </div>
-            <div class="stat-details">
-                <div class="stat-number">@Model.TotalBatches</div>
-                <div class="stat-label">Total Batches</div>
-            </div>
-        </div>
-    </div>
-
-    <div class="stat-card">
-        <div class="stat-content">
-            <div class="stat-icon stat-icon-warning">
-                <i class="bi bi-clock-history"></i>
-            </div>
-            <div class="stat-details">
-                <div class="stat-number">@Model.TotalPendingRecords.ToString("N0")</div>
-                <div class="stat-label">Pending Review</div>
-            </div>
-        </div>
-    </div>
-
-    <div class="stat-card">
-        <div class="stat-content">
-            <div class="stat-icon stat-icon-success">
-                <i class="bi bi-check-circle"></i>
-            </div>
-            <div class="stat-details">
-                <div class="stat-number">@Model.TotalVerifiedToday</div>
-                <div class="stat-label">Verified Today</div>
-            </div>
-        </div>
-    </div>
-
-    <div class="stat-card">
-        <div class="stat-content">
-            <div class="stat-icon stat-icon-danger">
-                <i class="bi bi-exclamation-triangle"></i>
-            </div>
-            <div class="stat-details">
-                <div class="stat-number">@Model.TotalAnomaliesDetected.ToString("N0")</div>
-                <div class="stat-label">Anomalies Detected</div>
-            </div>
-        </div>
-    </div>
-</div>
-
 <!-- Status Message -->
 @if (!string.IsNullOrEmpty(Model.StatusMessage))
 {
@@ -377,93 +326,70 @@
     </button>
 </div>
 
-<!-- Recent Batches -->
+
+<!-- Select Batch Dropdown -->
 <div class="mb-4">
-    <div class="d-flex justify-content-between align-items-center mb-3">
-        <h5 class="mb-0">
-            <i class="bi bi-clock-history me-2"></i>Recent Batches
-        </h5>
-        <button class="btn btn-sm btn-outline-primary" type="button" data-bs-toggle="collapse" data-bs-target="#batchesCollapse" aria-expanded="true">
-            <i class="bi bi-chevron-down"></i>
-        </button>
-    </div>
-    <div class="collapse show" id="batchesCollapse">
-        <div class="row g-3">
-            @if (Model.RecentBatches.Any())
-            {
-                @foreach (var batch in Model.RecentBatches)
-                {
-                    <div class="col-md-6 col-lg-4 col-xl-3">
-                        <div class="batch-card @(Model.BatchId == batch.Id ? "active" : "")"
-                             onclick="window.location.href='?BatchId=@batch.Id'">
-                            <div class="d-flex justify-content-between align-items-start mb-3">
-                                <h6 class="mb-0 text-truncate" style="max-width: 70%;" title="@batch.BatchName">
-                                    @batch.BatchName
-                                </h6>
-                                <span class="badge @GetBatchStatusBadgeClass(batch.BatchStatus)">
-                                    @batch.BatchStatus
-                                </span>
-                            </div>
-                            <div class="text-muted small mb-2">
-                                <i class="bi bi-calendar3 me-1"></i>@batch.CreatedDate.ToString("MMM dd, yyyy")
-                            </div>
-                            <div class="d-flex justify-content-between align-items-center">
-                                <span class="small">
-                                    <i class="bi bi-files me-1"></i>@batch.TotalRecords.ToString("N0") records
-                                </span>
-                                @if (batch.RecordsWithAnomalies > 0)
-                                {
-                                    <span class="small text-warning">
-                                        <i class="bi bi-exclamation-triangle me-1"></i>@batch.RecordsWithAnomalies
-                                    </span>
-                                }
-                            </div>
-                            @if (batch.BatchStatus == BatchStatus.Processing)
-                            {
-                                <div class="progress mt-2" style="height: 4px;">
-                                    @{
-                                        var progress = batch.TotalRecords > 0 ?
-                                            (batch.VerifiedRecords * 100.0 / batch.TotalRecords) : 0;
-                                    }
-                                    <div class="progress-bar bg-success" style="width: @progress%"></div>
-                                </div>
-                            }
-                        </div>
-                    </div>
-                }
-            }
-            else
-            {
-                <div class="col-12">
-                    <div class="text-center py-5 bg-light rounded-3">
-                        <div class="bg-white rounded-circle d-inline-flex align-items-center justify-content-center mb-3"
-                             style="width: 80px; height: 80px;">
-                            <i class="bi bi-inbox text-muted" style="font-size: 32px;"></i>
-                        </div>
-                        <h5 class="text-muted mb-2">No Batches Found</h5>
-                        <p class="text-muted mb-0">Create a new batch to get started with call log staging.</p>
-                    </div>
+    <div class="card border-0 shadow-sm" style="border-radius: 12px;">
+        <div class="card-body p-3">
+            <div class="row align-items-center">
+                <div class="col-md-3">
+                    <label class="form-label mb-0 fw-bold">
+                        <i class="bi bi-folder2-open me-2 text-primary"></i>Select Batch
+                    </label>
                 </div>
-            }
+                <div class="col-md-9">
+                    @if (Model.RecentBatches.Any())
+                    {
+                        <select class="form-select" id="batchSelector" onchange="selectBatch(this.value)" style="border-radius: 8px;">
+                            <option value="">-- Select a batch --</option>
+                            @foreach (var batch in Model.RecentBatches)
+                            {
+                                var statusIcon = batch.BatchStatus switch
+                                {
+                                    BatchStatus.Created => "⚪",
+                                    BatchStatus.Processing => "🟡",
+                                    BatchStatus.PartiallyVerified => "🔵",
+                                    BatchStatus.Verified => "🟢",
+                                    BatchStatus.Published => "✅",
+                                    BatchStatus.Failed => "🔴",
+                                    _ => "⚫"
+                                };
+
+                                <option value="@batch.Id"
+                                        selected="@(Model.BatchId == batch.Id)"
+                                        data-status="@batch.BatchStatus"
+                                        data-records="@batch.TotalRecords"
+                                        data-anomalies="@batch.RecordsWithAnomalies">
+                                    @statusIcon @batch.BatchName - @batch.CreatedDate.ToString("MMM dd, yyyy") (@batch.TotalRecords.ToString("N0") records)
+                                </option>
+                            }
+                        </select>
+                        <small class="text-muted mt-1 d-block">
+                            <i class="bi bi-info-circle me-1"></i>
+                            Showing @Model.RecentBatches.Count() recent batch@(Model.RecentBatches.Count() == 1 ? "" : "es")
+                        </small>
+                    }
+                    else
+                    {
+                        <div class="alert alert-info mb-0" style="border-radius: 8px;">
+                            <i class="bi bi-inbox me-2"></i>No batches found. Create a new batch to get started.
+                        </div>
+                    }
+                </div>
+            </div>
         </div>
     </div>
 </div>
 
 <!-- Filter Section (Collapsible) -->
-<div class="mb-3">
-    <button class="btn btn-outline-primary" type="button" data-bs-toggle="collapse" data-bs-target="#filterCollapse" aria-expanded="false" aria-controls="filterCollapse">
-        <i class="bi bi-funnel"></i> Show Filters
-    </button>
-</div>
-<div class="collapse" id="filterCollapse">
-    <div class="filter-section">
-        <div class="filter-header">
-            <h2 class="filter-title">
-                <i class="bi bi-funnel"></i>
-                Filters
-            </h2>
-            <div class="filter-actions">
-                <span class="badge bg-light text-dark">
+<div class="card border-0 shadow-sm mb-4" style="border-radius: 20px;">
+    <div class="card-header bg-white border-0 p-3" style="cursor: pointer; border-radius: 20px 20px 0 0;" data-bs-toggle="collapse" data-bs-target="#filterCollapse">
+        <div class="d-flex justify-content-between align-items-center">
+            <h6 class="mb-0 fw-bold">
+                <i class="bi bi-funnel me-2"></i>Filters
+            </h6>
+            <div class="d-flex align-items-center gap-3">
+                <span class="badge bg-light text-dark" style="font-weight: 500;">
                     @if (Model.StagedLogs.Items.Any())
                     {
                         <text>Showing @((Model.PageNumber - 1) * Model.PageSize + 1) - @Math.Min(Model.PageNumber * Model.PageSize, Model.TotalCount) of @Model.TotalCount</text>
@@ -473,69 +399,73 @@
                         <text>No results</text>
                     }
                 </span>
+                <i class="bi bi-chevron-down"></i>
             </div>
         </div>
+    </div>
+    <div class="collapse" id="filterCollapse">
+        <div class="card-body p-4">
+            <form method="get" class="filter-form" id="filterForm">
+                <input type="hidden" name="PageSizeParam" value="@Model.PageSize" />
+                <input type="hidden" name="BatchId" value="@Model.BatchId" />
+                <div class="row g-3">
+                    <div class="col-md-3">
+                        <label class="form-label text-muted small" for="searchFilter">Search</label>
+                        <input type="text" name="SearchTerm" id="searchFilter"
+                               class="form-control border-0 bg-light filter-search-input"
+                               style="border-radius: 12px;"
+                               placeholder="Phone number, user..." value="@Model.SearchTerm" />
+                    </div>
 
-        <form method="get" class="filter-form" id="filterForm">
-            <input type="hidden" name="PageSizeParam" value="@Model.PageSize" />
-            <input type="hidden" name="BatchId" value="@Model.BatchId" />
-            <div class="filter-grid">
-                <div class="filter-group">
-                    <label class="filter-label" for="searchFilter">
-                        <i class="bi bi-search"></i> Search
-                    </label>
-                    <input type="text" name="SearchTerm" id="searchFilter" class="filter-input filter-search-input"
-                           placeholder="Phone number, user..." value="@Model.SearchTerm" />
-                </div>
+                    <div class="col-md-2">
+                        <label class="form-label text-muted small" for="statusFilter">Status</label>
+                        <select name="Status" id="statusFilter"
+                                class="form-select border-0 bg-light filter-auto-submit"
+                                style="border-radius: 12px;">
+                            <option value="">All Status</option>
+                            @foreach (var status in Model.StatusList)
+                            {
+                                <option value="@status.Value" selected="@(Model.Status?.ToString() == status.Value)">@status.Text</option>
+                            }
+                        </select>
+                    </div>
 
-                <div class="filter-group">
-                    <label class="filter-label" for="statusFilter">
-                        <i class="bi bi-flag"></i> Status
-                    </label>
-                    <select name="Status" id="statusFilter" class="filter-select filter-auto-submit">
-                        <option value="">All Status</option>
-                        @foreach (var status in Model.StatusList)
-                        {
-                            <option value="@status.Value" selected="@(Model.Status?.ToString() == status.Value)">@status.Text</option>
-                        }
-                    </select>
-                </div>
+                    <div class="col-md-2">
+                        <label class="form-label text-muted small" for="anomaliesFilter">Anomalies</label>
+                        <select name="HasAnomalies" id="anomaliesFilter"
+                                class="form-select border-0 bg-light filter-auto-submit"
+                                style="border-radius: 12px;">
+                            <option value="">All Records</option>
+                            <option value="true" selected="@(Model.HasAnomalies == true)">With Anomalies</option>
+                            <option value="false" selected="@(Model.HasAnomalies == false)">No Anomalies</option>
+                        </select>
+                    </div>
 
-                <div class="filter-group">
-                    <label class="filter-label" for="anomaliesFilter">
-                        <i class="bi bi-exclamation-triangle"></i> Anomalies
-                    </label>
-                    <select name="HasAnomalies" id="anomaliesFilter" class="filter-select filter-auto-submit">
-                        <option value="">All Records</option>
-                        <option value="true" selected="@(Model.HasAnomalies == true)">With Anomalies</option>
-                        <option value="false" selected="@(Model.HasAnomalies == false)">No Anomalies</option>
-                    </select>
-                </div>
+                    <div class="col-md-2">
+                        <label class="form-label text-muted small" for="startDate">Start Date</label>
+                        <input type="date" name="StartDate" id="startDate"
+                               class="form-control border-0 bg-light filter-auto-submit"
+                               style="border-radius: 12px;"
+                               value="@Model.StartDate?.ToString("yyyy-MM-dd")" />
+                    </div>
 
-                <div class="filter-group">
-                    <label class="filter-label" for="startDate">
-                        <i class="bi bi-calendar-minus"></i> Start Date
-                    </label>
-                    <input type="date" name="StartDate" id="startDate" class="filter-input filter-auto-submit"
-                           value="@Model.StartDate?.ToString("yyyy-MM-dd")" />
-                </div>
+                    <div class="col-md-2">
+                        <label class="form-label text-muted small" for="endDate">End Date</label>
+                        <input type="date" name="EndDate" id="endDate"
+                               class="form-control border-0 bg-light filter-auto-submit"
+                               style="border-radius: 12px;"
+                               value="@Model.EndDate?.ToString("yyyy-MM-dd")" />
+                    </div>
 
-                <div class="filter-group">
-                    <label class="filter-label" for="endDate">
-                        <i class="bi bi-calendar-plus"></i> End Date
-                    </label>
-                    <input type="date" name="EndDate" id="endDate" class="filter-input filter-auto-submit"
-                           value="@Model.EndDate?.ToString("yyyy-MM-dd")" />
+                    <div class="col-md-1 d-flex align-items-end">
+                        <a href="/Admin/CallLogStaging@(Model.BatchId.HasValue ? $"?BatchId={Model.BatchId}" : "")"
+                           class="btn btn-outline-secondary btn-sm" style="border-radius: 12px;">
+                            <i class="bi bi-x-circle me-1"></i>Clear
+                        </a>
+                    </div>
                 </div>
-
-                <div class="filter-group align-self-end">
-                    <a href="/Admin/CallLogStaging@(Model.BatchId.HasValue ? $"?BatchId={Model.BatchId}" : "")"
-                       class="btn-clear-filters">
-                        <i class="bi bi-x-circle"></i> Clear Filters
-                    </a>
-                </div>
-            </div>
-        </form>
+            </form>
+        </div>
     </div>
 </div>
 
@@ -570,15 +500,79 @@
                     }
                 </div>
             </div>
-            <div class="d-flex flex-wrap gap-3">
-                @foreach (var stat in Model.BatchStatistics)
+
+            @* Batch Statistics and Production Deadlines in a row *@
+            <div class="d-flex justify-content-between align-items-start gap-4 flex-wrap">
+                @* Left: Batch Statistics *@
+                <div class="d-flex flex-wrap gap-3 flex-grow-1">
+                    @foreach (var stat in Model.BatchStatistics)
+                    {
+                        <div class="d-flex align-items-center">
+                            <span class="fw-bold me-1 @GetStatColorClass(stat.Key)">@stat.Value.ToString("N0")</span>
+                            <span class="text-muted small">@stat.Key</span>
+                        </div>
+                    }
+                </div>
+
+                @* Right: Production Deadlines (compact, side by side) *@
+                @if (Model.ProductionRecordsCount > 0 && (Model.BatchVerificationDeadline.HasValue || Model.BatchApprovalDeadline.HasValue))
                 {
-                    <div class="d-flex align-items-center">
-                        <span class="fw-bold me-1 @GetStatColorClass(stat.Key)">@stat.Value.ToString("N0")</span>
-                        <span class="text-muted small">@stat.Key</span>
+                    <div class="d-flex gap-2 align-items-center">
+                        @if (Model.BatchVerificationDeadline.HasValue)
+                        {
+                            var daysUntilVerification = (Model.BatchVerificationDeadline.Value - DateTime.UtcNow).TotalDays;
+                            var isVerificationExpired = daysUntilVerification < 0;
+
+                            <div class="d-flex align-items-center px-2 py-1 rounded" style="background-color: @(isVerificationExpired ? "#fee2e2" : "#dbeafe"); border: 1px solid @(isVerificationExpired ? "#fca5a5" : "#93c5fd");">
+                                <i class="bi bi-person-check me-2" style="color: @(isVerificationExpired ? "#dc2626" : "#2563eb"); font-size: 1rem;"></i>
+                                <div>
+                                    <div class="d-flex align-items-center gap-1">
+                                        <span class="fw-bold" style="color: @(isVerificationExpired ? "#dc2626" : "#1e40af"); font-size: 0.75rem;">Staff</span>
+                                        @if (isVerificationExpired)
+                                        {
+                                            <span class="badge bg-danger" style="font-size: 0.6rem;">Expired</span>
+                                        }
+                                        else if (daysUntilVerification < 1)
+                                        {
+                                            <span class="badge bg-warning" style="font-size: 0.6rem;">Urgent</span>
+                                        }
+                                    </div>
+                                    <div class="text-muted" style="font-size: 0.7rem; white-space: nowrap;">
+                                        @Model.BatchVerificationDeadline.Value.ToLocalTime().ToString("MMM dd, HH:mm")
+                                    </div>
+                                </div>
+                            </div>
+                        }
+
+                        @if (Model.BatchApprovalDeadline.HasValue)
+                        {
+                            var daysUntilApproval = (Model.BatchApprovalDeadline.Value - DateTime.UtcNow).TotalDays;
+                            var isApprovalExpired = daysUntilApproval < 0;
+
+                            <div class="d-flex align-items-center px-2 py-1 rounded" style="background-color: @(isApprovalExpired ? "#fee2e2" : "#d1fae5"); border: 1px solid @(isApprovalExpired ? "#fca5a5" : "#6ee7b7");">
+                                <i class="bi bi-shield-check me-2" style="color: @(isApprovalExpired ? "#dc2626" : "#059669"); font-size: 1rem;"></i>
+                                <div>
+                                    <div class="d-flex align-items-center gap-1">
+                                        <span class="fw-bold" style="color: @(isApprovalExpired ? "#dc2626" : "#047857"); font-size: 0.75rem;">Supervisor</span>
+                                        @if (isApprovalExpired)
+                                        {
+                                            <span class="badge bg-danger" style="font-size: 0.6rem;">Expired</span>
+                                        }
+                                        else if (daysUntilApproval < 1)
+                                        {
+                                            <span class="badge bg-warning" style="font-size: 0.6rem;">Urgent</span>
+                                        }
+                                    </div>
+                                    <div class="text-muted" style="font-size: 0.7rem; white-space: nowrap;">
+                                        @Model.BatchApprovalDeadline.Value.ToLocalTime().ToString("MMM dd, HH:mm")
+                                    </div>
+                                </div>
+                            </div>
+                        }
                     </div>
                 }
             </div>
+
         </div>
     </div>
 }
@@ -640,10 +634,16 @@
                                 <i class="bi bi-building me-2"></i>Provider
                             </th>
                             <th class="border-0 px-3 py-3 text-end" style="font-weight: 600; color: #4a5568; text-transform: uppercase; font-size: 12px; letter-spacing: 0.5px;">
-                                <i class="bi bi-cash me-2"></i>Amount
+                                <i class="bi bi-cash me-2"></i>Amount (USD)
+                            </th>
+                            <th class="border-0 px-3 py-3 text-end" style="font-weight: 600; color: #4a5568; text-transform: uppercase; font-size: 12px; letter-spacing: 0.5px;">
+                                <i class="bi bi-cash-coin me-2"></i>Amount (KSH)
                             </th>
                             <th class="border-0 px-3 py-3 text-center" style="font-weight: 600; color: #4a5568; text-transform: uppercase; font-size: 12px; letter-spacing: 0.5px;">
                                 <i class="bi bi-flag me-2"></i>Status
+                            </th>
+                            <th class="border-0 px-3 py-3 text-center" style="font-weight: 600; color: #4a5568; text-transform: uppercase; font-size: 12px; letter-spacing: 0.5px;" data-bs-toggle="tooltip" title="Recovery processing status">
+                                <i class="bi bi-arrow-repeat me-2"></i>Recovery
                             </th>
                             <th class="border-0 px-3 py-3 text-center" style="font-weight: 600; color: #4a5568; text-transform: uppercase; font-size: 12px; letter-spacing: 0.5px;">
                                 <i class="bi bi-exclamation-triangle me-2"></i>Anomalies
@@ -690,9 +690,36 @@
                                         <span class="badge bg-secondary">@log.SourceSystem</span>
                                     </td>
                                     <td class="px-3 text-end fw-medium">$@log.CallCostUSD.ToString("N2")</td>
+                                    <td class="px-3 text-end fw-medium">KSh @log.CallCostKSHS.ToString("N2")</td>
                                     <td class="px-3 text-center">
                                         <span class="badge rounded-pill @GetStatusBadgeClass(log.VerificationStatus)">
                                             @log.VerificationStatus
+                                        </span>
+                                    </td>
+                                    <td class="px-3 text-center">
+                                        @{
+                                            var hasRecoveryStatus = Model.RecoveryStatusMap.ContainsKey(log.Id);
+                                            var recoveryStatus = hasRecoveryStatus ? Model.RecoveryStatusMap[log.Id].Status : "NotPushed";
+                                            var recoveryDate = hasRecoveryStatus ? Model.RecoveryStatusMap[log.Id].Date : null;
+
+                                            var recoveryBadgeClass = recoveryStatus == "Processed" ? "bg-success" :
+                                                                    recoveryStatus == "ManuallyOverridden" ? "bg-info" :
+                                                                    recoveryStatus == "NotPushed" ? "bg-secondary" :
+                                                                    "bg-warning text-dark";
+                                            var recoveryIcon = recoveryStatus == "Processed" ? "check-circle-fill" :
+                                                              recoveryStatus == "ManuallyOverridden" ? "gear-fill" :
+                                                              recoveryStatus == "NotPushed" ? "dash-circle" :
+                                                              "hourglass-split";
+                                            var recoveryText = recoveryStatus == "Processed" ? "Processed" :
+                                                              recoveryStatus == "ManuallyOverridden" ? "Overridden" :
+                                                              recoveryStatus == "NotPushed" ? "Not Pushed" :
+                                                              "Pending";
+                                            var tooltipText = recoveryStatus == "NotPushed" ? "Not yet pushed to production" :
+                                                             recoveryDate.HasValue ? $"Recovered on {recoveryDate.Value.ToLocalTime():MMM dd, yyyy HH:mm}" :
+                                                             "Recovery not yet processed";
+                                        }
+                                        <span class="badge rounded-pill @recoveryBadgeClass" data-bs-toggle="tooltip" title="@tooltipText">
+                                            <i class="bi bi-@recoveryIcon me-1"></i>@recoveryText
                                         </span>
                                     </td>
                                     <td class="px-3 text-center">
@@ -733,7 +760,7 @@
                         else
                         {
                             <tr>
-                                <td colspan="9" class="text-center py-5">
+                                <td colspan="10" class="text-center py-5">
                                     <div class="bg-light rounded-circle d-inline-flex align-items-center justify-content-center mb-3"
                                          style="width: 80px; height: 80px;">
                                         <i class="bi bi-search-x text-muted" style="font-size: 32px;"></i>
@@ -1008,28 +1035,46 @@
 
                         <div class="row g-3 mt-2">
                             <div class="col-md-6">
-                                <label for="interimStartDate" class="form-label fw-medium">
-                                    <i class="bi bi-calendar-range me-2 text-primary"></i>Billing Start Date
+                                <label for="interimBillingMonth" class="form-label fw-medium">
+                                    <i class="bi bi-calendar3 me-2 text-primary"></i>Billing Month
                                 </label>
-                                <input type="date" class="form-control" id="interimStartDate" name="InterimStartDate">
-                                <div class="form-text">Start of the interim billing period</div>
+                                <select class="form-control" id="interimBillingMonth" name="InterimBillingMonth">
+                                    <option value="">Select month...</option>
+                                    <option value="1">January</option>
+                                    <option value="2">February</option>
+                                    <option value="3">March</option>
+                                    <option value="4">April</option>
+                                    <option value="5">May</option>
+                                    <option value="6">June</option>
+                                    <option value="7">July</option>
+                                    <option value="8">August</option>
+                                    <option value="9">September</option>
+                                    <option value="10">October</option>
+                                    <option value="11">November</option>
+                                    <option value="12">December</option>
+                                </select>
+                                <div class="form-text">Month to consolidate interim billing</div>
                             </div>
 
                             <div class="col-md-6">
-                                <label for="interimEndDate" class="form-label fw-medium">
-                                    <i class="bi bi-calendar-range-fill me-2 text-primary"></i>Billing End Date
+                                <label for="interimBillingYear" class="form-label fw-medium">
+                                    <i class="bi bi-calendar-range me-2 text-primary"></i>Billing Year
                                 </label>
-                                <input type="date" class="form-control" id="interimEndDate" name="InterimEndDate">
-                                <div class="form-text">End of the interim billing period</div>
+                                <select class="form-control" id="interimBillingYear" name="InterimBillingYear">
+                                    <option value="">Select year...</option>
+                                    @for (int year = DateTime.Now.Year; year >= 2020; year--)
+                                    {
+                                        <option value="@year">@year</option>
+                                    }
+                                </select>
+                                <div class="form-text">Year to consolidate interim billing</div>
                             </div>
                         </div>
 
                         <!-- Staff Verification Section -->
-                        <div id="staffVerification" class="mt-3 d-none">
-                            <div class="alert alert-warning">
-                                <i class="bi bi-exclamation-triangle me-2"></i>
-                                <strong>Staff Verification:</strong> <span id="staffVerificationMessage"></span>
-                            </div>
+                        <div id="staffVerification" class="alert alert-warning mt-3 d-none">
+                            <i class="bi bi-exclamation-triangle me-2"></i>
+                            <strong>Staff Verification:</strong> <span id="staffVerificationMessage"></span>
                         </div>
                     </div>
 
@@ -1234,12 +1279,12 @@
 
 <!-- Verification Period Modal -->
 <div class="modal fade" id="verificationPeriodModal" tabindex="-1" aria-hidden="true">
-    <div class="modal-dialog modal-dialog-centered">
+    <div class="modal-dialog modal-dialog-centered modal-lg">
         <div class="modal-content" style="border-radius: 16px; border: none; overflow: hidden;">
             <div class="modal-header" style="background: linear-gradient(135deg, #10b981, #059669); border: none; padding: 1.5rem;">
                 <h5 class="modal-title text-white d-flex align-items-center">
                     <i class="bi bi-calendar-check me-2"></i>
-                    Set Verification Period
+                    Push to Production - Set Deadlines
                 </h5>
                 <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal"></button>
             </div>
@@ -1251,20 +1296,21 @@
                     </div>
                 </div>
 
-                <h6 class="text-center mb-4">Configure verification deadline for production records</h6>
+                <h6 class="text-center mb-4">Configure verification and approval deadlines for production records</h6>
 
                 <form id="verificationPeriodForm">
                     <input type="hidden" id="verificationBatchId" name="batchId" value="" />
+                    <input type="hidden" id="approvalDaysConfig" value="@Model.DefaultApprovalDays" />
 
                     <!-- Period Type Selection -->
                     <div class="mb-4">
                         <label class="form-label" style="font-weight: 600; color: #374151;">
-                            <i class="bi bi-clock-history me-1"></i>Period Type
+                            <i class="bi bi-clock-history me-1"></i>Deadline Configuration Method
                         </label>
                         <div class="btn-group w-100" role="group">
                             <input type="radio" class="btn-check" name="periodType" id="periodTypeDays" value="days" checked />
                             <label class="btn btn-outline-primary" for="periodTypeDays">
-                                <i class="bi bi-calendar3 me-1"></i>Days
+                                <i class="bi bi-calendar3 me-1"></i>Days from Now
                             </label>
                             <input type="radio" class="btn-check" name="periodType" id="periodTypeDate" value="date" />
                             <label class="btn btn-outline-primary" for="periodTypeDate">
@@ -1286,7 +1332,7 @@
                                 days
                             </span>
                         </div>
-                        <small class="text-muted mt-1">Records must be verified within this period</small>
+                        <small class="text-muted mt-1">Staff must verify their calls within this period</small>
                     </div>
 
                     <!-- Date Picker -->
@@ -1296,13 +1342,43 @@
                         </label>
                         <input type="date" class="form-control" id="verificationDate" name="verificationDate"
                                style="border: 2px solid #e5e7eb; border-radius: 8px;">
-                        <small class="text-muted mt-1">Select the deadline for verification</small>
+                        <small class="text-muted mt-1">Select the deadline for staff verification</small>
                     </div>
 
-                    <div class="alert alert-info d-flex align-items-start" style="background-color: #dbeafe; border: none; border-radius: 8px;">
-                        <i class="bi bi-info-circle me-2 mt-1"></i>
+                    <!-- Calculated Deadlines Display -->
+                    <div class="alert alert-info d-flex align-items-start" style="background-color: #dbeafe; border: none; border-radius: 12px; margin-top: 1.5rem;">
+                        <i class="bi bi-info-circle me-2 mt-1" style="font-size: 1.25rem;"></i>
+                        <div class="flex-grow-1">
+                            <strong style="color: #1e40af;">Calculated Deadlines:</strong>
+                            <div class="mt-2">
+                                <div class="d-flex justify-content-between align-items-center mb-2 p-2" style="background-color: white; border-radius: 8px;">
+                                    <span><i class="bi bi-person-check text-primary me-1"></i><strong>Staff Verification:</strong></span>
+                                    <span class="badge bg-primary" id="staffDeadlineDisplay" style="font-size: 0.9rem;">-</span>
+                                </div>
+                                <div class="d-flex justify-content-between align-items-center p-2" style="background-color: white; border-radius: 8px;">
+                                    <span><i class="bi bi-shield-check text-success me-1"></i><strong>Supervisor Approval:</strong></span>
+                                    <span class="badge bg-success" id="supervisorDeadlineDisplay" style="font-size: 0.9rem;">-</span>
+                                </div>
+                                <small class="text-muted mt-2 d-block">
+                                    <i class="bi bi-gear me-1"></i>
+                                    Approval deadline is automatically set to <strong id="approvalDaysDisplay">@Model.DefaultApprovalDays</strong> days after verification deadline (from system settings)
+                                </small>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Workflow Information -->
+                    <div class="alert alert-warning d-flex align-items-start mt-3" style="background-color: #fef3c7; border: none; border-radius: 8px;">
+                        <i class="bi bi-exclamation-triangle me-2 mt-1"></i>
                         <div>
-                            <strong>Note:</strong> This verification period will be saved with all records pushed to production.
+                            <strong>What happens after pushing to production:</strong>
+                            <ol class="mb-0 mt-2 ps-3">
+                                <li>Records are moved to production with verification status = pending</li>
+                                <li>Staff must verify their calls before the verification deadline</li>
+                                <li>Unverified calls after deadline are automatically recovered as <strong>PERSONAL</strong></li>
+                                <li>Supervisors must approve verifications before approval deadline</li>
+                                <li>Unapproved calls after deadline are recovered as <strong>CLASS OF SERVICE</strong></li>
+                            </ol>
                         </div>
                     </div>
                 </form>
@@ -1320,6 +1396,7 @@
         </div>
     </div>
 </div>
+
 
 <!-- View Details Modal -->
 <div class="modal fade" id="detailsModal" tabindex="-1" aria-hidden="true">
@@ -1411,15 +1488,23 @@
             });
         }
 
-        // Filter toggle
-        const filterToggle = document.querySelector('[data-bs-target="#filterCollapse"]');
+        // Update chevron icon when filters are shown/hidden
         const filterCollapse = document.getElementById('filterCollapse');
-        if (filterToggle && filterCollapse) {
+        if (filterCollapse) {
+            const chevronIcon = document.querySelector('[data-bs-toggle="collapse"][data-bs-target="#filterCollapse"] .bi-chevron-down');
+
             filterCollapse.addEventListener('show.bs.collapse', function () {
-                filterToggle.innerHTML = '<i class="bi bi-funnel-fill"></i> Hide Filters';
+                if (chevronIcon) {
+                    chevronIcon.classList.remove('bi-chevron-down');
+                    chevronIcon.classList.add('bi-chevron-up');
+                }
             });
+
             filterCollapse.addEventListener('hide.bs.collapse', function () {
-                filterToggle.innerHTML = '<i class="bi bi-funnel"></i> Show Filters';
+                if (chevronIcon) {
+                    chevronIcon.classList.remove('bi-chevron-up');
+                    chevronIcon.classList.add('bi-chevron-down');
+                }
             });
 
             // Check if any filters are active
@@ -1428,8 +1513,10 @@
                                                 Model.EndDate.HasValue).ToString().ToLower());
             if (hasActiveFilters) {
                 filterCollapse.classList.add('show');
-                filterToggle.innerHTML = '<i class="bi bi-funnel-fill"></i> Hide Filters';
-                filterToggle.setAttribute('aria-expanded', 'true');
+                if (chevronIcon) {
+                    chevronIcon.classList.remove('bi-chevron-down');
+                    chevronIcon.classList.add('bi-chevron-up');
+                }
             }
         }
 
@@ -1730,8 +1817,8 @@
         document.getElementById('staffName').removeAttribute('required');
         document.getElementById('separationDate').removeAttribute('required');
         document.getElementById('separationReason').removeAttribute('required');
-        document.getElementById('interimStartDate').removeAttribute('required');
-        document.getElementById('interimEndDate').removeAttribute('required');
+        document.getElementById('interimBillingMonth').removeAttribute('required');
+        document.getElementById('interimBillingYear').removeAttribute('required');
     }
 
     function showInterimSection() {
@@ -1744,17 +1831,23 @@
         document.getElementById('staffName').setAttribute('required', 'required');
         document.getElementById('separationDate').setAttribute('required', 'required');
         document.getElementById('separationReason').setAttribute('required', 'required');
-        document.getElementById('interimStartDate').setAttribute('required', 'required');
-        document.getElementById('interimEndDate').setAttribute('required', 'required');
+        document.getElementById('interimBillingMonth').setAttribute('required', 'required');
+        document.getElementById('interimBillingYear').setAttribute('required', 'required');
     }
 
     function validateStaffMember(indexNumber) {
         const verificationDiv = document.getElementById('staffVerification');
         const messageSpan = document.getElementById('staffVerificationMessage');
 
+        if (!verificationDiv || !messageSpan) {
+            console.error('Verification elements not found');
+            return;
+        }
+
         // Show loading
         verificationDiv.classList.remove('d-none');
-        messageSpan.textContent = 'Verifying staff member...';
+        verificationDiv.className = 'alert alert-info mt-3';
+        verificationDiv.innerHTML = '<i class="bi bi-hourglass-split me-2"></i><strong>Staff Verification:</strong> <span id="staffVerificationMessage">Verifying staff member...</span>';
 
         // Fetch staff details
         fetch(`/Admin/CallLogStaging?handler=ValidateStaff&indexNumber=${indexNumber}`)
@@ -1762,7 +1855,7 @@
             .then(data => {
                 if (data.found) {
                     verificationDiv.className = 'alert alert-success mt-3';
-                    messageSpan.textContent = `Staff member found: ${data.name} (${data.organization})`;
+                    verificationDiv.innerHTML = `<i class="bi bi-check-circle me-2"></i><strong>Staff Verification:</strong> <span id="staffVerificationMessage">Staff member found: ${data.name} (${data.organization})</span>`;
 
                     // Auto-fill name if empty
                     const staffNameInput = document.getElementById('staffName');
@@ -1771,12 +1864,13 @@
                     }
                 } else {
                     verificationDiv.className = 'alert alert-danger mt-3';
-                    messageSpan.textContent = 'Staff member not found in the system. Please verify the index number.';
+                    verificationDiv.innerHTML = '<i class="bi bi-x-circle me-2"></i><strong>Staff Verification:</strong> <span id="staffVerificationMessage">Staff member not found in the system. Please verify the index number.</span>';
                 }
             })
             .catch(error => {
+                console.error('Error validating staff:', error);
                 verificationDiv.className = 'alert alert-danger mt-3';
-                messageSpan.textContent = 'Error verifying staff member.';
+                verificationDiv.innerHTML = '<i class="bi bi-exclamation-triangle me-2"></i><strong>Staff Verification:</strong> <span id="staffVerificationMessage">Error verifying staff member. Please try again.</span>';
             });
     }
 
@@ -1795,8 +1889,8 @@
             StaffName: document.getElementById('staffName').value,
             SeparationDate: document.getElementById('separationDate').value,
             SeparationReason: document.getElementById('separationReason').value,
-            InterimStartDate: document.getElementById('interimStartDate').value,
-            InterimEndDate: document.getElementById('interimEndDate').value
+            InterimBillingMonth: parseInt(document.getElementById('interimBillingMonth').value),
+            InterimBillingYear: parseInt(document.getElementById('interimBillingYear').value)
         };
 
         // Show loading state
@@ -2058,11 +2152,17 @@
         defaultDate.setDate(defaultDate.getDate() + 30);
         document.getElementById('verificationDate').value = defaultDate.toISOString().split('T')[0];
 
+        // Approval days config is already set from server-side value (@Model.DefaultApprovalDays)
+        // No need to override it here
+
+        // Update deadline display with initial values
+        updateDeadlineDisplay();
+
         const modal = new bootstrap.Modal(document.getElementById('verificationPeriodModal'));
         modal.show();
     }
 
-    // Toggle between days and date inputs
+    // Toggle between days, date, and batch defaults
     document.querySelectorAll('input[name="periodType"]').forEach(radio => {
         radio.addEventListener('change', function() {
             const daysGroup = document.getElementById('daysInputGroup');
@@ -2071,12 +2171,58 @@
             if (this.value === 'days') {
                 daysGroup.classList.remove('d-none');
                 dateGroup.classList.add('d-none');
-            } else {
+                updateDeadlineDisplay();  // Update when switching to days
+            } else if (this.value === 'date') {
                 daysGroup.classList.add('d-none');
                 dateGroup.classList.remove('d-none');
+                updateDeadlineDisplay();  // Update when switching to date
             }
         });
     });
+
+    // Function to update deadline displays
+    function updateDeadlineDisplay() {
+        const periodType = document.querySelector('input[name="periodType"]:checked')?.value;
+        const approvalDays = parseInt(document.getElementById('approvalDaysConfig').value) || @Model.DefaultApprovalDays;
+
+        let verificationDate = null;
+
+        if (periodType === 'days') {
+            const days = parseInt(document.getElementById('verificationDays').value) || 30;
+            verificationDate = new Date();
+            verificationDate.setDate(verificationDate.getDate() + days);
+        } else if (periodType === 'date') {
+            const dateValue = document.getElementById('verificationDate').value;
+            if (dateValue) {
+                verificationDate = new Date(dateValue);
+            }
+        }
+
+        if (verificationDate) {
+            // Calculate approval date
+            const approvalDate = new Date(verificationDate);
+            approvalDate.setDate(approvalDate.getDate() + approvalDays);
+
+            // Format dates
+            const options = { year: 'numeric', month: 'short', day: 'numeric' };
+            const staffDeadline = verificationDate.toLocaleDateString('en-US', options);
+            const supervisorDeadline = approvalDate.toLocaleDateString('en-US', options);
+
+            // Update display
+            document.getElementById('staffDeadlineDisplay').textContent = staffDeadline;
+            document.getElementById('supervisorDeadlineDisplay').textContent = supervisorDeadline;
+            document.getElementById('approvalDaysDisplay').textContent = approvalDays;
+        } else {
+            document.getElementById('staffDeadlineDisplay').textContent = '-';
+            document.getElementById('supervisorDeadlineDisplay').textContent = '-';
+        }
+    }
+
+    // Update deadlines when days input changes
+    document.getElementById('verificationDays')?.addEventListener('input', updateDeadlineDisplay);
+
+    // Update deadlines when date input changes
+    document.getElementById('verificationDate')?.addEventListener('change', updateDeadlineDisplay);
 
     function submitPushToProduction() {
         const batchId = document.getElementById('verificationBatchId').value;
@@ -2094,7 +2240,7 @@
             const date = new Date();
             date.setDate(date.getDate() + days);
             verificationPeriod = date.toISOString().split('T')[0];
-        } else {
+        } else if (periodType === 'date') {
             verificationPeriod = document.getElementById('verificationDate').value;
             if (!verificationPeriod) {
                 showErrorAlert('Please select a verification deadline date');
@@ -2139,6 +2285,17 @@
         document.body.appendChild(form);
         form.submit();
     }
+
+    // Handle batch selection from dropdown
+    function selectBatch(batchId) {
+        if (batchId) {
+            window.location.href = '?BatchId=' + batchId;
+        } else {
+            // Clear batch selection
+            window.location.href = '/Admin/CallLogStaging';
+        }
+    }
+
 </script>
 }
 

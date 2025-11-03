@@ -1,0 +1,882 @@
+@page
+@model TAB.Web.Pages.Admin.ProcessEOSModel
+@{
+    ViewData["Title"] = "Process End of Service";
+    Layout = "~/Pages/Shared/_Layout.cshtml";
+}
+
+<style>
+    .page-header {
+        background: white;
+        border-radius: 12px;
+        padding: 1.5rem;
+        box-shadow: 0 2px 10px rgba(0, 0, 0, 0.05);
+        border: 1px solid #e5e7eb;
+        margin-bottom: 2rem;
+    }
+
+    .info-card {
+        background: white;
+        border-radius: 12px;
+        border: 1px solid #e5e7eb;
+        box-shadow: 0 2px 10px rgba(0, 0, 0, 0.05);
+        margin-bottom: 1.5rem;
+    }
+
+    .card-header-solid {
+        background: #009EDB;
+        color: white;
+        border: none;
+        padding: 1rem 1.5rem;
+        border-radius: 12px 12px 0 0;
+    }
+
+    .phone-card {
+        background: white;
+        border-radius: 12px;
+        padding: 1.25rem;
+        border: 1px solid #e5e7eb;
+        transition: all 0.2s ease;
+    }
+
+    .phone-card:hover {
+        transform: translateY(-2px);
+        box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
+        border-color: #009EDB;
+    }
+
+    .status-badge {
+        display: inline-flex;
+        align-items: center;
+        padding: 0.375rem 0.75rem;
+        border-radius: 8px;
+        font-size: 0.875rem;
+        font-weight: 600;
+    }
+
+    .btn-action {
+        border-radius: 8px;
+        font-weight: 500;
+        padding: 0.5rem 1rem;
+        transition: all 0.2s ease;
+    }
+
+    .btn-action:hover {
+        transform: translateY(-1px);
+        box-shadow: 0 4px 8px rgba(0, 0, 0, 0.15);
+    }
+</style>
+
+<div class="container-fluid px-4">
+    <!-- Page Header -->
+    <div class="page-header">
+        <div class="d-flex justify-content-between align-items-center">
+            <div>
+                <h4 class="mb-1 d-flex align-items-center">
+                    <i class="bi bi-person-badge text-primary me-2"></i>
+                    Process End of Service
+                </h4>
+                <p class="text-muted mb-0 small">Manage staff profile and phone numbers during end of service</p>
+            </div>
+            <a href="/Admin/EOSRecovery" class="btn btn-outline-secondary btn-action">
+                <i class="bi bi-arrow-left me-1"></i> Back to EOS Recovery
+            </a>
+        </div>
+    </div>
+
+    <!-- Status Messages -->
+    <div id="statusMessageContainer"></div>
+
+    @if (!string.IsNullOrEmpty(Model.SuccessMessage))
+    {
+        <div class="alert alert-success alert-dismissible fade show" role="alert">
+            <i class="bi bi-check-circle me-2"></i>
+            @Model.SuccessMessage
+            <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
+        </div>
+    }
+
+    @if (!string.IsNullOrEmpty(Model.ErrorMessage))
+    {
+        <div class="alert alert-danger alert-dismissible fade show" role="alert">
+            <i class="bi bi-exclamation-triangle me-2"></i>
+            @Model.ErrorMessage
+            <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
+        </div>
+    }
+
+    @if (Model.StaffMember != null)
+    {
+        <!-- Staff Profile Section -->
+        <div class="info-card">
+            <div class="card-header-solid">
+                <div class="d-flex justify-content-between align-items-center">
+                    <h5 class="mb-0 fw-bold text-white">
+                        <i class="bi bi-person-circle me-2"></i>
+                        Staff Profile
+                    </h5>
+                    @if (Model.StaffMember.IsActive)
+                    {
+                        <span class="badge bg-success">Active</span>
+                    }
+                    else
+                    {
+                        <span class="badge bg-danger">Disabled</span>
+                    }
+                </div>
+            </div>
+            <div class="card-body p-4">
+                <div class="row">
+                    <div class="col-md-6 mb-3">
+                        <div class="d-flex align-items-center">
+                            <i class="bi bi-person-fill text-primary me-3" style="font-size: 1.5rem;"></i>
+                            <div>
+                                <div class="small text-muted">Full Name</div>
+                                <div class="fw-semibold">@($"{Model.StaffMember.FirstName} {Model.StaffMember.LastName}")</div>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="col-md-6 mb-3">
+                        <div class="d-flex align-items-center">
+                            <i class="bi bi-badge text-primary me-3" style="font-size: 1.5rem;"></i>
+                            <div>
+                                <div class="small text-muted">Index Number</div>
+                                <div class="fw-semibold">@Model.StaffMember.IndexNumber</div>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="col-md-6 mb-3">
+                        <div class="d-flex align-items-center">
+                            <i class="bi bi-building text-primary me-3" style="font-size: 1.5rem;"></i>
+                            <div>
+                                <div class="small text-muted">Organization</div>
+                                <div class="fw-semibold">@(Model.StaffMember.OrganizationEntity?.Name ?? "N/A")</div>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="col-md-6 mb-3">
+                        <div class="d-flex align-items-center">
+                            <i class="bi bi-envelope text-primary me-3" style="font-size: 1.5rem;"></i>
+                            <div>
+                                <div class="small text-muted">Email</div>
+                                <div class="fw-semibold">@(Model.StaffMember.Email ?? "N/A")</div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="mt-3 pt-3 border-top">
+                    <button type="button" class="btn btn-outline-danger btn-action" id="toggleProfileBtn"
+                            data-index="@Model.StaffMember.IndexNumber"
+                            data-active="@Model.StaffMember.IsActive.ToString().ToLower()">
+                        @if (Model.StaffMember.IsActive)
+                        {
+                            <i class="bi bi-person-slash me-1"></i><span>Disable User Profile</span>
+                        }
+                        else
+                        {
+                            <i class="bi bi-person-check me-1"></i><span>Enable User Profile</span>
+                        }
+                    </button>
+                    <small class="text-muted ms-3">
+                        <i class="bi bi-info-circle me-1"></i>
+                        This will @(Model.StaffMember.IsActive ? "deactivate" : "activate") the user's account and @(Model.StaffMember.IsActive ? "prevent" : "restore") login access.
+                    </small>
+                </div>
+            </div>
+        </div>
+
+        <!-- Phone Numbers Section -->
+        <div class="info-card">
+            <div class="card-header-solid">
+                <h5 class="mb-0 fw-bold text-white">
+                    <i class="bi bi-telephone me-2"></i>
+                    Assigned Phone Numbers
+                    <span class="badge bg-light text-dark ms-2">@Model.AssignedPhones.Count</span>
+                </h5>
+            </div>
+            <div class="card-body p-4">
+                @if (Model.AssignedPhones.Any())
+                {
+                    <div class="row g-3" id="phonesList">
+                        @foreach (var phone in Model.AssignedPhones)
+                        {
+                            var statusBadgeColor = phone.Status == PhoneStatus.Active ? "success" : (phone.Status == PhoneStatus.Suspended ? "warning" : "danger");
+                            var phoneTypeIcon = phone.PhoneType == "Mobile" ? "phone" : (phone.PhoneType == "Desk" ? "telephone" : "telephone-forward");
+
+                            <div class="col-md-6">
+                                <div class="phone-card">
+                                    <div class="d-flex justify-content-between align-items-start mb-3">
+                                        <div class="flex-grow-1">
+                                            <h6 class="mb-2 d-flex align-items-center">
+                                                <i class="bi bi-@phoneTypeIcon text-primary me-2"></i>
+                                                @phone.PhoneNumber
+                                            </h6>
+                                            <div class="d-flex flex-wrap gap-2">
+                                                <span class="badge bg-light text-dark">@phone.PhoneType</span>
+                                                <span class="badge bg-@statusBadgeColor">@phone.Status</span>
+                                                @if (phone.IsPrimary)
+                                                {
+                                                    <span class="badge bg-success">PRIMARY</span>
+                                                }
+                                            </div>
+                                        </div>
+                                    </div>
+
+                                    @if (!string.IsNullOrEmpty(phone.Location))
+                                    {
+                                        <div class="small text-muted mb-2">
+                                            <i class="bi bi-geo-alt me-1"></i>@phone.Location
+                                        </div>
+                                    }
+
+                                    <div class="mt-3 d-flex gap-2">
+                                        <button type="button" class="btn btn-sm btn-outline-primary btn-action reassign-phone-btn"
+                                                data-phone-id="@phone.Id"
+                                                data-phone-number="@phone.PhoneNumber">
+                                            <i class="bi bi-arrow-left-right me-1"></i> Reassign
+                                        </button>
+                                        <button type="button" class="btn btn-sm btn-outline-danger btn-action deactivate-phone-btn"
+                                                data-phone-id="@phone.Id"
+                                                data-phone-number="@phone.PhoneNumber">
+                                            <i class="bi bi-x-circle me-1"></i> Deactivate
+                                        </button>
+                                    </div>
+                                </div>
+                            </div>
+                        }
+                    </div>
+                }
+                else
+                {
+                    <div class="text-center text-muted py-5">
+                        <i class="bi bi-telephone-x" style="font-size: 3rem;"></i>
+                        <p class="mt-3 mb-0">No phone numbers assigned to this staff member</p>
+                    </div>
+                }
+            </div>
+        </div>
+
+        <!-- Actions -->
+        <div class="d-flex justify-content-between align-items-center mb-4">
+            <a href="/Admin/EOSRecovery" class="btn btn-secondary btn-action">
+                <i class="bi bi-arrow-left me-1"></i> Back to EOS Recovery
+            </a>
+            <button type="button" class="btn btn-success btn-action" id="completeEOSBtn">
+                <i class="bi bi-check-circle me-1"></i> Complete EOS Processing
+            </button>
+        </div>
+    }
+</div>
+
+<!-- Reassign Phone Modal -->
+<div class="modal fade" id="reassignPhoneModal" tabindex="-1">
+    <div class="modal-dialog modal-dialog-centered modal-lg">
+        <div class="modal-content" style="border-radius: 12px; border: 1px solid #dee2e6;">
+            <div class="modal-header" style="background: #009EDB; color: white; border: none;">
+                <h5 class="modal-title text-white">
+                    <i class="bi bi-arrow-left-right me-2"></i>
+                    Reassign Phone Number
+                </h5>
+                <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal"></button>
+            </div>
+            <div class="modal-body" style="padding: 1.5rem;">
+                <input type="hidden" id="reassignPhoneId" />
+                <input type="hidden" id="reassignPhoneNumber" />
+                <input type="hidden" id="selectedStaffIndexNumber" />
+
+                <div class="alert alert-info border-0" style="background-color: #e3f2fd;">
+                    <i class="bi bi-telephone me-2"></i>
+                    Phone: <strong id="reassignPhoneDisplay"></strong>
+                </div>
+
+                <div class="mb-3">
+                    <label class="form-label fw-semibold">
+                        <i class="bi bi-search me-1"></i>
+                        Search for New Staff Member
+                    </label>
+                    <input type="text" class="form-control" id="staffSearchInput"
+                           placeholder="Search by name, email, or index number..." />
+                    <div class="form-text">Type at least 3 characters to search</div>
+                </div>
+
+                <!-- Search Results -->
+                <div id="staffSearchResults" class="d-none mb-3">
+                    <div class="list-group" id="staffSearchList" style="max-height: 300px; overflow-y: auto;">
+                        <!-- Results will be populated here -->
+                    </div>
+                </div>
+
+                <!-- Selected Staff Info -->
+                <div id="selectedStaffInfo" class="alert alert-success border-0 d-none" style="background-color: #e8f5e9;">
+                    <div class="d-flex justify-content-between align-items-start">
+                        <div>
+                            <div class="fw-bold" id="selectedStaffName"></div>
+                            <div class="small text-muted" id="selectedStaffEmail"></div>
+                            <div class="small text-muted" id="selectedStaffOrg"></div>
+                            <div class="small">
+                                <span class="badge bg-secondary" id="selectedStaffIndex"></span>
+                            </div>
+                        </div>
+                        <button type="button" class="btn btn-sm btn-outline-danger" id="clearSelectionBtn">
+                            <i class="bi bi-x"></i>
+                        </button>
+                    </div>
+                </div>
+
+                <!-- No Results Message -->
+                <div id="noResultsMessage" class="alert alert-warning border-0 d-none" style="background-color: #fff3cd;">
+                    <i class="bi bi-exclamation-triangle me-2"></i>
+                    No staff members found matching your search.
+                </div>
+            </div>
+            <div class="modal-footer" style="background-color: #f8f9fa; border-top: 1px solid #dee2e6;">
+                <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancel</button>
+                <button type="button" class="btn btn-primary" id="confirmReassignBtn" disabled
+                        style="background-color: #009EDB; border-color: #009EDB;">
+                    <i class="bi bi-check-circle me-1"></i> Reassign Phone
+                </button>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Deactivate Phone Confirmation Modal -->
+<div class="modal fade" id="deactivatePhoneModal" tabindex="-1">
+    <div class="modal-dialog modal-dialog-centered">
+        <div class="modal-content border-0 shadow-lg" style="border-radius: 20px; overflow: hidden;">
+            <div class="modal-header border-0" style="background: #dc3545; padding: 1.5rem 2rem;">
+                <h5 class="modal-title text-white fw-bold">
+                    <i class="bi bi-exclamation-triangle me-2"></i>Confirm Phone Deactivation
+                </h5>
+                <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal"></button>
+            </div>
+            <div class="modal-body" style="padding: 2rem;">
+                <input type="hidden" id="deactivatePhoneId" />
+
+                <div class="text-center mb-4">
+                    <div class="bg-danger bg-opacity-10 rounded-circle d-inline-flex align-items-center justify-content-center mb-3" style="width: 80px; height: 80px;">
+                        <i class="bi bi-telephone-x text-danger" style="font-size: 2.5rem;"></i>
+                    </div>
+                    <h5 class="fw-bold mb-2">Phone: <span id="deactivatePhoneNumber" class="text-danger"></span></h5>
+                </div>
+
+                <div class="mb-3">
+                    <h6 class="fw-semibold mb-3 text-center">This action will:</h6>
+                    <div class="d-flex flex-column gap-2">
+                        <div class="d-flex align-items-start p-3 bg-light rounded-3">
+                            <i class="bi bi-x-circle text-danger me-3 mt-1" style="font-size: 1.25rem;"></i>
+                            <div>
+                                <strong>Set phone status to Deactivated</strong>
+                                <p class="text-muted small mb-0">The phone will no longer be active in the system</p>
+                            </div>
+                        </div>
+                        <div class="d-flex align-items-start p-3 bg-light rounded-3">
+                            <i class="bi bi-slash-circle text-danger me-3 mt-1" style="font-size: 1.25rem;"></i>
+                            <div>
+                                <strong>Remove Primary status</strong>
+                                <p class="text-muted small mb-0">If this is a primary phone, that designation will be removed</p>
+                            </div>
+                        </div>
+                        <div class="d-flex align-items-start p-3 bg-light rounded-3">
+                            <i class="bi bi-ban text-danger me-3 mt-1" style="font-size: 1.25rem;"></i>
+                            <div>
+                                <strong>Make phone unavailable</strong>
+                                <p class="text-muted small mb-0">The phone cannot be used until reactivated</p>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="alert alert-danger border-0 mb-0" style="background-color: #f8d7da;">
+                    <div class="d-flex align-items-center">
+                        <i class="bi bi-exclamation-triangle-fill me-2"></i>
+                        <div>
+                            <strong>Warning:</strong> This action is permanent and cannot be undone.
+                        </div>
+                    </div>
+                </div>
+            </div>
+            <div class="modal-footer border-0" style="padding: 1rem 2rem 2rem 2rem;">
+                <div class="d-grid gap-2 d-md-flex justify-content-md-end w-100">
+                    <button type="button" class="btn btn-light me-md-2 px-4 py-2" data-bs-dismiss="modal" style="border-radius: 12px; font-weight: 500;">
+                        <i class="bi bi-x-circle me-1"></i> Cancel
+                    </button>
+                    <button type="button" class="btn btn-danger px-4 py-2" id="confirmDeactivatePhoneBtn" style="border-radius: 12px; font-weight: 500;">
+                        <i class="bi bi-telephone-x me-1"></i> Deactivate Phone
+                    </button>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Disable User Profile Confirmation Modal -->
+<div class="modal fade" id="disableUserModal" tabindex="-1">
+    <div class="modal-dialog modal-dialog-centered modal-lg">
+        <div class="modal-content border-0 shadow-lg" style="border-radius: 20px; overflow: hidden;">
+            <div class="modal-header border-0" style="background: #dc3545; padding: 1.5rem 2rem;">
+                <h5 class="modal-title text-white fw-bold">
+                    <i class="bi bi-exclamation-triangle me-2"></i>Confirm User Profile Disable
+                </h5>
+                <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal"></button>
+            </div>
+            <div class="modal-body" style="padding: 2rem;">
+                <input type="hidden" id="disableUserIndexNumber" />
+
+                <div class="text-center mb-4">
+                    <div class="bg-danger bg-opacity-10 rounded-circle d-inline-flex align-items-center justify-content-center mb-3" style="width: 80px; height: 80px;">
+                        <i class="bi bi-person-slash text-danger" style="font-size: 2.5rem;"></i>
+                    </div>
+                    <h5 class="fw-bold mb-2">Staff Member: <span id="disableUserName" class="text-danger"></span></h5>
+                </div>
+
+                <div class="mb-4">
+                    <h6 class="fw-bold mb-3">This action will:</h6>
+                    <div class="bg-light rounded-3 p-3 mb-2">
+                        <div class="d-flex align-items-start">
+                            <i class="bi bi-person-x text-danger me-3" style="font-size: 1.25rem;"></i>
+                            <div>
+                                <strong>Disable User Account</strong>
+                                <p class="text-muted mb-0 small">User account status will be set to <strong>Disabled</strong></p>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="bg-light rounded-3 p-3 mb-2">
+                        <div class="d-flex align-items-start">
+                            <i class="bi bi-lock text-danger me-3" style="font-size: 1.25rem;"></i>
+                            <div>
+                                <strong>Prevent System Access</strong>
+                                <p class="text-muted mb-0 small">User will no longer be able to log in to the system</p>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="bg-light rounded-3 p-3">
+                        <div class="d-flex align-items-start">
+                            <i class="bi bi-telephone-slash text-danger me-3" style="font-size: 1.25rem;"></i>
+                            <div>
+                                <strong>Auto-Deactivate Phone Numbers</strong>
+                                <p class="text-muted mb-0 small">All <strong><span id="phoneCount">0</span> assigned phone number(s)</strong> will be automatically deactivated</p>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="card border-danger mb-4">
+                    <div class="card-header bg-danger text-white fw-semibold" style="padding: 0.75rem 1rem;">
+                        <i class="bi bi-telephone me-2"></i>Phone Numbers to be Deactivated
+                    </div>
+                    <div class="card-body" id="phonesToDeactivateList" style="max-height: 200px; overflow-y: auto; padding: 1rem;">
+                        <!-- Will be populated with phone list -->
+                    </div>
+                </div>
+
+                <div class="alert alert-danger border-0 mb-0 d-flex align-items-start" style="background-color: #f8d7da; border-radius: 12px;">
+                    <i class="bi bi-exclamation-triangle me-3" style="font-size: 1.5rem;"></i>
+                    <div>
+                        <strong>Warning:</strong> This is a critical action. The user will lose access to the system and all their phone numbers will be deactivated.
+                    </div>
+                </div>
+            </div>
+            <div class="modal-footer border-0" style="padding: 1rem 2rem 2rem 2rem;">
+                <div class="d-grid gap-2 d-md-flex justify-content-md-end w-100">
+                    <button type="button" class="btn btn-secondary px-4" data-bs-dismiss="modal" style="border-radius: 12px; font-weight: 500;">
+                        <i class="bi bi-x-circle me-1"></i> Cancel
+                    </button>
+                    <button type="button" class="btn btn-danger px-4" id="confirmDisableUserBtn" style="border-radius: 12px; font-weight: 500;">
+                        <i class="bi bi-person-slash me-1"></i> Disable User & Deactivate Phones
+                    </button>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Enable User Profile Confirmation Modal -->
+<div class="modal fade" id="enableUserModal" tabindex="-1">
+    <div class="modal-dialog modal-dialog-centered">
+        <div class="modal-content border-0 shadow-lg" style="border-radius: 20px; overflow: hidden;">
+            <div class="modal-header border-0" style="background: #28a745; padding: 1.5rem 2rem;">
+                <h5 class="modal-title text-white fw-bold">
+                    <i class="bi bi-check-circle me-2"></i>Confirm User Profile Enable
+                </h5>
+                <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal"></button>
+            </div>
+            <div class="modal-body" style="padding: 2rem;">
+                <input type="hidden" id="enableUserIndexNumber" />
+
+                <div class="text-center mb-4">
+                    <div class="bg-success bg-opacity-10 rounded-circle d-inline-flex align-items-center justify-content-center mb-3" style="width: 80px; height: 80px;">
+                        <i class="bi bi-person-check text-success" style="font-size: 2.5rem;"></i>
+                    </div>
+                    <h5 class="fw-bold mb-2">Staff Member: <span id="enableUserName" class="text-success"></span></h5>
+                </div>
+
+                <div class="mb-4">
+                    <h6 class="fw-bold mb-3">This action will:</h6>
+                    <div class="bg-light rounded-3 p-3 mb-2">
+                        <div class="d-flex align-items-start">
+                            <i class="bi bi-person-check text-success me-3" style="font-size: 1.25rem;"></i>
+                            <div>
+                                <strong>Enable User Account</strong>
+                                <p class="text-muted mb-0 small">User account status will be set to <strong>Active</strong></p>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="bg-light rounded-3 p-3">
+                        <div class="d-flex align-items-start">
+                            <i class="bi bi-unlock text-success me-3" style="font-size: 1.25rem;"></i>
+                            <div>
+                                <strong>Restore System Access</strong>
+                                <p class="text-muted mb-0 small">User will be able to log in to the system</p>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="alert alert-info border-0 mb-0 d-flex align-items-start" style="background-color: #d1ecf1; border-radius: 12px;">
+                    <i class="bi bi-info-circle me-3" style="font-size: 1.5rem;"></i>
+                    <div>
+                        <strong>Note:</strong> Phone numbers will remain in their current status. You may need to manually activate phones if required.
+                    </div>
+                </div>
+            </div>
+            <div class="modal-footer border-0" style="padding: 1rem 2rem 2rem 2rem;">
+                <div class="d-grid gap-2 d-md-flex justify-content-md-end w-100">
+                    <button type="button" class="btn btn-secondary px-4" data-bs-dismiss="modal" style="border-radius: 12px; font-weight: 500;">
+                        <i class="bi bi-x-circle me-1"></i> Cancel
+                    </button>
+                    <button type="button" class="btn btn-success px-4" id="confirmEnableUserBtn" style="border-radius: 12px; font-weight: 500;">
+                        <i class="bi bi-person-check me-1"></i> Enable User Profile
+                    </button>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+@section Scripts {
+    <script>
+        $(document).ready(function () {
+            // Check for success message in sessionStorage
+            const successMessage = sessionStorage.getItem('eosSuccessMessage');
+            if (successMessage) {
+                showSuccessMessage(successMessage);
+                sessionStorage.removeItem('eosSuccessMessage');
+            }
+
+            // Function to show success message
+            function showSuccessMessage(message) {
+                const alertHtml = `
+                    <div class="alert alert-success alert-dismissible fade show" role="alert">
+                        <i class="bi bi-check-circle me-2"></i>
+                        ${message}
+                        <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
+                    </div>
+                `;
+                $('#statusMessageContainer').html(alertHtml);
+
+                // Scroll to top to show message
+                window.scrollTo({ top: 0, behavior: 'smooth' });
+
+                // Auto-dismiss after 5 seconds
+                setTimeout(function() {
+                    $('.alert').fadeOut('slow', function() {
+                        $(this).remove();
+                    });
+                }, 5000);
+            }
+
+            // Function to show error message
+            function showErrorMessage(message) {
+                const alertHtml = `
+                    <div class="alert alert-danger alert-dismissible fade show" role="alert">
+                        <i class="bi bi-exclamation-triangle me-2"></i>
+                        ${message}
+                        <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
+                    </div>
+                `;
+                $('#statusMessageContainer').html(alertHtml);
+                window.scrollTo({ top: 0, behavior: 'smooth' });
+            }
+
+            // Toggle Profile Button - Show appropriate modal
+            $('#toggleProfileBtn').click(function () {
+                const indexNumber = $(this).data('index');
+                const isActive = $(this).data('active');
+                const staffName = '@($"{Model.StaffMember?.FirstName} {Model.StaffMember?.LastName}")';
+
+                if (isActive === true || isActive === 'true') {
+                    // Show disable modal with phone list
+                    $('#disableUserIndexNumber').val(indexNumber);
+                    $('#disableUserName').text(staffName);
+
+                    // Count and list phones
+                    const phoneCards = $('.phone-card');
+                    const phoneCount = phoneCards.length;
+                    $('#phoneCount').text(phoneCount);
+
+                    if (phoneCount > 0) {
+                        let phoneListHtml = '<ul class="list-unstyled mb-0">';
+                        phoneCards.each(function() {
+                            const phoneNumber = $(this).find('h6').text().trim();
+                            const badges = $(this).find('.badge').map(function() {
+                                return $(this).text();
+                            }).get().join(', ');
+                            phoneListHtml += `<li class="mb-2"><i class="bi bi-telephone me-2"></i><strong>${phoneNumber}</strong> <small class="text-muted">(${badges})</small></li>`;
+                        });
+                        phoneListHtml += '</ul>';
+                        $('#phonesToDeactivateList').html(phoneListHtml);
+                    } else {
+                        $('#phonesToDeactivateList').html('<p class="text-muted mb-0">No phone numbers assigned</p>');
+                    }
+
+                    const disableModal = new bootstrap.Modal(document.getElementById('disableUserModal'));
+                    disableModal.show();
+                } else {
+                    // Show enable modal
+                    $('#enableUserIndexNumber').val(indexNumber);
+                    $('#enableUserName').text(staffName);
+
+                    const enableModal = new bootstrap.Modal(document.getElementById('enableUserModal'));
+                    enableModal.show();
+                }
+            });
+
+            // Confirm Disable User
+            $('#confirmDisableUserBtn').click(function () {
+                const indexNumber = $('#disableUserIndexNumber').val();
+
+                $.ajax({
+                    url: '/Admin/ProcessEOS?handler=ToggleUserProfile',
+                    type: 'POST',
+                    headers: {
+                        'RequestVerificationToken': $('input[name="__RequestVerificationToken"]').val()
+                    },
+                    data: { indexNumber: indexNumber },
+                    success: function (data) {
+                        if (data.success) {
+                            bootstrap.Modal.getInstance(document.getElementById('disableUserModal')).hide();
+                            sessionStorage.setItem('eosSuccessMessage', data.message);
+                            window.location.href = data.reloadUrl;
+                        } else {
+                            showErrorMessage('Failed to disable user profile: ' + (data.message || 'Unknown error'));
+                        }
+                    },
+                    error: function () {
+                        showErrorMessage('Error disabling user profile. Please try again.');
+                    }
+                });
+            });
+
+            // Confirm Enable User
+            $('#confirmEnableUserBtn').click(function () {
+                const indexNumber = $('#enableUserIndexNumber').val();
+
+                $.ajax({
+                    url: '/Admin/ProcessEOS?handler=ToggleUserProfile',
+                    type: 'POST',
+                    headers: {
+                        'RequestVerificationToken': $('input[name="__RequestVerificationToken"]').val()
+                    },
+                    data: { indexNumber: indexNumber },
+                    success: function (data) {
+                        if (data.success) {
+                            bootstrap.Modal.getInstance(document.getElementById('enableUserModal')).hide();
+                            sessionStorage.setItem('eosSuccessMessage', data.message);
+                            window.location.href = data.reloadUrl;
+                        } else {
+                            showErrorMessage('Failed to enable user profile: ' + (data.message || 'Unknown error'));
+                        }
+                    },
+                    error: function () {
+                        showErrorMessage('Error enabling user profile. Please try again.');
+                    }
+                });
+            });
+
+            // Reassign Phone Button
+            $(document).on('click', '.reassign-phone-btn', function () {
+                const phoneId = $(this).data('phone-id');
+                const phoneNumber = $(this).data('phone-number');
+
+                $('#reassignPhoneId').val(phoneId);
+                $('#reassignPhoneNumber').val(phoneNumber);
+                $('#reassignPhoneDisplay').text(phoneNumber);
+                $('#staffSearchInput').val('');
+                $('#selectedStaffIndexNumber').val('');
+                $('#staffSearchResults').addClass('d-none');
+                $('#selectedStaffInfo').addClass('d-none');
+                $('#noResultsMessage').addClass('d-none');
+                $('#confirmReassignBtn').prop('disabled', true);
+
+                const reassignModal = new bootstrap.Modal(document.getElementById('reassignPhoneModal'));
+                reassignModal.show();
+            });
+
+            // Staff Search with debounce
+            let searchTimeout;
+            $('#staffSearchInput').on('input', function () {
+                const searchQuery = $(this).val().trim();
+                clearTimeout(searchTimeout);
+
+                if (searchQuery.length < 3) {
+                    $('#staffSearchResults').addClass('d-none');
+                    $('#noResultsMessage').addClass('d-none');
+                    return;
+                }
+
+                searchTimeout = setTimeout(function () {
+                    performStaffSearch(searchQuery);
+                }, 500);
+            });
+
+            function performStaffSearch(query) {
+                $.ajax({
+                    url: '/Admin/ProcessEOS?handler=SearchStaff',
+                    type: 'GET',
+                    data: { searchQuery: query },
+                    beforeSend: function () {
+                        $('#staffSearchList').html('<div class="text-center py-3"><div class="spinner-border spinner-border-sm"></div> Searching...</div>');
+                        $('#staffSearchResults').removeClass('d-none');
+                    },
+                    success: function (data) {
+                        if (data.success && data.results && data.results.length > 0) {
+                            let resultsHtml = '';
+                            data.results.forEach(function (staff) {
+                                resultsHtml += `
+                                    <button type="button" class="list-group-item list-group-item-action staff-result-item"
+                                            data-index="${staff.indexNumber}"
+                                            data-name="${staff.fullName}"
+                                            data-email="${staff.email || ''}"
+                                            data-org="${staff.organization || ''}">
+                                        <div class="d-flex justify-content-between align-items-start">
+                                            <div>
+                                                <div class="fw-bold">${staff.fullName}</div>
+                                                <div class="small text-muted">${staff.email || 'No email'}</div>
+                                                <div class="small text-muted">${staff.organization || 'No organization'}</div>
+                                            </div>
+                                            <span class="badge bg-secondary">${staff.indexNumber}</span>
+                                        </div>
+                                    </button>
+                                `;
+                            });
+                            $('#staffSearchList').html(resultsHtml);
+                        } else {
+                            $('#staffSearchResults').addClass('d-none');
+                            $('#noResultsMessage').removeClass('d-none');
+                        }
+                    }
+                });
+            }
+
+            // Select Staff from Results
+            $(document).on('click', '.staff-result-item', function () {
+                const indexNumber = $(this).data('index');
+                const name = $(this).data('name');
+                const email = $(this).data('email');
+                const org = $(this).data('org');
+
+                $('#selectedStaffIndexNumber').val(indexNumber);
+                $('#selectedStaffName').text(name);
+                $('#selectedStaffEmail').text(email || 'No email');
+                $('#selectedStaffOrg').text(org || 'No organization');
+                $('#selectedStaffIndex').text(indexNumber);
+
+                $('#selectedStaffInfo').removeClass('d-none');
+                $('#staffSearchResults').addClass('d-none');
+                $('#noResultsMessage').addClass('d-none');
+                $('#staffSearchInput').val('');
+                $('#confirmReassignBtn').prop('disabled', false);
+            });
+
+            // Clear Selection
+            $('#clearSelectionBtn').click(function () {
+                $('#selectedStaffIndexNumber').val('');
+                $('#selectedStaffInfo').addClass('d-none');
+                $('#confirmReassignBtn').prop('disabled', true);
+            });
+
+            // Confirm Reassign
+            $('#confirmReassignBtn').click(function () {
+                const phoneId = $('#reassignPhoneId').val();
+                const newIndexNumber = $('#selectedStaffIndexNumber').val().trim();
+
+                if (!newIndexNumber) {
+                    alert('Please select a staff member to reassign the phone to');
+                    return;
+                }
+
+                $.ajax({
+                    url: '/Admin/ProcessEOS?handler=ReassignPhone',
+                    type: 'POST',
+                    headers: {
+                        'RequestVerificationToken': $('input[name="__RequestVerificationToken"]').val()
+                    },
+                    data: {
+                        phoneId: phoneId,
+                        newIndexNumber: newIndexNumber
+                    },
+                    success: function (data) {
+                        if (data.success) {
+                            sessionStorage.setItem('eosSuccessMessage', data.message);
+                            window.location.href = data.reloadUrl;
+                        } else {
+                            showErrorMessage('Failed to reassign phone: ' + (data.message || 'Unknown error'));
+                        }
+                    },
+                    error: function () {
+                        showErrorMessage('Error reassigning phone. Please try again.');
+                    }
+                });
+            });
+
+            // Deactivate Phone - Show confirmation modal
+            $(document).on('click', '.deactivate-phone-btn', function () {
+                const phoneId = $(this).data('phone-id');
+                const phoneNumber = $(this).data('phone-number');
+
+                $('#deactivatePhoneId').val(phoneId);
+                $('#deactivatePhoneNumber').text(phoneNumber);
+
+                const deactivateModal = new bootstrap.Modal(document.getElementById('deactivatePhoneModal'));
+                deactivateModal.show();
+            });
+
+            // Confirm Deactivate Phone
+            $('#confirmDeactivatePhoneBtn').click(function () {
+                const phoneId = $('#deactivatePhoneId').val();
+
+                $.ajax({
+                    url: '/Admin/ProcessEOS?handler=DeactivatePhone',
+                    type: 'POST',
+                    headers: {
+                        'RequestVerificationToken': $('input[name="__RequestVerificationToken"]').val()
+                    },
+                    data: { phoneId: phoneId },
+                    success: function (data) {
+                        if (data.success) {
+                            bootstrap.Modal.getInstance(document.getElementById('deactivatePhoneModal')).hide();
+                            sessionStorage.setItem('eosSuccessMessage', data.message);
+                            window.location.href = data.reloadUrl;
+                        } else {
+                            showErrorMessage('Failed to deactivate phone: ' + (data.message || 'Unknown error'));
+                        }
+                    },
+                    error: function () {
+                        showErrorMessage('Error deactivating phone. Please try again.');
+                    }
+                });
+            });
+
+            // Complete EOS
+            $('#completeEOSBtn').click(function () {
+                if (!confirm('Are you sure you want to complete EOS processing for this staff member?\n\nAll phone transitions have been recorded.')) {
+                    return;
+                }
+
+                window.location.href = '/Admin/EOSRecovery';
+            });
+        });
+    </script>
+}

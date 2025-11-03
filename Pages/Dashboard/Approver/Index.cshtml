@@ -75,7 +75,7 @@
             <div class="stat-number">@Model.TotalRefundRequests</div>
             <div class="stat-label">Refund Requests</div>
             <div class="stat-action">
-                <a href="/Modules/RefundManagement/Approvals?tab=supervisor" class="action-link">
+                <a href="/Modules/RefundManagement/Approvals" class="action-link">
                     <span>Review</span>
                     <i class="bi bi-arrow-right"></i>
                 </a>
@@ -110,9 +110,6 @@
             <div class="header-title">
                 <i class="bi bi-activity"></i>
                 <h3>Recent Activity</h3>
-            </div>
-            <div class="header-actions">
-                <a href="/Approver/All" class="view-all-link">View All</a>
             </div>
         </div>
         <div class="card-content">
@@ -209,9 +206,9 @@
     {
         return request.RequestType switch
         {
-            TAB.Web.Models.RequestType.SimCard => $"/SimRequest/Details?id={request.Id}",
-            TAB.Web.Models.RequestType.DeviceRefund => $"/Modules/RefundManagement/Requests/Details?id={request.Id}",
-            TAB.Web.Models.RequestType.EBill => $"/Modules/EBillManagement/Requests/Details?id={request.Id}",
+            TAB.Web.Models.RequestType.SimCard => $"/Modules/SimManagement/Approvals?tab=supervisor",
+            TAB.Web.Models.RequestType.DeviceRefund => $"/Modules/RefundManagement/Approvals",
+            TAB.Web.Models.RequestType.EBill => $"/Modules/EBillManagement/CallRecords/SupervisorApprovals",
             _ => "#"
         };
     }
@@ -632,18 +629,18 @@
 }
 
 .urgent-card {
-    border: 2px solid #fbbf24;
+    border: 1px solid #e5e7eb;
 }
 
 .urgent-header {
-    background: #dc2626;
+    background: #f97316;
     color: white;
     margin: -1px -1px 0 -1px;
     padding: 1rem 1.5rem;
 }
 
 .urgent-badge {
-    background: rgba(255, 255, 255, 0.2);
+    background: rgba(255, 255, 255, 0.25);
     color: white;
     padding: 0.25rem 0.75rem;
     border-radius: 12px;
@@ -662,8 +659,8 @@
     align-items: center;
     gap: 1rem;
     padding: 1rem;
-    background: #fffbeb;
-    border: 1px solid #fde68a;
+    background: #fef9f5;
+    border: 1px solid #fed7aa;
     border-radius: 12px;
 }
 
@@ -674,7 +671,7 @@
     width: 40px;
     height: 40px;
     border-radius: 10px;
-    background: #dc2626;
+    background: #f97316;
     color: white;
     font-size: 1.1rem;
 }
@@ -697,12 +694,12 @@
 }
 
 .days-pending {
-    color: #dc2626;
+    color: #ea580c;
     font-weight: 500;
 }
 
 .btn-urgent {
-    background: #dc2626;
+    background: #f97316;
     color: white;
     border: none;
     padding: 0.5rem 1rem;
@@ -714,7 +711,7 @@
 }
 
 .btn-urgent:hover {
-    background: #b91c1c;
+    background: #ea580c;
 }
 
 /* Empty State */

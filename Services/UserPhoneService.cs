@@ -1,3 +1,4 @@
+using Microsoft.AspNetCore.Http;
 using Microsoft.EntityFrameworkCore;
 using TAB.Web.Data;
 using TAB.Web.Models;
@@ -8,7 +9,7 @@ namespace TAB.Web.Services
     {
         Task<List<UserPhone>> GetUserPhonesAsync(string indexNumber);
         Task<UserPhone?> GetPhoneAsync(int id);
-        Task<bool> AssignPhoneAsync(string indexNumber, string phoneNumber, string phoneType, bool isPrimary, string? location = null, string? notes = null, int? classOfServiceId = null, bool forceReassign = false, PhoneStatus status = PhoneStatus.Active);
+        Task<bool> AssignPhoneAsync(string indexNumber, string phoneNumber, string phoneType, bool isPrimary, string? location = null, string? notes = null, int? classOfServiceId = null, bool forceReassign = false, PhoneStatus status = PhoneStatus.Active, LineType lineType = LineType.Secondary);
         Task<bool> UnassignPhoneAsync(int phoneId);
         Task<bool> SetPrimaryPhoneAsync(int phoneId);
         Task<string?> GetUserByPhoneAsync(string phoneNumber, DateTime? billDate = null);
@@ -21,11 +22,22 @@ namespace TAB.Web.Services
     {
         private readonly ApplicationDbContext _context;
         private readonly ILogger<UserPhoneService> _logger;
+        private readonly IUserPhoneHistoryService _historyService;
+        private readonly IEnhancedEmailService _enhancedEmailService;
+        private readonly IHttpContextAccessor _httpContextAccessor;
 
-        public UserPhoneService(ApplicationDbContext context, ILogger<UserPhoneService> logger)
+        public UserPhoneService(
+            ApplicationDbContext context,
+            ILogger<UserPhoneService> logger,
+            IUserPhoneHistoryService historyService,
+            IEnhancedEmailService enhancedEmailService,
+            IHttpContextAccessor httpContextAccessor)
         {
             _context = context;
             _logger = logger;
+            _historyService = historyService;
+            _enhancedEmailService = enhancedEmailService;
+            _httpContextAccessor = httpContextAccessor;
         }
 
         public async Task<List<UserPhone>> GetUserPhonesAsync(string indexNumber)
@@ -64,12 +76,25 @@ namespace TAB.Web.Services
             return (true, null, null);
         }
 
-        public async Task<bool> AssignPhoneAsync(string indexNumber, string phoneNumber, string phoneType, bool isPrimary, string? location = null, string? notes = null, int? classOfServiceId = null, bool forceReassign = false, PhoneStatus status = PhoneStatus.Active)
+        public async Task<bool> AssignPhoneAsync(string indexNumber, string phoneNumber, string phoneType, bool isPrimary, string? location = null, string? notes = null, int? classOfServiceId = null, bool forceReassign = false, PhoneStatus status = PhoneStatus.Active, LineType lineType = LineType.Secondary)
         {
             try
             {
+                // Sync LineType with IsPrimary - they must match
+                if (lineType == LineType.Primary)
+                {
+                    isPrimary = true;
+                }
+                else
+                {
+                    // If LineType is not Primary, IsPrimary must be false
+                    isPrimary = false;
+                }
+
                 // Check if user exists
-                var user = await _context.EbillUsers.FirstOrDefaultAsync(u => u.IndexNumber == indexNumber);
+                var user = await _context.EbillUsers
+                    .Include(u => u.ApplicationUser)
+                    .FirstOrDefaultAsync(u => u.IndexNumber == indexNumber);
                 if (user == null)
                 {
                     _logger.LogWarning($"User with IndexNumber {indexNumber} not found");
@@ -78,6 +103,8 @@ namespace TAB.Web.Services
 
                 // Check if phone is already assigned to another user
                 var existingAssignment = await _context.UserPhones
+                    .Include(up => up.EbillUser)
+                        .ThenInclude(u => u.ApplicationUser)
                     .FirstOrDefaultAsync(up => up.PhoneNumber == phoneNumber &&
                                               up.IsActive &&
                                               up.IndexNumber != indexNumber);
@@ -95,6 +122,9 @@ namespace TAB.Web.Services
                     existingAssignment.IsActive = false;
                     existingAssignment.UnassignedDate = DateTime.UtcNow;
 
+                    // Store previous user info for email notification
+                    var previousUserForEmail = existingAssignment.EbillUser;
+
                     // If it was primary for the previous user, update their primary phone
                     if (existingAssignment.IsPrimary)
                     {
@@ -105,6 +135,22 @@ namespace TAB.Web.Services
                             previousUser.OfficialMobileNumber = null;
                             _logger.LogInformation($"Removed primary phone from user {existingAssignment.IndexNumber}");
                         }
+                    }
+
+                    // Send unassignment email to previous user
+                    if (previousUserForEmail != null)
+                    {
+                        var newUserInfo = await _context.EbillUsers
+                            .FirstOrDefaultAsync(u => u.IndexNumber == indexNumber);
+                        var newUserName = newUserInfo != null
+                            ? $"{newUserInfo.FirstName} {newUserInfo.LastName}"
+                            : indexNumber;
+
+                        await SendPhoneUnassignedEmailAsync(
+                            previousUserForEmail,
+                            existingAssignment,
+                            $"This phone number has been reassigned to {newUserName} (Index: {indexNumber})"
+                        );
                     }
                 }
 
@@ -126,6 +172,7 @@ namespace TAB.Web.Services
                     existingPhone.UnassignedDate = null;
                     existingPhone.AssignedDate = DateTime.UtcNow;
                     existingPhone.PhoneType = phoneType;
+                    existingPhone.LineType = lineType;
                     existingPhone.Location = location;
                     existingPhone.Notes = notes;
                     existingPhone.IsPrimary = isPrimary;
@@ -140,6 +187,7 @@ namespace TAB.Web.Services
                         IndexNumber = indexNumber,
                         PhoneNumber = phoneNumber,
                         PhoneType = phoneType,
+                        LineType = lineType,
                         IsPrimary = isPrimary,
                         IsActive = true,
                         Location = location,
@@ -151,7 +199,7 @@ namespace TAB.Web.Services
                     _context.UserPhones.Add(userPhone);
                 }
 
-                // If setting as primary, remove primary from others
+                // If setting as primary, remove primary from others and set their LineType to Secondary
                 if (isPrimary)
                 {
                     var otherPhones = await _context.UserPhones
@@ -163,6 +211,19 @@ namespace TAB.Web.Services
                     foreach (var phone in otherPhones)
                     {
                         phone.IsPrimary = false;
+                        // Set LineType to Secondary when removing primary status
+                        phone.LineType = LineType.Secondary;
+
+                        // Add history for removed primary status
+                        await _historyService.AddHistoryAsync(
+                            phone.Id,
+                            "SetPrimary",
+                            $"Primary status removed (new primary: {phoneNumber})",
+                            "System",
+                            "IsPrimary, LineType",
+                            "true, Primary",
+                            "false, Secondary"
+                        );
                     }
 
                     // Update user's primary phone
@@ -170,6 +231,37 @@ namespace TAB.Web.Services
                 }
 
                 await _context.SaveChangesAsync();
+
+                // Add history for the newly assigned/reactivated phone
+                var assignedPhone = existingPhone ?? await _context.UserPhones
+                    .FirstOrDefaultAsync(up => up.IndexNumber == indexNumber && up.PhoneNumber == phoneNumber);
+
+                if (assignedPhone != null)
+                {
+                    var action = existingPhone != null ? "Assigned" : "Created";
+                    var description = existingPhone != null
+                        ? $"Phone reactivated and assigned to user"
+                        : $"Phone created and assigned to user";
+
+                    if (isPrimary)
+                    {
+                        description += " as Primary line";
+                    }
+
+                    await _historyService.AddHistoryAsync(
+                        assignedPhone.Id,
+                        action,
+                        description,
+                        "System",
+                        null,
+                        null,
+                        $"{phoneType}, {lineType}"
+                    );
+
+                    // Send email notification for phone assignment
+                    await SendPhoneAssignedEmailAsync(user, assignedPhone);
+                }
+
                 _logger.LogInformation($"Phone {phoneNumber} assigned to user {indexNumber}");
                 return true;
             }
@@ -184,12 +276,17 @@ namespace TAB.Web.Services
         {
             try
             {
-                var phone = await _context.UserPhones.FindAsync(phoneId);
+                var phone = await _context.UserPhones
+                    .Include(p => p.EbillUser)
+                        .ThenInclude(u => u.ApplicationUser)
+                    .FirstOrDefaultAsync(p => p.Id == phoneId);
+
                 if (phone == null)
                 {
                     return false;
                 }
 
+                var wasPrimary = phone.IsPrimary;
                 phone.IsActive = false;
                 phone.UnassignedDate = DateTime.UtcNow;
 
@@ -207,6 +304,7 @@ namespace TAB.Web.Services
                     if (nextPhone != null)
                     {
                         nextPhone.IsPrimary = true;
+                        nextPhone.LineType = LineType.Primary;
 
                         var user = await _context.EbillUsers
                             .FirstOrDefaultAsync(u => u.IndexNumber == phone.IndexNumber);
@@ -214,10 +312,36 @@ namespace TAB.Web.Services
                         {
                             user.OfficialMobileNumber = nextPhone.PhoneNumber;
                         }
+
+                        // Add history for the phone that became primary
+                        await _historyService.AddHistoryAsync(
+                            nextPhone.Id,
+                            "SetPrimary",
+                            $"Automatically set as primary after {phone.PhoneNumber} was unassigned",
+                            "System",
+                            "IsPrimary, LineType",
+                            "false, Secondary",
+                            "true, Primary"
+                        );
                     }
                 }
 
                 await _context.SaveChangesAsync();
+
+                // Add history for the unassigned phone
+                await _historyService.AddHistoryAsync(
+                    phone.Id,
+                    "Unassigned",
+                    wasPrimary ? "Primary phone unassigned" : "Phone unassigned",
+                    "System"
+                );
+
+                // Send email notification for phone unassignment
+                if (phone.EbillUser != null)
+                {
+                    await SendPhoneUnassignedEmailAsync(phone.EbillUser, phone);
+                }
+
                 return true;
             }
             catch (Exception ex)
@@ -237,7 +361,12 @@ namespace TAB.Web.Services
                     return false;
                 }
 
-                // Remove primary from other phones
+                // Load user first to use for email notifications
+                var user = await _context.EbillUsers
+                    .Include(u => u.ApplicationUser)
+                    .FirstOrDefaultAsync(u => u.IndexNumber == phone.IndexNumber);
+
+                // Remove primary from other phones and set their LineType to Secondary
                 var otherPhones = await _context.UserPhones
                     .Where(up => up.IndexNumber == phone.IndexNumber &&
                                 up.Id != phone.Id &&
@@ -247,20 +376,58 @@ namespace TAB.Web.Services
                 foreach (var otherPhone in otherPhones)
                 {
                     otherPhone.IsPrimary = false;
+                    // Set LineType to Secondary when removing primary status
+                    otherPhone.LineType = LineType.Secondary;
+
+                    // Add history for removed primary status
+                    await _historyService.AddHistoryAsync(
+                        otherPhone.Id,
+                        "SetPrimary",
+                        $"Primary status removed (new primary: {phone.PhoneNumber})",
+                        "System",
+                        "IsPrimary, LineType",
+                        "true, Primary",
+                        "false, Secondary"
+                    );
+
+                    // Send email notification for phone being demoted from Primary to Secondary
+                    if (user != null)
+                    {
+                        await SendPhoneTypeChangedEmailAsync(user, otherPhone.PhoneNumber, LineType.Primary, LineType.Secondary);
+                        _logger.LogInformation($"Sent phone type changed email for {otherPhone.PhoneNumber} (demoted to Secondary)");
+                    }
                 }
 
-                // Set this as primary
+                // Set this as primary and sync LineType
                 phone.IsPrimary = true;
+                phone.LineType = LineType.Primary;
 
                 // Update user's primary phone
-                var user = await _context.EbillUsers
-                    .FirstOrDefaultAsync(u => u.IndexNumber == phone.IndexNumber);
                 if (user != null)
                 {
                     user.OfficialMobileNumber = phone.PhoneNumber;
                 }
 
                 await _context.SaveChangesAsync();
+
+                // Add history for the phone that became primary
+                await _historyService.AddHistoryAsync(
+                    phone.Id,
+                    "SetPrimary",
+                    "Set as primary phone",
+                    "System",
+                    "IsPrimary, LineType",
+                    "false, Secondary",
+                    "true, Primary"
+                );
+
+                // Send email notification for phone type change to Primary
+                if (user != null)
+                {
+                    await SendPhoneTypeChangedEmailAsync(user, phone.PhoneNumber, LineType.Secondary, LineType.Primary);
+                    _logger.LogInformation($"Sent phone type changed email for {phone.PhoneNumber} (promoted to Primary)");
+                }
+
                 return true;
             }
             catch (Exception ex)
@@ -309,6 +476,188 @@ namespace TAB.Web.Services
             }
 
             return !await query.AnyAsync();
+        }
+
+        // Email notification helper methods
+        private async Task SendPhoneAssignedEmailAsync(EbillUser user, UserPhone phone)
+        {
+            try
+            {
+                if (user.ApplicationUser == null || string.IsNullOrEmpty(user.Email))
+                {
+                    _logger.LogWarning("Cannot send phone assigned email: User {IndexNumber} has no email", user.IndexNumber);
+                    return;
+                }
+
+                var userPhonesUrl = GetUserPhonesUrl(user.IndexNumber);
+                var (badgeColor, textColor) = GetLineTypeBadgeColors(phone.LineType);
+
+                var emailData = new Dictionary<string, string>
+                {
+                    { "FirstName", user.FirstName },
+                    { "LastName", user.LastName },
+                    { "PhoneNumber", phone.PhoneNumber },
+                    { "PhoneType", phone.PhoneType },
+                    { "LineType", phone.LineType.ToString() },
+                    { "LineTypeBadgeColor", badgeColor },
+                    { "LineTypeTextColor", textColor },
+                    { "IndexNumber", user.IndexNumber },
+                    { "AssignedDate", DateTime.Now.ToString("MMMM dd, yyyy 'at' hh:mm tt") },
+                    { "UserPhonesUrl", userPhonesUrl }
+                };
+
+                await _enhancedEmailService.SendTemplatedEmailAsync(
+                    to: user.Email,
+                    templateCode: "PHONE_NUMBER_ASSIGNED",
+                    data: emailData,
+                    createdBy: "System",
+                    relatedEntityType: "UserPhone",
+                    relatedEntityId: phone.Id.ToString()
+                );
+
+                _logger.LogInformation("Sent phone assigned email to {Email} for phone {PhoneNumber}", user.Email, phone.PhoneNumber);
+            }
+            catch (Exception ex)
+            {
+                _logger.LogError(ex, "Failed to send phone assigned email to {Email}", user.Email);
+            }
+        }
+
+        private async Task SendPhoneTypeChangedEmailAsync(EbillUser user, string phoneNumber, LineType oldLineType, LineType newLineType)
+        {
+            try
+            {
+                if (user.ApplicationUser == null || string.IsNullOrEmpty(user.Email))
+                {
+                    _logger.LogWarning("Cannot send phone type changed email: User {IndexNumber} has no email", user.IndexNumber);
+                    return;
+                }
+
+                var userPhonesUrl = GetUserPhonesUrl(user.IndexNumber);
+                var (badgeColor, textColor) = GetLineTypeBadgeColors(newLineType);
+                var statusDescription = GetLineTypeDescription(newLineType);
+
+                var emailData = new Dictionary<string, string>
+                {
+                    { "FirstName", user.FirstName },
+                    { "LastName", user.LastName },
+                    { "PhoneNumber", phoneNumber },
+                    { "OldLineType", oldLineType.ToString() },
+                    { "NewLineType", newLineType.ToString() },
+                    { "LineTypeBadgeColor", badgeColor },
+                    { "LineTypeTextColor", textColor },
+                    { "StatusDescription", statusDescription },
+                    { "IndexNumber", user.IndexNumber },
+                    { "ChangeDate", DateTime.Now.ToString("MMMM dd, yyyy 'at' hh:mm tt") },
+                    { "UserPhonesUrl", userPhonesUrl }
+                };
+
+                await _enhancedEmailService.SendTemplatedEmailAsync(
+                    to: user.Email,
+                    templateCode: "PHONE_TYPE_CHANGED",
+                    data: emailData,
+                    createdBy: "System"
+                );
+
+                _logger.LogInformation("Sent phone type changed email to {Email} for phone {PhoneNumber}", user.Email, phoneNumber);
+            }
+            catch (Exception ex)
+            {
+                _logger.LogError(ex, "Failed to send phone type changed email to {Email}", user.Email);
+            }
+        }
+
+        private async Task SendPhoneUnassignedEmailAsync(EbillUser user, UserPhone phone, string? reason = null)
+        {
+            try
+            {
+                if (user.ApplicationUser == null || string.IsNullOrEmpty(user.Email))
+                {
+                    _logger.LogWarning("Cannot send phone unassigned email: User {IndexNumber} has no email", user.IndexNumber);
+                    return;
+                }
+
+                var userPhonesUrl = GetUserPhonesUrl(user.IndexNumber);
+
+                var emailData = new Dictionary<string, string>
+                {
+                    { "FirstName", user.FirstName },
+                    { "LastName", user.LastName },
+                    { "PhoneNumber", phone.PhoneNumber },
+                    { "PhoneType", phone.PhoneType },
+                    { "LineType", phone.LineType.ToString() },
+                    { "IndexNumber", user.IndexNumber },
+                    { "UnassignedDate", DateTime.Now.ToString("MMMM dd, yyyy 'at' hh:mm tt") },
+                    { "Reason", reason ?? "Not specified" },
+                    { "UserPhonesUrl", userPhonesUrl }
+                };
+
+                await _enhancedEmailService.SendTemplatedEmailAsync(
+                    to: user.Email,
+                    templateCode: "PHONE_NUMBER_UNASSIGNED",
+                    data: emailData,
+                    createdBy: "System",
+                    relatedEntityType: "UserPhone",
+                    relatedEntityId: phone.Id.ToString()
+                );
+
+                _logger.LogInformation("Sent phone unassigned email to {Email} for phone {PhoneNumber}", user.Email, phone.PhoneNumber);
+            }
+            catch (Exception ex)
+            {
+                _logger.LogError(ex, "Failed to send phone unassigned email to {Email}", user.Email);
+            }
+        }
+
+        private string GetUserPhonesUrl(string indexNumber)
+        {
+            var request = _httpContextAccessor.HttpContext?.Request;
+            if (request != null)
+            {
+                return $"{request.Scheme}://{request.Host}/Admin/UserPhones?indexNumber={indexNumber}";
+            }
+
+            return $"http://localhost:5041/Admin/UserPhones?indexNumber={indexNumber}";
+        }
+
+        private (string badgeColor, string textColor) GetLineTypeBadgeColors(LineType lineType)
+        {
+            return lineType switch
+            {
+                LineType.Primary => ("#10b981", "#ffffff"), // Green background, white text
+                LineType.Secondary => ("#dbeafe", "#1e40af"), // Light blue background, dark blue text
+                LineType.Reserved => ("#fef3c7", "#92400e"), // Light yellow background, dark yellow text
+                _ => ("#e5e7eb", "#1f2937") // Gray background, dark text
+            };
+        }
+
+        private string GetLineTypeDescription(LineType lineType)
+        {
+            return lineType switch
+            {
+                LineType.Primary => @"
+                    <li>This is now your official primary phone number</li>
+                    <li>It will be used as your main contact number in the system</li>
+                    <li>All official communications will reference this number</li>
+                    <li>You are responsible for all calls made on this number</li>
+                    <li>This number will appear on your official records and reports</li>",
+
+                LineType.Secondary => @"
+                    <li>This is a secondary phone number assigned to your account</li>
+                    <li>It serves as an additional contact line</li>
+                    <li>You remain responsible for calls made on this number</li>
+                    <li>This number is for official UNON business use</li>
+                    <li>Secondary numbers appear in your phone list but are not your primary contact</li>",
+
+                LineType.Reserved => @"
+                    <li>This phone number has been reserved for your account</li>
+                    <li>Reserved numbers are held for future assignment or special purposes</li>
+                    <li>You may have limited or no active usage on this line</li>
+                    <li>Contact ICTS if you need this number activated</li>
+                    <li>This status is typically temporary pending activation or assignment</li>",
+
+                _ => "<li>Line type status updated</li>"
+            };
         }
     }
 }

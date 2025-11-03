@@ -15,15 +15,21 @@ namespace TAB.Web.Pages.Modules.EBillManagement.CallRecords
         private readonly ApplicationDbContext _context;
         private readonly UserManager<ApplicationUser> _userManager;
         private readonly ICallLogVerificationService _verificationService;
+        private readonly IEnhancedEmailService _emailService;
+        private readonly ILogger<SupervisorApprovalsModel> _logger;
 
         public SupervisorApprovalsModel(
             ApplicationDbContext context,
             UserManager<ApplicationUser> userManager,
-            ICallLogVerificationService verificationService)
+            ICallLogVerificationService verificationService,
+            IEnhancedEmailService emailService,
+            ILogger<SupervisorApprovalsModel> logger)
         {
             _context = context;
             _userManager = userManager;
             _verificationService = verificationService;
+            _emailService = emailService;
+            _logger = logger;
         }
 
         public List<SupervisorSubmissionGroup> PendingSubmissions { get; set; } = new();
@@ -72,6 +78,10 @@ namespace TAB.Web.Pages.Modules.EBillManagement.CallRecords
             public int OverageCount { get; set; }
             public bool HasDocuments { get; set; }
             public List<CallLogVerification> Verifications { get; set; } = new();
+
+            // Phone-level overage justifications
+            public List<PhoneOverageJustification> PhoneOverageJustifications { get; set; } = new();
+            public bool HasPhoneOverageJustifications => PhoneOverageJustifications.Any();
         }
 
         public async Task<IActionResult> OnGetAsync()
@@ -153,8 +163,8 @@ namespace TAB.Web.Pages.Modules.EBillManagement.CallRecords
             if (string.IsNullOrEmpty(SupervisorIndexNumber))
                 return;
 
-            // Get all verifications submitted to this supervisor
-            // SupervisorApprovalStatus is NULL for pending approvals (not yet acted upon)
+            // Get all verifications submitted to this supervisor that are pending approval
+            // Only show records that haven't been acted upon yet (NULL or explicitly "Pending")
             var query = _context.CallLogVerifications
                 .Include(v => v.CallRecord)
                     .ThenInclude(c => c.UserPhone)
@@ -162,7 +172,9 @@ namespace TAB.Web.Pages.Modules.EBillManagement.CallRecords
                 .Include(v => v.Documents)
                 .Where(v => v.SubmittedToSupervisor
                     && v.SupervisorIndexNumber == SupervisorIndexNumber
-                    && (v.SupervisorApprovalStatus == null || v.SupervisorApprovalStatus == "Pending"));
+                    && (v.SupervisorApprovalStatus == null ||
+                        v.SupervisorApprovalStatus == "" ||
+                        v.SupervisorApprovalStatus == "Pending"));
 
             // Apply filters
             if (!string.IsNullOrEmpty(FilterUser))
@@ -240,6 +252,54 @@ namespace TAB.Web.Pages.Modules.EBillManagement.CallRecords
                 })
                 .OrderByDescending(g => g.SubmittedDate)
                 .ToList();
+
+            // Load phone overage justifications for each submission group
+            await LoadPhoneOverageJustificationsAsync();
+        }
+
+        /// <summary>
+        /// Loads phone-level overage justifications for pending submissions
+        /// </summary>
+        private async Task LoadPhoneOverageJustificationsAsync()
+        {
+            foreach (var submission in PendingSubmissions)
+            {
+                // Get call records for this submission to find the month/year
+                var callRecords = submission.Verifications
+                    .Where(v => v.CallRecord != null)
+                    .Select(v => v.CallRecord)
+                    .ToList();
+
+                if (!callRecords.Any())
+                    continue;
+
+                // Get month and year from the first call
+                var month = callRecords.First().CallMonth;
+                var year = callRecords.First().CallYear;
+
+                // Get all UserPhoneIds from these call records
+                var userPhoneIds = callRecords
+                    .Where(c => c.UserPhoneId.HasValue)
+                    .Select(c => c.UserPhoneId.Value)
+                    .Distinct()
+                    .ToList();
+
+                if (!userPhoneIds.Any())
+                    continue;
+
+                // Load phone overage justifications for these phones and month
+                var justifications = await _context.PhoneOverageJustifications
+                    .Include(j => j.UserPhone)
+                        .ThenInclude(up => up.ClassOfService)
+                    .Include(j => j.Documents)
+                    .Where(j => userPhoneIds.Contains(j.UserPhoneId)
+                        && j.Month == month
+                        && j.Year == year
+                        && j.ApprovalStatus == "Pending") // Only show pending justifications
+                    .ToListAsync();
+
+                submission.PhoneOverageJustifications = justifications;
+            }
         }
 
         private string GetUserName(string indexNumber)
@@ -284,6 +344,34 @@ namespace TAB.Web.Pages.Modules.EBillManagement.CallRecords
 
                 if (successCount > 0)
                 {
+                    // Send approval emails
+                    try
+                    {
+                        foreach (var verificationId in verificationIds)
+                        {
+                            var verification = await _context.CallLogVerifications
+                                .Include(v => v.CallRecord)
+                                .FirstOrDefaultAsync(v => v.Id == verificationId);
+
+                            if (verification != null)
+                            {
+                                var staff = await _context.EbillUsers
+                                    .FirstOrDefaultAsync(u => u.IndexNumber == verification.VerifiedBy);
+
+                                if (staff != null)
+                                {
+                                    await SendApprovalEmailAsync(verification, staff, user.Email ?? "");
+                                    _logger.LogInformation("Sent approval email for verification {VerificationId}", verificationId);
+                                }
+                            }
+                        }
+                    }
+                    catch (Exception emailEx)
+                    {
+                        _logger.LogError(emailEx, "Failed to send approval emails");
+                        // Don't fail the workflow if email fails
+                    }
+
                     StatusMessage = failCount > 0
                         ? $"Approved {successCount} verification(s). {failCount} failed."
                         : $"Successfully approved {successCount} call verification(s).";
@@ -302,6 +390,387 @@ namespace TAB.Web.Pages.Modules.EBillManagement.CallRecords
             }
 
             return RedirectToPage();
+        }
+
+        private async Task SendApprovalEmailAsync(CallLogVerification verification, EbillUser staff, string supervisorEmail)
+        {
+            var supervisor = await _context.EbillUsers.FirstOrDefaultAsync(u => u.Email == supervisorEmail);
+            if (supervisor == null) return;
+
+            var callMonth = verification.CallRecord?.CallMonth ?? DateTime.UtcNow.Month;
+            var callYear = verification.CallRecord?.CallYear ?? DateTime.UtcNow.Year;
+            var monthName = new DateTime(callYear, callMonth, 1).ToString("MMMM");
+
+            // Determine if full or partial approval
+            bool isPartialApproval = verification.ApprovedAmount.HasValue &&
+                                    verification.ApprovedAmount.Value < verification.ActualAmount;
+
+            if (isPartialApproval)
+            {
+                // Send partial approval email
+                var placeholders = new Dictionary<string, string>
+                {
+                    { "StaffName", $"{staff.FirstName} {staff.LastName}" },
+                    { "Month", monthName },
+                    { "Year", callYear.ToString() },
+                    { "TotalAmount", verification.ActualAmount.ToString("N2") },
+                    { "ApprovedAmount", verification.ApprovedAmount?.ToString("N2") ?? "0.00" },
+                    { "StaffPayableAmount", (verification.ActualAmount - (verification.ApprovedAmount ?? 0)).ToString("N2") },
+                    { "SupervisorName", $"{supervisor.FirstName} {supervisor.LastName}" },
+                    { "SupervisorComments", verification.SupervisorComments ?? "No comments provided" },
+                    { "ViewCallLogsLink", $"{Request.Scheme}://{Request.Host}/Modules/EBillManagement/CallRecords/MyCallLogs" },
+                    { "Year", DateTime.Now.Year.ToString() }
+                };
+
+                await _emailService.SendTemplatedEmailAsync(
+                    to: staff.Email ?? "",
+                    templateCode: "CALL_LOG_PARTIALLY_APPROVED",
+                    data: placeholders
+                );
+            }
+            else
+            {
+                // Send full approval email
+                var placeholders = new Dictionary<string, string>
+                {
+                    { "StaffName", $"{staff.FirstName} {staff.LastName}" },
+                    { "Month", monthName },
+                    { "Year", callYear.ToString() },
+                    { "TotalCalls", "1" }, // Single verification
+                    { "ApprovedAmount", verification.ApprovedAmount?.ToString("N2") ?? verification.ActualAmount.ToString("N2") },
+                    { "SupervisorName", $"{supervisor.FirstName} {supervisor.LastName}" },
+                    { "ApprovedDate", verification.SupervisorApprovedDate?.ToString("MMMM dd, yyyy") ?? DateTime.UtcNow.ToString("MMMM dd, yyyy") },
+                    { "SupervisorComments", verification.SupervisorComments ?? "Approved without comments" },
+                    { "ViewCallLogsLink", $"{Request.Scheme}://{Request.Host}/Modules/EBillManagement/CallRecords/MyCallLogs" },
+                    { "Year", DateTime.Now.Year.ToString() }
+                };
+
+                await _emailService.SendTemplatedEmailAsync(
+                    to: staff.Email ?? "",
+                    templateCode: "CALL_LOG_APPROVED",
+                    data: placeholders
+                );
+            }
+        }
+
+        public async Task<IActionResult> OnPostRejectAsync(List<int> verificationIds, string rejectionReason)
+        {
+            var user = await _userManager.GetUserAsync(User);
+            if (user == null)
+                return Challenge();
+
+            if (verificationIds == null || !verificationIds.Any())
+            {
+                StatusMessage = "No verifications selected.";
+                StatusMessageClass = "warning";
+                return RedirectToPage();
+            }
+
+            if (string.IsNullOrWhiteSpace(rejectionReason))
+            {
+                StatusMessage = "Rejection reason is required.";
+                StatusMessageClass = "warning";
+                return RedirectToPage();
+            }
+
+            try
+            {
+                int successCount = 0;
+                int failCount = 0;
+
+                foreach (var verificationId in verificationIds)
+                {
+                    var result = await _verificationService.RejectVerificationAsync(
+                        verificationId,
+                        user.Email, // SupervisorIndexNumber
+                        rejectionReason
+                    );
+
+                    if (result)
+                        successCount++;
+                    else
+                        failCount++;
+                }
+
+                if (successCount > 0)
+                {
+                    // Send rejection emails
+                    try
+                    {
+                        foreach (var verificationId in verificationIds)
+                        {
+                            var verification = await _context.CallLogVerifications
+                                .Include(v => v.CallRecord)
+                                .FirstOrDefaultAsync(v => v.Id == verificationId);
+
+                            if (verification != null)
+                            {
+                                var staff = await _context.EbillUsers
+                                    .FirstOrDefaultAsync(u => u.IndexNumber == verification.VerifiedBy);
+
+                                if (staff != null)
+                                {
+                                    var supervisor = await _context.EbillUsers
+                                        .FirstOrDefaultAsync(u => u.Email == user.Email);
+
+                                    var callMonth = verification.CallRecord?.CallMonth ?? DateTime.UtcNow.Month;
+                                    var callYear = verification.CallRecord?.CallYear ?? DateTime.UtcNow.Year;
+                                    var monthName = new DateTime(callYear, callMonth, 1).ToString("MMMM");
+
+                                    var placeholders = new Dictionary<string, string>
+                                    {
+                                        { "StaffName", $"{staff.FirstName} {staff.LastName}" },
+                                        { "Month", monthName },
+                                        { "Year", callYear.ToString() },
+                                        { "SupervisorName", $"{supervisor?.FirstName} {supervisor?.LastName}" ?? user.Email },
+                                        { "RejectionReason", rejectionReason },
+                                        { "RejectedDate", verification.SupervisorApprovedDate?.ToString("MMMM dd, yyyy") ?? DateTime.UtcNow.ToString("MMMM dd, yyyy") },
+                                        { "ViewCallLogsLink", $"{Request.Scheme}://{Request.Host}/Modules/EBillManagement/CallRecords/MyCallLogs" }
+                                    };
+
+                                    await _emailService.SendTemplatedEmailAsync(
+                                        to: staff.Email ?? "",
+                                        templateCode: "CALL_LOG_REJECTED",
+                                        data: placeholders
+                                    );
+                                }
+                            }
+                        }
+                    }
+                    catch (Exception emailEx)
+                    {
+                        _logger.LogError(emailEx, "Failed to send rejection emails");
+                    }
+                }
+
+                StatusMessage = $"Successfully rejected {successCount} verification(s).";
+                if (failCount > 0)
+                {
+                    StatusMessage += $" Failed to reject {failCount} verification(s).";
+                }
+                StatusMessageClass = successCount > 0 ? "success" : "danger";
+            }
+            catch (Exception ex)
+            {
+                _logger.LogError(ex, "Error rejecting verifications");
+                StatusMessage = $"An error occurred: {ex.Message}";
+                StatusMessageClass = "danger";
+            }
+
+            return RedirectToPage();
+        }
+
+        public async Task<IActionResult> OnPostRevertAsync(List<int> verificationIds, string revertReason)
+        {
+            var user = await _userManager.GetUserAsync(User);
+            if (user == null)
+                return Challenge();
+
+            if (verificationIds == null || !verificationIds.Any())
+            {
+                StatusMessage = "No verifications selected.";
+                StatusMessageClass = "warning";
+                return RedirectToPage();
+            }
+
+            if (string.IsNullOrWhiteSpace(revertReason))
+            {
+                StatusMessage = "Revert reason is required.";
+                StatusMessageClass = "warning";
+                return RedirectToPage();
+            }
+
+            try
+            {
+                int successCount = 0;
+                int failCount = 0;
+
+                foreach (var verificationId in verificationIds)
+                {
+                    var result = await _verificationService.RevertVerificationAsync(
+                        verificationId,
+                        user.Email, // SupervisorIndexNumber
+                        revertReason
+                    );
+
+                    if (result)
+                        successCount++;
+                    else
+                        failCount++;
+                }
+
+                if (successCount > 0)
+                {
+                    // Send revert emails
+                    try
+                    {
+                        foreach (var verificationId in verificationIds)
+                        {
+                            var verification = await _context.CallLogVerifications
+                                .Include(v => v.CallRecord)
+                                .FirstOrDefaultAsync(v => v.Id == verificationId);
+
+                            if (verification != null)
+                            {
+                                var staff = await _context.EbillUsers
+                                    .FirstOrDefaultAsync(u => u.IndexNumber == verification.VerifiedBy);
+
+                                if (staff != null)
+                                {
+                                    var supervisor = await _context.EbillUsers
+                                        .FirstOrDefaultAsync(u => u.Email == user.Email);
+
+                                    var callMonth = verification.CallRecord?.CallMonth ?? DateTime.UtcNow.Month;
+                                    var callYear = verification.CallRecord?.CallYear ?? DateTime.UtcNow.Year;
+                                    var monthName = new DateTime(callYear, callMonth, 1).ToString("MMMM");
+
+                                    var placeholders = new Dictionary<string, string>
+                                    {
+                                        { "StaffName", $"{staff.FirstName} {staff.LastName}" },
+                                        { "Month", monthName },
+                                        { "Year", callYear.ToString() },
+                                        { "SupervisorName", $"{supervisor?.FirstName} {supervisor?.LastName}" ?? user.Email },
+                                        { "RevertReason", revertReason },
+                                        { "RevertedDate", verification.SupervisorApprovedDate?.ToString("MMMM dd, yyyy") ?? DateTime.UtcNow.ToString("MMMM dd, yyyy") },
+                                        { "ViewCallLogsLink", $"{Request.Scheme}://{Request.Host}/Modules/EBillManagement/CallRecords/MyCallLogs" }
+                                    };
+
+                                    await _emailService.SendTemplatedEmailAsync(
+                                        to: staff.Email ?? "",
+                                        templateCode: "CALL_LOG_REVERTED",
+                                        data: placeholders
+                                    );
+                                }
+                            }
+                        }
+                    }
+                    catch (Exception emailEx)
+                    {
+                        _logger.LogError(emailEx, "Failed to send revert emails");
+                    }
+                }
+
+                StatusMessage = $"Successfully reverted {successCount} verification(s) back to staff.";
+                if (failCount > 0)
+                {
+                    StatusMessage += $" Failed to revert {failCount} verification(s).";
+                }
+                StatusMessageClass = successCount > 0 ? "success" : "danger";
+            }
+            catch (Exception ex)
+            {
+                _logger.LogError(ex, "Error reverting verifications");
+                StatusMessage = $"An error occurred: {ex.Message}";
+                StatusMessageClass = "danger";
+            }
+
+            return RedirectToPage();
+        }
+
+        public async Task<IActionResult> OnPostApprovePartiallyAsync(string PartialApprovalsJson, string SupervisorComments)
+        {
+            var user = await _userManager.GetUserAsync(User);
+            if (user == null)
+                return Challenge();
+
+            if (string.IsNullOrWhiteSpace(PartialApprovalsJson))
+            {
+                StatusMessage = "No partial approvals data provided.";
+                StatusMessageClass = "warning";
+                return RedirectToPage();
+            }
+
+            try
+            {
+                // Deserialize the partial approvals
+                var partialApprovals = System.Text.Json.JsonSerializer.Deserialize<List<PartialApprovalData>>(
+                    PartialApprovalsJson,
+                    new System.Text.Json.JsonSerializerOptions { PropertyNameCaseInsensitive = true }
+                );
+
+                if (partialApprovals == null || !partialApprovals.Any())
+                {
+                    StatusMessage = "No partial approvals data found.";
+                    StatusMessageClass = "warning";
+                    return RedirectToPage();
+                }
+
+                int successCount = 0;
+                int failCount = 0;
+
+                foreach (var approval in partialApprovals)
+                {
+                    // Use the service method with approved amount for partial approval
+                    var result = await _verificationService.ApproveVerificationAsync(
+                        approval.VerificationId,
+                        user.Email, // SupervisorIndexNumber
+                        approval.ApprovedAmount, // Partial approved amount
+                        SupervisorComments
+                    );
+
+                    if (result)
+                        successCount++;
+                    else
+                        failCount++;
+                }
+
+                if (successCount > 0)
+                {
+                    // Send approval emails
+                    try
+                    {
+                        foreach (var approval in partialApprovals)
+                        {
+                            var verification = await _context.CallLogVerifications
+                                .Include(v => v.CallRecord)
+                                .FirstOrDefaultAsync(v => v.Id == approval.VerificationId);
+
+                            if (verification != null)
+                            {
+                                var staff = await _context.EbillUsers
+                                    .FirstOrDefaultAsync(u => u.IndexNumber == verification.VerifiedBy);
+
+                                if (staff != null)
+                                {
+                                    await SendApprovalEmailAsync(verification, staff, user.Email ?? "");
+                                    _logger.LogInformation("Sent partial approval email for verification {VerificationId}", approval.VerificationId);
+                                }
+                            }
+                        }
+                    }
+                    catch (Exception emailEx)
+                    {
+                        _logger.LogError(emailEx, "Failed to send partial approval emails");
+                        // Don't fail the workflow if email fails
+                    }
+
+                    StatusMessage = failCount > 0
+                        ? $"Partially approved {successCount} verification(s). {failCount} failed."
+                        : $"Successfully partially approved {successCount} verification(s).";
+                    StatusMessageClass = failCount > 0 ? "warning" : "success";
+                }
+                else
+                {
+                    StatusMessage = "Failed to process partial approvals.";
+                    StatusMessageClass = "danger";
+                }
+            }
+            catch (Exception ex)
+            {
+                _logger.LogError(ex, "Error processing partial approvals");
+                StatusMessage = $"Error processing partial approvals: {ex.Message}";
+                StatusMessageClass = "danger";
+            }
+
+            return RedirectToPage();
+        }
+
+        // Helper class for deserializing partial approval data
+        public class PartialApprovalData
+        {
+            public int VerificationId { get; set; }
+            public decimal ApprovedAmount { get; set; }
+            public string Reason { get; set; } = string.Empty;
         }
     }
 }

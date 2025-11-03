@@ -1,0 +1,757 @@
+@page
+@model TAB.Web.Pages.Admin.EmailTemplatesModel
+@{
+    ViewData["Title"] = "Email Templates";
+}
+
+<style>
+    .page-header {
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        margin-bottom: 2rem;
+        padding-bottom: 1rem;
+        border-bottom: 2px solid #e5e7eb;
+    }
+
+    .page-title {
+        font-size: 1.875rem;
+        font-weight: 700;
+        color: #111827;
+        margin: 0;
+        display: flex;
+        align-items: center;
+        gap: 0.75rem;
+    }
+
+    .btn-create-template {
+        background: linear-gradient(135deg, #009edb 0%, #0086c3 100%);
+        border: none;
+        color: white;
+        padding: 0.75rem 1.5rem;
+        border-radius: 12px;
+        font-weight: 600;
+        transition: all 0.2s;
+        display: inline-flex;
+        align-items: center;
+        gap: 0.5rem;
+        text-decoration: none;
+    }
+
+    .btn-create-template:hover {
+        transform: translateY(-2px);
+        box-shadow: 0 4px 12px rgba(0, 158, 219, 0.3);
+        color: white;
+        text-decoration: none;
+    }
+
+    .filter-section {
+        background: linear-gradient(135deg, #ffffff 0%, #f9fafb 100%);
+        border-radius: 20px;
+        padding: 0;
+        margin-bottom: 2rem;
+        box-shadow: 0 4px 6px rgba(0, 0, 0, 0.05);
+        border: 1px solid #e5e7eb;
+        overflow: hidden;
+    }
+
+    .filter-header {
+        background: linear-gradient(135deg, #009edb 0%, #0086c3 100%);
+        padding: 1.25rem 1.75rem;
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        cursor: pointer;
+        transition: all 0.3s ease;
+    }
+
+    .filter-header:hover {
+        background: linear-gradient(135deg, #0086c3 0%, #007ab8 100%);
+    }
+
+    .filter-title {
+        font-size: 1.125rem;
+        font-weight: 700;
+        color: white;
+        margin: 0;
+        display: flex;
+        align-items: center;
+        gap: 0.75rem;
+    }
+
+    .filter-toggle {
+        color: white;
+        font-size: 1.25rem;
+        transition: transform 0.3s ease;
+    }
+
+    .filter-toggle.collapsed {
+        transform: rotate(-180deg);
+    }
+
+    .filter-body {
+        padding: 1.75rem;
+        background: white;
+    }
+
+    .filter-grid {
+        display: grid;
+        grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
+        gap: 1.5rem;
+        margin-bottom: 1.5rem;
+    }
+
+    .filter-group {
+        position: relative;
+    }
+
+    .filter-label {
+        font-size: 0.875rem;
+        font-weight: 600;
+        color: #4b5563;
+        margin-bottom: 0.5rem;
+        display: flex;
+        align-items: center;
+        gap: 0.5rem;
+    }
+
+    .filter-label i {
+        color: #009edb;
+    }
+
+    .form-select-modern {
+        border-radius: 12px;
+        border: 2px solid #e5e7eb;
+        background-color: #ffffff;
+        padding: 0.75rem 1rem;
+        transition: all 0.3s;
+        font-size: 0.95rem;
+        width: 100%;
+        cursor: pointer;
+    }
+
+    .form-select-modern:hover {
+        border-color: #009edb;
+        box-shadow: 0 2px 8px rgba(0, 158, 219, 0.1);
+    }
+
+    .form-select-modern:focus {
+        background-color: #ffffff;
+        border-color: #009edb;
+        box-shadow: 0 0 0 3px rgba(0, 158, 219, 0.15);
+        outline: none;
+    }
+
+    .filter-actions {
+        display: flex;
+        justify-content: flex-end;
+        gap: 1rem;
+        padding-top: 1rem;
+        border-top: 2px solid #f3f4f6;
+    }
+
+    .btn-clear-filters {
+        background: white;
+        border: 2px solid #e5e7eb;
+        color: #6b7280;
+        padding: 0.625rem 1.5rem;
+        border-radius: 12px;
+        font-weight: 600;
+        transition: all 0.2s;
+        display: inline-flex;
+        align-items: center;
+        gap: 0.5rem;
+        text-decoration: none;
+    }
+
+    .btn-clear-filters:hover {
+        background: #f9fafb;
+        border-color: #d1d5db;
+        color: #374151;
+        text-decoration: none;
+        transform: translateY(-2px);
+        box-shadow: 0 4px 8px rgba(0, 0, 0, 0.1);
+    }
+
+    .active-filters {
+        display: flex;
+        flex-wrap: wrap;
+        gap: 0.75rem;
+        margin-top: 1rem;
+    }
+
+    .filter-badge {
+        background: rgba(0, 158, 219, 0.1);
+        color: #009edb;
+        padding: 0.5rem 1rem;
+        border-radius: 20px;
+        font-size: 0.875rem;
+        font-weight: 600;
+        display: inline-flex;
+        align-items: center;
+        gap: 0.5rem;
+        border: 2px solid rgba(0, 158, 219, 0.2);
+    }
+
+    .filter-badge i {
+        font-size: 0.75rem;
+    }
+
+    .filter-count {
+        background: white;
+        padding: 0.125rem 0.5rem;
+        border-radius: 12px;
+        font-size: 0.75rem;
+        font-weight: 700;
+        color: #009edb;
+    }
+
+    .content-card {
+        background: white;
+        border-radius: 16px;
+        box-shadow: 0 2px 4px rgba(0, 0, 0, 0.06);
+        border: none;
+        overflow: hidden;
+    }
+
+    .card-header-custom {
+        background: linear-gradient(135deg, #f8f9fa 0%, #e9ecef 100%);
+        border: none;
+        padding: 1.5rem;
+        border-radius: 16px 16px 0 0;
+    }
+
+    .card-title-custom {
+        font-size: 1.25rem;
+        font-weight: 700;
+        color: #1f2937;
+        margin: 0;
+        display: flex;
+        align-items: center;
+        gap: 0.5rem;
+    }
+
+    .modern-table {
+        width: 100%;
+        margin: 0;
+    }
+
+    .modern-table thead {
+        background-color: #f8f9fa;
+    }
+
+    .modern-table thead th {
+        color: #4a5568;
+        font-weight: 600;
+        padding: 0.75rem 1rem;
+        border: none;
+        font-size: 0.75rem;
+        text-transform: uppercase;
+        letter-spacing: 0.5px;
+    }
+
+    .modern-table tbody td {
+        padding: 1rem;
+        vertical-align: middle;
+        border-bottom: 1px solid #f3f4f6;
+    }
+
+    .modern-table tbody tr:hover {
+        background-color: #f9fafb;
+    }
+
+    .modern-table tbody tr:last-child td {
+        border-bottom: none;
+    }
+
+    .status-badge {
+        padding: 0.35rem 0.75rem;
+        border-radius: 12px;
+        font-size: 0.813rem;
+        font-weight: 600;
+        display: inline-flex;
+        align-items: center;
+        gap: 0.375rem;
+    }
+
+    .badge-success {
+        background: rgba(16, 185, 129, 0.1);
+        color: #059669;
+    }
+
+    .badge-secondary {
+        background: rgba(107, 114, 128, 0.1);
+        color: #4b5563;
+    }
+
+    .badge-info {
+        background: rgba(59, 130, 246, 0.1);
+        color: #2563eb;
+    }
+
+    .badge-purple {
+        background: rgba(139, 92, 246, 0.1);
+        color: #7c3aed;
+    }
+
+    .action-btn {
+        padding: 0.5rem 0.75rem;
+        border-radius: 8px;
+        border: 1px solid #e5e7eb;
+        background: white;
+        color: #6b7280;
+        transition: all 0.2s;
+        cursor: pointer;
+        text-decoration: none;
+        display: inline-flex;
+        align-items: center;
+        justify-content: center;
+    }
+
+    .action-btn:hover {
+        transform: translateY(-2px);
+        text-decoration: none;
+    }
+
+    .action-btn.edit-btn:hover {
+        background: rgba(0, 158, 219, 0.1);
+        border-color: #009edb;
+        color: #009edb;
+    }
+
+    .action-btn.view-btn:hover {
+        background: rgba(6, 182, 212, 0.1);
+        border-color: #06b6d4;
+        color: #06b6d4;
+    }
+
+    .action-btn.delete-btn:hover {
+        background: rgba(239, 68, 68, 0.1);
+        border-color: #ef4444;
+        color: #ef4444;
+    }
+
+    .empty-state {
+        text-align: center;
+        padding: 4rem 2rem;
+    }
+
+    .empty-icon {
+        font-size: 4rem;
+        color: #d1d5db;
+        margin-bottom: 1rem;
+    }
+
+    .empty-text {
+        color: #6b7280;
+        font-size: 1.1rem;
+        margin-bottom: 1.5rem;
+    }
+
+    .code-text {
+        font-family: 'Courier New', monospace;
+        background: #f3f4f6;
+        padding: 0.25rem 0.5rem;
+        border-radius: 6px;
+        font-size: 0.85rem;
+        color: #1f2937;
+    }
+
+    /* Modern Modal Styling */
+    .modal-content {
+        border: none;
+        border-radius: 20px;
+        box-shadow: 0 10px 40px rgba(0, 0, 0, 0.15);
+        overflow: hidden;
+    }
+
+    .modal-header {
+        background: #009edb;
+        color: white;
+        border: none;
+        padding: 1.5rem;
+    }
+
+    .modal-header .modal-title {
+        font-size: 1.25rem;
+        font-weight: 700;
+        display: flex;
+        align-items: center;
+        gap: 0.5rem;
+    }
+
+    .modal-header .btn-close {
+        filter: brightness(0) invert(1);
+        opacity: 0.8;
+    }
+
+    .modal-header .btn-close:hover {
+        opacity: 1;
+    }
+
+    .modal-body {
+        padding: 2rem;
+        font-size: 1rem;
+        color: #374151;
+    }
+
+    .modal-footer {
+        border: none;
+        padding: 1.5rem;
+        background: #f9fafb;
+    }
+
+    .modal-footer .btn {
+        border-radius: 12px;
+        padding: 0.625rem 1.5rem;
+        font-weight: 600;
+        transition: all 0.2s;
+    }
+
+    .modal-footer .btn-secondary {
+        background: white;
+        border: 2px solid #e5e7eb;
+        color: #6b7280;
+    }
+
+    .modal-footer .btn-secondary:hover {
+        background: #f9fafb;
+        border-color: #d1d5db;
+    }
+
+    .modal-footer .btn-danger {
+        background: linear-gradient(135deg, #ef4444 0%, #dc2626 100%);
+        border: none;
+    }
+
+    .modal-footer .btn-danger:hover {
+        transform: translateY(-2px);
+        box-shadow: 0 4px 12px rgba(239, 68, 68, 0.3);
+    }
+</style>
+
+<div class="page-header">
+    <h1 class="page-title">
+        <i class="bi bi-file-text"></i>
+        Email Templates
+    </h1>
+    <a asp-page="/Admin/EmailTemplateEdit" class="btn-create-template">
+        <i class="bi bi-plus-circle"></i>
+        Create Template
+    </a>
+</div>
+
+@if (Model.StatusMessage != null)
+{
+    <div class="alert alert-@Model.StatusMessageClass alert-dismissible fade show" role="alert" style="border-radius: 16px; border-left: 4px solid;">
+        <i class="bi bi-@(Model.StatusMessageClass == "success" ? "check-circle" : Model.StatusMessageClass == "danger" ? "x-circle" : "info-circle")"></i>
+        @Model.StatusMessage
+        <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
+    </div>
+}
+
+<!-- Filter Section -->
+<div class="filter-section">
+    <div class="filter-header" data-bs-toggle="collapse" data-bs-target="#filterCollapse">
+        <h6 class="filter-title">
+            <i class="bi bi-funnel-fill"></i>
+            <span>Filter Templates</span>
+            @{
+                var filterCount = 0;
+                if (!string.IsNullOrEmpty(Model.SelectedCategory)) filterCount++;
+                if (!string.IsNullOrEmpty(Model.SelectedStatus)) filterCount++;
+            }
+            @if (filterCount > 0)
+            {
+                <span class="filter-count">@filterCount</span>
+            }
+        </h6>
+        <i class="bi bi-chevron-up filter-toggle"></i>
+    </div>
+
+    <div class="collapse show" id="filterCollapse">
+        <div class="filter-body">
+            <form method="get" id="filterForm" asp-page="/Admin/EmailTemplates">
+                <div class="filter-grid">
+                    <!-- Category Filter -->
+                    <div class="filter-group">
+                        <label class="filter-label">
+                            <i class="bi bi-folder2"></i>
+                            Category
+                        </label>
+                        <select name="SelectedCategory" class="form-select-modern">
+                            <option value="">All Categories</option>
+                            @foreach (var cat in Model.Categories)
+                            {
+                                if (Model.SelectedCategory == cat)
+                                {
+                                    <option value="@cat" selected>@cat</option>
+                                }
+                                else
+                                {
+                                    <option value="@cat">@cat</option>
+                                }
+                            }
+                        </select>
+                    </div>
+
+                    <!-- Status Filter -->
+                    <div class="filter-group">
+                        <label class="filter-label">
+                            <i class="bi bi-toggle-on"></i>
+                            Status
+                        </label>
+                        <select name="SelectedStatus" class="form-select-modern">
+                            <option value="">All Status</option>
+                            @if (Model.SelectedStatus == "active")
+                            {
+                                <option value="active" selected>Active</option>
+                            }
+                            else
+                            {
+                                <option value="active">Active</option>
+                            }
+                            @if (Model.SelectedStatus == "inactive")
+                            {
+                                <option value="inactive" selected>Inactive</option>
+                            }
+                            else
+                            {
+                                <option value="inactive">Inactive</option>
+                            }
+                        </select>
+                    </div>
+                </div>
+
+                <!-- Active Filters Display -->
+                @if (!string.IsNullOrEmpty(Model.SelectedCategory) || !string.IsNullOrEmpty(Model.SelectedStatus))
+                {
+                    <div class="active-filters">
+                        <strong style="color: #6b7280; font-size: 0.875rem; align-self: center;">Active Filters:</strong>
+                        @if (!string.IsNullOrEmpty(Model.SelectedCategory))
+                        {
+                            <span class="filter-badge">
+                                <i class="bi bi-folder2"></i>
+                                Category: @Model.SelectedCategory
+                            </span>
+                        }
+                        @if (!string.IsNullOrEmpty(Model.SelectedStatus))
+                        {
+                            <span class="filter-badge">
+                                <i class="bi bi-toggle-on"></i>
+                                Status: @(Model.SelectedStatus == "active" ? "Active" : "Inactive")
+                            </span>
+                        }
+                    </div>
+                }
+
+                <!-- Filter Actions -->
+                @if (!string.IsNullOrEmpty(Model.SelectedCategory) || !string.IsNullOrEmpty(Model.SelectedStatus))
+                {
+                    <div class="filter-actions">
+                        <a href="/Admin/EmailTemplates" class="btn-clear-filters">
+                            <i class="bi bi-x-circle"></i>
+                            Clear All Filters
+                        </a>
+                    </div>
+                }
+            </form>
+        </div>
+    </div>
+</div>
+
+<!-- Templates Table -->
+<div class="content-card">
+    <div class="card-header-custom">
+        <h5 class="card-title-custom">
+            <i class="bi bi-list-ul text-primary"></i>
+            All Email Templates
+        </h5>
+    </div>
+    <div style="padding: 0;">
+        @if (!Model.Templates.Any())
+        {
+            <div class="empty-state">
+                <div class="empty-icon">
+                    <i class="bi bi-inbox"></i>
+                </div>
+                <p class="empty-text">No email templates found</p>
+                <p class="text-muted">Create your first template to get started.</p>
+                <a asp-page="/Admin/EmailTemplateEdit" class="btn-create-template" style="margin-top: 1rem;">
+                    <i class="bi bi-plus-circle"></i> Create Template
+                </a>
+            </div>
+        }
+        else
+        {
+            <div class="table-responsive">
+                <table class="modern-table table-hover mb-0">
+                    <thead>
+                        <tr>
+                            <th class="border-0 px-3 py-3"><i class="bi bi-tag me-2"></i>Template Name</th>
+                            <th class="border-0 px-3 py-3"><i class="bi bi-code-square me-2"></i>Code</th>
+                            <th class="border-0 px-3 py-3"><i class="bi bi-folder me-2"></i>Category</th>
+                            <th class="border-0 px-3 py-3"><i class="bi bi-chat-left-text me-2"></i>Subject</th>
+                            <th class="border-0 px-3 py-3"><i class="bi bi-flag me-2"></i>Status</th>
+                            <th class="border-0 px-3 py-3"><i class="bi bi-calendar me-2"></i>Modified</th>
+                            <th class="border-0 px-3 py-3"><i class="bi bi-gear me-2"></i>Actions</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        @foreach (var template in Model.Templates)
+                        {
+                            <tr>
+                                <td>
+                                    <div style="font-weight: 600; color: #1f2937;">@template.Name</div>
+                                    @if (template.IsSystemTemplate)
+                                    {
+                                        <span class="status-badge badge-purple" style="margin-top: 0.25rem;">
+                                            <i class="bi bi-shield-check"></i> System
+                                        </span>
+                                    }
+                                </td>
+                                <td>
+                                    <span class="code-text">@template.TemplateCode</span>
+                                </td>
+                                <td>
+                                    @if (!string.IsNullOrEmpty(template.Category))
+                                    {
+                                        <span class="status-badge badge-info">
+                                            <i class="bi bi-folder2"></i> @template.Category
+                                        </span>
+                                    }
+                                    else
+                                    {
+                                        <span class="text-muted">-</span>
+                                    }
+                                </td>
+                                <td>
+                                    <div style="color: #6b7280; font-size: 0.9rem;">@template.Subject</div>
+                                </td>
+                                <td>
+                                    @if (template.IsActive)
+                                    {
+                                        <span class="status-badge badge-success">
+                                            <i class="bi bi-check-circle-fill"></i> Active
+                                        </span>
+                                    }
+                                    else
+                                    {
+                                        <span class="status-badge badge-secondary">
+                                            <i class="bi bi-x-circle"></i> Inactive
+                                        </span>
+                                    }
+                                </td>
+                                <td>
+                                    @if (template.ModifiedDate.HasValue)
+                                    {
+                                        <div style="font-size: 0.875rem;">@template.ModifiedDate.Value.ToString("MMM dd, yyyy")</div>
+                                    }
+                                    else
+                                    {
+                                        <div style="font-size: 0.875rem;">@template.CreatedDate.ToString("MMM dd, yyyy")</div>
+                                    }
+                                </td>
+                                <td>
+                                    <div class="d-flex gap-2">
+                                        <a asp-page="/Admin/EmailTemplateEdit" asp-route-id="@template.Id"
+                                           class="action-btn edit-btn" title="Edit">
+                                            <i class="bi bi-pencil"></i>
+                                        </a>
+                                        <a asp-page="/Admin/EmailTemplatePreview" asp-route-id="@template.Id"
+                                           class="action-btn view-btn" title="Preview">
+                                            <i class="bi bi-eye"></i>
+                                        </a>
+                                        @if (!template.IsSystemTemplate)
+                                        {
+                                            <button type="button" class="action-btn delete-btn"
+                                                    onclick="confirmDelete('@template.Id', '@template.Name')" title="Delete">
+                                                <i class="bi bi-trash"></i>
+                                            </button>
+                                        }
+                                    </div>
+                                </td>
+                            </tr>
+                        }
+                    </tbody>
+                </table>
+            </div>
+        }
+    </div>
+</div>
+
+<!-- Delete Confirmation Modal -->
+<div class="modal fade" id="deleteModal" tabindex="-1">
+    <div class="modal-dialog modal-dialog-centered">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title">
+                    <i class="bi bi-trash"></i>
+                    Delete Template
+                </h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+            </div>
+            <div class="modal-body">
+                <p style="margin-bottom: 1rem;">Are you sure you want to delete the template "<strong id="templateName"></strong>"?</p>
+                <div style="background: rgba(239, 68, 68, 0.1); border-left: 4px solid #ef4444; padding: 0.75rem 1rem; border-radius: 8px;">
+                    <i class="bi bi-exclamation-triangle-fill text-danger me-2"></i>
+                    <span class="text-danger" style="font-weight: 600;">This action cannot be undone.</span>
+                </div>
+            </div>
+            <div class="modal-footer">
+                <form method="post" asp-page-handler="Delete" class="d-flex gap-2 w-100 justify-content-end">
+                    <input type="hidden" name="id" id="deleteTemplateId" />
+                    <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">
+                        <i class="bi bi-x-circle me-1"></i> Cancel
+                    </button>
+                    <button type="submit" class="btn btn-danger">
+                        <i class="bi bi-trash me-1"></i> Delete Template
+                    </button>
+                </form>
+            </div>
+        </div>
+    </div>
+</div>
+
+@section Scripts {
+    <script>
+        // Handle filter collapse toggle animation
+        document.addEventListener('DOMContentLoaded', function() {
+            const filterCollapse = document.getElementById('filterCollapse');
+            const filterToggle = document.querySelector('.filter-toggle');
+
+            if (filterCollapse && filterToggle) {
+                filterCollapse.addEventListener('show.bs.collapse', function() {
+                    filterToggle.classList.remove('collapsed');
+                });
+
+                filterCollapse.addEventListener('hide.bs.collapse', function() {
+                    filterToggle.classList.add('collapsed');
+                });
+            }
+
+            // Handle filter form submission
+            const categorySelect = document.querySelector('select[name="SelectedCategory"]');
+            const statusSelect = document.querySelector('select[name="SelectedStatus"]');
+
+            if (categorySelect) {
+                categorySelect.addEventListener('change', function() {
+                    this.form.submit();
+                });
+            }
+
+            if (statusSelect) {
+                statusSelect.addEventListener('change', function() {
+                    this.form.submit();
+                });
+            }
+        });
+
+        function confirmDelete(id, name) {
+            document.getElementById('deleteTemplateId').value = id;
+            document.getElementById('templateName').textContent = name;
+            var modal = new bootstrap.Modal(document.getElementById('deleteModal'));
+            modal.show();
+        }
+    </script>
+}

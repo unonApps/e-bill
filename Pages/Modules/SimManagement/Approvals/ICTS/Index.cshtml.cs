@@ -17,19 +17,28 @@ namespace TAB.Web.Pages.Modules.SimManagement.Approvals.ICTS
         private readonly ISimRequestHistoryService _historyService;
         private readonly INotificationService _notificationService;
         private readonly IAuditLogService _auditLogService;
+        private readonly IEnhancedEmailService _emailService;
+        private readonly ILogger<IndexModel> _logger;
+        private readonly IConfiguration _configuration;
 
         public IndexModel(
             ApplicationDbContext context,
             UserManager<ApplicationUser> userManager,
             ISimRequestHistoryService historyService,
             INotificationService notificationService,
-            IAuditLogService auditLogService)
+            IAuditLogService auditLogService,
+            IEnhancedEmailService emailService,
+            ILogger<IndexModel> logger,
+            IConfiguration configuration)
         {
             _context = context;
             _userManager = userManager;
             _historyService = historyService;
             _notificationService = notificationService;
             _auditLogService = auditLogService;
+            _emailService = emailService;
+            _logger = logger;
+            _configuration = configuration;
         }
 
         // Properties for ICTS processing
@@ -298,6 +307,18 @@ namespace TAB.Web.Pages.Modules.SimManagement.Approvals.ICTS
                 HttpContext.Connection.RemoteIpAddress?.ToString()
             );
 
+            // Send email notification for SIM ready for collection
+            try
+            {
+                await SendCollectionReadyEmailAsync(request, assignedNo, ictsRemark);
+                _logger.LogInformation("Collection ready email sent for SIM request {RequestId}", requestId);
+            }
+            catch (Exception emailEx)
+            {
+                // Log error but don't fail the notification
+                _logger.LogError(emailEx, "Failed to send collection ready email for request {RequestId}", requestId);
+            }
+
             StatusMessage = $"Collection notification sent for {request.FirstName} {request.LastName}. Request is now pending SIM collection.";
             StatusMessageClass = "success";
 
@@ -414,6 +435,50 @@ namespace TAB.Web.Pages.Modules.SimManagement.Approvals.ICTS
                 "Medium" => "info",
                 _ => "success"
             };
+        }
+
+        private async Task SendCollectionReadyEmailAsync(Models.SimRequest request, string? assignedNo, string? ictsRemark)
+        {
+            // Get request with ServiceProvider included
+            var requestWithProvider = await _context.SimRequests
+                .Include(r => r.ServiceProvider)
+                .FirstOrDefaultAsync(r => r.Id == request.Id);
+
+            if (requestWithProvider == null) return;
+
+            // Get collection configuration from appsettings or use defaults
+            var collectionPoint = _configuration["SimCollection:Location"] ?? "ICTS Office, Main Building";
+            var contactPerson = _configuration["SimCollection:ContactPerson"] ?? "ICTS Help Desk";
+            var contactPhone = _configuration["SimCollection:ContactPhone"] ?? "Extension 1234";
+            var collectionDeadlineDays = int.Parse(_configuration["SimCollection:DeadlineDays"] ?? "7");
+            var collectionDeadline = DateTime.UtcNow.AddDays(collectionDeadlineDays);
+
+            var placeholders = new Dictionary<string, string>
+            {
+                { "RequestId", requestWithProvider.Id.ToString() },
+                { "FirstName", requestWithProvider.FirstName ?? "" },
+                { "LastName", requestWithProvider.LastName ?? "" },
+                { "ReadyDate", requestWithProvider.CollectionNotifiedDate?.ToString("MMMM dd, yyyy") ?? DateTime.UtcNow.ToString("MMMM dd, yyyy") },
+                { "SimType", requestWithProvider.SimType.ToString() },
+                { "ServiceProvider", requestWithProvider.ServiceProvider?.ServiceProviderName ?? "N/A" },
+                { "PhoneNumber", assignedNo ?? "To be confirmed" },
+                { "CollectionPoint", collectionPoint },
+                { "ContactPerson", contactPerson },
+                { "ContactPhone", contactPhone },
+                { "CollectionDeadline", collectionDeadline.ToString("MMMM dd, yyyy") },
+                { "Remarks", ictsRemark ?? "" },
+                { "ViewRequestLink", $"{Request.Scheme}://{Request.Host}/Modules/SimManagement/Requests/Index" },
+                { "Year", DateTime.Now.Year.ToString() }
+            };
+
+            await _emailService.SendTemplatedEmailAsync(
+                to: requestWithProvider.OfficialEmail ?? "",
+                templateCode: "SIM_READY_FOR_COLLECTION",
+                data: placeholders
+            );
+
+            _logger.LogInformation("Sent collection ready email to {Email} for request {RequestId}",
+                requestWithProvider.OfficialEmail, requestWithProvider.Id);
         }
     }
 } 

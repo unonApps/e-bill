@@ -16,13 +16,17 @@ namespace TAB.Web.Pages.Modules.RefundManagement.Approvals.Supervisor
         private readonly UserManager<ApplicationUser> _userManager;
         private readonly INotificationService _notificationService;
         private readonly IAuditLogService _auditLogService;
+        private readonly IEnhancedEmailService _emailService;
+        private readonly ILogger<IndexModel> _logger;
 
-        public IndexModel(ApplicationDbContext context, UserManager<ApplicationUser> userManager, INotificationService notificationService, IAuditLogService auditLogService)
+        public IndexModel(ApplicationDbContext context, UserManager<ApplicationUser> userManager, INotificationService notificationService, IAuditLogService auditLogService, IEnhancedEmailService emailService, ILogger<IndexModel> logger)
         {
             _context = context;
             _userManager = userManager;
             _notificationService = notificationService;
             _auditLogService = auditLogService;
+            _emailService = emailService;
+            _logger = logger;
         }
 
         public List<RefundRequest> PendingRequests { get; set; } = new();
@@ -174,6 +178,26 @@ namespace TAB.Web.Pages.Modules.RefundManagement.Approvals.Supervisor
                         "Budget Officer"
                     );
 
+                    // Send email notifications
+                    try
+                    {
+                        var requester = await _userManager.FindByIdAsync(request.RequestedBy ?? "");
+                        if (requester != null)
+                        {
+                            // 1. Send approval email to requester
+                            await SendSupervisorApprovedEmailAsync(request, currentUser, requester);
+
+                            // 2. Send notification to budget officer
+                            await SendBudgetOfficerNotificationEmailAsync(request, budgetOfficer, currentUser);
+
+                            _logger.LogInformation("Approval email notifications sent successfully for refund request {RequestId}", requestId);
+                        }
+                    }
+                    catch (Exception emailEx)
+                    {
+                        _logger.LogError(emailEx, "Failed to send approval email notifications for request {RequestId}", requestId);
+                    }
+
                     StatusMessage = $"Request #{requestId} has been approved and forwarded to {budgetOfficer.FirstName} {budgetOfficer.LastName}.";
                     StatusMessageClass = "success";
                 }
@@ -219,6 +243,26 @@ namespace TAB.Web.Pages.Modules.RefundManagement.Approvals.Supervisor
                         currentUser.Id,
                         HttpContext.Connection.RemoteIpAddress?.ToString()
                     );
+
+                    // Send email notifications
+                    try
+                    {
+                        var requester = await _userManager.FindByIdAsync(request.RequestedBy ?? "");
+                        if (requester != null)
+                        {
+                            // 1. Send budget approval email to requester
+                            await SendBudgetOfficerApprovedEmailAsync(request, currentUser, requester);
+
+                            // 2. Send notification to claims unit
+                            await SendClaimsUnitNotificationEmailAsync(request);
+
+                            _logger.LogInformation("Budget approval email notifications sent successfully for refund request {RequestId}", requestId);
+                        }
+                    }
+                    catch (Exception emailEx)
+                    {
+                        _logger.LogError(emailEx, "Failed to send budget approval email notifications for request {RequestId}", requestId);
+                    }
 
                     StatusMessage = $"Request #{requestId} has been approved and forwarded to Staff Claims Unit.";
                     StatusMessageClass = "success";
@@ -417,6 +461,21 @@ namespace TAB.Web.Pages.Modules.RefundManagement.Approvals.Supervisor
                         currentUser.Id,
                         HttpContext.Connection.RemoteIpAddress?.ToString()
                     );
+                }
+
+                // Send rejection email notification
+                try
+                {
+                    var requester = await _userManager.FindByIdAsync(request.RequestedBy ?? "");
+                    if (requester != null)
+                    {
+                        await SendRejectionEmailAsync(request, currentUser, requester);
+                        _logger.LogInformation("Rejection email sent successfully for refund request {RequestId}", requestId);
+                    }
+                }
+                catch (Exception emailEx)
+                {
+                    _logger.LogError(emailEx, "Failed to send rejection email for request {RequestId}", requestId);
                 }
 
                 StatusMessage = $"Request #{requestId} has been rejected.";
@@ -737,6 +796,116 @@ namespace TAB.Web.Pages.Modules.RefundManagement.Approvals.Supervisor
             }
             
             return budgetOfficers.OrderBy(u => u.FirstName).ThenBy(u => u.LastName).ToList();
+        }
+
+        private async Task SendSupervisorApprovedEmailAsync(RefundRequest request, ApplicationUser supervisor, ApplicationUser requester)
+        {
+            var placeholders = new Dictionary<string, string>
+            {
+                { "RequestId", request.Id.ToString() },
+                { "RequesterName", request.MobileNumberAssignedTo ?? $"{requester.FirstName} {requester.LastName}" },
+                { "SupervisorName", $"{supervisor.FirstName} {supervisor.LastName}" },
+                { "ApprovalDate", request.SupervisorApprovalDate?.ToString("MMMM dd, yyyy") ?? DateTime.UtcNow.ToString("MMMM dd, yyyy") },
+                { "DevicePurchaseAmount", request.DevicePurchaseAmount.ToString("N2") },
+                { "DevicePurchaseCurrency", request.DevicePurchaseCurrency ?? "USD" },
+                { "SupervisorRemarks", request.SupervisorRemarks ?? "Approved" },
+                { "ViewRequestLink", $"{Request.Scheme}://{Request.Host}/Modules/RefundManagement/Requests/Index" },
+                { "Year", DateTime.Now.Year.ToString() }
+            };
+
+            await _emailService.SendTemplatedEmailAsync(
+                to: requester.Email ?? "",
+                templateCode: "REFUND_SUPERVISOR_APPROVED",
+                data: placeholders
+            );
+        }
+
+        private async Task SendBudgetOfficerNotificationEmailAsync(RefundRequest request, ApplicationUser budgetOfficer, ApplicationUser supervisor)
+        {
+            var placeholders = new Dictionary<string, string>
+            {
+                { "RequestId", request.Id.ToString() },
+                { "RequesterName", request.MobileNumberAssignedTo ?? "Staff Member" },
+                { "BudgetOfficerName", $"{budgetOfficer.FirstName} {budgetOfficer.LastName}" },
+                { "Organization", request.Organization ?? "N/A" },
+                { "SupervisorName", $"{supervisor.FirstName} {supervisor.LastName}" },
+                { "DevicePurchaseAmount", request.DevicePurchaseAmount.ToString("N2") },
+                { "DevicePurchaseCurrency", request.DevicePurchaseCurrency ?? "USD" },
+                { "ApprovalLink", $"{Request.Scheme}://{Request.Host}/Modules/RefundManagement/Approvals/Supervisor" },
+                { "Year", DateTime.Now.Year.ToString() }
+            };
+
+            await _emailService.SendTemplatedEmailAsync(
+                to: budgetOfficer.Email ?? "",
+                templateCode: "REFUND_BUDGET_OFFICER_NOTIFICATION",
+                data: placeholders
+            );
+        }
+
+        private async Task SendBudgetOfficerApprovedEmailAsync(RefundRequest request, ApplicationUser budgetOfficer, ApplicationUser requester)
+        {
+            var placeholders = new Dictionary<string, string>
+            {
+                { "RequestId", request.Id.ToString() },
+                { "RequesterName", request.MobileNumberAssignedTo ?? $"{requester.FirstName} {requester.LastName}" },
+                { "DevicePurchaseAmount", request.DevicePurchaseAmount.ToString("N2") },
+                { "DevicePurchaseCurrency", request.DevicePurchaseCurrency ?? "USD" },
+                { "CostObject", request.CostObject ?? "N/A" },
+                { "CostCenter", request.CostCenter ?? "N/A" },
+                { "FundCommitment", request.FundCommitment ?? "N/A" },
+                { "ViewRequestLink", $"{Request.Scheme}://{Request.Host}/Modules/RefundManagement/Requests/Index" },
+                { "Year", DateTime.Now.Year.ToString() }
+            };
+
+            await _emailService.SendTemplatedEmailAsync(
+                to: requester.Email ?? "",
+                templateCode: "REFUND_BUDGET_OFFICER_APPROVED",
+                data: placeholders
+            );
+        }
+
+        private async Task SendClaimsUnitNotificationEmailAsync(RefundRequest request)
+        {
+            // Get Claims Unit email from configuration or use default
+            var claimsUnitEmail = "claims@example.com"; // TODO: Get from configuration
+
+            var placeholders = new Dictionary<string, string>
+            {
+                { "RequestId", request.Id.ToString() },
+                { "RequesterName", request.MobileNumberAssignedTo ?? "Staff Member" },
+                { "Organization", request.Organization ?? "N/A" },
+                { "UmojaBankName", request.UmojaBankName ?? "N/A" },
+                { "DevicePurchaseAmount", request.DevicePurchaseAmount.ToString("N2") },
+                { "DevicePurchaseCurrency", request.DevicePurchaseCurrency ?? "USD" },
+                { "ProcessLink", $"{Request.Scheme}://{Request.Host}/Modules/RefundManagement/Approvals/ClaimsUnit" },
+                { "Year", DateTime.Now.Year.ToString() }
+            };
+
+            await _emailService.SendTemplatedEmailAsync(
+                to: claimsUnitEmail,
+                templateCode: "REFUND_CLAIMS_UNIT_NOTIFICATION",
+                data: placeholders
+            );
+        }
+
+        private async Task SendRejectionEmailAsync(RefundRequest request, ApplicationUser rejector, ApplicationUser requester)
+        {
+            var placeholders = new Dictionary<string, string>
+            {
+                { "RequestId", request.Id.ToString() },
+                { "RequesterName", request.MobileNumberAssignedTo ?? $"{requester.FirstName} {requester.LastName}" },
+                { "RejectedBy", $"{rejector.FirstName} {rejector.LastName}" },
+                { "RejectionDate", request.CancellationDate?.ToString("MMMM dd, yyyy") ?? DateTime.UtcNow.ToString("MMMM dd, yyyy") },
+                { "RejectionReason", request.CancellationReason ?? "No reason provided" },
+                { "NewRequestLink", $"{Request.Scheme}://{Request.Host}/Modules/RefundManagement/Requests/Create" },
+                { "Year", DateTime.Now.Year.ToString() }
+            };
+
+            await _emailService.SendTemplatedEmailAsync(
+                to: requester.Email ?? "",
+                templateCode: "REFUND_REQUEST_REJECTED",
+                data: placeholders
+            );
         }
     }
 }

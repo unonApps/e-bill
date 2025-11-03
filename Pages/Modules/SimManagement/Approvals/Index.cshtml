@@ -2,29 +2,24 @@
 @model TAB.Web.Pages.Modules.SimManagement.Approvals.IndexModel
 @{
     ViewData["Title"] = "SIM Card Approvals";
-    var activeTab = Request.Query["tab"].ToString();
-    if (string.IsNullOrEmpty(activeTab))
-    {
-        activeTab = "supervisor";
-    }
 }
 
 <style>
     .page-header {
         margin-bottom: 32px;
         padding-bottom: 1rem;
-        border-bottom: 2px solid #E3EDF6; /* UN Blue Extra Light */
+        border-bottom: 2px solid #E3EDF6;
     }
-    
+
     .page-title {
         font-size: 28px;
         font-weight: 700;
-        color: #000000; /* UN Black */
+        color: #000000;
         margin-bottom: 8px;
     }
-    
+
     .page-title i {
-        color: #009EDB; /* UN Blue */
+        color: #009EDB;
     }
 
     .page-subtitle {
@@ -33,192 +28,598 @@
         margin: 0;
     }
 
-    .tab-navigation {
-        background: white;
-        border-radius: 12px;
-        padding: 1rem;
+    .stats-container {
+        display: grid;
+        grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+        gap: 1rem;
         margin-bottom: 2rem;
-        box-shadow: 0 2px 10px rgba(0, 0, 0, 0.06);
     }
-    
-    .nav-tabs {
-        border-bottom: 2px solid #e5e7eb;
-    }
-    
-    .nav-tabs .nav-link {
-        color: #6b7280;
-        border: none;
-        border-bottom: 3px solid transparent;
-        padding: 0.75rem 1.5rem;
-        font-weight: 500;
-        transition: all 0.3s;
-        background: none;
-        cursor: pointer;
-    }
-    
-    .nav-tabs .nav-link:hover {
-        color: #009edb;
-        border-bottom-color: rgba(0, 158, 219, 0.3);
-    }
-    
-    .nav-tabs .nav-link.active {
-        color: #009edb;
-        background: none;
-        border: none;
-        border-bottom: 3px solid #009edb;
-    }
-    
-    .tab-content {
-        margin-top: 0;
-    }
-    
-    .tab-header {
-        padding: 1rem 1.5rem;
-        background: white;
-        border-radius: 12px;
-        margin-bottom: 1.5rem;
-        box-shadow: 0 2px 10px rgba(0, 0, 0, 0.06);
-    }
-    
-    .tab-title {
-        font-size: 1.25rem;
-        font-weight: 600;
-        color: #1e293b;
-        margin-bottom: 0.25rem;
-    }
-    
-    .tab-subtitle {
-        color: #64748b;
-        margin-bottom: 0;
-        font-size: 0.875rem;
-    }
-    
-    .role-badge {
-        background: #009edb;
-        color: white;
-        padding: 0.375rem 1rem;
-        border-radius: 20px;
-        font-size: 0.875rem;
-        font-weight: 500;
-    }
-    
+
     .stat-card {
         background: white;
         border-radius: 12px;
-        padding: 1.5rem;
+        padding: 1rem 1.25rem;
         box-shadow: 0 2px 10px rgba(0, 0, 0, 0.06);
-        transition: transform 0.2s;
+        cursor: pointer;
+        transition: all 0.3s;
+        border: 2px solid transparent;
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        gap: 1rem;
     }
-    
+
     .stat-card:hover {
         transform: translateY(-2px);
-        box-shadow: 0 4px 15px rgba(0, 0, 0, 0.1);
+        box-shadow: 0 6px 20px rgba(0, 0, 0, 0.12);
+    }
+
+    .stat-card.active {
+        border-color: #009EDB;
+        background: #f0f9ff;
+    }
+
+    .stat-card-left {
+        display: flex;
+        align-items: center;
+        gap: 1rem;
+        flex: 1;
+    }
+
+    .stat-icon {
+        width: 40px;
+        height: 40px;
+        border-radius: 10px;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        font-size: 20px;
+        flex-shrink: 0;
+    }
+
+    .stat-icon.supervisor { background: #fef3c7; color: #d97706; }
+    .stat-icon.icts { background: #dbeafe; color: #2563eb; }
+    .stat-icon.admin { background: #e9d5ff; color: #9333ea; }
+    .stat-icon.provider { background: #fce7f3; color: #db2777; }
+    .stat-icon.collection { background: #cffafe; color: #0891b2; }
+    .stat-icon.approved { background: #d1fae5; color: #059669; }
+    .stat-icon.completed { background: #dcfce7; color: #16a34a; }
+    .stat-icon.rejected { background: #fee2e2; color: #dc2626; }
+    .stat-icon.cancelled { background: #f3f4f6; color: #6b7280; }
+
+    .stat-label {
+        color: #64748b;
+        font-size: 14px;
+        font-weight: 500;
+        margin: 0;
+    }
+
+    .stat-value {
+        font-size: 28px;
+        font-weight: 700;
+        color: #1e293b;
+        margin: 0;
+        flex-shrink: 0;
+    }
+
+    .filter-bar {
+        background: white;
+        border-radius: 12px;
+        padding: 1.5rem;
+        margin-bottom: 1.5rem;
+        box-shadow: 0 2px 10px rgba(0, 0, 0, 0.06);
+        display: flex;
+        gap: 1rem;
+        flex-wrap: wrap;
+        align-items: center;
+    }
+
+    .filter-bar input,
+    .filter-bar select {
+        flex: 1;
+        min-width: 200px;
+        padding: 0.5rem 1rem;
+        border: 1px solid #e5e7eb;
+        border-radius: 8px;
+    }
+
+    .filter-bar button {
+        padding: 0.5rem 1.5rem;
+        background: #009EDB;
+        color: white;
+        border: none;
+        border-radius: 8px;
+        cursor: pointer;
+        font-weight: 500;
+        transition: background 0.3s;
+    }
+
+    .filter-bar button:hover {
+        background: #0284c7;
+    }
+
+    .table-container {
+        background: white;
+        border-radius: 12px;
+        box-shadow: 0 2px 10px rgba(0, 0, 0, 0.06);
+        overflow: hidden;
+    }
+
+    .data-table {
+        width: 100%;
+        border-collapse: collapse;
+    }
+
+    .data-table thead {
+        background: #f8fafc;
+        border-bottom: 2px solid #e5e7eb;
+    }
+
+    .data-table th {
+        padding: 1rem;
+        text-align: left;
+        font-weight: 600;
+        color: #1e293b;
+        font-size: 14px;
+        text-transform: uppercase;
+        letter-spacing: 0.5px;
+    }
+
+    .data-table td {
+        padding: 1rem;
+        border-bottom: 1px solid #f1f5f9;
+        color: #475569;
+    }
+
+    .data-table tbody tr {
+        cursor: pointer;
+        transition: background 0.2s;
+    }
+
+    .data-table tbody tr:hover {
+        background: #f8fafc;
+    }
+
+    .status-badge {
+        padding: 0.5rem 1rem;
+        border-radius: 20px;
+        font-size: 11px;
+        font-weight: 600;
+        display: inline-flex;
+        align-items: center;
+        gap: 0.5rem;
+        text-transform: uppercase;
+        letter-spacing: 0.8px;
+        white-space: nowrap;
+        box-shadow: 0 2px 8px rgba(0, 0, 0, 0.08);
+        border: 1.5px solid;
+        transition: all 0.2s ease;
+        background-color: transparent;
+    }
+
+    .status-pending-supervisor {
+        color: #d97706;
+        border-color: #f59e0b;
+    }
+
+    .status-pending-supervisor:hover {
+        box-shadow: 0 4px 12px rgba(217, 119, 6, 0.2);
+        transform: translateY(-1px);
+    }
+
+    .status-pending-icts {
+        color: #2563eb;
+        border-color: #3b82f6;
+    }
+
+    .status-pending-icts:hover {
+        box-shadow: 0 4px 12px rgba(37, 99, 235, 0.2);
+        transform: translateY(-1px);
+    }
+
+    .status-pending-admin {
+        color: #7c3aed;
+        border-color: #a78bfa;
+    }
+
+    .status-pending-admin:hover {
+        box-shadow: 0 4px 12px rgba(124, 58, 237, 0.2);
+        transform: translateY(-1px);
+    }
+
+    .status-pending-provider {
+        color: #db2777;
+        border-color: #ec4899;
+    }
+
+    .status-pending-provider:hover {
+        box-shadow: 0 4px 12px rgba(219, 39, 119, 0.2);
+        transform: translateY(-1px);
+    }
+
+    .status-pending-collection {
+        color: #0891b2;
+        border-color: #06b6d4;
+    }
+
+    .status-pending-collection:hover {
+        box-shadow: 0 4px 12px rgba(8, 145, 178, 0.2);
+        transform: translateY(-1px);
+    }
+
+    .status-approved {
+        color: #059669;
+        border-color: #10b981;
+    }
+
+    .status-approved:hover {
+        box-shadow: 0 4px 12px rgba(5, 150, 105, 0.2);
+        transform: translateY(-1px);
+    }
+
+    .status-completed {
+        color: #2563eb;
+        border-color: #3b82f6;
+    }
+
+    .status-completed:hover {
+        box-shadow: 0 4px 12px rgba(37, 99, 235, 0.2);
+        transform: translateY(-1px);
+    }
+
+    .status-rejected {
+        color: #dc2626;
+        border-color: #ef4444;
+    }
+
+    .status-rejected:hover {
+        box-shadow: 0 4px 12px rgba(220, 38, 38, 0.2);
+        transform: translateY(-1px);
+    }
+
+    .status-cancelled {
+        color: #6b7280;
+        border-color: #9ca3af;
+    }
+
+    .status-cancelled:hover {
+        box-shadow: 0 4px 12px rgba(107, 114, 128, 0.2);
+        transform: translateY(-1px);
+    }
+
+    .status-draft {
+        color: #64748b;
+        border-color: #cbd5e1;
+    }
+
+    .status-draft:hover {
+        box-shadow: 0 4px 12px rgba(100, 116, 139, 0.2);
+        transform: translateY(-1px);
+    }
+
+    .priority-badge {
+        display: inline-block;
+        padding: 0.25rem 0.75rem;
+        border-radius: 6px;
+        font-size: 12px;
+        font-weight: 500;
+    }
+
+    .priority-high { background: #fee2e2; color: #991b1b; }
+    .priority-medium { background: #fef3c7; color: #92400e; }
+    .priority-low { background: #dbeafe; color: #1e3a8a; }
+
+    .action-button {
+        background: #009EDB;
+        color: white;
+        padding: 0.5rem 1rem;
+        border-radius: 6px;
+        border: none;
+        cursor: pointer;
+        font-size: 14px;
+        font-weight: 500;
+        transition: background 0.3s;
+    }
+
+    .action-button:hover {
+        background: #0284c7;
+    }
+
+    .pagination-container {
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        padding: 1.5rem;
+        border-top: 1px solid #e5e7eb;
+    }
+
+    .pagination-info {
+        color: #64748b;
+        font-size: 14px;
+    }
+
+    .pagination-controls {
+        display: flex;
+        gap: 0.5rem;
+    }
+
+    .page-btn {
+        padding: 0.5rem 1rem;
+        border: 1px solid #e5e7eb;
+        background: white;
+        border-radius: 6px;
+        cursor: pointer;
+        font-weight: 500;
+        transition: all 0.3s;
+    }
+
+    .page-btn:hover {
+        background: #f8fafc;
+    }
+
+    .page-btn.active {
+        background: #009EDB;
+        color: white;
+        border-color: #009EDB;
+    }
+
+    .page-btn:disabled {
+        opacity: 0.5;
+        cursor: not-allowed;
+    }
+
+    .empty-state {
+        text-align: center;
+        padding: 3rem;
+        color: #64748b;
+    }
+
+    .empty-state i {
+        font-size: 48px;
+        margin-bottom: 1rem;
+        opacity: 0.5;
     }
 </style>
 
 <div class="container-fluid px-4">
     <div class="page-header">
-        <h1 class="page-title"><i class="bi bi-check2-square me-2"></i>SIM Card Approvals</h1>
-        <p class="page-subtitle">Manage and process SIM card requests across different approval stages</p>
+        <h1 class="page-title"><i class="bi bi-sim me-2"></i>SIM Card Approvals</h1>
+        <p class="page-subtitle">Unified overview of all SIM card requests with filters and pagination</p>
     </div>
 
-    <!-- Tab Navigation -->
-    <div class="tab-navigation">
-        <ul class="nav nav-tabs" id="approvalTabs" role="tablist">
-            <li class="nav-item" role="presentation">
-                <button class="nav-link @(activeTab == "supervisor" ? "active" : "")" 
-                        id="supervisor-tab" 
-                        data-bs-toggle="tab" 
-                        data-bs-target="#supervisor-content"
-                        type="button"
-                        role="tab"
-                        aria-controls="supervisor-content"
-                        aria-selected="@(activeTab == "supervisor" ? "true" : "false")">
-                    <i class="bi bi-person-check me-2"></i>
-                    Supervisor Approval
-                    @if (Model.SupervisorPendingCount > 0)
+    <!-- Statistics Cards -->
+    <div class="stats-container">
+        @if (Model.PendingSupervisorCount > 0)
+        {
+            <div class="stat-card" onclick="filterByStatus('PendingSupervisor')" data-filter="PendingSupervisor">
+                <div class="stat-card-left">
+                    <div class="stat-icon supervisor">
+                        <i class="bi bi-person-check"></i>
+                    </div>
+                    <p class="stat-label">Pending Supervisor</p>
+                </div>
+                <h3 class="stat-value">@Model.PendingSupervisorCount</h3>
+            </div>
+        }
+
+        @if (Model.PendingIctsCount > 0)
+        {
+            <div class="stat-card" onclick="filterByStatus('PendingIcts')" data-filter="PendingIcts">
+                <div class="stat-card-left">
+                    <div class="stat-icon icts">
+                        <i class="bi bi-gear"></i>
+                    </div>
+                    <p class="stat-label">Pending ICTS</p>
+                </div>
+                <h3 class="stat-value">@Model.PendingIctsCount</h3>
+            </div>
+        }
+
+        @if (Model.PendingAdminCount > 0)
+        {
+            <div class="stat-card" onclick="filterByStatus('PendingAdmin')" data-filter="PendingAdmin">
+                <div class="stat-card-left">
+                    <div class="stat-icon admin">
+                        <i class="bi bi-shield-check"></i>
+                    </div>
+                    <p class="stat-label">Pending Admin</p>
+                </div>
+                <h3 class="stat-value">@Model.PendingAdminCount</h3>
+            </div>
+        }
+
+        @if (Model.PendingServiceProviderCount > 0)
+        {
+            <div class="stat-card" onclick="filterByStatus('PendingServiceProvider')" data-filter="PendingServiceProvider">
+                <div class="stat-card-left">
+                    <div class="stat-icon provider">
+                        <i class="bi bi-building"></i>
+                    </div>
+                    <p class="stat-label">Pending Provider</p>
+                </div>
+                <h3 class="stat-value">@Model.PendingServiceProviderCount</h3>
+            </div>
+        }
+
+        @if (Model.PendingCollectionCount > 0)
+        {
+            <div class="stat-card" onclick="filterByStatus('PendingSIMCollection')" data-filter="PendingSIMCollection">
+                <div class="stat-card-left">
+                    <div class="stat-icon collection">
+                        <i class="bi bi-box-seam"></i>
+                    </div>
+                    <p class="stat-label">Pending Collection</p>
+                </div>
+                <h3 class="stat-value">@Model.PendingCollectionCount</h3>
+            </div>
+        }
+
+        @if (Model.ApprovedCount > 0)
+        {
+            <div class="stat-card" onclick="filterByStatus('Approved')" data-filter="Approved">
+                <div class="stat-card-left">
+                    <div class="stat-icon approved">
+                        <i class="bi bi-check-circle"></i>
+                    </div>
+                    <p class="stat-label">Approved</p>
+                </div>
+                <h3 class="stat-value">@Model.ApprovedCount</h3>
+            </div>
+        }
+
+        @if (Model.CompletedCount > 0)
+        {
+            <div class="stat-card" onclick="filterByStatus('Completed')" data-filter="Completed">
+                <div class="stat-card-left">
+                    <div class="stat-icon completed">
+                        <i class="bi bi-check-circle-fill"></i>
+                    </div>
+                    <p class="stat-label">Completed</p>
+                </div>
+                <h3 class="stat-value">@Model.CompletedCount</h3>
+            </div>
+        }
+
+        @if (Model.RejectedCount > 0)
+        {
+            <div class="stat-card" onclick="filterByStatus('Rejected')" data-filter="Rejected">
+                <div class="stat-card-left">
+                    <div class="stat-icon rejected">
+                        <i class="bi bi-x-circle"></i>
+                    </div>
+                    <p class="stat-label">Rejected</p>
+                </div>
+                <h3 class="stat-value">@Model.RejectedCount</h3>
+            </div>
+        }
+
+        @if (Model.CancelledCount > 0)
+        {
+            <div class="stat-card" onclick="filterByStatus('Cancelled')" data-filter="Cancelled">
+                <div class="stat-card-left">
+                    <div class="stat-icon cancelled">
+                        <i class="bi bi-dash-circle"></i>
+                    </div>
+                    <p class="stat-label">Cancelled</p>
+                </div>
+                <h3 class="stat-value">@Model.CancelledCount</h3>
+            </div>
+        }
+    </div>
+
+    <!-- Filter Bar -->
+    <div class="filter-bar">
+        <input type="text" id="searchInput" placeholder="Search by name, ID, service provider..." />
+        <select id="statusFilter">
+            <option value="">All Statuses</option>
+            <option value="PendingSupervisor">Pending Supervisor</option>
+            <option value="PendingIcts">Pending ICTS</option>
+            <option value="PendingAdmin">Pending Admin</option>
+            <option value="PendingServiceProvider">Pending Service Provider</option>
+            <option value="PendingSIMCollection">Pending Collection</option>
+            <option value="Approved">Approved</option>
+            <option value="Completed">Completed</option>
+            <option value="Rejected">Rejected</option>
+            <option value="Cancelled">Cancelled</option>
+        </select>
+        <select id="priorityFilter">
+            <option value="">All Priorities</option>
+            <option value="high">High Priority</option>
+            <option value="medium">Medium Priority</option>
+            <option value="low">Low Priority</option>
+        </select>
+        <button onclick="applyFilters()">
+            <i class="bi bi-funnel me-2"></i>Filter
+        </button>
+        <button onclick="clearFilters()" style="background: #6b7280;">
+            <i class="bi bi-x-circle me-2"></i>Clear
+        </button>
+    </div>
+
+    <!-- Table Container -->
+    <div class="table-container">
+        @if (Model.SimRequests.Any())
+        {
+            <table class="data-table" id="requestsTable">
+                <thead>
+                    <tr>
+                        <th>Request ID</th>
+                        <th>Staff Name</th>
+                        <th>Service Provider</th>
+                        <th>Request Date</th>
+                        <th>Priority</th>
+                        <th>Status</th>
+                        <th>Action</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    @foreach (var request in Model.SimRequests)
                     {
-                        <span class="badge bg-danger ms-2">@Model.SupervisorPendingCount</span>
-                    }
-                </button>
-            </li>
-            @if (User.IsInRole("ICTS") || User.IsInRole("Admin"))
-            {
-                <li class="nav-item" role="presentation">
-                    <button class="nav-link @(activeTab == "icts" ? "active" : "")" 
-                            id="icts-tab"
-                            data-bs-toggle="tab"
-                            data-bs-target="#icts-content"
-                            type="button"
-                            role="tab"
-                            aria-controls="icts-content"
-                            aria-selected="@(activeTab == "icts" ? "true" : "false")">
-                        <i class="bi bi-gear me-2"></i>
-                        ICTS Processing
-                        @if (Model.IctsPendingCount > 0)
+                        var daysSinceRequest = (DateTime.UtcNow - request.RequestDate).Days;
+                        var priorityClass = daysSinceRequest > 14 ? "priority-high" : daysSinceRequest > 7 ? "priority-medium" : "priority-low";
+                        var priorityText = daysSinceRequest > 14 ? "High" : daysSinceRequest > 7 ? "Medium" : "Low";
+                        var statusClass = request.Status.ToString() switch
                         {
-                            <span class="badge bg-warning text-dark ms-2">@Model.IctsPendingCount</span>
-                        }
-                    </button>
-                </li>
-            }
-        </ul>
-    </div>
+                            "PendingSupervisor" => "status-pending-supervisor",
+                            "PendingIcts" => "status-pending-icts",
+                            "PendingAdmin" => "status-pending-admin",
+                            "PendingServiceProvider" => "status-pending-provider",
+                            "PendingSIMCollection" => "status-pending-collection",
+                            "Approved" => "status-approved",
+                            "Completed" => "status-completed",
+                            "Rejected" => "status-rejected",
+                            "Cancelled" => "status-cancelled",
+                            "Draft" => "status-draft",
+                            _ => "status-draft"
+                        };
+                        var statusDisplay = request.Status.ToString().Replace("Pending", "Pending ").Replace("SIM", " SIM");
 
-    <!-- Tab Content -->
-    <div class="tab-content" id="approvalTabContent">
-        <!-- Supervisor Tab -->
-        <div class="tab-pane fade @(activeTab == "supervisor" ? "show active" : "")" 
-             id="supervisor-content" 
-             role="tabpanel" 
-             aria-labelledby="supervisor-tab">
-            <div class="tab-header">
-                <div class="d-flex justify-content-between align-items-center">
-                    <div>
-                        <h2 class="tab-title">Supervisor Approval Queue</h2>
-                        <p class="tab-subtitle">Review and approve SIM card requests from your team members</p>
-                    </div>
-                    <div>
-                        <span class="role-badge">Supervisor Role</span>
-                        <a href="/Modules/SimManagement/Approvals/Supervisor" 
-                           class="btn btn-sm btn-outline-primary ms-2"
-                           title="Open full page">
-                            <i class="bi bi-arrows-fullscreen"></i> Full View
-                        </a>
-                    </div>
+                        <tr data-status="@request.Status" data-priority="@priorityText.ToLower()" data-id="@request.Id">
+                            <td><strong>#@request.Id</strong></td>
+                            <td>@request.FirstName @request.LastName</td>
+                            <td>@(request.ServiceProvider?.ServiceProviderName ?? "N/A")</td>
+                            <td>@request.RequestDate.ToString("MMM dd, yyyy")</td>
+                            <td><span class="priority-badge @priorityClass">@priorityText</span></td>
+                            <td><span class="status-badge @statusClass">@statusDisplay</span></td>
+                            <td>
+                                <button class="action-button" onclick="navigateToApproval('@request.Status', @request.Id)">
+                                    <i class="bi bi-arrow-right me-1"></i>View
+                                </button>
+                            </td>
+                        </tr>
+                    }
+                </tbody>
+            </table>
+
+            <!-- Pagination Controls -->
+            <div class="pagination-container">
+                <div class="pagination-info">
+                    Showing @((Model.CurrentPage - 1) * Model.PageSize + 1) to @Math.Min(Model.CurrentPage * Model.PageSize, Model.TotalRecords) of @Model.TotalRecords requests
+                </div>
+                <div class="pagination-controls">
+                    <button class="page-btn" onclick="goToPage(@(Model.CurrentPage - 1))" @(Model.CurrentPage == 1 ? "disabled" : "")>
+                        <i class="bi bi-chevron-left"></i> Previous
+                    </button>
+
+                    @for (int i = Math.Max(1, Model.CurrentPage - 2); i <= Math.Min(Model.TotalPages, Model.CurrentPage + 2); i++)
+                    {
+                        <button class="page-btn @(i == Model.CurrentPage ? "active" : "")" onclick="goToPage(@i)">
+                            @i
+                        </button>
+                    }
+
+                    <button class="page-btn" onclick="goToPage(@(Model.CurrentPage + 1))" @(Model.CurrentPage >= Model.TotalPages ? "disabled" : "")>
+                        Next <i class="bi bi-chevron-right"></i>
+                    </button>
                 </div>
             </div>
-            
-            <!-- Supervisor Requests Content -->
-            <partial name="_SupervisorRequestsPartial" model="Model" />
-        </div>
-        
-        <!-- ICTS Tab -->
-        @if (User.IsInRole("ICTS") || User.IsInRole("Admin"))
+        }
+        else
         {
-            <div class="tab-pane fade @(activeTab == "icts" ? "show active" : "")" 
-                 id="icts-content" 
-                 role="tabpanel" 
-                 aria-labelledby="icts-tab">
-                <div class="tab-header">
-                    <div class="d-flex justify-content-between align-items-center">
-                        <div>
-                            <h2 class="tab-title">ICTS Processing Queue</h2>
-                            <p class="tab-subtitle">Process approved SIM card requests and assign phone numbers</p>
-                        </div>
-                        <div>
-                            <span class="role-badge" style="background: #f59e0b;">ICTS Role</span>
-                            <a href="/Modules/SimManagement/Approvals/ICTS" 
-                               class="btn btn-sm btn-outline-warning ms-2"
-                               title="Open full page">
-                                <i class="bi bi-arrows-fullscreen"></i> Full View
-                            </a>
-                        </div>
-                    </div>
-                </div>
-                
-                <!-- ICTS Requests Content -->
-                <partial name="_IctsRequestsPartial" model="Model" />
+            <div class="empty-state">
+                <i class="bi bi-inbox"></i>
+                <h3>No Requests Found</h3>
+                <p>There are no SIM card requests matching your criteria.</p>
             </div>
         }
     </div>
@@ -226,27 +627,109 @@
 
 @section Scripts {
     <script>
+        let originalRows = [];
+
         document.addEventListener('DOMContentLoaded', function() {
-            // Handle tab persistence with URL
-            var tabButtons = document.querySelectorAll('button[data-bs-toggle="tab"]');
-            tabButtons.forEach(function(button) {
-                button.addEventListener('shown.bs.tab', function (e) {
-                    var tabId = e.target.id.replace('-tab', '');
-                    var url = new URL(window.location);
-                    url.searchParams.set('tab', tabId);
-                    window.history.pushState({}, '', url);
-                });
+            // Store original table rows for filtering
+            const table = document.getElementById('requestsTable');
+            if (table) {
+                const tbody = table.querySelector('tbody');
+                originalRows = Array.from(tbody.querySelectorAll('tr'));
+            }
+        });
+
+        function filterByStatus(status) {
+            // Update dropdown
+            document.getElementById('statusFilter').value = status;
+
+            // Update active stat card
+            document.querySelectorAll('.stat-card').forEach(card => {
+                card.classList.remove('active');
             });
-            
-            // Set active tab based on URL parameter
-            var urlParams = new URLSearchParams(window.location.search);
-            var activeTab = urlParams.get('tab');
-            if (activeTab === 'icts') {
-                var ictsTabButton = document.getElementById('icts-tab');
-                if (ictsTabButton) {
-                    var tab = new bootstrap.Tab(ictsTabButton);
-                    tab.show();
+            event.currentTarget.classList.add('active');
+
+            // Apply filters
+            applyFilters();
+        }
+
+        function applyFilters() {
+            const searchTerm = document.getElementById('searchInput').value.toLowerCase();
+            const statusFilter = document.getElementById('statusFilter').value;
+            const priorityFilter = document.getElementById('priorityFilter').value;
+
+            const table = document.getElementById('requestsTable');
+            if (!table) return;
+
+            const tbody = table.querySelector('tbody');
+            const rows = tbody.querySelectorAll('tr');
+
+            let visibleCount = 0;
+
+            rows.forEach(row => {
+                const id = row.getAttribute('data-id');
+                const status = row.getAttribute('data-status');
+                const priority = row.getAttribute('data-priority');
+                const textContent = row.textContent.toLowerCase();
+
+                const matchesSearch = searchTerm === '' || textContent.includes(searchTerm);
+                const matchesStatus = statusFilter === '' || status === statusFilter;
+                const matchesPriority = priorityFilter === '' || priority === priorityFilter;
+
+                if (matchesSearch && matchesStatus && matchesPriority) {
+                    row.style.display = '';
+                    visibleCount++;
+                } else {
+                    row.style.display = 'none';
                 }
+            });
+
+            // Show empty state if no results
+            if (visibleCount === 0) {
+                // Could show an empty state message here
+            }
+        }
+
+        function clearFilters() {
+            document.getElementById('searchInput').value = '';
+            document.getElementById('statusFilter').value = '';
+            document.getElementById('priorityFilter').value = '';
+
+            document.querySelectorAll('.stat-card').forEach(card => {
+                card.classList.remove('active');
+            });
+
+            applyFilters();
+        }
+
+        function navigateToApproval(status, requestId) {
+            let url = '';
+
+            switch(status) {
+                case 'PendingSupervisor':
+                    url = `/Modules/SimManagement/Approvals/Supervisor?requestId=${requestId}`;
+                    break;
+                case 'PendingIcts':
+                case 'PendingServiceProvider':
+                case 'PendingSIMCollection':
+                    url = `/Modules/SimManagement/Approvals/ICTS?requestId=${requestId}`;
+                    break;
+                default:
+                    // For completed or other statuses, stay on current page with modal
+                    return;
+            }
+
+            window.location.href = url;
+        }
+
+        function goToPage(page) {
+            if (page < 1 || page > @Model.TotalPages) return;
+            window.location.href = `/Modules/SimManagement/Approvals?page=${page}`;
+        }
+
+        // Search on Enter key
+        document.getElementById('searchInput').addEventListener('keypress', function(e) {
+            if (e.key === 'Enter') {
+                applyFilters();
             }
         });
     </script>

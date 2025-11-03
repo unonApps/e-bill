@@ -361,8 +361,24 @@
         --gradient-end: #f87171;
     }
 
+    .stat-card {
+        cursor: pointer;
+        transition: all 0.3s ease;
+    }
+
     .stat-card:hover {
         box-shadow: 0 10px 30px rgba(0, 0, 0, 0.1);
+        transform: translateY(-2px);
+    }
+
+    .stat-card:active {
+        transform: translateY(0);
+    }
+
+    .stat-card.active {
+        box-shadow: 0 10px 30px rgba(0, 0, 0, 0.15);
+        transform: translateY(-2px);
+        border: 2px solid #009EDB;
     }
 
     .stat-content {
@@ -421,42 +437,43 @@
     
     .minimal-table {
         background: white;
-        border-radius: 12px;
+        border-radius: 16px;
         overflow: hidden;
         box-shadow: 0 2px 12px rgba(0, 0, 0, 0.04);
         border: none;
     }
-    
+
     .minimal-table thead th {
         background: #f8fafc;
         border: none;
-        padding: 20px 16px;
+        border-bottom: 2px solid #e5e7eb;
+        padding: 16px;
         font-weight: 600;
-        font-size: 14px;
+        font-size: 13px;
         color: #475569;
         text-transform: uppercase;
         letter-spacing: 0.5px;
     }
-    
+
     .minimal-table tbody td {
         border: none;
-        padding: 20px 16px;
+        padding: 16px;
         border-bottom: 1px solid #f1f5f9;
         vertical-align: middle;
     }
-    
+
     .minimal-table tbody tr:last-child td {
         border-bottom: none;
     }
-    
+
     .minimal-table tbody tr:hover {
         background: #f8fafc;
     }
     
     .request-id {
-        font-weight: 600;
+        font-weight: 700;
         color: #1e293b;
-        font-size: 16px;
+        font-size: 15px;
     }
     
     .Staff-name {
@@ -472,105 +489,125 @@
     }
     
     .status-badge {
-        padding: 8px 16px;
+        padding: 0.5rem 1rem;
         border-radius: 20px;
-        font-size: 12px;
+        font-size: 11px;
         font-weight: 600;
         display: inline-flex;
         align-items: center;
-        gap: 6px;
+        gap: 0.5rem;
+        text-transform: uppercase;
+        letter-spacing: 0.8px;
+        white-space: nowrap;
+        box-shadow: 0 2px 8px rgba(0, 0, 0, 0.08);
+        border: 1.5px solid;
+        transition: all 0.2s ease;
     }
-    
-    .status-pending {
-        background: #f59e0b;
-        color: white;
+
+    .status-badge i {
+        font-size: 13px;
+        font-weight: 700;
     }
-    
-    .status-approved {
-        background: #10b981;
-        color: white;
+
+    .status-badge:hover {
+        transform: translateY(-1px);
+        box-shadow: 0 4px 12px rgba(0, 0, 0, 0.12);
     }
-    
-    .status-rejected {
-        background: #ef4444;
-        color: white;
-    }
-    
+
+    /* Professional Status Color Scheme - Colored Text with Transparent Background */
     .status-draft {
-        background: #64748b;
-        color: white;
+        background-color: transparent;
+        color: #64748b;
+        border-color: #cbd5e1;
+    }
+
+    .status-pending {
+        background-color: transparent;
+        color: #d97706;
+        border-color: #f59e0b;
+    }
+
+    .status-approved {
+        background-color: transparent;
+        color: #059669;
+        border-color: #10b981;
     }
 
     .status-completed {
-        background: #7c3aed;
-        color: white;
+        background-color: transparent;
+        color: #2563eb;
+        border-color: #3b82f6;
+    }
+
+    .status-rejected {
+        background-color: transparent;
+        color: #dc2626;
+        border-color: #ef4444;
     }
 
     .status-cancelled {
-        background: #dc2626;
-        color: white;
+        background-color: transparent;
+        color: #6b7280;
+        border-color: #9ca3af;
     }
     
     .action-btn {
-        padding: 8px 16px;
+        width: 36px;
+        height: 36px;
         border-radius: 8px;
-        font-size: 12px;
-        font-weight: 500;
-        border: 1px solid;
+        font-size: 16px;
+        border: none;
         transition: all 0.2s ease;
-        display: flex;
+        display: inline-flex;
         align-items: center;
-        gap: 6px;
         justify-content: center;
-        min-width: 100px;
         text-decoration: none;
+        cursor: pointer;
     }
-    
+
     .action-btn:hover {
-        transform: translateY(-1px);
+        transform: translateY(-2px);
         box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
         text-decoration: none;
     }
-    
+
+    /* UN Color Scheme for Action Buttons */
     .btn-view {
-        background: #f0f9ff;
-        border-color: #0ea5e9;
-        color: #0c4a6e;
+        background-color: #009EDB; /* UN Blue */
+        color: white;
     }
-    
+
     .btn-view:hover {
-        background: #0ea5e9;
+        background-color: #0084c7;
         color: white;
     }
-    
+
     .btn-edit {
-        background: #dcfce7;
-        border-color: #16a34a;
-        color: #15803d;
-    }
-    
-    .btn-edit:hover {
-        background: #16a34a;
+        background-color: #72BF44; /* UN Green */
         color: white;
     }
-    
-    .btn-cancel {
-        background: #fef2f2;
-        border-color: #ef4444;
-        color: #dc2626;
+
+    .btn-edit:hover {
+        background-color: #5da936;
+        color: white;
     }
-    
+
+    .btn-cancel {
+        background-color: #EB1C24; /* UN Red */
+        color: white;
+    }
+
     .btn-cancel:hover {
-        background: #ef4444;
+        background-color: #d01018;
         color: white;
     }
     
     .amount-details {
         background: #f8fafc;
         border: 1px solid #e2e8f0;
-        border-radius: 8px;
-        padding: 8px 12px;
-        font-size: 13px;
+        border-radius: 6px;
+        padding: 6px 10px;
+        font-size: 12px;
         color: #475569;
         font-weight: 500;
     }
@@ -614,6 +651,7 @@
     .request-date {
         font-size: 13px;
         color: #64748b;
+        margin-top: 2px;
     }
 
     .create-btn {
@@ -1020,6 +1058,29 @@
     </div>
     
     <script>
+        // Filter by status card click
+        function filterByStatus(statusType) {
+            const statusFilter = document.getElementById('statusFilter');
+            const form = document.getElementById('filterForm');
+
+            if (statusType === 'all') {
+                // Clear all filters and redirect to base page
+                window.location.href = '/Modules/RefundManagement/Requests';
+            } else if (statusType === 'pending') {
+                // Show first pending status - PendingSupervisor
+                statusFilter.value = '@((int)RefundRequestStatus.PendingSupervisor)';
+                form.submit();
+            } else if (statusType === 'completed') {
+                // Show completed status
+                statusFilter.value = '@((int)RefundRequestStatus.Completed)';
+                form.submit();
+            } else if (statusType === 'cancelled') {
+                // Show cancelled status
+                statusFilter.value = '@((int)RefundRequestStatus.Cancelled)';
+                form.submit();
+            }
+        }
+
         // Auto-submit form on filter change
         document.addEventListener('DOMContentLoaded', function() {
             // Handle select and date input changes
@@ -1029,7 +1090,7 @@
                     document.getElementById('filterForm').submit();
                 });
             });
-            
+
             // Handle search input with debounce
             let searchTimeout;
             const searchInput = document.querySelector('.filter-search-input');
@@ -1040,7 +1101,7 @@
                         document.getElementById('filterForm').submit();
                     }, 500); // Wait 500ms after user stops typing
                 });
-                
+
                 // Also submit on Enter key
                 searchInput.addEventListener('keypress', function(e) {
                     if (e.key === 'Enter') {
@@ -1055,7 +1116,7 @@
 
     <!-- Statistics Cards -->
     <div class="stats-grid mb-3">
-        <div class="stat-card">
+        <div class="stat-card @(Model.SelectedStatus == null ? "active" : "")" onclick="filterByStatus('all')" title="Click to show all requests">
             <div class="stat-content">
                 <div class="stat-icon stat-icon-primary">
                     <i class="bi bi-collection"></i>
@@ -1067,7 +1128,14 @@
             </div>
         </div>
 
-        <div class="stat-card">
+        @{
+            var isPendingActive = Model.SelectedStatus == RefundRequestStatus.PendingSupervisor ||
+                                  Model.SelectedStatus == RefundRequestStatus.PendingBudgetOfficer ||
+                                  Model.SelectedStatus == RefundRequestStatus.PendingStaffClaimsUnit ||
+                                  Model.SelectedStatus == RefundRequestStatus.PendingPaymentApproval;
+        }
+
+        <div class="stat-card @(isPendingActive ? "active" : "")" onclick="filterByStatus('pending')" title="Click to show pending requests">
             <div class="stat-content">
                 <div class="stat-icon stat-icon-warning">
                     <i class="bi bi-clock"></i>
@@ -1079,7 +1147,7 @@
             </div>
         </div>
 
-        <div class="stat-card">
+        <div class="stat-card @(Model.SelectedStatus == RefundRequestStatus.Completed ? "active" : "")" onclick="filterByStatus('completed')" title="Click to show completed requests">
             <div class="stat-content">
                 <div class="stat-icon stat-icon-success">
                     <i class="bi bi-check-circle"></i>
@@ -1091,7 +1159,7 @@
             </div>
         </div>
 
-        <div class="stat-card">
+        <div class="stat-card @(Model.SelectedStatus == RefundRequestStatus.Cancelled ? "active" : "")" onclick="filterByStatus('cancelled')" title="Click to show cancelled requests">
             <div class="stat-content">
                 <div class="stat-icon stat-icon-danger">
                     <i class="bi bi-x-circle"></i>
@@ -1108,7 +1176,7 @@
     @if (Model.RefundRequests.Any())
     {
         <div class="minimal-table">
-            <table class="table table-hover mb-0">
+            <table class="table table-hover align-middle mb-0">
                 <thead>
                     <tr>
                         <th>Request Info</th>
@@ -1119,7 +1187,7 @@
                         <th>Staff Details</th>
                         <th>Financial Details</th>
                         <th>Status</th>
-                        <th>Actions</th>
+                        <th class="text-center">Actions</th>
                     </tr>
                 </thead>
                 <tbody>
@@ -1127,7 +1195,7 @@
                     {
                         <tr>
                             <td>
-                                <div class="request-id">Request #@request.Id</div>
+                                <div class="request-id">#@request.Id</div>
                                 <div class="request-date">@request.RequestDate.ToString("MMM dd, yyyy")</div>
                             </td>
                             @if (Model.IsAdmin)
@@ -1161,20 +1229,17 @@
                                 </span>
                             </td>
                             <td>
-                                <div class="d-flex gap-2">
-                                    <a href="/Modules/RefundManagement/Requests/View/@request.Id" class="action-btn btn-view">
+                                <div class="d-flex gap-2 justify-content-center">
+                                    <a href="/Modules/RefundManagement/Requests/View/@request.Id" class="action-btn btn-view" title="View Details">
                                         <i class="bi bi-eye"></i>
-                                        <span>View</span>
                                     </a>
                                     @if (request.Status == RefundRequestStatus.Draft)
                                     {
-                                        <a href="/Modules/RefundManagement/Requests/Edit/@request.Id" class="action-btn btn-edit">
+                                        <a href="/Modules/RefundManagement/Requests/Edit/@request.Id" class="action-btn btn-edit" title="Edit">
                                             <i class="bi bi-pencil"></i>
-                                            <span>Edit</span>
                                         </a>
-                                        <a href="#" class="action-btn btn-cancel" onclick="cancelRequest(@request.Id)">
-                                            <i class="bi bi-x"></i>
-                                            <span>Cancel</span>
+                                        <a href="#" class="action-btn btn-cancel" onclick="cancelRequest(@request.Id); return false;" title="Cancel">
+                                            <i class="bi bi-x-circle"></i>
                                         </a>
                                     }
                                 </div>

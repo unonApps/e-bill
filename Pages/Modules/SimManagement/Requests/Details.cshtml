@@ -396,6 +396,18 @@
                     </button>
                 </li>
                 <li class="nav-item" role="presentation">
+                    <button class="nav-link" id="supervisor-approval-tab" data-bs-toggle="tab" data-bs-target="#supervisor-approval"
+                            type="button" role="tab" aria-controls="supervisor-approval" aria-selected="false">
+                        <i class="bi bi-check-circle"></i>Supervisor Approval
+                    </button>
+                </li>
+                <li class="nav-item" role="presentation">
+                    <button class="nav-link" id="icts-processing-tab" data-bs-toggle="tab" data-bs-target="#icts-processing"
+                            type="button" role="tab" aria-controls="icts-processing" aria-selected="false">
+                        <i class="bi bi-gear-fill"></i>ICTS Processing
+                    </button>
+                </li>
+                <li class="nav-item" role="presentation">
                     <button class="nav-link" id="history-tab" data-bs-toggle="tab" data-bs-target="#history"
                             type="button" role="tab" aria-controls="history" aria-selected="false">
                         <i class="bi bi-clock-history"></i>History
@@ -625,6 +637,252 @@
                                     </div>
                                 }
                             </div>
+                        </div>
+                    }
+                </div>
+
+                <!-- Supervisor Approval Tab -->
+                <div class="tab-pane fade" id="supervisor-approval" role="tabpanel" aria-labelledby="supervisor-approval-tab">
+                    @if (!string.IsNullOrEmpty(Model.SimRequest.MobileService) ||
+                         !string.IsNullOrEmpty(Model.SimRequest.SupervisorName) ||
+                         !string.IsNullOrEmpty(Model.SimRequest.SupervisorRemarks))
+                    {
+                        <!-- Class of Service Section -->
+                        @if (!string.IsNullOrEmpty(Model.SimRequest.MobileService))
+                        {
+                            <div class="detail-group">
+                                <h6 class="section-header">
+                                    <i class="bi bi-gear section-icon"></i>Class of Service
+                                </h6>
+                                <div class="row g-3">
+                                    <div class="col-md-12">
+                                        <div class="detail-label">Mobile Service</div>
+                                        <div class="detail-value detail-value-primary">@Model.SimRequest.MobileService</div>
+                                    </div>
+                                    @if (!string.IsNullOrEmpty(Model.SimRequest.MobileServiceAllowance))
+                                    {
+                                        <div class="col-md-6">
+                                            <div class="detail-label">Mobile Service Allowance</div>
+                                            <div class="detail-value">@Model.SimRequest.MobileServiceAllowance USD</div>
+                                        </div>
+                                    }
+                                    @if (!string.IsNullOrEmpty(Model.SimRequest.HandsetAllowance))
+                                    {
+                                        <div class="col-md-6">
+                                            <div class="detail-label">Handset Allowance</div>
+                                            <div class="detail-value">@Model.SimRequest.HandsetAllowance USD</div>
+                                        </div>
+                                    }
+                                </div>
+                            </div>
+                        }
+
+                        <!-- Supervisor Information Section -->
+                        @if (!string.IsNullOrEmpty(Model.SimRequest.SupervisorName) || !string.IsNullOrEmpty(Model.SimRequest.SupervisorEmail))
+                        {
+                            <div class="detail-group">
+                                <h6 class="section-header">
+                                    <i class="bi bi-person-check section-icon"></i>Supervisor Information
+                                </h6>
+                                <div class="row g-3">
+                                    @if (!string.IsNullOrEmpty(Model.SimRequest.SupervisorName))
+                                    {
+                                        <div class="col-md-6">
+                                            <div class="detail-label">Supervisor Name</div>
+                                            <div class="detail-value">@Model.SimRequest.SupervisorName</div>
+                                        </div>
+                                    }
+                                    @if (!string.IsNullOrEmpty(Model.SimRequest.SupervisorEmail))
+                                    {
+                                        <div class="col-md-6">
+                                            <div class="detail-label">Supervisor Email</div>
+                                            <div class="detail-value">@Model.SimRequest.SupervisorEmail</div>
+                                        </div>
+                                    }
+                                    @if (!string.IsNullOrEmpty(Model.SimRequest.SupervisorRemarks))
+                                    {
+                                        <div class="col-12">
+                                            <div class="detail-label">Supervisor Remarks</div>
+                                            <div class="detail-value" style="background: #f8fafc; padding: 1rem; border-radius: 8px; border: 1px solid #e2e8f0;">
+                                                @Model.SimRequest.SupervisorRemarks
+                                            </div>
+                                        </div>
+                                    }
+                                </div>
+                            </div>
+                        }
+                    }
+                    else
+                    {
+                        <!-- No Supervisor Approval Yet -->
+                        <div class="text-center py-5">
+                            <div class="mb-3">
+                                <i class="bi bi-hourglass-split" style="font-size: 3rem; color: #cbd5e1;"></i>
+                            </div>
+                            <h5 class="text-muted mb-2">Pending Supervisor Approval</h5>
+                            <p class="text-muted" style="font-size: 0.875rem;">
+                                The supervisor has not yet reviewed and approved this request.
+                            </p>
+                        </div>
+                    }
+                </div>
+
+                <!-- ICTS Processing Tab -->
+                <div class="tab-pane fade" id="icts-processing" role="tabpanel" aria-labelledby="icts-processing-tab">
+                    @if (!string.IsNullOrEmpty(Model.SimRequest.SimSerialNo) ||
+                         !string.IsNullOrEmpty(Model.SimRequest.AssignedNo) ||
+                         !string.IsNullOrEmpty(Model.SimRequest.IctsRemark))
+                    {
+                        <!-- SIM Details Section -->
+                        <div class="detail-group">
+                            <h6 class="section-header">
+                                <i class="bi bi-sim section-icon"></i>SIM Details
+                            </h6>
+                            <div class="row g-3">
+                                @if (!string.IsNullOrEmpty(Model.SimRequest.SimSerialNo))
+                                {
+                                    <div class="col-md-6">
+                                        <div class="detail-label">SIM Serial No</div>
+                                        <div class="detail-value detail-value-primary">@Model.SimRequest.SimSerialNo</div>
+                                    </div>
+                                }
+                                @if (!string.IsNullOrEmpty(Model.SimRequest.ServiceRequestNo))
+                                {
+                                    <div class="col-md-6">
+                                        <div class="detail-label">Service Request No</div>
+                                        <div class="detail-value">@Model.SimRequest.ServiceRequestNo</div>
+                                    </div>
+                                }
+                                @if (!string.IsNullOrEmpty(Model.SimRequest.SimPuk))
+                                {
+                                    <div class="col-md-6">
+                                        <div class="detail-label">SIM PUK</div>
+                                        <div class="detail-value">@Model.SimRequest.SimPuk</div>
+                                    </div>
+                                }
+                                @if (!string.IsNullOrEmpty(Model.SimRequest.AssignedNo))
+                                {
+                                    <div class="col-md-6">
+                                        <div class="detail-label">Assigned Number</div>
+                                        <div class="detail-value detail-value-primary">@Model.SimRequest.AssignedNo</div>
+                                    </div>
+                                }
+                            </div>
+                        </div>
+
+                        <!-- Line Information Section -->
+                        @if (!string.IsNullOrEmpty(Model.SimRequest.LineType) || !string.IsNullOrEmpty(Model.SimRequest.LineUsage))
+                        {
+                            <div class="detail-group">
+                                <h6 class="section-header">
+                                    <i class="bi bi-phone section-icon"></i>Line Information
+                                </h6>
+                                <div class="row g-3">
+                                    @if (!string.IsNullOrEmpty(Model.SimRequest.LineType))
+                                    {
+                                        <div class="col-md-6">
+                                            <div class="detail-label">Line Type</div>
+                                            <div class="detail-value">@Model.SimRequest.LineType</div>
+                                        </div>
+                                    }
+                                    @if (!string.IsNullOrEmpty(Model.SimRequest.LineUsage))
+                                    {
+                                        <div class="col-md-6">
+                                            <div class="detail-label">Line Usage</div>
+                                            <div class="detail-value">@Model.SimRequest.LineUsage</div>
+                                        </div>
+                                    }
+                                </div>
+                            </div>
+                        }
+
+                        <!-- Processing Dates Section -->
+                        @if (Model.SimRequest.SpNotifiedDate.HasValue || Model.SimRequest.CollectionNotifiedDate.HasValue || Model.SimRequest.SimCollectedDate.HasValue)
+                        {
+                            <div class="detail-group">
+                                <h6 class="section-header">
+                                    <i class="bi bi-calendar-check section-icon"></i>Processing Dates
+                                </h6>
+                                <div class="row g-3">
+                                    @if (Model.SimRequest.SpNotifiedDate.HasValue)
+                                    {
+                                        <div class="col-md-4">
+                                            <div class="detail-label">SP Notified Date</div>
+                                            <div class="detail-value">@Model.SimRequest.SpNotifiedDate.Value.ToString("MMM dd, yyyy")</div>
+                                        </div>
+                                    }
+                                    @if (Model.SimRequest.CollectionNotifiedDate.HasValue)
+                                    {
+                                        <div class="col-md-4">
+                                            <div class="detail-label">Collection Notified Date</div>
+                                            <div class="detail-value">@Model.SimRequest.CollectionNotifiedDate.Value.ToString("MMM dd, yyyy")</div>
+                                        </div>
+                                    }
+                                    @if (Model.SimRequest.SimCollectedDate.HasValue)
+                                    {
+                                        <div class="col-md-4">
+                                            <div class="detail-label">SIM Collected Date</div>
+                                            <div class="detail-value">@Model.SimRequest.SimCollectedDate.Value.ToString("MMM dd, yyyy")</div>
+                                        </div>
+                                    }
+                                </div>
+                            </div>
+                        }
+
+                        <!-- Collection Information Section -->
+                        @if (!string.IsNullOrEmpty(Model.SimRequest.SimIssuedBy) || !string.IsNullOrEmpty(Model.SimRequest.SimCollectedBy))
+                        {
+                            <div class="detail-group">
+                                <h6 class="section-header">
+                                    <i class="bi bi-people section-icon"></i>Collection Information
+                                </h6>
+                                <div class="row g-3">
+                                    @if (!string.IsNullOrEmpty(Model.SimRequest.SimIssuedBy))
+                                    {
+                                        <div class="col-md-6">
+                                            <div class="detail-label">SIM Issued By</div>
+                                            <div class="detail-value">@Model.SimRequest.SimIssuedBy</div>
+                                        </div>
+                                    }
+                                    @if (!string.IsNullOrEmpty(Model.SimRequest.SimCollectedBy))
+                                    {
+                                        <div class="col-md-6">
+                                            <div class="detail-label">SIM Collected By</div>
+                                            <div class="detail-value">@Model.SimRequest.SimCollectedBy</div>
+                                        </div>
+                                    }
+                                </div>
+                            </div>
+                        }
+
+                        <!-- ICTS Remarks Section -->
+                        @if (!string.IsNullOrEmpty(Model.SimRequest.IctsRemark))
+                        {
+                            <div class="detail-group">
+                                <h6 class="section-header">
+                                    <i class="bi bi-chat-square-text section-icon"></i>ICTS Remarks
+                                </h6>
+                                <div class="row g-3">
+                                    <div class="col-12">
+                                        <div class="detail-value" style="background: #f8fafc; padding: 1rem; border-radius: 8px; border: 1px solid #e2e8f0;">
+                                            @Model.SimRequest.IctsRemark
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+                        }
+                    }
+                    else
+                    {
+                        <!-- No ICTS Processing Yet -->
+                        <div class="text-center py-5">
+                            <div class="mb-3">
+                                <i class="bi bi-hourglass-split" style="font-size: 3rem; color: #cbd5e1;"></i>
+                            </div>
+                            <h5 class="text-muted mb-2">Pending ICTS Processing</h5>
+                            <p class="text-muted" style="font-size: 0.875rem;">
+                                ICTS has not yet processed this request.
+                            </p>
                         </div>
                     }
                 </div>

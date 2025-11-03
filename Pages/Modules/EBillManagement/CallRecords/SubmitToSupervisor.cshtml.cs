@@ -18,19 +18,25 @@ namespace TAB.Web.Pages.Modules.EBillManagement.CallRecords
         private readonly ICallLogVerificationService _verificationService;
         private readonly IClassOfServiceCalculationService _calculationService;
         private readonly IDocumentManagementService _documentService;
+        private readonly IEnhancedEmailService _emailService;
+        private readonly ILogger<SubmitToSupervisorModel> _logger;
 
         public SubmitToSupervisorModel(
             ApplicationDbContext context,
             UserManager<ApplicationUser> userManager,
             ICallLogVerificationService verificationService,
             IClassOfServiceCalculationService calculationService,
-            IDocumentManagementService documentService)
+            IDocumentManagementService documentService,
+            IEnhancedEmailService emailService,
+            ILogger<SubmitToSupervisorModel> logger)
         {
             _context = context;
             _userManager = userManager;
             _verificationService = verificationService;
             _calculationService = calculationService;
             _documentService = documentService;
+            _emailService = emailService;
+            _logger = logger;
         }
 
         public List<CallRecord> CallRecordsToSubmit { get; set; } = new();
@@ -45,6 +51,10 @@ namespace TAB.Web.Pages.Modules.EBillManagement.CallRecords
         public decimal OverageAmount { get; set; }
         public int CallMonth { get; set; }
         public int CallYear { get; set; }
+
+        // Phone-Level Overage Information
+        public List<PhoneOverageInfo> PhoneOverages { get; set; } = new();
+        public bool HasAnyPhoneOverage => PhoneOverages.Any(p => p.HasOverage);
 
         [TempData]
         public string? StatusMessage { get; set; }
@@ -126,11 +136,14 @@ namespace TAB.Web.Pages.Modules.EBillManagement.CallRecords
             // Calculate Personal calls cost from all selected calls (for display only, not submitted)
             PersonalCallsCost = allSelectedCalls.Where(c => c.VerificationType == "Personal").Sum(c => c.CallCostUSD);
 
-            // Get monthly allowance from Class of Service
+            // Get monthly allowance from Class of Service (kept for backward compatibility)
             var allowanceNullable = await _calculationService.GetAllowanceLimitAsync(UserIndexNumber);
             MonthlyAllowance = allowanceNullable ?? 0; // 0 means unlimited
 
-            // Check for overage (only if allowance is set and official calls exceed it)
+            // UPDATED: Calculate overage PER PHONE/EXTENSION (not per user)
+            await CalculatePhoneLevelOverageAsync(CallRecordsToSubmit);
+
+            // Legacy overage calculation (kept for backward compatibility with old UI)
             if (MonthlyAllowance > 0 && OfficialCallsCost > MonthlyAllowance)
             {
                 HasOverage = true;
@@ -140,7 +153,11 @@ namespace TAB.Web.Pages.Modules.EBillManagement.CallRecords
             return Page();
         }
 
-        public async Task<IActionResult> OnPostAsync(List<int> callRecordIds, string? overageJustification, IFormFile? overageDocument)
+        public async Task<IActionResult> OnPostAsync(
+            List<int> callRecordIds,
+            string? overageJustification,
+            IFormFile? overageDocument,
+            List<PhoneOverageJustificationDto>? phoneOverageJustifications)
         {
             var user = await _userManager.GetUserAsync(User);
             if (user == null)
@@ -208,6 +225,8 @@ namespace TAB.Web.Pages.Modules.EBillManagement.CallRecords
 
                 // Get or create verifications for each call record
                 var verificationIds = new List<int>();
+                var alreadySubmittedCalls = new List<int>();
+
                 foreach (var callRecordId in callRecordIds)
                 {
                     var existingVerification = await _context.CallLogVerifications
@@ -215,6 +234,16 @@ namespace TAB.Web.Pages.Modules.EBillManagement.CallRecords
 
                     if (existingVerification != null)
                     {
+                        // Check if already submitted and not in a resubmittable state
+                        if (existingVerification.SubmittedToSupervisor &&
+                            (existingVerification.ApprovalStatus == "Pending" ||
+                             existingVerification.ApprovalStatus == "Approved" ||
+                             existingVerification.ApprovalStatus == "PartiallyApproved"))
+                        {
+                            alreadySubmittedCalls.Add(callRecordId);
+                            continue; // Skip this one
+                        }
+
                         verificationIds.Add(existingVerification.Id);
                     }
                     else
@@ -244,6 +273,24 @@ namespace TAB.Web.Pages.Modules.EBillManagement.CallRecords
                     }
                 }
 
+                // Check if any calls were skipped because they're already submitted
+                if (alreadySubmittedCalls.Any())
+                {
+                    if (!verificationIds.Any())
+                    {
+                        // All calls were already submitted
+                        StatusMessage = "All selected calls have already been submitted to supervisor and cannot be resubmitted.";
+                        StatusMessageClass = "warning";
+                        return RedirectToPage("/Modules/EBillManagement/CallRecords/MyCallLogs");
+                    }
+                    else
+                    {
+                        // Some were already submitted, proceed with the rest
+                        _logger.LogWarning("Skipped {Count} already-submitted calls. Proceeding with {RemainingCount} calls.",
+                            alreadySubmittedCalls.Count, verificationIds.Count);
+                    }
+                }
+
                 // If overage, upload document and attach to verifications
                 if (hasOverage && overageDocument != null)
                 {
@@ -269,15 +316,63 @@ namespace TAB.Web.Pages.Modules.EBillManagement.CallRecords
                     await _context.SaveChangesAsync();
                 }
 
+                // NEW: Save phone-level overage justifications
+                if (phoneOverageJustifications != null && phoneOverageJustifications.Any())
+                {
+                    var callMonth = callRecords.First().CallMonth;
+                    var callYear = callRecords.First().CallYear;
+
+                    await SavePhoneOverageJustificationsAsync(
+                        phoneOverageJustifications,
+                        ebillUser.IndexNumber,
+                        callMonth,
+                        callYear);
+
+                    _logger.LogInformation("Saved {Count} phone overage justifications for user {IndexNumber}",
+                        phoneOverageJustifications.Count, ebillUser.IndexNumber);
+                }
+
                 // Submit to supervisor
                 var submittedCount = await _verificationService.SubmitToSupervisorAsync(
                     verificationIds,
                     ebillUser.IndexNumber);
 
+                // Send email notifications
+                try
+                {
+                    // Get supervisor details
+                    var supervisorUser = await _context.EbillUsers
+                        .FirstOrDefaultAsync(u => u.IndexNumber == ebillUser.SupervisorIndexNumber);
+
+                    if (supervisorUser != null)
+                    {
+                        // 1. Send confirmation email to staff
+                        await SendSubmittedConfirmationEmailAsync(ebillUser, callRecords, supervisorUser, hasOverage, monthlyAllowance, officialCallsCost, overageJustification);
+
+                        // 2. Send notification email to supervisor
+                        await SendSupervisorNotificationEmailAsync(ebillUser, callRecords, supervisorUser, hasOverage, monthlyAllowance, officialCallsCost, overageJustification);
+
+                        _logger.LogInformation("Call log submission emails sent successfully for user {IndexNumber}", ebillUser.IndexNumber);
+                    }
+                }
+                catch (Exception emailEx)
+                {
+                    _logger.LogError(emailEx, "Failed to send submission emails for user {IndexNumber}", ebillUser.IndexNumber);
+                    // Don't fail the workflow if email fails
+                }
+
                 StatusMessage = $"Successfully submitted {submittedCount} call verifications to your supervisor for approval.";
+                if (alreadySubmittedCalls.Any())
+                {
+                    StatusMessage += $" Note: {alreadySubmittedCalls.Count} call(s) were skipped because they were already submitted.";
+                }
                 if (hasOverage)
                 {
                     StatusMessage += " Your overage justification and supporting document have been included.";
+                }
+                if (phoneOverageJustifications != null && phoneOverageJustifications.Any())
+                {
+                    StatusMessage += $" Submitted {phoneOverageJustifications.Count} extension-level overage justification(s).";
                 }
                 StatusMessageClass = "success";
                 return RedirectToPage("/Modules/EBillManagement/CallRecords/MyCallLogs");
@@ -289,5 +384,294 @@ namespace TAB.Web.Pages.Modules.EBillManagement.CallRecords
                 return RedirectToPage(new { ids = string.Join(",", callRecordIds) });
             }
         }
+
+        /// <summary>
+        /// Saves phone overage justifications to the database
+        /// </summary>
+        private async Task SavePhoneOverageJustificationsAsync(
+            List<PhoneOverageJustificationDto> phoneJustifications,
+            string submittedBy,
+            int month,
+            int year)
+        {
+            foreach (var dto in phoneJustifications)
+            {
+                var userPhoneId = dto.UserPhoneId;
+
+                if (userPhoneId <= 0 || string.IsNullOrWhiteSpace(dto.Justification))
+                    continue;
+
+                // Check if justification already exists for this phone/month
+                var existingJustification = await _context.PhoneOverageJustifications
+                    .FirstOrDefaultAsync(j =>
+                        j.UserPhoneId == userPhoneId &&
+                        j.Month == month &&
+                        j.Year == year);
+
+                if (existingJustification != null)
+                {
+                    _logger.LogWarning("Overage justification already exists for UserPhoneId {UserPhoneId} for {Month}/{Year}. Skipping.",
+                        userPhoneId, month, year);
+                    continue;
+                }
+
+                // Get phone details and calculate overage amounts
+                var allowanceLimit = await _calculationService.GetPhoneAllowanceLimitAsync(userPhoneId);
+                if (!allowanceLimit.HasValue || allowanceLimit.Value == 0)
+                    continue; // No limit, no overage
+
+                var totalUsage = await _calculationService.GetPhoneMonthlyUsageAsync(userPhoneId, month, year);
+                var overageAmount = Math.Max(0, totalUsage - allowanceLimit.Value);
+
+                if (overageAmount <= 0)
+                    continue; // No overage, skip
+
+                // Create new justification record
+                var justification = new PhoneOverageJustification
+                {
+                    UserPhoneId = userPhoneId,
+                    Month = month,
+                    Year = year,
+                    AllowanceLimit = allowanceLimit.Value,
+                    TotalUsage = totalUsage,
+                    OverageAmount = overageAmount,
+                    JustificationText = dto.Justification,
+                    SubmittedBy = submittedBy,
+                    SubmittedDate = DateTime.UtcNow,
+                    ApprovalStatus = "Pending"
+                };
+
+                _context.PhoneOverageJustifications.Add(justification);
+                await _context.SaveChangesAsync();
+
+                // Upload document if provided
+                if (dto.Document != null)
+                {
+                    await UploadPhoneOverageDocumentAsync(justification.Id, dto.Document, submittedBy, dto.Justification);
+                }
+
+                _logger.LogInformation("Saved phone overage justification for UserPhoneId {UserPhoneId} for {Month}/{Year}",
+                    userPhoneId, month, year);
+            }
+        }
+
+        /// <summary>
+        /// Uploads a supporting document for phone overage justification
+        /// </summary>
+        private async Task UploadPhoneOverageDocumentAsync(
+            int justificationId,
+            IFormFile document,
+            string uploadedBy,
+            string description)
+        {
+            try
+            {
+                // Create upload directory if it doesn't exist
+                var uploadPath = Path.Combine(Directory.GetCurrentDirectory(), "wwwroot", "uploads", "phone-overage-documents");
+                Directory.CreateDirectory(uploadPath);
+
+                // Generate unique filename
+                var fileExtension = Path.GetExtension(document.FileName);
+                var uniqueFileName = $"{Guid.NewGuid()}{fileExtension}";
+                var filePath = Path.Combine(uploadPath, uniqueFileName);
+
+                // Save file to disk
+                using (var stream = new FileStream(filePath, FileMode.Create))
+                {
+                    await document.CopyToAsync(stream);
+                }
+
+                // Create database record
+                var phoneOverageDoc = new PhoneOverageDocument
+                {
+                    PhoneOverageJustificationId = justificationId,
+                    FileName = document.FileName,
+                    FilePath = $"/uploads/phone-overage-documents/{uniqueFileName}",
+                    FileSize = document.Length,
+                    ContentType = document.ContentType,
+                    Description = description,
+                    UploadedBy = uploadedBy,
+                    UploadedDate = DateTime.UtcNow
+                };
+
+                _context.PhoneOverageDocuments.Add(phoneOverageDoc);
+                await _context.SaveChangesAsync();
+
+                _logger.LogInformation("Uploaded phone overage document for JustificationId {JustificationId}: {FileName}",
+                    justificationId, document.FileName);
+            }
+            catch (Exception ex)
+            {
+                _logger.LogError(ex, "Failed to upload phone overage document for JustificationId {JustificationId}",
+                    justificationId);
+                throw;
+            }
+        }
+
+        /// <summary>
+        /// Calculates overage for each phone/extension separately
+        /// </summary>
+        private async Task CalculatePhoneLevelOverageAsync(List<CallRecord> calls)
+        {
+            PhoneOverages.Clear();
+
+            // Group calls by UserPhoneId
+            var callsByPhone = calls
+                .Where(c => c.UserPhoneId.HasValue)
+                .GroupBy(c => c.UserPhoneId.Value)
+                .ToList();
+
+            foreach (var phoneGroup in callsByPhone)
+            {
+                var userPhoneId = phoneGroup.Key;
+                var phoneCalls = phoneGroup.ToList();
+
+                // Get phone details
+                var userPhone = phoneCalls.First().UserPhone;
+                if (userPhone == null) continue;
+
+                // Get allowance limit for this specific phone
+                var allowanceLimit = await _calculationService.GetPhoneAllowanceLimitAsync(userPhoneId);
+                if (allowanceLimit == null || allowanceLimit == 0) continue; // Unlimited or no limit
+
+                // Calculate total usage for this phone in this month
+                var totalUsage = await _calculationService.GetPhoneMonthlyUsageAsync(
+                    userPhoneId,
+                    CallMonth,
+                    CallYear);
+
+                // Check if overage justification already exists for this phone/month
+                var existingJustification = await _context.PhoneOverageJustifications
+                    .Include(j => j.Documents)
+                    .FirstOrDefaultAsync(j =>
+                        j.UserPhoneId == userPhoneId &&
+                        j.Month == CallMonth &&
+                        j.Year == CallYear);
+
+                var phoneOverage = new PhoneOverageInfo
+                {
+                    UserPhoneId = userPhoneId,
+                    PhoneNumber = userPhone.PhoneNumber,
+                    PhoneType = userPhone.PhoneType,
+                    ClassOfService = userPhone.ClassOfService?.Class,
+                    AllowanceLimit = allowanceLimit.Value,
+                    TotalUsage = totalUsage,
+                    CallCount = phoneCalls.Count,
+                    ExistingJustification = existingJustification
+                };
+
+                PhoneOverages.Add(phoneOverage);
+            }
+
+            // Sort by overage amount (highest first)
+            PhoneOverages = PhoneOverages.OrderByDescending(p => p.OverageAmount).ToList();
+        }
+
+        private async Task SendSubmittedConfirmationEmailAsync(EbillUser staff, List<CallRecord> callRecords, EbillUser supervisor, bool hasOverage, decimal monthlyAllowance, decimal totalAmount, string? justification)
+        {
+            var callMonth = callRecords.First().CallMonth;
+            var callYear = callRecords.First().CallYear;
+            var monthName = new DateTime(callYear, callMonth, 1).ToString("MMMM");
+
+            var overageMessage = hasOverage
+                ? $"⚠ Your calls exceed the monthly allowance by USD {(totalAmount - monthlyAllowance):N2}. Justification has been included."
+                : "✓ Your calls are within the monthly allowance.";
+
+            var overageBackgroundColor = hasOverage ? "#fff3cd" : "#d4edda";
+            var overageBorderColor = hasOverage ? "#ffc107" : "#28a745";
+            var overageTextColor = hasOverage ? "#856404" : "#155724";
+
+            var placeholders = new Dictionary<string, string>
+            {
+                { "StaffName", $"{staff.FirstName} {staff.LastName}" },
+                { "IndexNumber", staff.IndexNumber },
+                { "Month", monthName },
+                { "Year", callYear.ToString() },
+                { "TotalCalls", callRecords.Count.ToString() },
+                { "TotalAmount", totalAmount.ToString("N2") },
+                { "MonthlyAllowance", monthlyAllowance > 0 ? monthlyAllowance.ToString("N2") : "Unlimited" },
+                { "SupervisorName", $"{supervisor.FirstName} {supervisor.LastName}" },
+                { "OverageMessage", overageMessage },
+                { "OverageBackgroundColor", overageBackgroundColor },
+                { "OverageBorderColor", overageBorderColor },
+                { "OverageTextColor", overageTextColor },
+                { "ViewCallLogsLink", $"{Request.Scheme}://{Request.Host}/Modules/EBillManagement/CallRecords/MyCallLogs" },
+                { "Year", DateTime.Now.Year.ToString() }
+            };
+
+            await _emailService.SendTemplatedEmailAsync(
+                to: staff.Email ?? "",
+                templateCode: "CALL_LOG_SUBMITTED_CONFIRMATION",
+                data: placeholders
+            );
+        }
+
+        private async Task SendSupervisorNotificationEmailAsync(EbillUser staff, List<CallRecord> callRecords, EbillUser supervisor, bool hasOverage, decimal monthlyAllowance, decimal totalAmount, string? justification)
+        {
+            var callMonth = callRecords.First().CallMonth;
+            var callYear = callRecords.First().CallYear;
+            var monthName = new DateTime(callYear, callMonth, 1).ToString("MMMM");
+
+            var overageMessage = hasOverage
+                ? $"⚠ OVERAGE: Calls exceed allowance by USD {(totalAmount - monthlyAllowance):N2}"
+                : "✓ Calls are within allowance";
+
+            var overageBackgroundColor = hasOverage ? "#fadbd8" : "#d4edda";
+            var overageBorderColor = hasOverage ? "#dc3545" : "#28a745";
+            var overageTextColor = hasOverage ? "#721c24" : "#155724";
+
+            var placeholders = new Dictionary<string, string>
+            {
+                { "SupervisorName", $"{supervisor.FirstName} {supervisor.LastName}" },
+                { "StaffName", $"{staff.FirstName} {staff.LastName}" },
+                { "IndexNumber", staff.IndexNumber },
+                { "Month", monthName },
+                { "Year", callYear.ToString() },
+                { "TotalCalls", callRecords.Count.ToString() },
+                { "TotalAmount", totalAmount.ToString("N2") },
+                { "MonthlyAllowance", monthlyAllowance > 0 ? monthlyAllowance.ToString("N2") : "Unlimited" },
+                { "OverageMessage", overageMessage },
+                { "OverageBackgroundColor", overageBackgroundColor },
+                { "OverageBorderColor", overageBorderColor },
+                { "OverageTextColor", overageTextColor },
+                { "JustificationText", hasOverage && !string.IsNullOrEmpty(justification) ? justification : "No justification required" },
+                { "ApprovalLink", $"{Request.Scheme}://{Request.Host}/Modules/EBillManagement/CallRecords/SupervisorApprovals" },
+                { "Year", DateTime.Now.Year.ToString() }
+            };
+
+            await _emailService.SendTemplatedEmailAsync(
+                to: supervisor.Email ?? "",
+                templateCode: "CALL_LOG_SUPERVISOR_NOTIFICATION",
+                data: placeholders
+            );
+        }
+    }
+
+    /// <summary>
+    /// Holds overage information for a specific phone/extension
+    /// </summary>
+    public class PhoneOverageInfo
+    {
+        public int UserPhoneId { get; set; }
+        public string PhoneNumber { get; set; } = string.Empty;
+        public string PhoneType { get; set; } = string.Empty;
+        public string? ClassOfService { get; set; }
+        public decimal AllowanceLimit { get; set; }
+        public decimal TotalUsage { get; set; }
+        public decimal OverageAmount => Math.Max(0, TotalUsage - AllowanceLimit);
+        public bool HasOverage => AllowanceLimit > 0 && TotalUsage > AllowanceLimit;
+        public int CallCount { get; set; }
+        public PhoneOverageJustification? ExistingJustification { get; set; }
+        public bool HasExistingJustification => ExistingJustification != null;
+    }
+
+    /// <summary>
+    /// DTO for binding phone overage justification form data
+    /// </summary>
+    public class PhoneOverageJustificationDto
+    {
+        public int UserPhoneId { get; set; }
+        public string Justification { get; set; } = string.Empty;
+        public IFormFile? Document { get; set; }
     }
 }

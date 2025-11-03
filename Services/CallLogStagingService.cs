@@ -5,6 +5,7 @@ using System.Text.Json;
 using System.Threading.Tasks;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Logging;
+using Microsoft.Extensions.Configuration;
 using TAB.Web.Data;
 using TAB.Web.Models;
 
@@ -14,11 +15,22 @@ namespace TAB.Web.Services
     {
         private readonly ApplicationDbContext _context;
         private readonly ILogger<CallLogStagingService> _logger;
+        private readonly IDeadlineManagementService _deadlineService;
+        private readonly IEnhancedEmailService _emailService;
+        private readonly IConfiguration _configuration;
 
-        public CallLogStagingService(ApplicationDbContext context, ILogger<CallLogStagingService> logger)
+        public CallLogStagingService(
+            ApplicationDbContext context,
+            ILogger<CallLogStagingService> logger,
+            IDeadlineManagementService deadlineService,
+            IEnhancedEmailService emailService,
+            IConfiguration configuration)
         {
             _context = context;
             _logger = logger;
+            _deadlineService = deadlineService;
+            _emailService = emailService;
+            _configuration = configuration;
         }
 
         public async Task<StagingBatch> ConsolidateCallLogsAsync(DateTime startDate, DateTime endDate, string createdBy)
@@ -113,6 +125,8 @@ namespace TAB.Web.Services
 
             _context.StagingBatches.Add(batch);
             await _context.SaveChangesAsync();
+
+            _logger.LogInformation("Created batch {BatchId}", batch.Id);
 
             try
             {
@@ -755,6 +769,19 @@ namespace TAB.Web.Services
                 return 0;
             }
 
+            // Load recovery configuration for approval deadline calculation
+            var config = await _context.RecoveryConfigurations
+                .FirstOrDefaultAsync(rc => rc.RuleName == "SystemConfiguration");
+
+            // Calculate approval period (verification period + approval days)
+            DateTime? approvalPeriod = null;
+            if (verificationPeriod.HasValue && config != null && config.DefaultApprovalDays.HasValue)
+            {
+                approvalPeriod = verificationPeriod.Value.AddDays(config.DefaultApprovalDays.Value);
+                _logger.LogInformation("Setting approval period to {ApprovalPeriod} ({Days} days after verification deadline)",
+                    approvalPeriod, config.DefaultApprovalDays);
+            }
+
             var productionRecords = verifiedLogs.Select(l => new CallRecord
             {
                 ExtensionNumber = l.ExtensionNumber,
@@ -769,8 +796,8 @@ namespace TAB.Web.Services
                 CallCostKSHS = l.CallCostKSHS,
                 CallType = l.CallType,
                 CallDestinationType = l.CallDestinationType,
-                CallYear = billingYear,  // Use billing period year
-                CallMonth = billingMonth,  // Use billing period month
+                CallYear = l.CallYear,  // Use year from staging record (original upload)
+                CallMonth = l.CallMonth,  // Use month from staging record (original upload)
                 ResponsibleIndexNumber = l.ResponsibleIndexNumber,
                 PayingIndexNumber = l.PayingIndexNumber,
                 UserPhoneId = l.UserPhoneId,  // Include UserPhone relationship
@@ -778,6 +805,8 @@ namespace TAB.Web.Services
                 IsVerified = false,  // Set to false initially for user verification workflow
                 VerificationDate = null,
                 VerificationPeriod = verificationPeriod,  // Set the verification period deadline
+                ApprovalPeriod = approvalPeriod,  // Set the approval period deadline
+                RevertCount = 0,  // Initialize revert count
                 IsCertified = false,
                 IsProcessed = false,
                 EntryDate = DateTime.UtcNow,
@@ -886,6 +915,38 @@ namespace TAB.Web.Services
             batch.PublishedBy = "System";
 
             await _context.SaveChangesAsync();
+
+            // Create deadline tracking entries if verification period is set
+            if (verificationPeriod.HasValue)
+            {
+                try
+                {
+                    // Create verification deadline tracking
+                    await _deadlineService.CreateVerificationDeadlineAsync(
+                        batchId,
+                        verificationPeriod.Value,
+                        "System");
+
+                    _logger.LogInformation("Created deadline tracking for batch {BatchId} - Verification Period: {VerificationPeriod}",
+                        batchId, verificationPeriod.Value);
+                }
+                catch (Exception ex)
+                {
+                    _logger.LogError(ex, "Error creating deadline tracking for batch {BatchId}", batchId);
+                    // Don't fail the push operation if deadline tracking fails
+                }
+            }
+
+            // Send email notifications to staff members about published records
+            try
+            {
+                await SendPublishedNotificationsAsync(productionRecords, batch, verificationPeriod, approvalPeriod);
+            }
+            catch (Exception ex)
+            {
+                _logger.LogError(ex, "Error sending published notifications for batch {BatchId}", batchId);
+                // Don't fail the push operation if email notifications fail
+            }
 
             _logger.LogInformation("Pushed {Count} verified records to production from batch {BatchId}",
                 productionRecords.Count, batchId);
@@ -1254,6 +1315,143 @@ namespace TAB.Web.Services
                 return "Internal";
             else
                 return "Local";
+        }
+
+        private async Task SendPublishedNotificationsAsync(
+            List<CallRecord> records,
+            StagingBatch batch,
+            DateTime? verificationPeriod,
+            DateTime? approvalPeriod)
+        {
+            try
+            {
+                // Group records by responsible staff member
+                var recordsByStaff = records
+                    .GroupBy(r => r.ResponsibleIndexNumber)
+                    .Where(g => !string.IsNullOrEmpty(g.Key))
+                    .ToList();
+
+                _logger.LogInformation("Sending call log published notifications to {Count} staff members", recordsByStaff.Count);
+
+                foreach (var staffGroup in recordsByStaff)
+                {
+                    var indexNumber = staffGroup.Key;
+                    var staffRecords = staffGroup.ToList();
+
+                    // Get staff information
+                    var staff = await _context.EbillUsers
+                        .Include(e => e.OrganizationEntity)
+                        .FirstOrDefaultAsync(e => e.IndexNumber == indexNumber);
+
+                    if (staff == null || string.IsNullOrEmpty(staff.Email))
+                    {
+                        _logger.LogWarning("Cannot send email to staff {IndexNumber} - user not found or no email", indexNumber);
+                        continue;
+                    }
+
+                    // Get Class of Service limit
+                    decimal monthlyAllowance = 0;
+                    var userPhone = await _context.UserPhones
+                        .Include(up => up.ClassOfService)
+                        .FirstOrDefaultAsync(up => up.IndexNumber == indexNumber && up.IsPrimary);
+
+                    if (userPhone?.ClassOfService != null)
+                    {
+                        monthlyAllowance = userPhone.ClassOfService.AirtimeAllowanceAmount ?? 0;
+                    }
+
+                    // Calculate totals
+                    var totalRecords = staffRecords.Count;
+                    var totalAmount = staffRecords.Sum(r => r.CallCostUSD);
+                    var sourceSystems = string.Join(", ", staffRecords.Select(r => r.SourceSystem).Distinct().OrderBy(s => s));
+
+                    // Calculate Class of Service usage
+                    var allowancePercentage = monthlyAllowance > 0 ? (totalAmount / monthlyAllowance) * 100 : 0;
+                    var allowanceUsageMessage = allowancePercentage > 100
+                        ? $"You have exceeded your Class of Service limit by {allowancePercentage - 100:F0}%"
+                        : $"You have used {allowancePercentage:F0}% of your Class of Service limit";
+
+                    // Get period name - format PeriodCode (e.g., "2024-09") to "September 2024"
+                    string period;
+                    if (batch.BillingPeriod != null && !string.IsNullOrEmpty(batch.BillingPeriod.PeriodCode))
+                    {
+                        // Try to parse PeriodCode (format: "2024-09") to display as "September 2024"
+                        if (DateTime.TryParseExact(batch.BillingPeriod.PeriodCode + "-01", "yyyy-MM-dd", null, System.Globalization.DateTimeStyles.None, out var periodDate))
+                        {
+                            period = periodDate.ToString("MMMM yyyy");
+                        }
+                        else
+                        {
+                            period = batch.BillingPeriod.PeriodCode;
+                        }
+                    }
+                    else
+                    {
+                        period = $"{DateTime.Now:MMMM yyyy}";
+                    }
+
+                    // Format deadlines
+                    var verificationDeadlineText = verificationPeriod.HasValue
+                        ? verificationPeriod.Value.ToString("MMMM dd, yyyy")
+                        : "To be confirmed";
+
+                    var approvalDeadlineText = approvalPeriod.HasValue
+                        ? approvalPeriod.Value.ToString("MMMM dd, yyyy")
+                        : "To be confirmed";
+
+                    // Build verification link
+                    var baseUrl = _configuration["AppSettings:BaseUrl"] ?? "http://localhost:5041";
+                    var verifyLink = $"{baseUrl}/Modules/EBillManagement/CallRecords/MyCallLogs";
+
+                    // Prepare email data
+                    var emailData = new Dictionary<string, string>
+                    {
+                        { "StaffName", staff.FullName },
+                        { "IndexNumber", indexNumber },
+                        { "Period", period },
+                        { "TotalRecords", totalRecords.ToString("N0") },
+                        { "TotalAmount", totalAmount.ToString("N2") },
+                        { "SourceSystems", sourceSystems },
+                        { "VerificationDeadline", verificationDeadlineText },
+                        { "ApprovalDeadline", approvalDeadlineText },
+                        { "MonthlyAllowance", monthlyAllowance.ToString("N2") },
+                        { "AllowancePercentage", Math.Min(allowancePercentage, 100).ToString("F0") },
+                        { "AllowanceUsageMessage", allowanceUsageMessage },
+                        { "VerifyCallsLink", verifyLink },
+                        { "SupervisorName", staff.SupervisorName ?? "Not Assigned" },
+                        { "SupervisorEmail", staff.SupervisorEmail ?? "" },
+                        { "Year", DateTime.Now.Year.ToString() }
+                    };
+
+                    // Send email using the template service
+                    var emailSent = await _emailService.SendTemplatedEmailAsync(
+                        to: staff.Email,
+                        templateCode: "CALL_LOG_PUBLISHED",
+                        data: emailData,
+                        createdBy: "System",
+                        relatedEntityType: "StagingBatch",
+                        relatedEntityId: batch.Id.ToString()
+                    );
+
+                    if (emailSent)
+                    {
+                        _logger.LogInformation("Sent call log published notification to {Email} ({IndexNumber}) - {TotalRecords} records, ${TotalAmount:F2}",
+                            staff.Email, indexNumber, totalRecords, totalAmount);
+                    }
+                    else
+                    {
+                        _logger.LogWarning("Failed to send call log published notification to {Email} ({IndexNumber})",
+                            staff.Email, indexNumber);
+                    }
+                }
+
+                _logger.LogInformation("Completed sending {Count} call log published notifications", recordsByStaff.Count);
+            }
+            catch (Exception ex)
+            {
+                _logger.LogError(ex, "Error in SendPublishedNotificationsAsync");
+                throw;
+            }
         }
     }
 }

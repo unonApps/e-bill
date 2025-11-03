@@ -1,0 +1,49 @@
+<!DOCTYPE html>
+<html><head><meta charset="UTF-8"><meta name="viewport" content="width=device-width, initial-scale=1.0"></head>
+<body style="margin: 0; padding: 0; font-family: Arial, sans-serif; background-color: #f4f4f4;">
+    <table width="100%" cellpadding="20" style="background-color: #f4f4f4;"><tr><td align="center">
+        <table width="600" style="background-color: #ffffff; border-radius: 8px;">
+            <tr><td style="background: linear-gradient(135deg, #ff6b6b 0%, #feca57 100%); padding: 30px; text-align: center; color: #ffffff; border-radius: 8px 8px 0 0;">
+                <div style="font-size: 50px; margin-bottom: 10px;">⏰</div>
+                <h1 style="margin: 0; font-size: 24px;">Deadline Approaching</h1>
+            </td></tr>
+            <tr><td style="padding: 30px;">
+                <p style="font-size: 16px; color: #333;">Dear <strong>{{StaffName}}</strong>,</p>
+                <p style="color: #555555; font-size: 14px; line-height: 1.6;">
+                    This is a friendly reminder that you have <strong>unverified call records</strong> for <strong>{{Month}} {{Year}}</strong> that need your attention.
+                </p>
+                <table width="100%" style="background-color: #fff3cd; padding: 20px; margin: 20px 0; border: 2px solid #ffc107; border-radius: 5px;">
+                    <tr><td style="padding: 5px 0; color: #856404;">Period:</td><td style="font-weight: 600; text-align: right;">{{Month}} {{Year}}</td></tr>
+                    <tr><td style="padding: 5px 0; color: #856404;">Unverified Calls:</td><td style="font-weight: 600; font-size: 16px; text-align: right;"><strong>{{UnverifiedCount}}</strong></td></tr>
+                    <tr><td style="padding: 5px 0; color: #856404;">Total Unverified Cost:</td><td style="font-weight: 600; font-size: 16px; color: #dc3545; text-align: right;"><strong>USD {{UnverifiedAmount}}</strong></td></tr>
+                    <tr><td style="padding: 5px 0; color: #856404;">Verification Deadline:</td><td style="font-weight: 600; color: #dc3545; font-size: 16px; text-align: right;"><strong>{{VerificationDeadline}}</strong></td></tr>
+                    <tr><td style="padding: 5px 0; color: #856404;">Days Remaining:</td><td style="font-weight: 600; color: #dc3545; font-size: 16px; text-align: right;"><strong>{{DaysRemaining}}</strong></td></tr>
+                </table>
+                <div style="background-color: #fadbd8; padding: 15px; margin: 20px 0; border-left: 4px solid #dc3545; border-radius: 4px;">
+                    <p style="margin: 0; color: #721c24; font-size: 14px; font-weight: 600;">
+                        Important: If you do not verify and submit your calls before the deadline, they will automatically be classified as PERSONAL calls and you will be responsible for payment.
+                    </p>
+                </div>
+                <div style="background-color: #e3f2fd; padding: 15px; margin: 20px 0; border-left: 4px solid #2196F3; border-radius: 4px;">
+                    <p style="margin: 0 0 10px 0; color: #1976d2; font-size: 14px; font-weight: 600;">
+                        What You Need to Do:
+                    </p>
+                    <ol style="margin: 0; padding-left: 20px; color: #1976d2; font-size: 13px;">
+                        <li>Log in to the TAB System</li>
+                        <li>Go to "My Call Logs"</li>
+                        <li>Verify each call as Personal or Official</li>
+                        <li>Submit official calls to your supervisor for approval</li>
+                    </ol>
+                </div>
+                <div style="text-align: center; margin: 20px 0;">
+                    <a href="{{ViewCallLogsLink}}" style="background-color: #dc3545; color: #ffffff; text-decoration: none; padding: 14px 35px; border-radius: 5px; display: inline-block; font-weight: 600; font-size: 15px;">Verify Calls Now</a>
+                </div>
+            </td></tr>
+            <tr><td style="background-color: #f8f9fa; padding: 20px; text-align: center; border-radius: 0 0 8px 8px;">
+                <p style="color: #999999; font-size: 12px; margin: 0;">© {{Year}} TAB System - Telephone Allowance & Billing</p>
+            </td></tr>
+        </table>
+    </td></tr></table>
+</body></html>
+
+(1 rows affected)

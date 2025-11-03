@@ -1,0 +1,42 @@
+<!DOCTYPE html>
+<html><head><meta charset="UTF-8"><meta name="viewport" content="width=device-width, initial-scale=1.0"></head>
+<body style="margin: 0; padding: 0; font-family: Arial, sans-serif; background-color: #f4f4f4;">
+    <table width="100%" cellpadding="20" style="background-color: #f4f4f4;"><tr><td align="center">
+        <table width="600" style="background-color: #ffffff; border-radius: 8px;">
+            <tr><td style="background: linear-gradient(135deg, #f5576c 0%, #e74c3c 100%); padding: 30px; text-align: center; color: #ffffff; border-radius: 8px 8px 0 0;">
+                <h1 style="margin: 0; font-size: 24px;">⏰ Approval Required</h1>
+            </td></tr>
+            <tr><td style="padding: 30px;">
+                <p style="font-size: 16px; color: #333;">Dear <strong>{{SupervisorName}}</strong>,</p>
+                <p style="color: #555555; font-size: 14px; line-height: 1.6;">
+                    <strong>{{StaffName}}</strong> has submitted their call log verification for <strong>{{Month}} {{Year}}</strong> for your approval.
+                </p>
+                <table width="100%" style="background-color: #fff3cd; padding: 20px; margin: 20px 0; border-radius: 5px;">
+                    <tr><td style="color: #856404; padding: 5px 0;">Staff Name:</td><td style="font-weight: 600; text-align: right;"><strong>{{StaffName}}</strong></td></tr>
+                    <tr><td style="color: #856404; padding: 5px 0;">Index Number:</td><td style="font-weight: 600; text-align: right;">{{IndexNumber}}</td></tr>
+                    <tr><td style="color: #856404; padding: 5px 0;">Period:</td><td style="font-weight: 600; text-align: right;">{{Month}} {{Year}}</td></tr>
+                    <tr><td style="color: #856404; padding: 5px 0;">Total Official Calls:</td><td style="font-weight: 600; text-align: right;">{{TotalCalls}}</td></tr>
+                    <tr><td style="color: #856404; padding: 5px 0;">Total Cost:</td><td style="font-weight: 600; font-size: 16px; text-align: right;"><strong>USD {{TotalAmount}}</strong></td></tr>
+                    <tr><td style="color: #856404; padding: 5px 0;">Monthly Allowance:</td><td style="font-weight: 600; text-align: right;">USD {{MonthlyAllowance}}</td></tr>
+                </table>
+                <div style="background-color: {{OverageBackgroundColor}}; padding: 15px; margin: 20px 0; border-left: 4px solid {{OverageBorderColor}}; border-radius: 4px;">
+                    <p style="margin: 0; color: {{OverageTextColor}}; font-weight: 600;">{{OverageMessage}}</p>
+                    <p style="margin: 10px 0 0 0; color: {{OverageTextColor}}; font-size: 13px;">{{JustificationText}}</p>
+                </div>
+                <div style="background-color: #e3f2fd; padding: 15px; margin: 20px 0; border-left: 4px solid #2196F3; border-radius: 4px;">
+                    <p style="margin: 0; color: #1976d2; font-size: 14px;">
+                        <strong>Action Required:</strong> Please review and approve, partially approve, reject, or revert the submission.
+                    </p>
+                </div>
+                <div style="text-align: center; margin: 20px 0;">
+                    <a href="{{ApprovalLink}}" style="background-color: #f5576c; color: #ffffff; text-decoration: none; padding: 14px 35px; border-radius: 5px; display: inline-block; font-weight: 600; font-size: 15px;">Review & Approve</a>
+                </div>
+            </td></tr>
+            <tr><td style="background-color: #f8f9fa; padding: 20px; text-align: center; border-radius: 0 0 8px 8px;">
+                <p style="color: #999999; font-size: 12px; margin: 0;">© {{Year}} TAB System - Telephone Allowance & Billing</p>
+            </td></tr>
+        </table>
+    </td></tr></table>
+</body></html>
+
+(1 rows affected)

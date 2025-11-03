@@ -5,83 +5,6 @@
 }
 
 <style>
-    /* Dashboard Header Styles */
-    .dashboard-header {
-        background: linear-gradient(135deg, #009EDB 0%, #0084c7 100%);
-        border-radius: 12px;
-        padding: 1.5rem 2rem;
-        margin-bottom: 2rem;
-        color: white;
-        box-shadow: 0 4px 20px rgba(0, 158, 219, 0.2);
-    }
-    
-    .header-content {
-        display: flex;
-        justify-content: space-between;
-        align-items: center;
-        flex-wrap: wrap;
-        gap: 1rem;
-    }
-    
-    .welcome-section {
-        flex: 1;
-    }
-    
-    .dashboard-title {
-        font-size: 1.75rem;
-        font-weight: 600;
-        margin-bottom: 0.3rem;
-        color: white;
-    }
-    
-    .dashboard-subtitle {
-        font-size: 1rem;
-        opacity: 0.95;
-        margin: 0;
-    }
-    
-    .header-actions {
-        display: flex;
-        align-items: center;
-        gap: 1rem;
-    }
-    
-    .current-date {
-        background: rgba(255, 255, 255, 0.2);
-        backdrop-filter: blur(10px);
-        padding: 0.5rem 1rem;
-        border-radius: 8px;
-        display: flex;
-        align-items: center;
-        gap: 0.5rem;
-        font-size: 0.9rem;
-    }
-    
-    .create-org-btn {
-        background: rgba(255, 255, 255, 0.95);
-        color: #009EDB;
-        border: 2px solid rgba(255, 255, 255, 0.3);
-        padding: 10px 20px;
-        border-radius: 8px;
-        text-decoration: none;
-        font-weight: 600;
-        font-size: 14px;
-        transition: all 0.3s ease;
-        display: inline-flex;
-        align-items: center;
-        gap: 8px;
-        backdrop-filter: blur(10px);
-        cursor: pointer;
-    }
-    
-    .create-org-btn:hover {
-        background: white;
-        color: #0084c7;
-        text-decoration: none;
-        transform: translateY(-2px);
-        box-shadow: 0 8px 24px rgba(0, 0, 0, 0.15);
-    }
-    
     /* Professional Filter Section with UN Blue Color Scheme */
     .filter-section {
         background: #ffffff;
@@ -196,152 +119,395 @@
         transform: translateY(0);
     }
     
-    /* Updated Stats Grid */
-    .stats-grid {
-        display: grid;
-        grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
-        gap: 1.5rem;
-        margin-bottom: 2rem;
-    }
-    
+    /* Statistics Cards */
     .stat-card {
         background: white;
         border-radius: 12px;
         padding: 1.5rem;
-        box-shadow: 0 2px 12px rgba(0, 0, 0, 0.06);
-        transition: all 0.3s ease;
-        border: 1px solid #f1f5f9;
+        border: 1px solid #e5e7eb;
+        position: relative;
+        overflow: hidden;
+        transition: all 0.2s;
     }
-    
+
+    .stat-card::before {
+        content: '';
+        position: absolute;
+        top: 0;
+        left: 0;
+        right: 0;
+        height: 4px;
+        background: linear-gradient(90deg, var(--gradient-start), var(--gradient-end));
+    }
+
+    .stat-card:nth-child(1)::before {
+        --gradient-start: #3b82f6;
+        --gradient-end: #60a5fa;
+    }
+
+    .stat-card:nth-child(2)::before {
+        --gradient-start: #10b981;
+        --gradient-end: #34d399;
+    }
+
+    .stat-card:nth-child(3)::before {
+        --gradient-start: #f59e0b;
+        --gradient-end: #fbbf24;
+    }
+
+    .stat-card:nth-child(4)::before {
+        --gradient-start: #06b6d4;
+        --gradient-end: #22d3ee;
+    }
+
     .stat-card:hover {
-        transform: translateY(-4px);
-        box-shadow: 0 8px 24px rgba(0, 0, 0, 0.12);
+        box-shadow: 0 10px 30px rgba(0, 0, 0, 0.1);
+        transform: translateY(-2px);
     }
-    
+
     .stat-content {
         display: flex;
         align-items: center;
-        gap: 1rem;
+        justify-content: space-between;
     }
-    
+
     .stat-icon {
-        width: 56px;
-        height: 56px;
+        width: 50px;
+        height: 50px;
         border-radius: 12px;
         display: flex;
         align-items: center;
         justify-content: center;
-        font-size: 24px;
+        font-size: 1.5rem;
+    }
+
+    .stat-icon-primary {
+        background: linear-gradient(135deg, #3b82f6, #60a5fa);
         color: white;
-        flex-shrink: 0;
     }
-    
-    .stat-icon-primary { 
-        background: linear-gradient(135deg, #009EDB, #0084c7); 
+
+    .stat-icon-success {
+        background: linear-gradient(135deg, #10b981, #34d399);
+        color: white;
     }
-    
-    .stat-icon-success { 
-        background: linear-gradient(135deg, #10b981, #059669); 
+
+    .stat-icon-warning {
+        background: linear-gradient(135deg, #f59e0b, #fbbf24);
+        color: white;
     }
-    
-    .stat-icon-warning { 
-        background: linear-gradient(135deg, #f59e0b, #d97706); 
+
+    .stat-icon-info {
+        background: linear-gradient(135deg, #06b6d4, #22d3ee);
+        color: white;
     }
-    
-    .stat-icon-info { 
-        background: linear-gradient(135deg, #06b6d4, #0891b2); 
-    }
-    
+
     .stat-details {
-        flex: 1;
+        text-align: right;
     }
-    
+
     .stat-number {
-        font-size: 2rem;
+        font-size: 1.75rem;
         font-weight: 700;
-        color: #1e293b;
+        color: #1f2937;
         line-height: 1;
         margin-bottom: 0.25rem;
     }
-    
+
     .stat-label {
         font-size: 0.875rem;
-        color: #64748b;
+        color: #6b7280;
         font-weight: 500;
     }
     
     /* Responsive adjustments */
     @@media (max-width: 768px) {
-        .dashboard-header {
-            padding: 1.25rem;
+        /* Filter section mobile */
+        .card-body.p-4 {
+            padding: 1rem !important;
         }
-        
-        .dashboard-title {
-            font-size: 1.25rem;
+
+        .col-md-4 {
+            flex: 0 0 100%;
+            max-width: 100%;
         }
-        
-        .dashboard-subtitle {
-            font-size: 0.875rem;
+
+        /* Summary Cards - 2 Column Vertical Layout for Tablet */
+        .row.g-3.mb-4 .col-lg-3 {
+            flex: 0 0 calc(50% - 0.5rem);
+            max-width: calc(50% - 0.5rem);
         }
-        
-        .header-content {
+
+        .stat-content {
             flex-direction: column;
             align-items: flex-start;
+            gap: 0.5rem;
         }
-        
-        .header-actions {
-            width: 100%;
-            flex-direction: column;
-            gap: 0.75rem;
+
+        .stat-icon {
+            width: 45px;
+            height: 45px;
+            font-size: 1.25rem;
         }
-        
-        .current-date {
-            width: 100%;
-            justify-content: center;
+
+        .stat-details {
+            text-align: left;
         }
-        
-        .create-org-btn {
-            width: 100%;
-            justify-content: center;
-        }
-        
-        .filter-section {
-            padding: 1rem;
-        }
-        
-        .filter-grid {
-            grid-template-columns: 1fr;
-            gap: 0.75rem;
-        }
-        
-        .filter-actions {
-            grid-column: span 1;
-            flex-direction: column;
-            width: 100%;
-        }
-        
-        .clear-filter-btn {
-            width: 100%;
-            justify-content: center;
-        }
-        
-        .stats-grid {
-            grid-template-columns: repeat(2, 1fr);
-            gap: 1rem;
-        }
-        
-        .stat-card {
-            padding: 1rem;
-        }
-        
+
         .stat-number {
             font-size: 1.5rem;
         }
-        
+
+        .stat-label {
+            font-size: 0.8rem;
+        }
+
+        /* Card Header Mobile */
+        .card-header .d-flex {
+            flex-wrap: wrap;
+            gap: 0.5rem;
+        }
+
+        .card-header .input-group {
+            max-width: 100% !important;
+            width: 100%;
+            margin-top: 0.5rem;
+        }
+
+        /* Transform table to mobile cards */
+        .table-responsive {
+            overflow: visible !important;
+        }
+
+        .table-responsive table {
+            border: none !important;
+        }
+
+        .table-responsive thead {
+            display: none;
+        }
+
+        .table-responsive tbody {
+            display: block;
+        }
+
+        /* Mobile organization cards */
+        .organization-row {
+            display: block !important;
+            background: white;
+            border: 1px solid #e5e7eb;
+            border-radius: 12px;
+            margin-bottom: 1rem;
+            padding: 1rem;
+            box-shadow: 0 1px 3px rgba(0, 0, 0, 0.1);
+        }
+
+        .organization-row td {
+            display: block;
+            border: none;
+            padding: 0.5rem 0 !important;
+        }
+
+        .organization-row td::before {
+            content: attr(data-label);
+            font-weight: 600;
+            color: #64748b;
+            font-size: 0.75rem;
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
+            display: block;
+            margin-bottom: 0.25rem;
+        }
+
+        .organization-row td:first-child::before {
+            content: "Organization";
+        }
+
+        .organization-row td:nth-child(2)::before {
+            content: "Offices";
+        }
+
+        .organization-row td:nth-child(3)::before {
+            content: "Users";
+        }
+
+        .organization-row td:nth-child(4)::before {
+            content: "Status";
+        }
+
+        .organization-row td:last-child::before {
+            content: "Actions";
+        }
+
+        /* Mobile action buttons */
+        .organization-row .btn-group {
+            display: flex !important;
+            flex-direction: row;
+            gap: 0.5rem;
+            width: 100%;
+        }
+
+        .organization-row .btn-group .btn {
+            flex: 1;
+            font-size: 0.875rem;
+        }
+
+        /* Badges wrap better on mobile */
+        .organization-row .badge {
+            font-size: 0.7rem;
+            padding: 2px 6px !important;
+        }
+
+        /* Modal mobile adjustments */
+        .modal-dialog {
+            margin: 0.5rem !important;
+            max-width: calc(100% - 1rem) !important;
+        }
+
+        .modal-header,
+        .modal-body,
+        .modal-footer {
+            padding: 1rem !important;
+        }
+
+        .modal-title {
+            font-size: 1.1rem !important;
+        }
+
+        .modal-footer {
+            flex-direction: column;
+            gap: 0.5rem;
+        }
+
+        .modal-footer .btn {
+            width: 100%;
+            margin: 0 !important;
+        }
+
+        .form-control-modern {
+            height: 42px !important;
+            font-size: 14px !important;
+        }
+
+        .form-label-modern {
+            font-size: 11px !important;
+        }
+
+        /* Page Size Selector Mobile */
+        .d-flex.justify-content-between.align-items-center.mb-3 {
+            flex-direction: column;
+            gap: 1rem;
+            align-items: flex-start !important;
+        }
+
+        /* Pagination Mobile */
+        .pagination {
+            flex-wrap: wrap;
+            gap: 0.25rem;
+        }
+
+        .pagination .page-item {
+            margin: 0.125rem;
+        }
+
+        .pagination .page-link {
+            padding: 0.375rem 0.625rem;
+            font-size: 0.875rem;
+        }
+    }
+
+    @@media (max-width: 576px) {
+        /* Summary Cards - 1 Column Horizontal Layout for Mobile */
+        .row.g-3.mb-4 .col-lg-3 {
+            flex: 0 0 100%;
+            max-width: 100%;
+        }
+
+        .stat-content {
+            flex-direction: row;
+            align-items: center;
+            justify-content: space-between;
+        }
+
         .stat-icon {
-            width: 44px;
-            height: 44px;
-            font-size: 20px;
+            width: 50px;
+            height: 50px;
+            font-size: 22px;
+        }
+
+        .stat-details {
+            text-align: right;
+            flex: 1;
+        }
+
+        .stat-number {
+            font-size: 1.75rem;
+        }
+
+        .stat-label {
+            font-size: 0.875rem;
+        }
+
+        /* Compact filter header */
+        .card-header h6 {
+            font-size: 0.9rem;
+        }
+
+        .card-header .badge {
+            font-size: 0.75rem;
+        }
+
+        /* Modal Adjustments for Mobile */
+        .modal-dialog {
+            margin: 0.5rem;
+        }
+
+        .modal-content {
+            border-radius: 16px !important;
+        }
+
+        .modal-header {
+            padding: 1.5rem 1rem 1rem 1rem !important;
+        }
+
+        .modal-body {
+            padding: 1rem !important;
+        }
+
+        .modal-footer {
+            padding: 1rem !important;
+        }
+
+        .modal-title {
+            font-size: 1.1rem;
+        }
+
+        .form-control-modern {
+            height: 42px;
+            font-size: 14px;
+        }
+
+        .form-label-modern {
+            font-size: 11px;
+        }
+
+        /* Modal icon size */
+        .modal-header .rounded-circle {
+            width: 50px !important;
+            height: 50px !important;
+        }
+
+        .modal-header .rounded-circle i {
+            font-size: 20px !important;
+        }
+
+        /* Modal footer buttons stacked */
+        .modal-footer .d-grid {
+            display: block !important;
+        }
+
+        .modal-footer .d-grid button {
+            width: 100%;
+            margin: 0.25rem 0 !important;
         }
     }
     
@@ -407,133 +573,126 @@
     }
 </style>
 
-<!-- Welcome Banner -->
-<div class="dashboard-header">
-    <div class="header-content">
-        <div class="welcome-section">
-            <h1 class="dashboard-title">
-                <i class="bi bi-building me-2"></i>
-                Welcome Back, @Model.CurrentUserName
-            </h1>
-            <p class="dashboard-subtitle">
-                Manage organizational structure and hierarchy across the system
-            </p>
-        </div>
-        <div class="header-actions">
-            <div class="current-date">
-                <i class="bi bi-calendar3"></i>
-                <span>@DateTime.Now.ToString("dddd, MMMM dd, yyyy")</span>
-            </div>
-            <button type="button" class="create-org-btn" data-bs-toggle="modal" data-bs-target="#organizationModal" onclick="openModal()">
-                <i class="bi bi-plus-circle"></i>
-                <span>Add Organization</span>
-            </button>
-        </div>
-    </div>
-</div>
-
 <!-- Statistics Cards -->
-<div class="stats-grid">
-    <div class="stat-card">
-        <div class="stat-content">
-            <div class="stat-icon stat-icon-primary">
-                <i class="bi bi-building"></i>
-            </div>
-            <div class="stat-details">
-                <div class="stat-number">@Model.TotalOrganizations</div>
-                <div class="stat-label">Total Organizations</div>
-            </div>
-        </div>
-    </div>
-    
-    <div class="stat-card">
-        <div class="stat-content">
-            <div class="stat-icon stat-icon-success">
-                <i class="bi bi-geo-alt"></i>
-            </div>
-            <div class="stat-details">
-                <div class="stat-number">@Model.TotalOffices</div>
-                <div class="stat-label">Total Offices</div>
+<div class="row g-3 mb-4">
+    <div class="col-lg-3 col-md-6">
+        <div class="stat-card">
+            <div class="stat-content">
+                <div class="stat-icon stat-icon-primary">
+                    <i class="bi bi-building"></i>
+                </div>
+                <div class="stat-details">
+                    <div class="stat-number">@Model.TotalOrganizations</div>
+                    <div class="stat-label">Total Organizations</div>
+                </div>
             </div>
         </div>
     </div>
-    
-    <div class="stat-card">
-        <div class="stat-content">
-            <div class="stat-icon stat-icon-warning">
-                <i class="bi bi-people"></i>
-            </div>
-            <div class="stat-details">
-                <div class="stat-number">@Model.TotalUsers</div>
-                <div class="stat-label">Assigned Users</div>
+
+    <div class="col-lg-3 col-md-6">
+        <div class="stat-card">
+            <div class="stat-content">
+                <div class="stat-icon stat-icon-success">
+                    <i class="bi bi-geo-alt"></i>
+                </div>
+                <div class="stat-details">
+                    <div class="stat-number">@Model.TotalOffices</div>
+                    <div class="stat-label">Total Offices</div>
+                </div>
             </div>
         </div>
     </div>
-    
-    <div class="stat-card">
-        <div class="stat-content">
-            <div class="stat-icon stat-icon-info">
-                <i class="bi bi-diagram-3"></i>
+
+    <div class="col-lg-3 col-md-6">
+        <div class="stat-card">
+            <div class="stat-content">
+                <div class="stat-icon stat-icon-warning">
+                    <i class="bi bi-people"></i>
+                </div>
+                <div class="stat-details">
+                    <div class="stat-number">@Model.TotalUsers</div>
+                    <div class="stat-label">Assigned Users</div>
+                </div>
             </div>
-            <div class="stat-details">
-                <div class="stat-number">@Model.TotalSubOffices</div>
-                <div class="stat-label">Total Sub-Offices</div>
+        </div>
+    </div>
+
+    <div class="col-lg-3 col-md-6">
+        <div class="stat-card">
+            <div class="stat-content">
+                <div class="stat-icon stat-icon-info">
+                    <i class="bi bi-diagram-3"></i>
+                </div>
+                <div class="stat-details">
+                    <div class="stat-number">@Model.TotalSubOffices</div>
+                    <div class="stat-label">Total Sub-Offices</div>
+                </div>
             </div>
         </div>
     </div>
 </div>
 
 <!-- Filter Section (Collapsible) -->
-<div class="mb-3">
-    <button class="btn btn-outline-primary" type="button" data-bs-toggle="collapse" data-bs-target="#filterCollapse" aria-expanded="false" aria-controls="filterCollapse">
-        <i class="bi bi-funnel"></i> Show Filters
-    </button>
-</div>
-<div class="collapse" id="filterCollapse">
-<div class="filter-section">
-    <form method="get" class="filter-form" id="filterForm">
-        <div class="filter-grid">
-            <div class="filter-group">
-                <label class="filter-label" for="searchFilter">
-                    <i class="bi bi-search"></i> Search
-                </label>
-                <input type="text" name="SearchTerm" id="searchFilter" class="filter-input filter-search-input" 
-                       placeholder="Organization name or description..." value="@Model.SearchTerm" />
-            </div>
-            
-            <div class="filter-group">
-                <label class="filter-label" for="officesFilter">
-                    <i class="bi bi-geo-alt"></i> Has Offices
-                </label>
-                <select name="HasOffices" id="officesFilter" class="filter-select filter-auto-submit">
-                    <option value="">All Organizations</option>
-                    <option value="true" selected="@(Model.HasOffices == true)">With Offices</option>
-                    <option value="false" selected="@(Model.HasOffices == false)">Without Offices</option>
-                </select>
-            </div>
-            
-            <div class="filter-group">
-                <label class="filter-label" for="usersFilter">
-                    <i class="bi bi-people"></i> Has Users
-                </label>
-                <select name="HasUsers" id="usersFilter" class="filter-select filter-auto-submit">
-                    <option value="">All Organizations</option>
-                    <option value="true" selected="@(Model.HasUsers == true)">With Users</option>
-                    <option value="false" selected="@(Model.HasUsers == false)">Without Users</option>
-                </select>
-            </div>
-            
-            <div class="filter-actions">
-                @if (!string.IsNullOrEmpty(Model.SearchTerm) || Model.HasOffices != null || Model.HasUsers != null)
-                {
-                    <a href="/Admin/Organizations" class="clear-filter-btn">
-                        <i class="bi bi-x-circle"></i> Clear All
-                    </a>
-                }
+<div class="card border-0 shadow-sm mb-4" style="border-radius: 20px;">
+    <div class="card-header bg-white border-0 p-3" style="cursor: pointer; border-radius: 20px 20px 0 0;" data-bs-toggle="collapse" data-bs-target="#filterCollapse">
+        <div class="d-flex justify-content-between align-items-center">
+            <h6 class="mb-0 fw-bold">
+                <i class="bi bi-funnel me-2"></i>Filters
+            </h6>
+            <div class="d-flex align-items-center gap-3">
+                <span class="badge bg-light text-dark" style="font-weight: 500;">
+                    @Model.Organizations.Count results
+                </span>
+                <i class="bi bi-chevron-down"></i>
             </div>
         </div>
-    </form>
-</div>
+    </div>
+    <div class="collapse" id="filterCollapse">
+        <div class="card-body p-4">
+            <form method="get" class="filter-form" id="filterForm">
+                <div class="row g-3">
+                    <div class="col-md-4">
+                        <label class="form-label text-muted small" for="searchFilter">Search</label>
+                        <input type="text" name="SearchTerm" id="searchFilter"
+                               class="form-control border-0 bg-light filter-search-input"
+                               style="border-radius: 12px;"
+                               placeholder="Organization name or description..." value="@Model.SearchTerm" />
+                    </div>
+
+                    <div class="col-md-3">
+                        <label class="form-label text-muted small" for="officesFilter">Has Offices</label>
+                        <select name="HasOffices" id="officesFilter"
+                                class="form-select border-0 bg-light filter-auto-submit"
+                                style="border-radius: 12px;">
+                            <option value="">All Organizations</option>
+                            <option value="true" selected="@(Model.HasOffices == true)">With Offices</option>
+                            <option value="false" selected="@(Model.HasOffices == false)">Without Offices</option>
+                        </select>
+                    </div>
+
+                    <div class="col-md-3">
+                        <label class="form-label text-muted small" for="usersFilter">Has Users</label>
+                        <select name="HasUsers" id="usersFilter"
+                                class="form-select border-0 bg-light filter-auto-submit"
+                                style="border-radius: 12px;">
+                            <option value="">All Organizations</option>
+                            <option value="true" selected="@(Model.HasUsers == true)">With Users</option>
+                            <option value="false" selected="@(Model.HasUsers == false)">Without Users</option>
+                        </select>
+                    </div>
+
+                    <div class="col-md-2 d-flex align-items-end">
+                        @if (!string.IsNullOrEmpty(Model.SearchTerm) || Model.HasOffices != null || Model.HasUsers != null)
+                        {
+                            <a href="/Admin/Organizations" class="btn btn-outline-secondary btn-sm" style="border-radius: 12px;">
+                                <i class="bi bi-x-circle me-1"></i>Clear
+                            </a>
+                        }
+                    </div>
+                </div>
+            </form>
+        </div>
+    </div>
 </div>
 
 <div class="row">
@@ -893,23 +1052,33 @@
                 });
             }
             
-            // Update button text when filters are shown/hidden
-            const filterToggle = document.querySelector('[data-bs-target="#filterCollapse"]');
+            // Update chevron icon when filters are shown/hidden
             const filterCollapse = document.getElementById('filterCollapse');
-            if (filterToggle && filterCollapse) {
+            if (filterCollapse) {
+                const chevronIcon = document.querySelector('[data-bs-toggle="collapse"][data-bs-target="#filterCollapse"] .bi-chevron-down');
+
                 filterCollapse.addEventListener('show.bs.collapse', function () {
-                    filterToggle.innerHTML = '<i class="bi bi-funnel-fill"></i> Hide Filters';
+                    if (chevronIcon) {
+                        chevronIcon.classList.remove('bi-chevron-down');
+                        chevronIcon.classList.add('bi-chevron-up');
+                    }
                 });
+
                 filterCollapse.addEventListener('hide.bs.collapse', function () {
-                    filterToggle.innerHTML = '<i class="bi bi-funnel"></i> Show Filters';
+                    if (chevronIcon) {
+                        chevronIcon.classList.remove('bi-chevron-up');
+                        chevronIcon.classList.add('bi-chevron-down');
+                    }
                 });
-                
+
                 // Check if any filters are active and show the filter section
                 const hasActiveFilters = @Html.Raw((!string.IsNullOrEmpty(Model.SearchTerm) || Model.HasOffices != null || Model.HasUsers != null).ToString().ToLower());
                 if (hasActiveFilters) {
                     filterCollapse.classList.add('show');
-                    filterToggle.innerHTML = '<i class="bi bi-funnel-fill"></i> Hide Filters';
-                    filterToggle.setAttribute('aria-expanded', 'true');
+                    if (chevronIcon) {
+                        chevronIcon.classList.remove('bi-chevron-down');
+                        chevronIcon.classList.add('bi-chevron-up');
+                    }
                 }
             }
         });

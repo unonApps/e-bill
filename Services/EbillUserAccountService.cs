@@ -1,3 +1,4 @@
+using Microsoft.AspNetCore.Http;
 using Microsoft.AspNetCore.Identity;
 using Microsoft.EntityFrameworkCore;
 using TAB.Web.Data;
@@ -20,17 +21,23 @@ namespace TAB.Web.Services
         private readonly UserManager<ApplicationUser> _userManager;
         private readonly ILogger<EbillUserAccountService> _logger;
         private readonly IEmailService _emailService;
+        private readonly IEnhancedEmailService _enhancedEmailService;
+        private readonly IHttpContextAccessor _httpContextAccessor;
 
         public EbillUserAccountService(
             ApplicationDbContext context,
             UserManager<ApplicationUser> userManager,
             ILogger<EbillUserAccountService> logger,
-            IEmailService emailService)
+            IEmailService emailService,
+            IEnhancedEmailService enhancedEmailService,
+            IHttpContextAccessor httpContextAccessor)
         {
             _context = context;
             _userManager = userManager;
             _logger = logger;
             _emailService = emailService;
+            _enhancedEmailService = enhancedEmailService;
+            _httpContextAccessor = httpContextAccessor;
         }
 
         public async Task<(bool Success, string Message, string? TempPassword)> CreateLoginAccountAsync(int ebillUserId, bool sendEmail = false)
@@ -355,22 +362,28 @@ namespace TAB.Web.Services
         {
             try
             {
-                var subject = "Your Login Credentials - TAB System";
-                var body = $@"
-                    <h2>Welcome to the TAB System</h2>
-                    <p>Dear {ebillUser.FirstName} {ebillUser.LastName},</p>
-                    <p>A login account has been created for you. Here are your credentials:</p>
-                    <ul>
-                        <li><strong>Email/Username:</strong> {ebillUser.Email}</li>
-                        <li><strong>Temporary Password:</strong> {tempPassword}</li>
-                    </ul>
-                    <p><strong>IMPORTANT:</strong> You will be required to change your password upon first login.</p>
-                    <p>Please keep this information secure and do not share your credentials with anyone.</p>
-                    <p>Login URL: <a href='{GetLoginUrl()}'>Click here to login</a></p>
-                ";
+                // Send account creation email using template
+                var baseUrl = GetBaseUrl();
+                var loginUrl = GetLoginUrl();
+                var emailData = new Dictionary<string, string>
+                {
+                    { "FirstName", ebillUser.FirstName },
+                    { "LastName", ebillUser.LastName },
+                    { "Email", ebillUser.Email },
+                    { "TempPassword", tempPassword },
+                    { "IndexNumber", ebillUser.IndexNumber },
+                    { "BaseUrl", baseUrl },
+                    { "LoginUrl", loginUrl }
+                };
 
-                await _emailService.SendEmailAsync(ebillUser.Email, subject, body);
-                _logger.LogInformation("Sent credentials email to {Email}", ebillUser.Email);
+                await _enhancedEmailService.SendTemplatedEmailAsync(
+                    to: ebillUser.Email,
+                    templateCode: "EBILL_USER_ACCOUNT_CREATED",
+                    data: emailData,
+                    createdBy: "System"
+                );
+
+                _logger.LogInformation("Sent credentials email to {Email} using template", ebillUser.Email);
             }
             catch (Exception ex)
             {
@@ -382,22 +395,29 @@ namespace TAB.Web.Services
         {
             try
             {
-                var subject = "Password Reset - TAB System";
-                var body = $@"
-                    <h2>Password Reset</h2>
-                    <p>Dear {ebillUser.FirstName} {ebillUser.LastName},</p>
-                    <p>Your password has been reset. Here are your new credentials:</p>
-                    <ul>
-                        <li><strong>Email/Username:</strong> {ebillUser.Email}</li>
-                        <li><strong>Temporary Password:</strong> {tempPassword}</li>
-                    </ul>
-                    <p><strong>IMPORTANT:</strong> You will be required to change your password upon next login.</p>
-                    <p>If you did not request this password reset, please contact your system administrator immediately.</p>
-                    <p>Login URL: <a href='{GetLoginUrl()}'>Click here to login</a></p>
-                ";
+                // Send password reset email using template
+                var baseUrl = GetBaseUrl();
+                var loginUrl = GetLoginUrl();
+                var emailData = new Dictionary<string, string>
+                {
+                    { "FirstName", ebillUser.FirstName },
+                    { "LastName", ebillUser.LastName },
+                    { "Email", ebillUser.Email },
+                    { "TempPassword", tempPassword },
+                    { "IndexNumber", ebillUser.IndexNumber },
+                    { "ResetDate", DateTime.Now.ToString("MMMM dd, yyyy 'at' hh:mm tt") },
+                    { "BaseUrl", baseUrl },
+                    { "LoginUrl", loginUrl }
+                };
 
-                await _emailService.SendEmailAsync(ebillUser.Email, subject, body);
-                _logger.LogInformation("Sent password reset email to {Email}", ebillUser.Email);
+                await _enhancedEmailService.SendTemplatedEmailAsync(
+                    to: ebillUser.Email,
+                    templateCode: "EBILL_USER_PASSWORD_RESET",
+                    data: emailData,
+                    createdBy: "System"
+                );
+
+                _logger.LogInformation("Sent password reset email to {Email} using template", ebillUser.Email);
             }
             catch (Exception ex)
             {
@@ -405,10 +425,30 @@ namespace TAB.Web.Services
             }
         }
 
+        private string GetBaseUrl()
+        {
+            // Get base URL from HttpContext if available, otherwise use default
+            var request = _httpContextAccessor.HttpContext?.Request;
+            if (request != null)
+            {
+                return $"{request.Scheme}://{request.Host}";
+            }
+
+            // Fallback to localhost for background jobs or when HttpContext is not available
+            return "http://localhost:5041";
+        }
+
         private string GetLoginUrl()
         {
-            // This would ideally come from configuration
-            return "http://localhost:5041/Account/Login";
+            // Get login URL from HttpContext if available, otherwise use default
+            var request = _httpContextAccessor.HttpContext?.Request;
+            if (request != null)
+            {
+                return $"{request.Scheme}://{request.Host}/Identity/Account/Login";
+            }
+
+            // Fallback to localhost for background jobs or when HttpContext is not available
+            return "http://localhost:5041/Identity/Account/Login";
         }
     }
 }

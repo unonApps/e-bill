@@ -1,0 +1,986 @@
+@page
+@model TAB.Web.Pages.Admin.EOSRecoveryModel
+@{
+    ViewData["Title"] = "EOS Recovery Management";
+}
+
+<style>
+    /* UN Blue Color Variables */
+    :root {
+        --un-blue: #009EDB;
+        --un-blue-light: #C5DFEF;
+        --un-blue-extra-light: #E3EDF6;
+        --un-blue-dark: #004987;
+        --un-blue-accessible: #0077B8;
+        --un-blue-accessible-aaa: #005392;
+    }
+
+    .page-header {
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        margin-bottom: 2rem;
+        padding-bottom: 1rem;
+        border-bottom: 2px solid #e5e7eb;
+    }
+
+    .page-title-section h1 {
+        font-size: 1.875rem;
+        font-weight: 700;
+        color: #111827;
+        margin: 0 0 0.5rem 0;
+        display: flex;
+        align-items: center;
+        gap: 0.75rem;
+    }
+
+    .page-subtitle {
+        color: #6b7280;
+        font-size: 0.95rem;
+        margin: 0.25rem 0;
+    }
+
+    .breadcrumb-modern {
+        background: none;
+        padding: 0;
+        margin: 0.5rem 0 0 0;
+        font-size: 0.875rem;
+    }
+
+    .breadcrumb-modern .breadcrumb-item + .breadcrumb-item::before {
+        content: "›";
+        color: #9ca3af;
+    }
+
+    .breadcrumb-modern a {
+        color: #009edb;
+        text-decoration: none;
+    }
+
+    .breadcrumb-modern a:hover {
+        text-decoration: underline;
+    }
+
+    .breadcrumb-modern .active {
+        color: #6b7280;
+    }
+
+    .stats-grid {
+        display: grid;
+        grid-template-columns: repeat(auto-fit, minmax(240px, 1fr));
+        gap: 1.25rem;
+        margin-bottom: 2rem;
+    }
+
+    .stat-card {
+        background: white;
+        border-radius: 16px;
+        padding: 1rem 1.25rem;
+        box-shadow: 0 2px 4px rgba(0, 0, 0, 0.06);
+        border: none;
+        display: flex;
+        align-items: center;
+        gap: 1rem;
+        transition: all 0.3s ease;
+    }
+
+    .stat-icon {
+        width: 48px;
+        height: 48px;
+        border-radius: 12px;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        font-size: 1.5rem;
+        flex-shrink: 0;
+    }
+
+    .stat-content {
+        flex: 1;
+        min-width: 0;
+    }
+
+    .stat-value {
+        font-size: 1.5rem;
+        font-weight: 700;
+        color: #111827;
+        line-height: 1.2;
+        margin-bottom: 0.25rem;
+    }
+
+    .stat-label {
+        color: #6b7280;
+        font-size: 0.75rem;
+        font-weight: 500;
+        text-transform: uppercase;
+        letter-spacing: 0.5px;
+        line-height: 1.2;
+    }
+
+    .modern-card {
+        background: white;
+        border-radius: 16px;
+        box-shadow: 0 2px 4px rgba(0, 0, 0, 0.06);
+        border: none;
+        overflow: hidden;
+        margin-bottom: 1.5rem;
+    }
+
+    .modern-card-header {
+        background: #f8f9fa;
+        border: none;
+        padding: 1.25rem 1.5rem;
+        border-bottom: 2px solid #e5e7eb;
+    }
+
+    .modern-card-title {
+        font-size: 1.1rem;
+        font-weight: 700;
+        color: #1f2937;
+        margin: 0;
+        display: flex;
+        align-items: center;
+        gap: 0.5rem;
+    }
+
+    .modern-card-body {
+        padding: 1.5rem;
+    }
+
+    .btn-trigger {
+        background: #72BF44;
+        border: none;
+        color: white;
+        padding: 0.625rem 1.25rem;
+        border-radius: 12px;
+        font-weight: 600;
+        transition: all 0.2s;
+        display: inline-flex;
+        align-items: center;
+        gap: 0.5rem;
+    }
+
+    .btn-trigger:hover:not(:disabled) {
+        background: #006747;
+        transform: translateY(-2px);
+        box-shadow: 0 4px 12px rgba(114, 191, 68, 0.3);
+        color: white;
+    }
+
+    .btn-trigger:disabled {
+        background: #9ca3af;
+        cursor: not-allowed;
+        transform: none;
+        opacity: 0.6;
+    }
+
+    .btn-export {
+        background: var(--un-blue);
+        border: none;
+        color: white;
+        padding: 0.625rem 1.25rem;
+        border-radius: 12px;
+        font-weight: 600;
+        transition: all 0.2s;
+        display: inline-flex;
+        align-items: center;
+        gap: 0.5rem;
+    }
+
+    .btn-export:hover {
+        background: var(--un-blue-dark);
+        transform: translateY(-2px);
+        box-shadow: 0 4px 12px rgba(0, 158, 219, 0.3);
+        color: white;
+    }
+
+    .modern-table {
+        width: 100%;
+        margin: 0;
+    }
+
+    .modern-table thead {
+        background-color: rgba(0, 158, 219, 0.08);
+    }
+
+    .modern-table thead th {
+        color: #4a5568;
+        font-weight: 600;
+        padding: 0.875rem 1rem;
+        border: none;
+        font-size: 0.813rem;
+        text-transform: uppercase;
+        letter-spacing: 0.5px;
+    }
+
+    .modern-table tbody td {
+        padding: 1rem;
+        vertical-align: middle;
+        border-bottom: 1px solid #f3f4f6;
+        font-size: 0.938rem;
+    }
+
+    .modern-table tbody tr:hover {
+        background-color: #f9fafb;
+    }
+
+    .modern-table tbody tr:last-child td {
+        border-bottom: none;
+    }
+
+    .modern-table tfoot {
+        background-color: #f9fafb;
+        border-top: 2px solid #e5e7eb;
+    }
+
+    .modern-table tfoot td {
+        padding: 1rem;
+        font-weight: 600;
+    }
+
+    .staff-checkbox {
+        width: 20px;
+        height: 20px;
+        cursor: pointer;
+    }
+
+    .badge-eos {
+        background: var(--un-blue);
+        color: white;
+        padding: 0.25rem 0.75rem;
+        border-radius: 12px;
+        font-size: 0.75rem;
+        font-weight: 600;
+    }
+
+    .amount-display {
+        font-weight: 700;
+        font-size: 1.1rem;
+    }
+
+    .amount-positive {
+        color: #10b981;
+    }
+
+    .amount-warning {
+        color: #f59e0b;
+    }
+
+    .empty-state {
+        text-align: center;
+        padding: 4rem 2rem;
+    }
+
+    .empty-icon {
+        font-size: 4rem;
+        color: #d1d5db;
+        margin-bottom: 1rem;
+    }
+
+    .empty-text {
+        color: #6b7280;
+        font-size: 1.1rem;
+        margin-bottom: 0.5rem;
+    }
+
+    .empty-hint {
+        color: #9ca3af;
+        font-size: 0.938rem;
+    }
+
+    .recovery-log-item {
+        padding: 1rem;
+        border-bottom: 1px solid #f3f4f6;
+        transition: all 0.2s;
+    }
+
+    .recovery-log-item:hover {
+        background: var(--un-blue-extra-light);
+    }
+
+    .recovery-log-item:last-child {
+        border-bottom: none;
+    }
+
+    .btn-outline-secondary {
+        border: 2px solid var(--un-blue);
+        color: var(--un-blue-dark);
+        transition: all 0.3s;
+    }
+
+    .btn-outline-secondary:hover {
+        background: var(--un-blue);
+        color: white;
+        border-color: var(--un-blue);
+        transform: translateY(-1px);
+    }
+
+    .staff-checkbox:checked {
+        accent-color: var(--un-blue);
+    }
+
+    /* Status Badge Styling */
+    .status-badge {
+        display: inline-block;
+        padding: 0.35rem 0.75rem;
+        border-radius: 12px;
+        font-size: 0.75rem;
+        font-weight: 600;
+        text-transform: uppercase;
+        letter-spacing: 0.5px;
+    }
+
+    .badge-success {
+        background: #72BF44;
+        color: white;
+    }
+
+    .badge-warning {
+        background: #f59e0b;
+        color: white;
+    }
+
+    .badge-danger {
+        background: #ef4444;
+        color: white;
+    }
+
+    .badge-info {
+        background: #3b82f6;
+        color: white;
+    }
+
+    .badge-secondary {
+        background: #6b7280;
+        color: white;
+    }
+
+    /* Selection counter styling */
+    #selectedTotal {
+        color: var(--un-blue-dark);
+        font-size: 1.2rem;
+        font-weight: 700;
+    }
+
+    #selectedCount {
+        color: var(--un-blue);
+        font-size: 1.1rem;
+    }
+
+    /* Stat card hover effect */
+    .stat-card {
+        transition: all 0.3s ease;
+    }
+
+    .stat-card:hover {
+        transform: translateY(-5px);
+        box-shadow: 0 8px 20px rgba(0, 0, 0, 0.1);
+    }
+
+    .stat-card:nth-child(1):hover {
+        box-shadow: 0 8px 24px rgba(0, 158, 219, 0.2);
+    }
+
+
+    /* Pagination Styling */
+    .pagination {
+        margin: 0;
+    }
+
+    .page-link {
+        color: var(--un-blue);
+        border-color: #dee2e6;
+        transition: all 0.2s;
+    }
+
+    .page-link:hover {
+        background-color: var(--un-blue-extra-light);
+        border-color: var(--un-blue-light);
+        color: var(--un-blue-dark);
+    }
+
+    .page-item.active .page-link {
+        background-color: var(--un-blue);
+        border-color: var(--un-blue);
+        color: white;
+    }
+
+    .page-item.disabled .page-link {
+        color: #6c757d;
+        background-color: #fff;
+    }
+
+    /* Filter Section */
+    .btn-primary {
+        background-color: var(--un-blue);
+        border-color: var(--un-blue);
+    }
+
+    .btn-primary:hover {
+        background-color: var(--un-blue-dark);
+        border-color: var(--un-blue-dark);
+    }
+
+    .form-control:focus,
+    .form-select:focus {
+        border-color: var(--un-blue);
+        box-shadow: 0 0 0 0.2rem rgba(0, 158, 219, 0.25);
+    }
+</style>
+
+<div class="container-fluid mt-4">
+    <!-- Page Header -->
+    <div class="page-header">
+        <div class="page-title-section">
+            <h1>
+                <i class="bi bi-person-dash text-primary"></i>
+                EOS Recovery Management
+            </h1>
+            <nav aria-label="breadcrumb">
+                <ol class="breadcrumb breadcrumb-modern">
+                    <li class="breadcrumb-item"><a asp-page="/Admin/Index">Admin</a></li>
+                    <li class="breadcrumb-item"><a asp-page="/Admin/RecoveryDashboard">Recovery Management</a></li>
+                    <li class="breadcrumb-item active">EOS Recovery</li>
+                </ol>
+            </nav>
+            <p class="page-subtitle">Manage recoveries for End of Service (EOS) staff members</p>
+        </div>
+        <div>
+            <button type="button" class="btn-export" onclick="alert('Export functionality coming soon')" title="Export EOS Recovery Report">
+                <i class="bi bi-download"></i>Export Report
+            </button>
+        </div>
+    </div>
+
+<!-- Recovery Rules Information Banner -->
+<div class="alert" style="background: #e3edf6; border-left: 4px solid var(--un-blue); border-radius: 12px; padding: 1rem 1.25rem;">
+    <div class="d-flex align-items-start">
+        <i class="bi bi-info-circle-fill me-3" style="color: var(--un-blue); font-size: 1.5rem;"></i>
+        <div>
+            <h6 class="mb-2 fw-bold" style="color: var(--un-blue-dark);">EOS Recovery Rules</h6>
+            <p class="mb-0" style="font-size: 0.95rem; line-height: 1.6;">
+                <strong>Personal Calls:</strong> Full recovery from staff member<br />
+                <strong>Official Calls:</strong> Certified as official business (no recovery)<br />
+                <span class="text-muted small">This follows the same business logic as the standard recovery process.</span>
+            </p>
+        </div>
+    </div>
+</div>
+
+<!-- Success/Error Messages -->
+@if (!string.IsNullOrEmpty(Model.SuccessMessage))
+{
+    <div class="alert alert-success alert-dismissible fade show" role="alert">
+        <i class="bi bi-check-circle-fill me-2"></i>
+        @Model.SuccessMessage
+        <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
+    </div>
+}
+
+@if (!string.IsNullOrEmpty(Model.ErrorMessage))
+{
+    <div class="alert alert-danger alert-dismissible fade show" role="alert">
+        <i class="bi bi-exclamation-triangle-fill me-2"></i>
+        @Model.ErrorMessage
+        <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
+    </div>
+}
+
+    <!-- Statistics Cards -->
+    <div class="stats-grid">
+    <div class="stat-card">
+        <div class="stat-icon" style="background: var(--un-blue); color: white;">
+            <i class="bi bi-people"></i>
+        </div>
+        <div class="stat-content">
+            <div class="stat-value">@Model.Statistics.TotalEOSStaff</div>
+            <div class="stat-label">EOS Staff Pending</div>
+        </div>
+    </div>
+
+    <div class="stat-card">
+        <div class="stat-icon" style="background: #F58220; color: white;">
+            <i class="bi bi-file-text"></i>
+        </div>
+        <div class="stat-content">
+            <div class="stat-value">@Model.Statistics.TotalPendingRecords.ToString("N0")</div>
+            <div class="stat-label">Pending Records</div>
+        </div>
+    </div>
+
+    <div class="stat-card">
+        <div class="stat-icon" style="background: #72BF44; color: white;">
+            <i class="bi bi-currency-dollar"></i>
+        </div>
+        <div class="stat-content">
+            <div class="stat-value">$@Model.Statistics.TotalPendingAmount.ToString("N2")</div>
+            <div class="stat-label">Pending Recovery (Personal)</div>
+        </div>
+    </div>
+
+    <div class="stat-card">
+        <div class="stat-icon" style="background: var(--un-blue-dark); color: white;">
+            <i class="bi bi-check-circle"></i>
+        </div>
+        <div class="stat-content">
+            <div class="stat-value">$@Model.Statistics.TotalRecoveredAmount.ToString("N2")</div>
+            <div class="stat-label">Total Recovered</div>
+        </div>
+    </div>
+</div>
+
+    <!-- Filters Card (Collapsible) -->
+    <div class="card border-0 shadow-sm mb-4" style="border-radius: 20px;">
+        <div class="card-header bg-white border-0 p-3" style="cursor: pointer; border-radius: 20px 20px 0 0;" data-bs-toggle="collapse" data-bs-target="#filterCollapse">
+            <div class="d-flex justify-content-between align-items-center">
+                <h6 class="mb-0 fw-bold">
+                    <i class="bi bi-funnel me-2"></i>Filters
+                </h6>
+                <i class="bi bi-chevron-down"></i>
+            </div>
+        </div>
+        <div class="collapse show" id="filterCollapse">
+            <div class="card-body p-4">
+                <form method="get" class="row g-3">
+                    <div class="col-md-3">
+                        <label for="searchQuery" class="form-label text-muted small">Search Staff</label>
+                        <input type="text" class="form-control border-0 bg-light" style="border-radius: 12px;"
+                               id="searchQuery" name="searchQuery" value="@Model.SearchQuery"
+                               placeholder="Name or Index Number..." />
+                    </div>
+                    <div class="col-md-2">
+                        <label for="organizationFilter" class="form-label text-muted small">Organization</label>
+                        <select class="form-select border-0 bg-light" style="border-radius: 12px;"
+                                id="organizationFilter" name="organizationFilter">
+                            <option value="">All Organizations</option>
+                            @foreach (var org in Model.Organizations)
+                            {
+                                <option value="@org" selected="@(Model.OrganizationFilter == org)">@org</option>
+                            }
+                        </select>
+                    </div>
+                    <div class="col-md-2">
+                        <label for="filterMonth" class="form-label text-muted small">Month</label>
+                        <select class="form-select border-0 bg-light" style="border-radius: 12px;"
+                                id="filterMonth" name="filterMonth">
+                            <option value="">All Months</option>
+                            <option value="1" selected="@(Model.FilterMonth == 1)">January</option>
+                            <option value="2" selected="@(Model.FilterMonth == 2)">February</option>
+                            <option value="3" selected="@(Model.FilterMonth == 3)">March</option>
+                            <option value="4" selected="@(Model.FilterMonth == 4)">April</option>
+                            <option value="5" selected="@(Model.FilterMonth == 5)">May</option>
+                            <option value="6" selected="@(Model.FilterMonth == 6)">June</option>
+                            <option value="7" selected="@(Model.FilterMonth == 7)">July</option>
+                            <option value="8" selected="@(Model.FilterMonth == 8)">August</option>
+                            <option value="9" selected="@(Model.FilterMonth == 9)">September</option>
+                            <option value="10" selected="@(Model.FilterMonth == 10)">October</option>
+                            <option value="11" selected="@(Model.FilterMonth == 11)">November</option>
+                            <option value="12" selected="@(Model.FilterMonth == 12)">December</option>
+                        </select>
+                    </div>
+                    <div class="col-md-2">
+                        <label for="filterYear" class="form-label text-muted small">Year</label>
+                        <select class="form-select border-0 bg-light" style="border-radius: 12px;"
+                                id="filterYear" name="filterYear">
+                            <option value="">All Years</option>
+                            @for (int year = DateTime.Now.Year; year >= 2020; year--)
+                            {
+                                <option value="@year" selected="@(Model.FilterYear == year)">@year</option>
+                            }
+                        </select>
+                    </div>
+                    <div class="col-md-2">
+                        <label for="sortBy" class="form-label text-muted small">Sort By</label>
+                        <select class="form-select border-0 bg-light" style="border-radius: 12px;"
+                                id="sortBy" name="sortBy">
+                            <option value="amount" selected="@(Model.SortBy == "amount")">Recovery Amount</option>
+                            <option value="name" selected="@(Model.SortBy == "name")">Staff Name</option>
+                            <option value="date" selected="@(Model.SortBy == "date")">Batch Date</option>
+                        </select>
+                    </div>
+                    <div class="col-md-1 d-flex align-items-end">
+                        <button type="submit" class="btn btn-primary w-100" style="border-radius: 12px;">
+                            <i class="bi bi-search"></i>
+                        </button>
+                    </div>
+                </form>
+            </div>
+        </div>
+    </div>
+
+    <!-- Main Content: Staff Selection & Recovery -->
+    <div class="modern-card">
+        <div class="modern-card-header">
+            <h3 class="modern-card-title">
+                <i class="bi bi-list-check"></i>
+                EOS Staff - Select for Recovery
+            </h3>
+        </div>
+
+        <!-- Selection Actions -->
+        <div class="p-3 border-bottom d-flex justify-content-between align-items-center" style="background: #f9fafb;">
+            <div>
+                <button type="button" class="btn btn-sm btn-outline-secondary me-2" id="selectAllBtn">
+                    <i class="bi bi-check-square"></i> Select All
+                </button>
+                <button type="button" class="btn btn-sm btn-outline-secondary" id="deselectAllBtn">
+                    <i class="bi bi-square"></i> Deselect All
+                </button>
+            </div>
+            <div class="text-muted small fw-semibold">
+                Showing @Model.EOSStaffList.Count of @Model.TotalRecords staff members
+            </div>
+        </div>
+
+        <div class="p-0">
+                @if (Model.EOSStaffList.Any())
+                {
+                <form method="post" asp-page-handler="TriggerRecovery" id="recoveryForm">
+                    <div class="table-responsive">
+                        <table class="modern-table">
+                                <thead>
+                                    <tr>
+                                        <th style="width: 50px;">
+                                            <input type="checkbox" class="staff-checkbox" id="selectAllCheckbox" />
+                                        </th>
+                                        <th>Staff Name</th>
+                                        <th>Index Number</th>
+                                        <th>Organization</th>
+                                        <th>Batch</th>
+                                        <th class="text-center">Verification Status</th>
+                                        <th class="text-center">Verification Deadline</th>
+                                        <th class="text-center">Approval Status</th>
+                                        <th class="text-center">Approval Deadline</th>
+                                        <th class="text-center">Records</th>
+                                        <th class="text-end" title="Will be recovered from staff">
+                                            Personal <i class="bi bi-arrow-down-circle-fill text-warning"></i>
+                                        </th>
+                                        <th class="text-end" title="Certified as official (no recovery)">
+                                            Official <i class="bi bi-check-circle-fill text-success"></i>
+                                        </th>
+                                        <th class="text-end" title="Only Personal calls are recovered">Recovery Amount</th>
+                                    </tr>
+                                </thead>
+                                <tbody>
+                                    @foreach (var staff in Model.EOSStaffList)
+                                    {
+                                        <tr>
+                                            <td>
+                                                <input type="checkbox" class="staff-checkbox staff-select"
+                                                       name="SelectedStaffIndexNumbers" value="@staff.IndexNumber"
+                                                       data-amount="@staff.TotalRecoveryAmount"
+                                                       data-personal="@staff.TotalPersonalAmount"
+                                                       data-official="@staff.TotalOfficialAmount" />
+                                            </td>
+                                            <td>
+                                                <span class="fw-semibold">@staff.StaffName</span>
+                                            </td>
+                                            <td>
+                                                <span class="text-muted">@staff.IndexNumber</span>
+                                            </td>
+                                            <td>
+                                                @if (!string.IsNullOrEmpty(staff.Organization) && staff.Organization != "N/A")
+                                                {
+                                                    <span style="font-size: 0.875rem;">@staff.Organization</span>
+                                                }
+                                                else
+                                                {
+                                                    <span class="text-muted">-</span>
+                                                }
+                                            </td>
+                                            <td>
+                                                <div>
+                                                    <span class="badge-eos">EOS</span>
+                                                    <div style="font-size: 0.75rem; color: #6b7280; margin-top: 0.25rem;">
+                                                        @staff.BatchName
+                                                    </div>
+                                                    <div style="font-size: 0.75rem; color: #9ca3af;">
+                                                        @staff.BatchDate.ToString("MMM dd, yyyy")
+                                                    </div>
+                                                </div>
+                                            </td>
+                                            <td class="text-center">
+                                                @{
+                                                    var verificationClass = staff.VerificationStatus switch
+                                                    {
+                                                        "Verified" => "badge-success",
+                                                        "Pending" => "badge-warning",
+                                                        "Rejected" => "badge-danger",
+                                                        _ => "badge-secondary"
+                                                    };
+                                                }
+                                                <span class="status-badge @verificationClass">@(staff.VerificationStatus ?? "N/A")</span>
+                                            </td>
+                                            <td class="text-center">
+                                                @if (staff.VerificationDeadline.HasValue)
+                                                {
+                                                    var isOverdue = staff.VerificationDeadline.Value < DateTime.Now;
+                                                    <span class="@(isOverdue ? "text-danger fw-bold" : "")">
+                                                        @staff.VerificationDeadline.Value.ToString("MMM dd, yyyy")
+                                                    </span>
+                                                    if (isOverdue)
+                                                    {
+                                                        <br /><small class="text-danger"><i class="bi bi-exclamation-triangle-fill"></i> Overdue</small>
+                                                    }
+                                                }
+                                                else
+                                                {
+                                                    <span class="text-muted">-</span>
+                                                }
+                                            </td>
+                                            <td class="text-center">
+                                                @{
+                                                    var approvalClass = staff.SupervisorApprovalStatus switch
+                                                    {
+                                                        "Approved" => "badge-success",
+                                                        "Pending" => "badge-warning",
+                                                        "Rejected" => "badge-danger",
+                                                        "PartiallyApproved" => "badge-info",
+                                                        _ => "badge-secondary"
+                                                    };
+                                                }
+                                                <span class="status-badge @approvalClass">@(staff.SupervisorApprovalStatus ?? "N/A")</span>
+                                            </td>
+                                            <td class="text-center">
+                                                @if (staff.SupervisorApprovalDeadline.HasValue)
+                                                {
+                                                    var isOverdue = staff.SupervisorApprovalDeadline.Value < DateTime.Now;
+                                                    <span class="@(isOverdue ? "text-danger fw-bold" : "")">
+                                                        @staff.SupervisorApprovalDeadline.Value.ToString("MMM dd, yyyy")
+                                                    </span>
+                                                    if (isOverdue)
+                                                    {
+                                                        <br /><small class="text-danger"><i class="bi bi-exclamation-triangle-fill"></i> Overdue</small>
+                                                    }
+                                                }
+                                                else
+                                                {
+                                                    <span class="text-muted">-</span>
+                                                }
+                                            </td>
+                                            <td class="text-center">
+                                                <span class="badge bg-primary">@staff.TotalRecords</span>
+                                            </td>
+                                            <td class="text-end">
+                                                @if (staff.TotalPersonalAmount > 0)
+                                                {
+                                                    <span class="fw-semibold" style="color: #f59e0b;">$@staff.TotalPersonalAmount.ToString("N2")</span>
+                                                }
+                                                else
+                                                {
+                                                    <span class="text-muted">-</span>
+                                                }
+                                            </td>
+                                            <td class="text-end">
+                                                @if (staff.TotalOfficialAmount > 0)
+                                                {
+                                                    <span class="fw-semibold" style="color: #10b981;">$@staff.TotalOfficialAmount.ToString("N2")</span>
+                                                }
+                                                else
+                                                {
+                                                    <span class="text-muted">-</span>
+                                                }
+                                            </td>
+                                            <td class="text-end">
+                                                @if (staff.TotalPersonalAmount > 0)
+                                                {
+                                                    <span class="fw-bold" style="font-size: 1.05rem; color: #111827;">$@staff.TotalRecoveryAmount.ToString("N2")</span>
+                                                }
+                                                else
+                                                {
+                                                    <span class="badge badge-success" style="font-size: 0.875rem;">All Official - Certified</span>
+                                                }
+                                            </td>
+                                        </tr>
+                                    }
+                                </tbody>
+                            </table>
+                        </div>
+
+                        <div class="p-4 border-top">
+                            <div class="d-flex justify-content-between align-items-center">
+                                <div>
+                                    <span id="selectedCount" class="fw-bold">0</span> staff selected
+                                    <span class="mx-2">|</span>
+                                    Recovery Amount (Personal): <span id="selectedTotal" class="fw-bold text-success">$0.00</span>
+                                </div>
+                                <button type="submit" class="btn-trigger" id="triggerBtn" disabled>
+                                    <i class="bi bi-play-circle"></i>
+                                    Trigger Recovery
+                                </button>
+                                <a href="#" class="btn btn-outline-primary ms-2" id="processEOSBtn"
+                                   style="border-radius: 12px; font-weight: 600; padding: 0.625rem 1.25rem; pointer-events: none; opacity: 0.65;">
+                                    <i class="bi bi-person-x"></i>
+                                    Process End of Service
+                                </a>
+                            </div>
+                        </div>
+                    </form>
+
+                    <!-- Pagination -->
+                    @if (Model.TotalPages > 1)
+                    {
+                        <div class="p-3 border-top">
+                            <nav>
+                                <ul class="pagination pagination-sm justify-content-center mb-0">
+                                    <!-- Previous -->
+                                    <li class="page-item @(Model.CurrentPage == 1 ? "disabled" : "")">
+                                        <a class="page-link" href="?page=@(Model.CurrentPage - 1)&searchQuery=@Model.SearchQuery&organizationFilter=@Model.OrganizationFilter&sortBy=@Model.SortBy&filterMonth=@Model.FilterMonth&filterYear=@Model.FilterYear">
+                                            <i class="bi bi-chevron-left"></i>
+                                        </a>
+                                    </li>
+
+                                    <!-- Page Numbers -->
+                                    @for (int i = 1; i <= Model.TotalPages; i++)
+                                    {
+                                        <li class="page-item @(Model.CurrentPage == i ? "active" : "")">
+                                            <a class="page-link" href="?page=@i&searchQuery=@Model.SearchQuery&organizationFilter=@Model.OrganizationFilter&sortBy=@Model.SortBy&filterMonth=@Model.FilterMonth&filterYear=@Model.FilterYear">
+                                                @i
+                                            </a>
+                                        </li>
+                                    }
+
+                                    <!-- Next -->
+                                    <li class="page-item @(Model.CurrentPage == Model.TotalPages ? "disabled" : "")">
+                                        <a class="page-link" href="?page=@(Model.CurrentPage + 1)&searchQuery=@Model.SearchQuery&organizationFilter=@Model.OrganizationFilter&sortBy=@Model.SortBy&filterMonth=@Model.FilterMonth&filterYear=@Model.FilterYear">
+                                            <i class="bi bi-chevron-right"></i>
+                                        </a>
+                                    </li>
+                                </ul>
+                            </nav>
+                        </div>
+                    }
+                }
+                else
+                {
+                    <div class="empty-state">
+                        <i class="bi bi-inbox empty-icon"></i>
+                        <div class="empty-text">No EOS Staff Pending Recovery</div>
+                        <div class="empty-hint">There are no EOS staff members with approved records pending recovery.</div>
+                    </div>
+            }
+        </div>
+    </div>
+</div>
+
+@section Scripts {
+    <script>
+        $(document).ready(function () {
+            function updateSelection() {
+                const checked = $('.staff-select:checked');
+                const count = checked.length;
+                let totalPersonal = 0;
+                let totalOfficial = 0;
+
+                checked.each(function () {
+                    const personal = parseFloat($(this).data('personal')) || 0;
+                    const official = parseFloat($(this).data('official')) || 0;
+                    totalPersonal += personal;
+                    totalOfficial += official;
+                });
+
+                $('#selectedCount').text(count);
+                $('#selectedTotal').text('$' + totalPersonal.toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 }));
+
+                // Only enable button if there are Personal calls to recover
+                if (count === 0 || totalPersonal === 0) {
+                    $('#triggerBtn').prop('disabled', true);
+                    if (count > 0 && totalPersonal === 0) {
+                        $('#triggerBtn').attr('title', 'Selected staff have no Personal calls to recover - all Official');
+                    }
+                } else {
+                    $('#triggerBtn').prop('disabled', false);
+                    $('#triggerBtn').attr('title', '');
+                }
+
+                // Enable Process EOS button if exactly ONE staff is selected
+                if (count === 1) {
+                    const selectedIndexNumber = checked.first().val();
+                    $('#processEOSBtn').attr('href', '/Admin/ProcessEOS?indexNumber=' + selectedIndexNumber)
+                        .css({'pointer-events': 'auto', 'opacity': '1'});
+                } else {
+                    $('#processEOSBtn').attr('href', '#')
+                        .css({'pointer-events': 'none', 'opacity': '0.65'});
+                }
+            }
+
+            // Select all checkbox
+            $('#selectAllCheckbox').change(function () {
+                $('.staff-select').prop('checked', this.checked);
+                updateSelection();
+            });
+
+            // Individual checkbox
+            $('.staff-select').change(function () {
+                updateSelection();
+                const allChecked = $('.staff-select').length === $('.staff-select:checked').length;
+                $('#selectAllCheckbox').prop('checked', allChecked);
+            });
+
+            // Select all button
+            $('#selectAllBtn').click(function () {
+                $('.staff-select').prop('checked', true);
+                $('#selectAllCheckbox').prop('checked', true);
+                updateSelection();
+            });
+
+            // Deselect all button
+            $('#deselectAllBtn').click(function () {
+                $('.staff-select').prop('checked', false);
+                $('#selectAllCheckbox').prop('checked', false);
+                updateSelection();
+            });
+
+            // Confirm before triggering
+            $('#recoveryForm').submit(function (e) {
+                const checked = $('.staff-select:checked');
+                const count = checked.length;
+                let totalPersonal = 0;
+                let totalOfficial = 0;
+                let staffWithOnlyOfficial = 0;
+
+                checked.each(function () {
+                    const personal = parseFloat($(this).data('personal')) || 0;
+                    const official = parseFloat($(this).data('official')) || 0;
+                    totalPersonal += personal;
+                    totalOfficial += official;
+                    if (personal === 0 && official > 0) {
+                        staffWithOnlyOfficial++;
+                    }
+                });
+
+                if (count === 0) {
+                    e.preventDefault();
+                    alert('Please select at least one staff member.');
+                    return false;
+                }
+
+                if (totalPersonal === 0) {
+                    e.preventDefault();
+                    alert('The selected staff members have no Personal calls to recover.\n\nAll their calls are Official and have already been certified as official business.');
+                    return false;
+                }
+
+                // Build detailed confirmation message
+                let confirmMsg = `Are you sure you want to trigger recovery for ${count} staff member(s)?\n\n`;
+                confirmMsg += `PERSONAL CALLS (Will be recovered):\n`;
+                confirmMsg += `Amount: $${totalPersonal.toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}\n\n`;
+
+                if (totalOfficial > 0) {
+                    confirmMsg += `OFFICIAL CALLS (Already certified - no recovery):\n`;
+                    confirmMsg += `Amount: $${totalOfficial.toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}\n\n`;
+                }
+
+                confirmMsg += `This action cannot be undone.`;
+
+                if (!confirm(confirmMsg)) {
+                    e.preventDefault();
+                    return false;
+                }
+
+                // Disable button to prevent double submission
+                $('#triggerBtn').prop('disabled', true).html('<i class="bi bi-hourglass-split"></i> Processing...');
+            });
+        });
+    </script>
+}

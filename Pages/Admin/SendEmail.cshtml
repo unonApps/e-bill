@@ -1,0 +1,445 @@
+@page
+@model TAB.Web.Pages.Admin.SendEmailModel
+@{
+    ViewData["Title"] = "Send Email";
+}
+
+<style>
+    .page-header {
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        margin-bottom: 2rem;
+        padding-bottom: 1rem;
+        border-bottom: 2px solid #e5e7eb;
+    }
+
+    .page-title {
+        font-size: 1.875rem;
+        font-weight: 700;
+        color: #111827;
+        margin: 0;
+        display: flex;
+        align-items: center;
+        gap: 0.75rem;
+    }
+
+    .btn-view-history {
+        background: white;
+        border: 1px solid #e5e7eb;
+        color: #6b7280;
+        padding: 0.625rem 1.25rem;
+        border-radius: 12px;
+        font-weight: 500;
+        transition: all 0.2s;
+        text-decoration: none;
+        display: inline-flex;
+        align-items: center;
+        gap: 0.5rem;
+    }
+
+    .btn-view-history:hover {
+        background: #f9fafb;
+        color: #374151;
+        border-color: #9ca3af;
+        text-decoration: none;
+    }
+
+    .modern-card {
+        background: white;
+        border-radius: 16px;
+        box-shadow: 0 2px 4px rgba(0, 0, 0, 0.06);
+        border: none;
+        overflow: hidden;
+        margin-bottom: 1.5rem;
+    }
+
+    .modern-card-header {
+        background: white;
+        border-bottom: 2px solid #f3f4f6;
+        padding: 1.5rem;
+    }
+
+    .modern-card-body {
+        padding: 2rem;
+    }
+
+    .nav-tabs-modern {
+        border: none;
+        gap: 0.5rem;
+    }
+
+    .nav-tabs-modern .nav-link {
+        border: none;
+        background: transparent;
+        color: #6b7280;
+        padding: 0.75rem 1.5rem;
+        border-radius: 12px;
+        font-weight: 500;
+        transition: all 0.2s;
+    }
+
+    .nav-tabs-modern .nav-link:hover {
+        background: #f3f4f6;
+        color: #374151;
+    }
+
+    .nav-tabs-modern .nav-link.active {
+        background: #009edb;
+        color: white;
+    }
+
+    .form-label-modern {
+        color: #374151;
+        font-weight: 600;
+        font-size: 0.95rem;
+        margin-bottom: 0.625rem;
+        display: block;
+    }
+
+    .form-control-modern, .form-select-modern {
+        border-radius: 12px;
+        border: none;
+        background-color: #f3f4f6;
+        padding: 0.875rem 1.25rem;
+        transition: all 0.2s;
+        font-size: 1rem;
+        line-height: 1.5;
+        width: 100%;
+    }
+
+    .form-control-modern:focus, .form-select-modern:focus {
+        background-color: #e5e7eb;
+        border-color: transparent;
+        box-shadow: 0 0 0 3px rgba(0, 158, 219, 0.1);
+    }
+
+    .form-control-modern::placeholder {
+        color: #9ca3af;
+    }
+
+    .btn-send-email {
+        background: linear-gradient(135deg, #009edb 0%, #0086c3 100%);
+        border: none;
+        color: white;
+        padding: 0.75rem 1.5rem;
+        border-radius: 12px;
+        font-weight: 600;
+        transition: all 0.2s;
+        display: inline-flex;
+        align-items: center;
+        gap: 0.5rem;
+    }
+
+    .btn-send-email:hover {
+        transform: translateY(-2px);
+        box-shadow: 0 4px 12px rgba(0, 158, 219, 0.3);
+        color: white;
+    }
+
+    .btn-queue-email {
+        background: white;
+        border: 2px solid #009edb;
+        color: #009edb;
+        padding: 0.75rem 1.5rem;
+        border-radius: 12px;
+        font-weight: 600;
+        transition: all 0.2s;
+        display: inline-flex;
+        align-items: center;
+        gap: 0.5rem;
+    }
+
+    .btn-queue-email:hover {
+        background: rgba(0, 158, 219, 0.1);
+        color: #0086c3;
+    }
+
+    .tip-card {
+        background: white;
+        border-radius: 16px;
+        box-shadow: 0 2px 4px rgba(0, 0, 0, 0.06);
+        border: none;
+        margin-bottom: 1.5rem;
+    }
+
+    .tip-card-header {
+        background: linear-gradient(135deg, #f8f9fa 0%, #e9ecef 100%);
+        padding: 1rem 1.5rem;
+        border-bottom: none;
+        border-radius: 16px 16px 0 0;
+    }
+
+    .tip-card-title {
+        font-size: 1rem;
+        font-weight: 700;
+        color: #1f2937;
+        margin: 0;
+        display: flex;
+        align-items: center;
+        gap: 0.5rem;
+    }
+
+    .tip-card-body {
+        padding: 1.5rem;
+    }
+
+    .tip-list {
+        list-style: none;
+        padding: 0;
+        margin: 0;
+    }
+
+    .tip-list li {
+        padding: 0.5rem 0;
+        padding-left: 1.5rem;
+        position: relative;
+        color: #4b5563;
+        font-size: 0.9rem;
+    }
+
+    .tip-list li:before {
+        content: "→";
+        position: absolute;
+        left: 0;
+        color: #009edb;
+        font-weight: bold;
+    }
+
+    .code-block {
+        background: #f9fafb;
+        border: 1px solid #e5e7eb;
+        border-radius: 12px;
+        padding: 1rem;
+        font-size: 0.85rem;
+        overflow-x: auto;
+    }
+
+    .placeholder-container {
+        background: #f9fafb;
+        border: 1px solid #e5e7eb;
+        border-radius: 12px;
+        padding: 1.5rem;
+    }
+</style>
+
+<div class="page-header">
+    <h1 class="page-title">
+        <i class="bi bi-envelope-paper"></i>
+        Send Email
+    </h1>
+    <a asp-page="/Admin/EmailLogs" class="btn-view-history">
+        <i class="bi bi-clock-history"></i>
+        View Email History
+    </a>
+</div>
+
+@if (Model.StatusMessage != null)
+{
+    <div class="alert alert-@Model.StatusMessageClass alert-dismissible fade show" role="alert" style="border-radius: 16px; border-left: 4px solid;">
+        <i class="bi bi-@(Model.StatusMessageClass == "success" ? "check-circle" : Model.StatusMessageClass == "danger" ? "x-circle" : "info-circle")"></i>
+        @Model.StatusMessage
+        <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
+    </div>
+}
+
+<div class="row">
+    <div class="col-lg-8">
+        <div class="modern-card">
+            <div class="modern-card-header">
+                <ul class="nav nav-tabs-modern" role="tablist">
+                    <li class="nav-item">
+                        <button class="nav-link active" data-bs-toggle="tab" data-bs-target="#compose-tab" type="button">
+                            <i class="bi bi-pencil"></i> Compose
+                        </button>
+                    </li>
+                    <li class="nav-item">
+                        <button class="nav-link" data-bs-toggle="tab" data-bs-target="#template-tab" type="button">
+                            <i class="bi bi-file-text"></i> Use Template
+                        </button>
+                    </li>
+                </ul>
+            </div>
+            <div class="modern-card-body">
+                <div class="tab-content">
+                    <!-- Compose Tab -->
+                    <div class="tab-pane fade show active" id="compose-tab">
+                        <form method="post" asp-page-handler="SendCustom">
+                            <div class="mb-3">
+                                <label for="ToEmail" class="form-label-modern">To Email Address <span class="text-danger">*</span></label>
+                                <input asp-for="ToEmail" class="form-control-modern" type="email" placeholder="recipient@example.com" required />
+                                <span asp-validation-for="ToEmail" class="text-danger"></span>
+                            </div>
+
+                            <div class="row mb-3">
+                                <div class="col-md-6">
+                                    <label for="CcEmails" class="form-label-modern">CC (comma-separated)</label>
+                                    <input asp-for="CcEmails" class="form-control-modern" type="text" placeholder="email1@example.com, email2@example.com" />
+                                </div>
+                                <div class="col-md-6">
+                                    <label for="BccEmails" class="form-label-modern">BCC (comma-separated)</label>
+                                    <input asp-for="BccEmails" class="form-control-modern" type="text" placeholder="email1@example.com, email2@example.com" />
+                                </div>
+                            </div>
+
+                            <div class="mb-3">
+                                <label for="Subject" class="form-label-modern">Subject <span class="text-danger">*</span></label>
+                                <input asp-for="Subject" class="form-control-modern" placeholder="Enter email subject" required />
+                                <span asp-validation-for="Subject" class="text-danger"></span>
+                            </div>
+
+                            <div class="mb-3">
+                                <label for="HtmlBody" class="form-label-modern">Email Body (HTML) <span class="text-danger">*</span></label>
+                                <textarea asp-for="HtmlBody" class="form-control-modern" rows="20" placeholder="Enter HTML email content..." required style="min-height: 350px;"></textarea>
+                                <span asp-validation-for="HtmlBody" class="text-danger"></span>
+                            </div>
+
+                            <div class="mb-3">
+                                <label for="PlainTextBody" class="form-label-modern">Plain Text Body (Optional)</label>
+                                <textarea asp-for="PlainTextBody" class="form-control-modern" rows="12" placeholder="Leave empty to auto-generate from HTML" style="min-height: 200px;"></textarea>
+                                <small class="text-muted">Leave empty to auto-generate from HTML</small>
+                            </div>
+
+                            <div class="d-flex gap-3">
+                                <button type="submit" class="btn-send-email">
+                                    <i class="bi bi-send"></i> Send Email
+                                </button>
+                                <button type="submit" asp-page-handler="QueueCustom" class="btn-queue-email">
+                                    <i class="bi bi-clock"></i> Queue for Later
+                                </button>
+                            </div>
+                        </form>
+                    </div>
+
+                    <!-- Template Tab -->
+                    <div class="tab-pane fade" id="template-tab">
+                        <form method="post" asp-page-handler="SendTemplate">
+                            <div class="mb-3">
+                                <label for="ToEmail" class="form-label-modern">To Email Address <span class="text-danger">*</span></label>
+                                <input asp-for="ToEmail" class="form-control-modern" type="email" placeholder="recipient@example.com" required />
+                            </div>
+
+                            <div class="row mb-3">
+                                <div class="col-md-6">
+                                    <label for="CcEmails" class="form-label-modern">CC (comma-separated)</label>
+                                    <input asp-for="CcEmails" class="form-control-modern" type="text" placeholder="email1@example.com, email2@example.com" />
+                                </div>
+                                <div class="col-md-6">
+                                    <label for="BccEmails" class="form-label-modern">BCC (comma-separated)</label>
+                                    <input asp-for="BccEmails" class="form-control-modern" type="text" placeholder="email1@example.com, email2@example.com" />
+                                </div>
+                            </div>
+
+                            <div class="mb-3">
+                                <label for="SelectedTemplateCode" class="form-label-modern">Select Template <span class="text-danger">*</span></label>
+                                <select asp-for="SelectedTemplateCode" class="form-select-modern" required onchange="updatePlaceholders(this.value)">
+                                    <option value="">-- Select a template --</option>
+                                    @foreach (var template in Model.Templates)
+                                    {
+                                        <option value="@template.TemplateCode"
+                                                data-placeholders="@template.AvailablePlaceholders">
+                                            @template.Name (@template.Category)
+                                        </option>
+                                    }
+                                </select>
+                            </div>
+
+                            <div id="placeholdersSection" class="mb-3" style="display: none;">
+                                <label class="form-label-modern">Template Data</label>
+                                <div id="placeholderInputs" class="placeholder-container">
+                                    <!-- Placeholder inputs will be dynamically added here -->
+                                </div>
+                            </div>
+
+                            <div class="d-flex gap-3">
+                                <button type="submit" class="btn-send-email">
+                                    <i class="bi bi-send"></i> Send Email
+                                </button>
+                                <button type="submit" asp-page-handler="QueueTemplate" class="btn-queue-email">
+                                    <i class="bi bi-clock"></i> Queue for Later
+                                </button>
+                            </div>
+                        </form>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <div class="col-lg-4">
+        <div class="tip-card">
+            <div class="tip-card-header">
+                <h5 class="tip-card-title">
+                    <i class="bi bi-lightbulb"></i>
+                    Quick Tips
+                </h5>
+            </div>
+            <div class="tip-card-body">
+                <ul class="tip-list">
+                    <li>Use the <strong>Compose</strong> tab for one-off custom emails</li>
+                    <li>Use the <strong>Template</strong> tab for standardized emails</li>
+                    <li>Queue emails to send them at a scheduled time</li>
+                    <li>CC and BCC can include multiple emails separated by commas</li>
+                </ul>
+            </div>
+        </div>
+
+        <div class="tip-card">
+            <div class="tip-card-header">
+                <h5 class="tip-card-title">
+                    <i class="bi bi-code-slash"></i>
+                    HTML Email Tips
+                </h5>
+            </div>
+            <div class="tip-card-body">
+                <p style="color: #6b7280; font-size: 0.9rem; margin-bottom: 1rem;">Basic HTML structure:</p>
+                <pre class="code-block"><code>&lt;html&gt;
+&lt;body&gt;
+  &lt;h1&gt;Title&lt;/h1&gt;
+  &lt;p&gt;Content here&lt;/p&gt;
+&lt;/body&gt;
+&lt;/html&gt;</code></pre>
+                <p style="color: #6b7280; font-size: 0.9rem; margin-top: 1rem; margin-bottom: 0;">Keep emails simple and avoid complex CSS.</p>
+            </div>
+        </div>
+    </div>
+</div>
+
+@section Scripts {
+    <partial name="_ValidationScriptsPartial" />
+    <script>
+        function updatePlaceholders(templateCode) {
+            const selectElement = document.querySelector('select[name="SelectedTemplateCode"]');
+            const selectedOption = selectElement.options[selectElement.selectedIndex];
+            const placeholders = selectedOption.getAttribute('data-placeholders');
+            const section = document.getElementById('placeholdersSection');
+            const container = document.getElementById('placeholderInputs');
+
+            if (!placeholders || placeholders.trim() === '') {
+                section.style.display = 'none';
+                container.innerHTML = '';
+                return;
+            }
+
+            const placeholderList = placeholders.split(',').map(p => p.trim()).filter(p => p);
+            if (placeholderList.length === 0) {
+                section.style.display = 'none';
+                container.innerHTML = '';
+                return;
+            }
+
+            section.style.display = 'block';
+            container.innerHTML = '';
+
+            placeholderList.forEach(placeholder => {
+                const div = document.createElement('div');
+                div.className = 'mb-3';
+                div.innerHTML = `
+                    <label class="form-label-modern">${placeholder}</label>
+                    <input type="text" name="TemplateData[${placeholder}]" class="form-control-modern" placeholder="Enter ${placeholder}" />
+                `;
+                container.appendChild(div);
+            });
+        }
+    </script>
+}

@@ -29,6 +29,24 @@ namespace TAB.Web.Models
         public DateTime? StartProcessingDate { get; set; }
         public DateTime? EndProcessingDate { get; set; }
 
+        // Recovery Tracking
+        public DateTime? RecoveryProcessingDate { get; set; }
+
+        [MaxLength(50)]
+        public string? RecoveryStatus { get; set; } // Pending, InProgress, Completed
+
+        [Column(TypeName = "decimal(18,2)")]
+        public decimal? TotalRecoveredAmount { get; set; }
+
+        [Column(TypeName = "decimal(18,2)")]
+        public decimal? TotalPersonalAmount { get; set; }
+
+        [Column(TypeName = "decimal(18,2)")]
+        public decimal? TotalOfficialAmount { get; set; }
+
+        [Column(TypeName = "decimal(18,2)")]
+        public decimal? TotalClassOfServiceAmount { get; set; }
+
         // Status
         public BatchStatus BatchStatus { get; set; } = BatchStatus.Created;
 

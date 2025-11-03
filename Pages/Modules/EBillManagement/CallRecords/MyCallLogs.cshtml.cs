@@ -107,8 +107,10 @@ namespace TAB.Web.Pages.Modules.EBillManagement.CallRecords
 
             UserIndexNumber = ebillUser?.IndexNumber;
 
-            // Set default filter to current month if not specified
-            if (!FilterMonth.HasValue || !FilterYear.HasValue)
+            // Set default filter to current month and year ONLY on first visit
+            // If user explicitly selects "All", don't override their choice
+            bool isFirstVisit = !Request.Query.ContainsKey("FilterMonth") && !Request.Query.ContainsKey("FilterYear");
+            if (isFirstVisit)
             {
                 FilterMonth = DateTime.UtcNow.Month;
                 FilterYear = DateTime.UtcNow.Year;
@@ -186,10 +188,15 @@ namespace TAB.Web.Pages.Modules.EBillManagement.CallRecords
                 }
             }
 
-            // Apply filters
-            if (FilterMonth.HasValue && FilterYear.HasValue)
+            // Apply filters - allow filtering by month OR year independently
+            if (FilterMonth.HasValue)
             {
-                query = query.Where(c => c.CallMonth == FilterMonth.Value && c.CallYear == FilterYear.Value);
+                query = query.Where(c => c.CallMonth == FilterMonth.Value);
+            }
+
+            if (FilterYear.HasValue)
+            {
+                query = query.Where(c => c.CallYear == FilterYear.Value);
             }
 
             if (FilterStartDate.HasValue)
@@ -268,13 +275,21 @@ namespace TAB.Web.Pages.Modules.EBillManagement.CallRecords
             // For admin without UserIndexNumber, calculate summary for all records
             if (string.IsNullOrEmpty(UserIndexNumber) && isAdmin)
             {
-                if (!FilterMonth.HasValue || !FilterYear.HasValue)
-                    return;
+                // Build query for all records
+                var query = _context.CallRecords.AsQueryable();
 
-                // Calculate aggregate summary for all users
-                var allRecords = await _context.CallRecords
-                    .Where(c => c.CallMonth == FilterMonth.Value && c.CallYear == FilterYear.Value)
-                    .ToListAsync();
+                // Apply month/year filter only if specified
+                if (FilterMonth.HasValue)
+                {
+                    query = query.Where(c => c.CallMonth == FilterMonth.Value);
+                }
+
+                if (FilterYear.HasValue)
+                {
+                    query = query.Where(c => c.CallYear == FilterYear.Value);
+                }
+
+                var allRecords = await query.ToListAsync();
 
                 Summary = new VerificationSummary
                 {
@@ -284,7 +299,10 @@ namespace TAB.Web.Pages.Modules.EBillManagement.CallRecords
                     TotalAmount = allRecords.Sum(c => c.CallCostUSD),
                     VerifiedAmount = allRecords.Where(c => c.IsVerified).Sum(c => c.CallCostUSD),
                     PersonalCalls = allRecords.Count(c => c.VerificationType == "Personal"),
-                    OfficialCalls = allRecords.Count(c => c.VerificationType == "Official")
+                    OfficialCalls = allRecords.Count(c => c.VerificationType == "Official"),
+                    CompliancePercentage = allRecords.Count > 0
+                        ? (decimal)allRecords.Count(c => c.IsVerified) / allRecords.Count * 100
+                        : 0
                 };
 
                 AllowanceLimit = 0; // No specific limit for admin view
@@ -294,19 +312,80 @@ namespace TAB.Web.Pages.Modules.EBillManagement.CallRecords
                 return;
             }
 
-            if (string.IsNullOrEmpty(UserIndexNumber) || !FilterMonth.HasValue || !FilterYear.HasValue)
+            if (string.IsNullOrEmpty(UserIndexNumber))
                 return;
 
-            Summary = await _verificationService.GetVerificationSummaryAsync(
-                UserIndexNumber,
-                FilterMonth.Value,
-                FilterYear.Value);
+            // Get all call records for this user INCLUDING assigned calls (same logic as LoadCallRecordsAsync)
+            var assignedCallIds = await _context.Set<CallLogPaymentAssignment>()
+                .Where(a => a.AssignedTo == UserIndexNumber &&
+                       (a.AssignmentStatus == "Pending" || a.AssignmentStatus == "Accepted"))
+                .Select(a => a.CallRecordId)
+                .ToListAsync();
 
+            // Build query for user's calls (own + assigned)
+            var userQuery = _context.CallRecords
+                .Where(c => c.ResponsibleIndexNumber == UserIndexNumber || assignedCallIds.Contains(c.Id));
+
+            // Apply month/year filter only if specified
+            if (FilterMonth.HasValue)
+            {
+                userQuery = userQuery.Where(c => c.CallMonth == FilterMonth.Value);
+            }
+
+            if (FilterYear.HasValue)
+            {
+                userQuery = userQuery.Where(c => c.CallYear == FilterYear.Value);
+            }
+
+            // Get all calls user is responsible for (own calls + assigned calls)
+            var allUserRecords = await userQuery.ToListAsync();
+
+            // Calculate summary from actual user records (including assigned calls)
+            Summary = new VerificationSummary
+            {
+                TotalCalls = allUserRecords.Count,
+                VerifiedCalls = allUserRecords.Count(c => c.IsVerified),
+                UnverifiedCalls = allUserRecords.Count(c => !c.IsVerified),
+                TotalAmount = allUserRecords.Sum(c => c.CallCostUSD),
+                VerifiedAmount = allUserRecords.Where(c => c.IsVerified).Sum(c => c.CallCostUSD),
+                PersonalCalls = allUserRecords.Count(c => c.VerificationType == "Personal"),
+                OfficialCalls = allUserRecords.Count(c => c.VerificationType == "Official"),
+                CompliancePercentage = allUserRecords.Count > 0
+                    ? (decimal)allUserRecords.Count(c => c.IsVerified) / allUserRecords.Count * 100
+                    : 0,
+                OverageAmount = 0 // Will be calculated below
+            };
+
+            // Get allowance limit and calculate usage
             var limitNullable = await _calculationService.GetAllowanceLimitAsync(UserIndexNumber);
             AllowanceLimit = limitNullable ?? 0; // Unlimited = 0 for display
-            CurrentUsage = await _calculationService.GetMonthlyUsageAsync(UserIndexNumber, FilterMonth.Value, FilterYear.Value);
-            RemainingAllowance = limitNullable.HasValue && limitNullable.Value > 0 ? Math.Max(0, limitNullable.Value - CurrentUsage) : decimal.MaxValue;
-            IsOverAllowance = limitNullable.HasValue && limitNullable.Value > 0 && CurrentUsage > limitNullable.Value;
+
+            // Current usage should be total cost of all calls user is responsible for
+            CurrentUsage = Summary.TotalAmount;
+
+            // Calculate remaining allowance and overage
+            if (limitNullable.HasValue && limitNullable.Value > 0)
+            {
+                if (CurrentUsage > limitNullable.Value)
+                {
+                    IsOverAllowance = true;
+                    Summary.OverageAmount = CurrentUsage - limitNullable.Value;
+                    RemainingAllowance = 0;
+                }
+                else
+                {
+                    IsOverAllowance = false;
+                    RemainingAllowance = limitNullable.Value - CurrentUsage;
+                    Summary.OverageAmount = 0;
+                }
+            }
+            else
+            {
+                // No limit set (unlimited) - set to 0, we'll handle display in the view
+                IsOverAllowance = false;
+                RemainingAllowance = 0;
+                Summary.OverageAmount = 0;
+            }
         }
 
         public async Task<IActionResult> OnPostQuickVerifyAsync(List<int> selectedIds, string verificationType)

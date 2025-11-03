@@ -438,101 +438,117 @@
 <!-- Anti-forgery Token -->
 @Html.AntiForgeryToken()
 
+@* Verification Deadline Warning *@
+@if (Model.CallRecord.VerificationPeriod.HasValue)
+{
+    var verificationDeadline = Model.CallRecord.VerificationPeriod.Value;
+    var approvalDeadline = Model.CallRecord.ApprovalPeriod;
+    var daysUntilDeadline = (verificationDeadline - DateTime.UtcNow).TotalDays;
+    var hoursUntilDeadline = (verificationDeadline - DateTime.UtcNow).TotalHours;
+    var isExpired = daysUntilDeadline < 0;
+    var isUrgent = daysUntilDeadline >= 0 && daysUntilDeadline < 1;
+    var isApproaching = daysUntilDeadline >= 1 && daysUntilDeadline < 3;
+
+    @if (isExpired)
+    {
+        <div class="alert alert-danger alert-dismissible fade show mb-3" role="alert" style="border-radius: 16px; border: none; box-shadow: 0 4px 12px rgba(239, 68, 68, 0.15);">
+            <div class="d-flex align-items-start">
+                <i class="bi bi-exclamation-triangle-fill fs-4 me-3"></i>
+                <div class="flex-grow-1">
+                    <h6 class="alert-heading mb-2 fw-bold">
+                        <i class="bi bi-alarm me-1"></i>Staff Verification Deadline Expired!
+                    </h6>
+                    <p class="mb-2">
+                        The staff verification deadline for these calls was <strong>@verificationDeadline.ToLocalTime().ToString("MMMM dd, yyyy 'at' HH:mm")</strong>
+                        (expired @((int)Math.Abs(daysUntilDeadline)) day(s) ago).
+                    </p>
+                    @if (approvalDeadline.HasValue)
+                    {
+                        var daysUntilApproval = (approvalDeadline.Value - DateTime.UtcNow).TotalDays;
+                        if (daysUntilApproval > 0)
+                        {
+                            <p class="mb-2 small">
+                                <i class="bi bi-info-circle me-1"></i>
+                                However, the final supervisor approval deadline is <strong>@approvalDeadline.Value.ToLocalTime().ToString("MMMM dd, yyyy 'at' HH:mm")</strong> (@((int)Math.Ceiling(daysUntilApproval)) day(s) remaining).
+                            </p>
+                        }
+                    }
+                    <p class="mb-0 small">
+                        <i class="bi bi-info-circle me-1"></i>
+                        <strong>Important:</strong> Unverified calls after the deadline will be automatically marked as <span class="badge bg-danger">PERSONAL</span> and deducted from your allowance.
+                    </p>
+                </div>
+            </div>
+            <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
+        </div>
+    }
+    else if (isUrgent)
+    {
+        <div class="alert alert-warning alert-dismissible fade show mb-3" role="alert" style="border-radius: 16px; border: none; box-shadow: 0 4px 12px rgba(245, 158, 11, 0.15);">
+            <div class="d-flex align-items-start">
+                <i class="bi bi-clock-fill fs-4 me-3"></i>
+                <div class="flex-grow-1">
+                    <h6 class="alert-heading mb-2 fw-bold">
+                        <i class="bi bi-hourglass-split me-1"></i>Urgent: Staff Verification Deadline Expiring Soon!
+                    </h6>
+                    <p class="mb-2">
+                        You have <strong class="text-danger">@((int)Math.Ceiling(hoursUntilDeadline)) hour(s)</strong> remaining to verify these calls.
+                        Deadline: <strong>@verificationDeadline.ToLocalTime().ToString("MMMM dd, yyyy 'at' HH:mm")</strong>
+                    </p>
+                    @if (approvalDeadline.HasValue)
+                    {
+                        <p class="mb-2 small">
+                            <i class="bi bi-shield-check me-1"></i>
+                            After verification, your supervisor has until <strong>@approvalDeadline.Value.ToLocalTime().ToString("MMMM dd, yyyy 'at' HH:mm")</strong> to approve.
+                        </p>
+                    }
+                    <p class="mb-0 small">
+                        <i class="bi bi-shield-exclamation me-1"></i>Please verify your calls immediately to avoid automatic personal assignment.
+                    </p>
+                </div>
+            </div>
+            <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
+        </div>
+    }
+    else if (isApproaching)
+    {
+        <div class="alert alert-info alert-dismissible fade show mb-3" role="alert" style="border-radius: 16px; border: none; box-shadow: 0 4px 12px rgba(59, 130, 246, 0.15);">
+            <div class="d-flex align-items-start">
+                <i class="bi bi-info-circle-fill fs-4 me-3"></i>
+                <div class="flex-grow-1">
+                    <h6 class="alert-heading mb-2 fw-bold">
+                        <i class="bi bi-calendar-event me-1"></i>Staff Verification Deadline Approaching
+                    </h6>
+                    <p class="mb-2">
+                        Staff verification deadline: <strong>@verificationDeadline.ToLocalTime().ToString("MMMM dd, yyyy 'at' HH:mm")</strong>
+                        (@((int)Math.Ceiling(daysUntilDeadline)) day(s) remaining)
+                    </p>
+                    @if (approvalDeadline.HasValue)
+                    {
+                        <p class="mb-0 small">
+                            <i class="bi bi-shield-check me-1"></i>
+                            After you verify, your supervisor has until <strong>@approvalDeadline.Value.ToLocalTime().ToString("MMMM dd, yyyy")</strong> to approve.
+                        </p>
+                    }
+                </div>
+            </div>
+            <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
+        </div>
+    }
+}
+
 <!-- Page Header -->
 <div class="d-flex justify-content-between align-items-center mb-3">
     <div>
-        <h3 class="fw-bold mb-1">Extension <span style="color: #009EDB;">@Model.ExtensionNumber</span></h3>
+        <h3 class="fw-bold mb-1">Call Record Details</h3>
         <p class="text-muted mb-0">
-            @DateTime.ParseExact(Model.CallMonth.ToString() + Model.CallYear.ToString(), "Myyyy", null).ToString("MMMM yyyy") Breakdown
+            Extension <span style="color: #009EDB;">@Model.ExtensionNumber</span> - @(new DateTime(Model.CallYear, Model.CallMonth, 1).ToString("MMMM yyyy"))
         </p>
     </div>
     <div>
         <a href="/Modules/EBillManagement/CallRecords/MyCallLogs" class="btn btn-light" style="border-radius: 10px; padding: 0.6rem 1.5rem;">
             <i class="bi bi-arrow-left me-2"></i>Back to Call Records
         </a>
-    </div>
-</div>
-
-<!-- Summary Cards -->
-@{
-    var totalUsageWithPending = Model.CurrentUsage + Model.PendingVerification;
-    var usagePercentage = Model.AllowanceLimit > 0 ? (totalUsageWithPending / Model.AllowanceLimit) * 100 : 0;
-}
-
-<div class="row g-3 mb-4">
-    <!-- Call Summary Card -->
-    <div class="col-md-4">
-        <div class="stat-card">
-            <div class="d-flex align-items-center justify-content-between">
-                <div class="d-flex align-items-center gap-3">
-                    <div class="stat-icon stat-icon-primary">
-                        <i class="bi bi-telephone"></i>
-                    </div>
-                    <div>
-                        <div class="stat-number">@Model.AllExtensionCalls.Count</div>
-                        <div class="stat-label">Total Calls</div>
-                    </div>
-                </div>
-                <div class="text-end">
-                    <div style="font-size: 0.875rem; font-weight: 600; color: #1f2937;">$@Model.AllExtensionCalls.Sum(c => c.CallCostUSD).ToString("N2")</div>
-                    <div style="font-size: 0.75rem; color: #6b7280;">KSh @Model.AllExtensionCalls.Sum(c => c.CallCostKSHS).ToString("N2")</div>
-                </div>
-            </div>
-        </div>
-    </div>
-
-    <!-- Budget Summary Card -->
-    <div class="col-md-4">
-        <div class="stat-card">
-            <div class="d-flex align-items-center justify-content-between">
-                <div class="d-flex align-items-center gap-3">
-                    <div class="stat-icon stat-icon-success">
-                        <i class="bi bi-wallet2"></i>
-                    </div>
-                    <div>
-                        <div class="stat-number">$@Model.AllowanceLimit.ToString("N2")</div>
-                        <div class="stat-label">Monthly Allowance</div>
-                    </div>
-                </div>
-                <div class="text-end">
-                    <div style="font-size: 0.875rem; font-weight: 600; color: #6b7280;">Used: $@totalUsageWithPending.ToString("N2")</div>
-                    <div style="font-size: 0.75rem; font-weight: 600; color: @(Model.IsOverAllowance ? "#ef4444" : "#10b981");">
-                        @(Model.IsOverAllowance ? "Over" : "Left"): $@Math.Abs(Model.RemainingAllowance).ToString("N2")
-                    </div>
-                </div>
-            </div>
-        </div>
-    </div>
-
-    <!-- Usage Progress Card -->
-    <div class="col-md-4">
-        <div class="stat-card">
-            <div class="d-flex align-items-center justify-content-between">
-                <div class="d-flex align-items-center gap-3">
-                    <div class="stat-icon" style="background: linear-gradient(135deg, @(usagePercentage > 100 ? "#ef4444" : usagePercentage > 80 ? "#f59e0b" : "#10b981"), @(usagePercentage > 100 ? "#dc2626" : usagePercentage > 80 ? "#fbbf24" : "#34d399")); color: white;">
-                        <i class="bi bi-speedometer"></i>
-                    </div>
-                    <div>
-                        <div class="stat-number" style="color: @(usagePercentage > 100 ? "#ef4444" : "#1f2937");">@usagePercentage.ToString("N0")%</div>
-                        <div class="stat-label">Usage</div>
-                    </div>
-                </div>
-                <div class="text-end">
-                    @if (usagePercentage > 100)
-                    {
-                        <span style="font-size: 0.75rem; font-weight: 600; color: #ef4444;"><i class="bi bi-exclamation-triangle"></i> Over Budget</span>
-                    }
-                    else if (usagePercentage > 80)
-                    {
-                        <span style="font-size: 0.75rem; font-weight: 600; color: #f59e0b;"><i class="bi bi-exclamation-circle"></i> High Usage</span>
-                    }
-                    else
-                    {
-                        <span style="font-size: 0.75rem; font-weight: 600; color: #10b981;"><i class="bi bi-check-circle"></i> On Track</span>
-                    }
-                </div>
-            </div>
-        </div>
     </div>
 </div>
 
@@ -554,6 +570,9 @@
                         </button>
                         <button type="button" class="btn btn-sm btn-warning" onclick="verifySelectedCalls('Personal')">
                             <i class="bi bi-person-check me-1"></i>Mark as Personal
+                        </button>
+                        <button type="button" class="btn btn-sm btn-primary" onclick="submitToSupervisor()" data-bs-toggle="tooltip" title="Submit selected verified calls to your supervisor for approval">
+                            <i class="bi bi-send me-1"></i>Submit to Supervisor
                         </button>
                     </div>
                 </div>
@@ -598,11 +617,13 @@
                             {
                                 var groupId = "group_" + Guid.NewGuid().ToString("N");
                                 var allVerified = group.Calls.All(c => !string.IsNullOrEmpty(c.VerificationType));
+                                // Check if all calls in the group have expired deadlines
+                                var allExpired = group.Calls.All(c => c.VerificationPeriod.HasValue && c.VerificationPeriod.Value < DateTime.UtcNow);
 
                                 <!-- Grouped Summary Row -->
                                 <tr class="grouped-call-row">
                                     <td class="px-3 py-3 text-center" onclick="event.stopPropagation();">
-                                        <input type="checkbox" class="form-check-input group-checkbox" data-group-id="@groupId" onchange="toggleGroupCheckboxes('@groupId', this)" @(allVerified ? "disabled" : "")>
+                                        <input type="checkbox" class="form-check-input group-checkbox" data-group-id="@groupId" onchange="toggleGroupCheckboxes('@groupId', this)" @(allExpired ? "disabled" : "")>
                                     </td>
                                     <td class="px-3 py-3 text-center" onclick="toggleGroup('@groupId')">
                                         <i class="bi bi-chevron-right expand-icon" id="icon_@groupId"></i>
@@ -635,10 +656,10 @@
                                     <td class="px-3 py-3 text-end" onclick="toggleGroup('@groupId')">KSh @group.TotalCostKSH.ToString("N2")</td>
                                     <td class="px-3 py-3 text-end fw-semibold text-dark" onclick="toggleGroup('@groupId')">$@group.TotalCostUSD.ToString("N2")</td>
                                     <td class="px-3 py-3 text-center">
-                                        @if (allVerified)
+                                        @if (allExpired)
                                         {
-                                            <button class="btn btn-sm btn-light" type="button" disabled style="padding: 0.4rem 1rem; border: 1px solid #e5e7eb; opacity: 0.5;">
-                                                <i class="bi bi-three-dots"></i>
+                                            <button class="btn btn-sm btn-danger" type="button" disabled style="padding: 0.4rem 1rem; border: 1px solid #e5e7eb; opacity: 0.5;" title="Verification deadline expired">
+                                                <i class="bi bi-clock-history"></i> Expired
                                             </button>
                                         }
                                         else
@@ -689,9 +710,13 @@
                                                     @foreach (var call in group.Calls)
                                                     {
                                                         var isVerified = !string.IsNullOrEmpty(call.VerificationType);
+                                                        // Check if verification deadline has expired
+                                                        var isExpired = call.VerificationPeriod.HasValue && call.VerificationPeriod.Value < DateTime.UtcNow;
+                                                        // Only disable if deadline has expired, not just because it's verified
+                                                        var isLocked = isExpired;
                                                         <tr>
                                                             <td>
-                                                                <input type="checkbox" class="form-check-input call-checkbox" data-call-id="@call.Id" data-group-id="@groupId" onchange="updateGroupCheckboxState('@groupId')" @(isVerified ? "disabled" : "")>
+                                                                <input type="checkbox" class="form-check-input call-checkbox" data-call-id="@call.Id" data-group-id="@groupId" onchange="updateGroupCheckboxState('@groupId')" @(isLocked ? "disabled" : "")>
                                                             </td>
                                                             <td>
                                                                 <span class="badge bg-info">@call.CallType</span>
@@ -703,10 +728,16 @@
                                                             <td class="fw-semibold" style="color: #667eea;">$@call.CallCostUSD.ToString("N2")</td>
                                                             <td class="small text-muted">@call.CallDestination</td>
                                                             <td>
-                                                                @if (call.IsVerified)
+                                                                @if (isExpired)
                                                                 {
-                                                                    <span class="badge bg-success">
-                                                                        <i class="bi bi-check-circle me-1"></i>Verified
+                                                                    <span class="badge bg-danger" title="Verification deadline expired">
+                                                                        <i class="bi bi-clock-history me-1"></i>Expired
+                                                                    </span>
+                                                                }
+                                                                else if (call.IsVerified)
+                                                                {
+                                                                    <span class="badge bg-success" title="@call.VerificationType - Can be changed before deadline">
+                                                                        <i class="bi bi-check-circle me-1"></i>@call.VerificationType
                                                                     </span>
                                                                 }
                                                                 else
@@ -889,6 +920,35 @@
 
         // Show modal
         showVerificationModal(selectedCallIds, verificationType);
+    }
+
+    // Submit to supervisor
+    function submitToSupervisor() {
+        const selectedCallIds = [];
+
+        // Get selected individual calls
+        document.querySelectorAll('.call-checkbox:checked:not([disabled])').forEach(cb => {
+            selectedCallIds.push(parseInt(cb.getAttribute('data-call-id')));
+        });
+
+        // Get selected groups (all calls in checked groups)
+        document.querySelectorAll('.group-checkbox:checked:not([disabled])').forEach(groupCb => {
+            const groupId = groupCb.getAttribute('data-group-id');
+            document.querySelectorAll(`.call-checkbox[data-group-id="${groupId}"]:not([disabled])`).forEach(callCb => {
+                const callId = parseInt(callCb.getAttribute('data-call-id'));
+                if (!selectedCallIds.includes(callId)) {
+                    selectedCallIds.push(callId);
+                }
+            });
+        });
+
+        if (selectedCallIds.length === 0) {
+            alert('Please select at least one verified call to submit to supervisor.');
+            return;
+        }
+
+        // Redirect to submit page with selected IDs
+        window.location.href = '/Modules/EBillManagement/CallRecords/SubmitToSupervisor?ids=' + selectedCallIds.join(',');
     }
 
     // Show verification modal

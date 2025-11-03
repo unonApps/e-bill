@@ -9,9 +9,9 @@ namespace TAB.Web.Models
 
         // Mobile Information
         [Required]
-        [StringLength(9, MinimumLength = 9)]
+        [StringLength(15, MinimumLength = 9)]
         [Display(Name = "Primary Mobile Number")]
-        [RegularExpression(@"^\d{9}$", ErrorMessage = "Primary Mobile Number must be exactly 9 digits")]
+        [RegularExpression(@"^\d{9,15}$", ErrorMessage = "Primary Mobile Number must be between 9 and 15 digits")]
         public string PrimaryMobileNumber { get; set; } = string.Empty;
 
         [Required]
@@ -57,6 +57,21 @@ namespace TAB.Web.Models
         [StringLength(500)]
         [Display(Name = "Purchase Receipt")]
         public string PurchaseReceiptPath { get; set; } = string.Empty;
+
+        // Database storage for receipt files
+        [Display(Name = "Receipt File Data")]
+        public byte[]? PurchaseReceiptData { get; set; }
+
+        [StringLength(255)]
+        [Display(Name = "Receipt File Name")]
+        public string? PurchaseReceiptFileName { get; set; }
+
+        [StringLength(100)]
+        [Display(Name = "Receipt Content Type")]
+        public string? PurchaseReceiptContentType { get; set; }
+
+        [Display(Name = "Receipt Upload Date")]
+        public DateTime? PurchaseReceiptUploadDate { get; set; }
 
         [Required]
         [StringLength(10)]

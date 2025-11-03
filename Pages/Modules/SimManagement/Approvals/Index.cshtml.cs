@@ -17,55 +17,103 @@ namespace TAB.Web.Pages.Modules.SimManagement.Approvals
             _context = context;
         }
 
-        public int SupervisorPendingCount { get; set; }
-        public int IctsPendingCount { get; set; }
-        public List<SimRequest> SupervisorRequests { get; set; } = new();
-        public List<SimRequest> IctsRequests { get; set; } = new();
-        
-        // Categorized requests for supervisor view
-        public List<SimRequest> SupervisorPendingRequests { get; set; } = new();
-        public List<SimRequest> SupervisorProcessedRequests { get; set; } = new();
-        public List<SimRequest> SupervisorRejectedRequests { get; set; } = new();
+        // All SIM requests for the unified table view
+        public List<SimRequest> SimRequests { get; set; } = new();
 
-        public async Task<IActionResult> OnGetAsync()
+        // Statistics
+        public int TotalRequests { get; set; }
+        public int PendingSupervisorCount { get; set; }
+        public int PendingIctsCount { get; set; }
+        public int PendingAdminCount { get; set; }
+        public int PendingServiceProviderCount { get; set; }
+        public int PendingCollectionCount { get; set; }
+        public int ApprovedCount { get; set; }
+        public int CompletedCount { get; set; }
+        public int RejectedCount { get; set; }
+        public int CancelledCount { get; set; }
+
+        // Pagination
+        public int CurrentPage { get; set; }
+        public int PageSize { get; set; } = 20;
+        public int TotalPages { get; set; }
+        public int TotalRecords { get; set; }
+
+        // User role flags
+        public bool IsSupervisor { get; set; }
+        public bool IsIcts { get; set; }
+        public bool IsAdmin { get; set; }
+
+        public async Task<IActionResult> OnGetAsync(int page = 1)
         {
-            // Get counts for badges
-            var userEmail = User.Identity?.Name; // This is typically the email for logged-in users
-            
-            // Get supervisor requests - filter by supervisor email (stored in Supervisor field)
-            // Also check SupervisorEmail field for backward compatibility
-            SupervisorRequests = await _context.SimRequests
-                .Include(s => s.ServiceProvider)
-                .Where(s => s.Supervisor == userEmail || s.SupervisorEmail == userEmail)
-                .OrderByDescending(s => s.RequestDate)
-                .ToListAsync();
-            
-            // Categorize supervisor requests
-            SupervisorPendingRequests = SupervisorRequests.Where(s => s.Status == RequestStatus.PendingSupervisor).ToList();
-            SupervisorProcessedRequests = SupervisorRequests.Where(s => 
-                s.Status == RequestStatus.PendingIcts || 
-                s.Status == RequestStatus.PendingAdmin || 
-                s.Status == RequestStatus.Approved || 
-                s.Status == RequestStatus.Completed).ToList();
-            SupervisorRejectedRequests = SupervisorRequests.Where(s => s.Status == RequestStatus.Rejected).ToList();
-            
-            SupervisorPendingCount = SupervisorPendingRequests.Count;
+            var userName = User.Identity?.Name;
 
-            // Get ICTS requests (for ICTS users)
-            if (User.IsInRole("ICTS") || User.IsInRole("Admin"))
+            // Set role flags
+            IsAdmin = User.IsInRole("Admin");
+            IsSupervisor = User.IsInRole("Supervisor");
+            IsIcts = User.IsInRole("ICTS");
+
+            // Set current page
+            CurrentPage = page < 1 ? 1 : page;
+
+            // Build query based on user role
+            IQueryable<SimRequest> query = _context.SimRequests.Include(s => s.ServiceProvider);
+
+            if (IsAdmin)
             {
-                IctsRequests = await _context.SimRequests
-                    .Include(s => s.ServiceProvider)
-                    .Where(s => s.Status == RequestStatus.PendingIcts)
-                    .OrderByDescending(s => s.RequestDate)
-                    .ToListAsync();
-                    
-                IctsPendingCount = IctsRequests.Count;
+                // Admin sees all requests
+                query = query.OrderByDescending(r => r.RequestDate);
             }
-            
-            // Pass data to ViewData for partial views
-            ViewData["SupervisorRequests"] = SupervisorRequests;
-            ViewData["IctsRequests"] = IctsRequests;
+            else if (IsSupervisor && IsIcts)
+            {
+                // User has both roles - show requests assigned to them as supervisor + ICTS pending
+                query = query.Where(r => r.Supervisor == userName || r.SupervisorEmail == userName || r.Status == RequestStatus.PendingIcts)
+                            .OrderByDescending(r => r.RequestDate);
+            }
+            else if (IsSupervisor)
+            {
+                // Supervisor sees only their assigned requests
+                query = query.Where(r => r.Supervisor == userName || r.SupervisorEmail == userName)
+                            .OrderByDescending(r => r.RequestDate);
+            }
+            else if (IsIcts)
+            {
+                // ICTS sees only pending ICTS requests
+                query = query.Where(r => r.Status == RequestStatus.PendingIcts)
+                            .OrderByDescending(r => r.RequestDate);
+            }
+            else
+            {
+                // Other users see nothing (or could show their own requests if needed)
+                query = query.Where(r => false).OrderByDescending(r => r.RequestDate);
+            }
+
+            // Get total count before pagination
+            TotalRecords = await query.CountAsync();
+            TotalPages = (int)Math.Ceiling(TotalRecords / (double)PageSize);
+
+            // Apply pagination
+            SimRequests = await query
+                .Skip((CurrentPage - 1) * PageSize)
+                .Take(PageSize)
+                .ToListAsync();
+
+            // Calculate statistics from all accessible requests (not just current page)
+            var allAccessibleRequests = await _context.SimRequests
+                .Where(r => IsAdmin ||
+                           (IsSupervisor && (r.Supervisor == userName || r.SupervisorEmail == userName)) ||
+                           (IsIcts && r.Status == RequestStatus.PendingIcts))
+                .ToListAsync();
+
+            TotalRequests = allAccessibleRequests.Count;
+            PendingSupervisorCount = allAccessibleRequests.Count(r => r.Status == RequestStatus.PendingSupervisor);
+            PendingIctsCount = allAccessibleRequests.Count(r => r.Status == RequestStatus.PendingIcts);
+            PendingAdminCount = allAccessibleRequests.Count(r => r.Status == RequestStatus.PendingAdmin);
+            PendingServiceProviderCount = allAccessibleRequests.Count(r => r.Status == RequestStatus.PendingServiceProvider);
+            PendingCollectionCount = allAccessibleRequests.Count(r => r.Status == RequestStatus.PendingSIMCollection);
+            ApprovedCount = allAccessibleRequests.Count(r => r.Status == RequestStatus.Approved);
+            CompletedCount = allAccessibleRequests.Count(r => r.Status == RequestStatus.Completed);
+            RejectedCount = allAccessibleRequests.Count(r => r.Status == RequestStatus.Rejected);
+            CancelledCount = allAccessibleRequests.Count(r => r.Status == RequestStatus.Cancelled);
 
             return Page();
         }

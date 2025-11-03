@@ -1,0 +1,891 @@
+@page
+@model TAB.Web.Pages.Admin.EmailLogsModel
+@{
+    ViewData["Title"] = "Email History & Logs";
+}
+
+<style>
+    .stats-grid {
+        display: grid;
+        grid-template-columns: repeat(auto-fit, minmax(240px, 1fr));
+        gap: 1.5rem;
+        margin-bottom: 2rem;
+    }
+
+    .stat-card {
+        background: white;
+        border-radius: 16px;
+        padding: 1rem 1.25rem;
+        box-shadow: 0 2px 8px rgba(0, 0, 0, 0.05);
+        border-top: 4px solid;
+        transition: transform 0.2s, box-shadow 0.2s;
+    }
+
+    .stat-card:hover {
+        transform: translateY(-4px);
+        box-shadow: 0 4px 16px rgba(0, 0, 0, 0.1);
+    }
+
+    .stat-card.success {
+        border-top-color: #10b981;
+        --gradient-start: #10b981;
+        --gradient-end: #059669;
+    }
+
+    .stat-card.danger {
+        border-top-color: #ef4444;
+        --gradient-start: #ef4444;
+        --gradient-end: #dc2626;
+    }
+
+    .stat-card.warning {
+        border-top-color: #f59e0b;
+        --gradient-start: #f59e0b;
+        --gradient-end: #d97706;
+    }
+
+    .stat-card.info {
+        border-top-color: #3b82f6;
+        --gradient-start: #3b82f6;
+        --gradient-end: #2563eb;
+    }
+
+    .stat-header {
+        display: flex;
+        align-items: center;
+        gap: 1rem;
+        margin-bottom: 0.5rem;
+    }
+
+    .stat-value {
+        font-size: 2rem;
+        font-weight: 700;
+        background: linear-gradient(135deg, var(--gradient-start), var(--gradient-end));
+        -webkit-background-clip: text;
+        -webkit-text-fill-color: transparent;
+        background-clip: text;
+        margin: 0;
+    }
+
+    .stat-label {
+        color: #6b7280;
+        font-size: 0.875rem;
+        font-weight: 500;
+        display: flex;
+        align-items: center;
+        gap: 0.5rem;
+    }
+
+    .stat-icon {
+        width: 40px;
+        height: 40px;
+        border-radius: 10px;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        font-size: 1.25rem;
+        margin: 0;
+        flex-shrink: 0;
+    }
+
+    .stat-card.success .stat-icon {
+        background: rgba(16, 185, 129, 0.1);
+        color: #10b981;
+    }
+
+    .stat-card.danger .stat-icon {
+        background: rgba(239, 68, 68, 0.1);
+        color: #ef4444;
+    }
+
+    .stat-card.warning .stat-icon {
+        background: rgba(245, 158, 11, 0.1);
+        color: #f59e0b;
+    }
+
+    .stat-card.info .stat-icon {
+        background: rgba(59, 130, 246, 0.1);
+        color: #3b82f6;
+    }
+
+    .page-header {
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        margin-bottom: 2rem;
+        padding-bottom: 1rem;
+        border-bottom: 2px solid #e5e7eb;
+    }
+
+    .page-title {
+        font-size: 1.875rem;
+        font-weight: 700;
+        color: #111827;
+        margin: 0;
+        display: flex;
+        align-items: center;
+        gap: 0.75rem;
+    }
+
+    .filter-section {
+        background: white;
+        border-radius: 20px;
+        margin-bottom: 1.5rem;
+        box-shadow: 0 2px 4px rgba(0, 0, 0, 0.06);
+        border: none;
+        overflow: hidden;
+    }
+
+    .filter-header {
+        background: white;
+        padding: 1rem 1.5rem;
+        border-radius: 20px 20px 0 0;
+        cursor: pointer;
+        user-select: none;
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+    }
+
+    .filter-title {
+        font-size: 1rem;
+        font-weight: 700;
+        color: #1f2937;
+        margin: 0;
+        display: flex;
+        align-items: center;
+        gap: 0.5rem;
+    }
+
+    .filter-body {
+        padding: 1.5rem;
+    }
+
+    .content-card {
+        background: white;
+        border-radius: 16px;
+        box-shadow: 0 2px 4px rgba(0, 0, 0, 0.06);
+        border: none;
+        overflow: hidden;
+    }
+
+    .card-header-custom {
+        background: linear-gradient(135deg, #f8f9fa 0%, #e9ecef 100%);
+        border: none;
+        padding: 1.5rem;
+        border-radius: 16px 16px 0 0;
+    }
+
+    .card-title-custom {
+        font-size: 1.25rem;
+        font-weight: 700;
+        color: #1f2937;
+        margin-bottom: 0.25rem;
+        display: flex;
+        align-items: center;
+        gap: 0.5rem;
+    }
+
+    .card-subtitle-custom {
+        color: #6b7280;
+        margin: 0;
+        font-size: 0.875rem;
+    }
+
+    .table-container {
+        overflow-x: auto;
+        padding: 0;
+    }
+
+    .modern-table {
+        width: 100%;
+        margin: 0;
+    }
+
+    .modern-table thead {
+        background-color: #f8f9fa;
+    }
+
+    .modern-table thead th {
+        color: #4a5568;
+        font-weight: 600;
+        padding: 0.75rem 1rem;
+        border: none;
+        font-size: 0.75rem;
+        text-transform: uppercase;
+        letter-spacing: 0.5px;
+    }
+
+    .modern-table tbody td {
+        padding: 1rem;
+        vertical-align: middle;
+        border-bottom: 1px solid #f3f4f6;
+    }
+
+    .modern-table tbody tr:hover {
+        background-color: #f9fafb;
+    }
+
+    .modern-table tbody tr:last-child td {
+        border-bottom: none;
+    }
+
+    .status-badge {
+        padding: 0.35rem 0.75rem;
+        border-radius: 12px;
+        font-size: 0.813rem;
+        font-weight: 600;
+        display: inline-flex;
+        align-items: center;
+        gap: 0.375rem;
+    }
+
+    .badge-success {
+        background: rgba(16, 185, 129, 0.1);
+        color: #059669;
+    }
+
+    .badge-danger {
+        background: rgba(239, 68, 68, 0.1);
+        color: #dc2626;
+    }
+
+    .badge-warning {
+        background: rgba(245, 158, 11, 0.1);
+        color: #d97706;
+    }
+
+    .badge-info {
+        background: rgba(59, 130, 246, 0.1);
+        color: #2563eb;
+    }
+
+    .badge-secondary {
+        background: rgba(107, 114, 128, 0.1);
+        color: #4b5563;
+    }
+
+    .template-badge {
+        background: rgba(139, 92, 246, 0.1);
+        color: #7c3aed;
+        padding: 0.35rem 0.75rem;
+        border-radius: 12px;
+        font-size: 0.813rem;
+        font-weight: 600;
+    }
+
+    .action-btn {
+        padding: 0.5rem 0.75rem;
+        border-radius: 8px;
+        border: 1px solid #e5e7eb;
+        background: white;
+        color: #6b7280;
+        transition: all 0.2s;
+        cursor: pointer;
+    }
+
+    .action-btn:hover {
+        background: #f9fafb;
+        border-color: #009edb;
+        color: #009edb;
+        transform: translateY(-2px);
+    }
+
+    .action-btn.view-btn:hover {
+        background: rgba(0, 158, 219, 0.1);
+    }
+
+    .action-btn.retry-btn {
+        border-color: #f59e0b;
+        color: #f59e0b;
+    }
+
+    .action-btn.retry-btn:hover {
+        background: rgba(245, 158, 11, 0.1);
+    }
+
+    .empty-state {
+        text-align: center;
+        padding: 4rem 2rem;
+    }
+
+    .empty-icon {
+        font-size: 4rem;
+        color: #d1d5db;
+        margin-bottom: 1rem;
+    }
+
+    .empty-text {
+        color: #6b7280;
+        font-size: 1.1rem;
+    }
+
+    .btn-send-email {
+        background: linear-gradient(135deg, #009edb 0%, #0086c3 100%);
+        border: none;
+        color: white;
+        padding: 0.625rem 1.25rem;
+        border-radius: 12px;
+        font-weight: 600;
+        display: inline-flex;
+        align-items: center;
+        gap: 0.5rem;
+        transition: transform 0.2s, box-shadow 0.2s;
+    }
+
+    .btn-send-email:hover {
+        transform: translateY(-2px);
+        box-shadow: 0 4px 12px rgba(0, 158, 219, 0.3);
+        color: white;
+    }
+
+    .form-control, .form-select {
+        border-radius: 12px;
+        border: none;
+        background-color: #f3f4f6;
+        padding: 0.625rem 1rem;
+        transition: all 0.2s;
+    }
+
+    .form-control:focus, .form-select:focus {
+        background-color: #e5e7eb;
+        border-color: transparent;
+        box-shadow: none;
+    }
+
+    .form-label {
+        color: #6b7280;
+        font-size: 0.875rem;
+        margin-bottom: 0.5rem;
+    }
+
+    .btn-apply-filter {
+        background: linear-gradient(135deg, #009edb 0%, #0086c3 100%);
+        border: none;
+        color: white;
+        padding: 0.625rem 1.25rem;
+        border-radius: 12px;
+        font-weight: 500;
+        font-size: 0.875rem;
+        transition: all 0.2s;
+    }
+
+    .btn-apply-filter:hover {
+        opacity: 0.9;
+        color: white;
+    }
+
+    .btn-clear-filter {
+        background: transparent;
+        border: 1px solid #e5e7eb;
+        color: #6b7280;
+        padding: 0.5rem 1rem;
+        border-radius: 12px;
+        font-size: 0.875rem;
+        text-decoration: none;
+        display: inline-block;
+        transition: all 0.2s;
+    }
+
+    .btn-clear-filter:hover {
+        background: #f9fafb;
+        color: #374151;
+        text-decoration: none;
+    }
+
+    .pagination {
+        gap: 0.25rem;
+        margin: 0;
+    }
+
+    .page-link {
+        color: #009EDB;
+        border: 1px solid #e5e7eb;
+        padding: 0.5rem 0.75rem;
+        font-size: 0.875rem;
+        font-weight: 500;
+        border-radius: 8px;
+        margin: 0 2px;
+    }
+
+    .page-link:hover {
+        background-color: #f3f4f6;
+        border-color: #009EDB;
+        color: #007ab8;
+    }
+
+    .page-item.active .page-link {
+        background-color: #009EDB;
+        border-color: #009EDB;
+        color: white;
+    }
+
+    .page-item.disabled .page-link {
+        background-color: #f9fafb;
+        border-color: #e5e7eb;
+        color: #9ca3af;
+    }
+
+    @@media (max-width: 768px) {
+        .stats-grid {
+            grid-template-columns: 1fr;
+        }
+
+        .page-header {
+            flex-direction: column;
+            align-items: flex-start;
+            gap: 1rem;
+        }
+    }
+</style>
+
+<div class="page-header">
+    <h1 class="page-title">
+        <i class="bi bi-envelope-paper"></i>
+        Email History & Logs
+    </h1>
+    <a asp-page="/Admin/SendEmail" class="btn-send-email">
+        <i class="bi bi-send"></i>
+        Send Email
+    </a>
+</div>
+
+@if (Model.StatusMessage != null)
+{
+    <div class="alert alert-@Model.StatusMessageClass alert-dismissible fade show" role="alert" style="border-radius: 16px; border-left: 4px solid;">
+        <i class="bi bi-@(Model.StatusMessageClass == "success" ? "check-circle" : Model.StatusMessageClass == "danger" ? "x-circle" : "info-circle")"></i>
+        @Model.StatusMessage
+        <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
+    </div>
+}
+
+<!-- Statistics Cards -->
+<div class="stats-grid">
+    <div class="stat-card success">
+        <div class="stat-header">
+            <div class="stat-icon">
+                <i class="bi bi-check-circle-fill"></i>
+            </div>
+            <div class="stat-value">@Model.Statistics.TotalSent</div>
+        </div>
+        <div class="stat-label">
+            <i class="bi bi-arrow-up-right"></i>
+            Emails Sent
+        </div>
+    </div>
+    <div class="stat-card danger">
+        <div class="stat-header">
+            <div class="stat-icon">
+                <i class="bi bi-x-circle-fill"></i>
+            </div>
+            <div class="stat-value">@Model.Statistics.TotalFailed</div>
+        </div>
+        <div class="stat-label">
+            <i class="bi bi-exclamation-triangle"></i>
+            Failed
+        </div>
+    </div>
+    <div class="stat-card warning">
+        <div class="stat-header">
+            <div class="stat-icon">
+                <i class="bi bi-clock-history"></i>
+            </div>
+            <div class="stat-value">@Model.Statistics.TotalPending</div>
+        </div>
+        <div class="stat-label">
+            <i class="bi bi-hourglass-split"></i>
+            Pending
+        </div>
+    </div>
+    <div class="stat-card info">
+        <div class="stat-header">
+            <div class="stat-icon">
+                <i class="bi bi-inbox-fill"></i>
+            </div>
+            <div class="stat-value">@Model.Statistics.TotalQueued</div>
+        </div>
+        <div class="stat-label">
+            <i class="bi bi-layers"></i>
+            Queued
+        </div>
+    </div>
+</div>
+
+<!-- Filter Section -->
+<div class="filter-section">
+    <div class="filter-header" data-bs-toggle="collapse" data-bs-target="#filterCollapse">
+        <h6 class="filter-title">
+            <i class="bi bi-funnel me-2"></i>Filters
+        </h6>
+        <i class="bi bi-chevron-down"></i>
+    </div>
+    <div class="collapse" id="filterCollapse">
+        <div class="filter-body">
+            <form method="get">
+                <div class="row g-3">
+                    <div class="col-md-3">
+                        <label class="form-label">Email Address</label>
+                        <input type="email" name="toEmail" class="form-control" placeholder="Filter by email"
+                               value="@Model.ToEmailFilter" />
+                    </div>
+                    <div class="col-md-2">
+                        <label class="form-label">Status</label>
+                        <select name="status" class="form-select">
+                            <option value="">All Status</option>
+                            <option value="Sent" selected="@(Model.StatusFilter == "Sent")">Sent</option>
+                            <option value="Failed" selected="@(Model.StatusFilter == "Failed")">Failed</option>
+                            <option value="Pending" selected="@(Model.StatusFilter == "Pending")">Pending</option>
+                            <option value="Queued" selected="@(Model.StatusFilter == "Queued")">Queued</option>
+                        </select>
+                    </div>
+                    <div class="col-md-2">
+                        <label class="form-label">Start Date</label>
+                        <input type="date" name="startDate" class="form-control" value="@Model.StartDate?.ToString("yyyy-MM-dd")" />
+                    </div>
+                    <div class="col-md-2">
+                        <label class="form-label">End Date</label>
+                        <input type="date" name="endDate" class="form-control" value="@Model.EndDate?.ToString("yyyy-MM-dd")" />
+                    </div>
+                    <div class="col-md-3">
+                        <label class="form-label">&nbsp;</label>
+                        <button type="submit" class="btn btn-apply-filter w-100">
+                            <i class="bi bi-search me-1"></i> Apply Filters
+                        </button>
+                    </div>
+                </div>
+                <div class="row mt-3">
+                    <div class="col-md-12">
+                        <a asp-page="/Admin/EmailLogs" class="btn-clear-filter">
+                            <i class="bi bi-x-circle me-1"></i> Clear Filters
+                        </a>
+                    </div>
+                </div>
+            </form>
+        </div>
+    </div>
+</div>
+
+<!-- Email Logs Table -->
+<div class="content-card">
+    <div class="card-header-custom">
+        <div class="d-flex justify-content-between align-items-center">
+            <div>
+                <h5 class="card-title-custom">
+                    <i class="bi bi-list-ul text-primary"></i>
+                    Email Logs
+                </h5>
+                <p class="card-subtitle-custom">@Model.TotalCount total email records</p>
+            </div>
+        </div>
+    </div>
+    @if (!Model.EmailLogs.Any())
+    {
+        <div class="empty-state">
+            <div class="empty-icon">
+                <i class="bi bi-inbox"></i>
+            </div>
+            <p class="empty-text">No email logs found</p>
+            <p class="text-muted">Try adjusting your filters or send some emails to get started.</p>
+        </div>
+    }
+    else
+    {
+        <div class="table-container">
+            <table class="modern-table table-hover mb-0">
+                <thead>
+                    <tr>
+                        <th class="border-0 px-3 py-3"><i class="bi bi-calendar3 me-2"></i>Date</th>
+                        <th class="border-0 px-3 py-3"><i class="bi bi-person me-2"></i>To</th>
+                        <th class="border-0 px-3 py-3"><i class="bi bi-file-text me-2"></i>Subject</th>
+                        <th class="border-0 px-3 py-3"><i class="bi bi-layout-text-window me-2"></i>Template</th>
+                        <th class="border-0 px-3 py-3"><i class="bi bi-flag me-2"></i>Status</th>
+                        <th class="border-0 px-3 py-3"><i class="bi bi-send-check me-2"></i>Sent</th>
+                        <th class="border-0 px-3 py-3"><i class="bi bi-gear me-2"></i>Actions</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    @foreach (var log in Model.EmailLogs)
+                    {
+                        <tr>
+                            <td>
+                                <div style="font-size: 0.875rem;">@log.CreatedDate.ToString("MMM dd, yyyy")</div>
+                                <div style="font-size: 0.75rem; color: #9ca3af;">@log.CreatedDate.ToString("HH:mm")</div>
+                            </td>
+                            <td>
+                                <div style="font-weight: 500;">@log.ToEmail</div>
+                            </td>
+                            <td>
+                                <div style="color: #6b7280; font-size: 0.9rem;">@log.Subject</div>
+                            </td>
+                            <td>
+                                @if (log.EmailTemplate != null)
+                                {
+                                    <span class="template-badge">
+                                        <i class="bi bi-file-earmark-text"></i>
+                                        @log.EmailTemplate.Name
+                                    </span>
+                                }
+                                else
+                                {
+                                    <span class="text-muted">-</span>
+                                }
+                            </td>
+                            <td>
+                                @switch (log.Status)
+                                {
+                                    case "Sent":
+                                        <span class="status-badge badge-success">
+                                            <i class="bi bi-check-circle-fill"></i> @log.Status
+                                        </span>
+                                        break;
+                                    case "Failed":
+                                        <span class="status-badge badge-danger">
+                                            <i class="bi bi-x-circle-fill"></i> @log.Status
+                                        </span>
+                                        break;
+                                    case "Pending":
+                                        <span class="status-badge badge-warning">
+                                            <i class="bi bi-clock-history"></i> @log.Status
+                                        </span>
+                                        break;
+                                    case "Queued":
+                                        <span class="status-badge badge-info">
+                                            <i class="bi bi-inbox"></i> @log.Status
+                                        </span>
+                                        break;
+                                    default:
+                                        <span class="status-badge badge-secondary">@log.Status</span>
+                                        break;
+                                }
+                            </td>
+                            <td>
+                                @if (log.SentDate.HasValue)
+                                {
+                                    <div style="font-size: 0.875rem;">@log.SentDate.Value.ToString("MMM dd, yyyy")</div>
+                                    <div style="font-size: 0.75rem; color: #9ca3af;">@log.SentDate.Value.ToString("HH:mm")</div>
+                                }
+                                else
+                                {
+                                    <span class="text-muted">-</span>
+                                }
+                            </td>
+                            <td>
+                                <div class="d-flex gap-2">
+                                    <button type="button" class="action-btn view-btn"
+                                            onclick="viewEmail(@log.Id)" title="View Details">
+                                        <i class="bi bi-eye"></i>
+                                    </button>
+                                    @if (log.Status == "Failed" && log.RetryCount < log.MaxRetries)
+                                    {
+                                        <form method="post" asp-page-handler="Retry" class="d-inline">
+                                            <input type="hidden" name="id" value="@log.Id" />
+                                            <button type="submit" class="action-btn retry-btn" title="Retry Sending">
+                                                <i class="bi bi-arrow-clockwise"></i>
+                                            </button>
+                                        </form>
+                                    }
+                                </div>
+                            </td>
+                        </tr>
+                    }
+                </tbody>
+            </table>
+        </div>
+
+        <!-- Pagination -->
+        @if (Model.TotalPages > 1)
+        {
+            <div class="d-flex justify-content-center align-items-center py-4">
+                <nav>
+                    <ul class="pagination mb-0">
+                        <li class="page-item @(Model.CurrentPage == 1 ? "disabled" : "")">
+                            <a class="page-link" asp-route-currentPageNumber="@(Model.CurrentPage - 1)"
+                               asp-route-toEmail="@Model.ToEmailFilter"
+                               asp-route-status="@Model.StatusFilter"
+                               asp-route-startDate="@Model.StartDate?.ToString("yyyy-MM-dd")"
+                               asp-route-endDate="@Model.EndDate?.ToString("yyyy-MM-dd")">
+                                <i class="bi bi-chevron-left"></i>
+                            </a>
+                        </li>
+                        @for (int i = 1; i <= Model.TotalPages; i++)
+                        {
+                            <li class="page-item @(Model.CurrentPage == i ? "active" : "")">
+                                <a class="page-link" asp-route-currentPageNumber="@i"
+                                   asp-route-toEmail="@Model.ToEmailFilter"
+                                   asp-route-status="@Model.StatusFilter"
+                                   asp-route-startDate="@Model.StartDate?.ToString("yyyy-MM-dd")"
+                                   asp-route-endDate="@Model.EndDate?.ToString("yyyy-MM-dd")">@i</a>
+                            </li>
+                        }
+                        <li class="page-item @(Model.CurrentPage == Model.TotalPages ? "disabled" : "")">
+                            <a class="page-link" asp-route-currentPageNumber="@(Model.CurrentPage + 1)"
+                               asp-route-toEmail="@Model.ToEmailFilter"
+                               asp-route-status="@Model.StatusFilter"
+                               asp-route-startDate="@Model.StartDate?.ToString("yyyy-MM-dd")"
+                               asp-route-endDate="@Model.EndDate?.ToString("yyyy-MM-dd")">
+                                <i class="bi bi-chevron-right"></i>
+                            </a>
+                        </li>
+                    </ul>
+                </nav>
+            </div>
+        }
+    }
+</div>
+
+<!-- Email Details Modal -->
+<div class="modal fade" id="emailModal" tabindex="-1">
+    <div class="modal-dialog modal-lg modal-dialog-centered">
+        <div class="modal-content" style="border-radius: 20px; border: none; box-shadow: 0 10px 40px rgba(0, 0, 0, 0.15);">
+            <div class="modal-header" style="background: #009edb; border: none; border-radius: 20px 20px 0 0; padding: 1.5rem;">
+                <h5 class="modal-title" style="color: white; font-weight: 700; display: flex; align-items: center; gap: 0.5rem;">
+                    <i class="bi bi-envelope-open"></i>
+                    Email Details
+                </h5>
+                <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal"></button>
+            </div>
+            <div class="modal-body" id="emailContent" style="padding: 2rem;">
+                <div class="text-center py-4">
+                    <div class="spinner-border text-primary" role="status" style="width: 3rem; height: 3rem;">
+                        <span class="visually-hidden">Loading...</span>
+                    </div>
+                    <p class="text-muted mt-3">Loading email details...</p>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<style>
+    .modal-content {
+        animation: slideUp 0.3s ease-out;
+    }
+
+    @@keyframes slideUp {
+        from {
+            opacity: 0;
+            transform: translateY(20px);
+        }
+        to {
+            opacity: 1;
+            transform: translateY(0);
+        }
+    }
+
+    .email-detail-row {
+        margin-bottom: 1.5rem;
+        padding-bottom: 1rem;
+        border-bottom: 1px solid #f3f4f6;
+    }
+
+    .email-detail-row:last-child {
+        border-bottom: none;
+        margin-bottom: 0;
+    }
+
+    .email-detail-label {
+        font-weight: 600;
+        color: #374151;
+        font-size: 0.875rem;
+        text-transform: uppercase;
+        letter-spacing: 0.5px;
+        margin-bottom: 0.5rem;
+        display: flex;
+        align-items: center;
+        gap: 0.5rem;
+    }
+
+    .email-detail-value {
+        color: #1f2937;
+        font-size: 0.95rem;
+    }
+
+    .email-body-container {
+        background: #f9fafb;
+        border: 1px solid #e5e7eb;
+        border-radius: 12px;
+        padding: 1.5rem;
+        max-height: 400px;
+        overflow-y: auto;
+    }
+
+    .email-body-container::-webkit-scrollbar {
+        width: 8px;
+    }
+
+    .email-body-container::-webkit-scrollbar-track {
+        background: #e5e7eb;
+        border-radius: 10px;
+    }
+
+    .email-body-container::-webkit-scrollbar-thumb {
+        background: #9ca3af;
+        border-radius: 10px;
+    }
+
+    .email-body-container::-webkit-scrollbar-thumb:hover {
+        background: #6b7280;
+    }
+
+    .email-status-badge-modal {
+        padding: 0.5rem 1rem;
+        border-radius: 12px;
+        font-size: 0.875rem;
+        font-weight: 600;
+        display: inline-flex;
+        align-items: center;
+        gap: 0.5rem;
+    }
+
+    .email-status-badge-modal.badge-success {
+        background: rgba(16, 185, 129, 0.1);
+        color: #059669;
+    }
+
+    .email-status-badge-modal.badge-danger {
+        background: rgba(239, 68, 68, 0.1);
+        color: #dc2626;
+    }
+
+    .email-status-badge-modal.badge-warning {
+        background: rgba(245, 158, 11, 0.1);
+        color: #d97706;
+    }
+
+    .email-status-badge-modal.badge-info {
+        background: rgba(59, 130, 246, 0.1);
+        color: #2563eb;
+    }
+
+    .email-status-badge-modal.badge-secondary {
+        background: rgba(107, 114, 128, 0.1);
+        color: #4b5563;
+    }
+
+    .email-error-container {
+        background: #fef2f2;
+        border: 1px solid #fecaca;
+        border-radius: 12px;
+        padding: 1rem;
+        color: #991b1b;
+        font-size: 0.9rem;
+    }
+</style>
+
+@section Scripts {
+    <script>
+        function viewEmail(id) {
+            var modal = new bootstrap.Modal(document.getElementById('emailModal'));
+            modal.show();
+
+            fetch('/Admin/EmailLogs?handler=EmailDetails&id=' + id)
+                .then(response => response.text())
+                .then(html => {
+                    document.getElementById('emailContent').innerHTML = html;
+                })
+                .catch(error => {
+                    document.getElementById('emailContent').innerHTML = '<p class="text-danger">Error loading email details.</p>';
+                });
+        }
+    </script>
+}

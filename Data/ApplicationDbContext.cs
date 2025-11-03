@@ -34,6 +34,7 @@ namespace TAB.Web.Data
         public DbSet<Safaricom> Safaricoms { get; set; }
         public DbSet<Airtel> Airtels { get; set; }
         public DbSet<UserPhone> UserPhones { get; set; }
+        public DbSet<UserPhoneHistory> UserPhoneHistories { get; set; }
         public DbSet<ExchangeRate> ExchangeRates { get; set; }
 
         // Call Log Staging Tables
@@ -56,7 +57,29 @@ namespace TAB.Web.Data
         // Call Log Verification System
         public DbSet<CallLogVerification> CallLogVerifications { get; set; }
         public DbSet<CallLogPaymentAssignment> CallLogPaymentAssignments { get; set; }
+
+        /// <summary>
+        /// DEPRECATED: Per-call documents are replaced by extension-level overage documents.
+        /// Use PhoneOverageDocuments table instead.
+        /// </summary>
+        [Obsolete("CallLogDocuments is deprecated. Use PhoneOverageDocuments for extension-level justification instead.")]
         public DbSet<CallLogDocument> CallLogDocuments { get; set; }
+
+        // Phone Overage Justification System (Extension-Level)
+        public DbSet<PhoneOverageJustification> PhoneOverageJustifications { get; set; }
+        public DbSet<PhoneOverageDocument> PhoneOverageDocuments { get; set; }
+
+        // Call Log Recovery and Reporting System
+        public DbSet<RecoveryLog> RecoveryLogs { get; set; }
+        public DbSet<DeadlineTracking> DeadlineTracking { get; set; }
+        public DbSet<RecoveryConfiguration> RecoveryConfigurations { get; set; }
+        public DbSet<RecoveryJobExecution> RecoveryJobExecutions { get; set; }
+
+        // Email Management System
+        public DbSet<EmailConfiguration> EmailConfigurations { get; set; }
+        public DbSet<EmailTemplate> EmailTemplates { get; set; }
+        public DbSet<EmailLog> EmailLogs { get; set; }
+        public DbSet<EmailAttachment> EmailAttachments { get; set; }
 
         protected override void OnModelCreating(ModelBuilder builder)
         {
@@ -465,7 +488,7 @@ namespace TAB.Web.Data
                       .OnDelete(DeleteBehavior.Restrict);
             });
 
-            // Configure CallLogDocument entity
+            // Configure CallLogDocument entity (DEPRECATED - Use PhoneOverageDocument instead)
             builder.Entity<CallLogDocument>(entity =>
             {
                 entity.HasKey(e => e.Id);
@@ -483,6 +506,211 @@ namespace TAB.Web.Data
                 entity.HasOne(e => e.CallLogVerification)
                       .WithMany(v => v.Documents)
                       .HasForeignKey(e => e.CallLogVerificationId)
+                      .OnDelete(DeleteBehavior.Cascade);
+            });
+
+            // Configure PhoneOverageJustification entity (Extension-Level Overage Management)
+            builder.Entity<PhoneOverageJustification>(entity =>
+            {
+                entity.HasKey(e => e.Id);
+                entity.Property(e => e.JustificationText).IsRequired();
+                entity.Property(e => e.SubmittedBy).IsRequired().HasMaxLength(50);
+                entity.Property(e => e.ApprovalStatus).HasMaxLength(20);
+                entity.Property(e => e.ApprovedBy).HasMaxLength(50);
+                entity.Property(e => e.ApprovalComments).HasMaxLength(500);
+                entity.Property(e => e.AllowanceLimit).HasColumnType("decimal(18,4)");
+                entity.Property(e => e.TotalUsage).HasColumnType("decimal(18,4)");
+                entity.Property(e => e.OverageAmount).HasColumnType("decimal(18,4)");
+
+                // Indexes for performance
+                entity.HasIndex(e => e.UserPhoneId);
+                entity.HasIndex(e => new { e.Month, e.Year });
+                entity.HasIndex(e => e.ApprovalStatus);
+                entity.HasIndex(e => new { e.UserPhoneId, e.Month, e.Year }).IsUnique(); // One justification per phone per month
+
+                // Relationships
+                entity.HasOne(e => e.UserPhone)
+                      .WithMany()
+                      .HasForeignKey(e => e.UserPhoneId)
+                      .OnDelete(DeleteBehavior.Restrict);
+            });
+
+            // Configure PhoneOverageDocument entity (Supporting Documents for Extension Overage)
+            builder.Entity<PhoneOverageDocument>(entity =>
+            {
+                entity.HasKey(e => e.Id);
+                entity.Property(e => e.FileName).IsRequired().HasMaxLength(255);
+                entity.Property(e => e.FilePath).IsRequired().HasMaxLength(500);
+                entity.Property(e => e.ContentType).IsRequired().HasMaxLength(100);
+                entity.Property(e => e.Description).HasMaxLength(500);
+                entity.Property(e => e.UploadedBy).IsRequired().HasMaxLength(50);
+
+                // Indexes
+                entity.HasIndex(e => e.PhoneOverageJustificationId);
+
+                // Relationships with CASCADE delete
+                entity.HasOne(e => e.PhoneOverageJustification)
+                      .WithMany(j => j.Documents)
+                      .HasForeignKey(e => e.PhoneOverageJustificationId)
+                      .OnDelete(DeleteBehavior.Cascade);
+            });
+
+            // Configure RecoveryLog entity
+            builder.Entity<RecoveryLog>(entity =>
+            {
+                entity.HasKey(e => e.Id);
+                entity.Property(e => e.RecoveryType).IsRequired().HasMaxLength(50);
+                entity.Property(e => e.RecoveryAction).IsRequired().HasMaxLength(50);
+                entity.Property(e => e.RecoveryReason).IsRequired().HasMaxLength(1000);
+                entity.Property(e => e.RecoveredFrom).HasMaxLength(100);
+                entity.Property(e => e.ProcessedBy).HasMaxLength(100);
+
+                // Indexes for performance
+                entity.HasIndex(e => e.BatchId);
+                entity.HasIndex(e => e.RecoveryDate);
+                entity.HasIndex(e => e.RecoveredFrom);
+                entity.HasIndex(e => e.RecoveryType);
+                entity.HasIndex(e => new { e.RecoveryDate, e.RecoveryType });
+
+                // Relationships
+                entity.HasOne(e => e.CallRecord)
+                      .WithMany()
+                      .HasForeignKey(e => e.CallRecordId)
+                      .OnDelete(DeleteBehavior.Restrict);
+
+                entity.HasOne(e => e.StagingBatch)
+                      .WithMany()
+                      .HasForeignKey(e => e.BatchId)
+                      .OnDelete(DeleteBehavior.Restrict);
+            });
+
+            // Configure DeadlineTracking entity
+            builder.Entity<DeadlineTracking>(entity =>
+            {
+                entity.HasKey(e => e.Id);
+                entity.Property(e => e.DeadlineType).IsRequired().HasMaxLength(50);
+                entity.Property(e => e.TargetEntity).IsRequired().HasMaxLength(100);
+                entity.Property(e => e.DeadlineStatus).IsRequired().HasMaxLength(50);
+                entity.Property(e => e.ExtensionReason).HasMaxLength(500);
+                entity.Property(e => e.ExtensionApprovedBy).HasMaxLength(100);
+                entity.Property(e => e.CreatedBy).HasMaxLength(100);
+                entity.Property(e => e.Notes).HasMaxLength(1000);
+
+                // Indexes for performance
+                entity.HasIndex(e => e.BatchId);
+                entity.HasIndex(e => e.DeadlineDate);
+                entity.HasIndex(e => e.TargetEntity);
+                entity.HasIndex(e => e.DeadlineStatus);
+                entity.HasIndex(e => new { e.DeadlineDate, e.DeadlineStatus });
+                entity.HasIndex(e => new { e.DeadlineType, e.TargetEntity });
+
+                // Relationships
+                entity.HasOne(e => e.StagingBatch)
+                      .WithMany()
+                      .HasForeignKey(e => e.BatchId)
+                      .OnDelete(DeleteBehavior.Restrict);
+            });
+
+            // Configure RecoveryConfiguration entity
+            builder.Entity<RecoveryConfiguration>(entity =>
+            {
+                entity.HasKey(e => e.Id);
+                entity.Property(e => e.RuleName).IsRequired().HasMaxLength(100);
+                entity.Property(e => e.RuleType).IsRequired().HasMaxLength(50);
+                entity.Property(e => e.Description).HasMaxLength(500);
+                entity.Property(e => e.ModifiedBy).HasMaxLength(100);
+
+                // Indexes
+                entity.HasIndex(e => e.RuleName).IsUnique();
+                entity.HasIndex(e => e.RuleType);
+                entity.HasIndex(e => e.IsEnabled);
+            });
+
+            // Configure EmailConfiguration entity
+            builder.Entity<EmailConfiguration>(entity =>
+            {
+                entity.HasKey(e => e.Id);
+                entity.Property(e => e.SmtpServer).IsRequired().HasMaxLength(255);
+                entity.Property(e => e.FromEmail).IsRequired().HasMaxLength(255);
+                entity.Property(e => e.FromName).IsRequired().HasMaxLength(255);
+                entity.Property(e => e.Username).IsRequired().HasMaxLength(255);
+                entity.Property(e => e.Password).IsRequired().HasMaxLength(500);
+                entity.Property(e => e.ModifiedBy).HasMaxLength(100);
+                entity.Property(e => e.Notes).HasMaxLength(500);
+
+                // Indexes
+                entity.HasIndex(e => e.IsActive);
+            });
+
+            // Configure EmailTemplate entity
+            builder.Entity<EmailTemplate>(entity =>
+            {
+                entity.HasKey(e => e.Id);
+                entity.Property(e => e.Name).IsRequired().HasMaxLength(255);
+                entity.Property(e => e.TemplateCode).IsRequired().HasMaxLength(100);
+                entity.Property(e => e.Subject).IsRequired().HasMaxLength(500);
+                entity.Property(e => e.HtmlBody).IsRequired();
+                entity.Property(e => e.PlainTextBody);
+                entity.Property(e => e.Description).HasMaxLength(1000);
+                entity.Property(e => e.AvailablePlaceholders).HasMaxLength(2000);
+                entity.Property(e => e.Category).HasMaxLength(100);
+                entity.Property(e => e.ModifiedBy).HasMaxLength(100);
+
+                // Indexes
+                entity.HasIndex(e => e.TemplateCode).IsUnique();
+                entity.HasIndex(e => e.IsActive);
+                entity.HasIndex(e => e.Category);
+                entity.HasIndex(e => e.IsSystemTemplate);
+            });
+
+            // Configure EmailLog entity
+            builder.Entity<EmailLog>(entity =>
+            {
+                entity.HasKey(e => e.Id);
+                entity.Property(e => e.ToEmail).IsRequired().HasMaxLength(255);
+                entity.Property(e => e.CcEmails).HasMaxLength(1000);
+                entity.Property(e => e.BccEmails).HasMaxLength(1000);
+                entity.Property(e => e.Subject).IsRequired().HasMaxLength(500);
+                entity.Property(e => e.Body).IsRequired();
+                entity.Property(e => e.PlainTextBody);
+                entity.Property(e => e.Status).IsRequired().HasMaxLength(50);
+                entity.Property(e => e.ErrorMessage).HasMaxLength(2000);
+                entity.Property(e => e.CreatedBy).HasMaxLength(100);
+                entity.Property(e => e.TrackingId).HasMaxLength(100);
+                entity.Property(e => e.RelatedEntityType).HasMaxLength(100);
+                entity.Property(e => e.RelatedEntityId).HasMaxLength(100);
+
+                // Indexes
+                entity.HasIndex(e => e.ToEmail);
+                entity.HasIndex(e => e.Status);
+                entity.HasIndex(e => e.CreatedDate);
+                entity.HasIndex(e => e.SentDate);
+                entity.HasIndex(e => e.TrackingId);
+                entity.HasIndex(e => new { e.Status, e.CreatedDate });
+                entity.HasIndex(e => new { e.RelatedEntityType, e.RelatedEntityId });
+
+                // Relationships
+                entity.HasOne(e => e.EmailTemplate)
+                      .WithMany(t => t.EmailLogs)
+                      .HasForeignKey(e => e.EmailTemplateId)
+                      .OnDelete(DeleteBehavior.SetNull);
+            });
+
+            // Configure EmailAttachment entity
+            builder.Entity<EmailAttachment>(entity =>
+            {
+                entity.HasKey(e => e.Id);
+                entity.Property(e => e.FileName).IsRequired().HasMaxLength(255);
+                entity.Property(e => e.FilePath).IsRequired().HasMaxLength(500);
+                entity.Property(e => e.ContentType).HasMaxLength(100);
+
+                // Indexes
+                entity.HasIndex(e => e.EmailLogId);
+
+                // Relationships
+                entity.HasOne(e => e.EmailLog)
+                      .WithMany()
+                      .HasForeignKey(e => e.EmailLogId)
                       .OnDelete(DeleteBehavior.Cascade);
             });
 

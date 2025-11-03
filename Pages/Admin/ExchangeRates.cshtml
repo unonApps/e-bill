@@ -4,60 +4,267 @@
     ViewData["Title"] = "Exchange Rates Management";
 }
 
+@functions {
+    private string GetPageUrl(int pageNumber)
+    {
+        var url = $"/Admin/ExchangeRates?pageNumber={pageNumber}&pageSize={Model.PageSize}";
+
+        if (Model.FilterYear.HasValue)
+            url += $"&filterYear={Model.FilterYear}";
+
+        if (Model.FilterMonth.HasValue)
+            url += $"&filterMonth={Model.FilterMonth}";
+
+        if (!string.IsNullOrWhiteSpace(Model.SearchTerm))
+            url += $"&searchTerm={Uri.EscapeDataString(Model.SearchTerm)}";
+
+        return url;
+    }
+}
+
 <style>
-    /* Exchange Rate Card Styles */
-    .rate-card {
-        background: white;
-        border: 2px solid #e5e7eb;
-        border-radius: 12px;
-        padding: 1.5rem;
-        transition: all 0.3s ease;
-        margin-bottom: 1rem;
+    /* Page Header */
+    .page-header-bar {
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        margin-bottom: 2rem;
+        padding-bottom: 1.5rem;
+        border-bottom: 2px solid #e5e7eb;
+        flex-wrap: wrap;
+        gap: 1rem;
     }
 
-    .rate-card:hover {
-        border-color: #009EDB;
-        transform: translateY(-2px);
-        box-shadow: 0 4px 12px rgba(0, 158, 219, 0.15);
+    .page-info {
+        flex: 1;
     }
 
-    .rate-period {
-        font-size: 1.25rem;
-        font-weight: 700;
-        color: #1f2937;
+    .module-badge {
+        display: inline-flex;
+        align-items: center;
+        padding: 0.375rem 0.875rem;
+        background: linear-gradient(135deg, #009EDB 0%, #0084c7 100%);
+        color: white;
+        border-radius: 6px;
+        font-size: 0.75rem;
+        font-weight: 600;
+        text-transform: uppercase;
+        letter-spacing: 0.5px;
         margin-bottom: 0.5rem;
     }
 
-    .rate-value {
-        font-size: 2rem;
+    .page-title-main {
+        font-size: 1.75rem;
         font-weight: 700;
-        color: #009EDB;
-        line-height: 1;
+        color: #1f2937;
+        margin: 0;
+        letter-spacing: -0.02em;
     }
 
-    .rate-label {
+    /* Filter Card */
+    .filter-card {
+        background: white;
+        border: 1px solid #e5e7eb;
+        border-radius: 12px;
+        padding: 1.5rem;
+        margin-bottom: 1.5rem;
+    }
+
+    .filter-row {
+        display: flex;
+        gap: 1rem;
+        flex-wrap: wrap;
+        align-items: end;
+    }
+
+    .filter-group {
+        flex: 1;
+        min-width: 200px;
+    }
+
+    .filter-label {
         font-size: 0.875rem;
+        font-weight: 600;
+        color: #1f2937;
+        margin-bottom: 0.5rem;
+        display: flex;
+        align-items: center;
+        gap: 0.5rem;
+    }
+
+    .filter-input {
+        width: 100%;
+        padding: 0.625rem 1rem;
+        font-size: 0.9375rem;
+        color: #1f2937;
+        background: #f9fafb;
+        border: 1px solid #e5e7eb;
+        border-radius: 8px;
+        transition: all 0.2s ease;
+    }
+
+    .filter-input:focus {
+        outline: none;
+        border-color: #009EDB;
+        box-shadow: 0 0 0 3px rgba(0, 158, 219, 0.1);
+        background-color: white;
+    }
+
+    /* Results Summary */
+    .results-summary {
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        margin-bottom: 1rem;
+        padding: 0.75rem 1rem;
+        background: #f9fafb;
+        border-radius: 8px;
+    }
+
+    /* Table Styles */
+    .rates-table {
+        background: white;
+        border: 1px solid #e5e7eb;
+        border-radius: 12px;
+        overflow: hidden;
+    }
+
+    .rates-table table {
+        width: 100%;
+        margin: 0;
+    }
+
+    .rates-table thead {
+        background: linear-gradient(135deg, #f8f9fa 0%, #e9ecef 100%);
+    }
+
+    .rates-table th {
+        padding: 1rem;
+        font-size: 0.8125rem;
+        font-weight: 600;
         color: #6b7280;
         text-transform: uppercase;
-        letter-spacing: 0.05em;
-        margin-bottom: 0.25rem;
+        letter-spacing: 0.5px;
+        border-bottom: 2px solid #e5e7eb;
+        white-space: nowrap;
     }
 
-    .rate-audit {
+    .rates-table td {
+        padding: 1rem;
+        border-bottom: 1px solid #f3f4f6;
+        vertical-align: middle;
+    }
+
+    .rates-table tbody tr:last-child td {
+        border-bottom: none;
+    }
+
+    .rates-table tbody tr:hover {
+        background: #f9fafb;
+    }
+
+    /* Rate Value Highlight */
+    .rate-value {
+        font-size: 1.25rem;
+        font-weight: 700;
+        color: #009EDB;
+    }
+
+    .rate-currency {
+        font-size: 0.875rem;
+        color: #6b7280;
+        font-weight: 500;
+    }
+
+    /* Period Badge */
+    .period-badge {
+        display: inline-flex;
+        align-items: center;
+        padding: 0.5rem 1rem;
+        background: linear-gradient(135deg, #eff6ff 0%, #dbeafe 100%);
+        border-left: 3px solid #009EDB;
+        border-radius: 6px;
+        font-weight: 600;
+        color: #1f2937;
+    }
+
+    /* Audit Info */
+    .audit-info {
         font-size: 0.8125rem;
-        color: #9ca3af;
-        margin-top: 0.75rem;
-        padding-top: 0.75rem;
-        border-top: 1px solid #e5e7eb;
+        color: #6b7280;
+        line-height: 1.5;
     }
 
-    /* Form Styles */
-    .form-card {
+    .audit-info .updated {
+        color: #009EDB;
+        font-weight: 500;
+    }
+
+    /* Action Buttons */
+    .action-btn {
+        padding: 0.375rem 0.75rem;
+        border-radius: 6px;
+        font-size: 0.8125rem;
+        border: none;
+        cursor: pointer;
+        transition: all 0.2s;
+    }
+
+    .action-btn-edit {
+        background: #eff6ff;
+        color: #009EDB;
+    }
+
+    .action-btn-edit:hover {
+        background: #009EDB;
+        color: white;
+    }
+
+    .action-btn-delete {
+        background: #fef2f2;
+        color: #dc2626;
+    }
+
+    .action-btn-delete:hover {
+        background: #dc2626;
+        color: white;
+    }
+
+    /* Empty State */
+    .empty-state {
+        text-align: center;
+        padding: 4rem 2rem;
         background: white;
-        border: 2px solid #e5e7eb;
+        border: 2px dashed #d1d5db;
         border-radius: 12px;
+    }
+
+    .empty-state-icon {
+        font-size: 4rem;
+        color: #d1d5db;
+        margin-bottom: 1rem;
+    }
+
+    /* Modal Styles */
+    .modal-content {
+        border-radius: 16px;
+        border: none;
+        box-shadow: 0 10px 40px rgba(0, 0, 0, 0.2);
+    }
+
+    .modal-header {
+        background: linear-gradient(135deg, #009EDB 0%, #0084c7 100%);
+        color: white;
+        border-radius: 16px 16px 0 0;
+        padding: 1.5rem;
+    }
+
+    .modal-header .btn-close {
+        filter: brightness(0) invert(1);
+    }
+
+    .modal-body {
         padding: 2rem;
-        margin-bottom: 2rem;
     }
 
     .form-input-group {
@@ -96,152 +303,388 @@
         background-color: white;
     }
 
-    /* Modal Styles */
-    .modal-content {
-        border-radius: 16px;
-        border: none;
-        box-shadow: 0 10px 40px rgba(0, 0, 0, 0.2);
+    /* Pagination Styles */
+    .pagination {
+        gap: 0.25rem;
     }
 
-    .modal-header {
-        background: linear-gradient(135deg, #009EDB 0%, #0084c7 100%);
+    .page-link {
+        color: #009EDB;
+        border: 1px solid #e5e7eb;
+        padding: 0.5rem 0.75rem;
+        font-size: 0.875rem;
+        font-weight: 500;
+        border-radius: 8px;
+        transition: all 0.2s ease;
+    }
+
+    .page-link:hover {
+        background-color: #f3f4f6;
+        border-color: #009EDB;
+        color: #007ab8;
+    }
+
+    .page-item.active .page-link {
+        background-color: #009EDB;
+        border-color: #009EDB;
         color: white;
-        border-radius: 16px 16px 0 0;
-        padding: 1.5rem;
+        font-weight: 600;
     }
 
-    .modal-header .btn-close {
-        filter: brightness(0) invert(1);
+    .page-item.disabled .page-link {
+        background-color: #f9fafb;
+        border-color: #e5e7eb;
+        color: #9ca3af;
+        cursor: not-allowed;
     }
 
-    .modal-body {
-        padding: 2rem;
+    .page-item.disabled .page-link:hover {
+        background-color: #f9fafb;
+        border-color: #e5e7eb;
+        color: #9ca3af;
     }
 
-    /* Header Styles */
-    .page-header {
-        background: linear-gradient(135deg, #009EDB 0%, #0084c7 100%);
-        color: white;
-        padding: 2rem;
-        border-radius: 16px;
-        margin-bottom: 2rem;
-    }
+    /* Responsive */
+    @@media (max-width: 768px) {
+        .page-header-bar {
+            flex-direction: column;
+            align-items: flex-start;
+        }
 
-    .empty-state {
-        text-align: center;
-        padding: 4rem 2rem;
-        background: white;
-        border: 2px dashed #d1d5db;
-        border-radius: 12px;
-    }
+        .filter-row {
+            flex-direction: column;
+        }
 
-    .empty-state-icon {
-        font-size: 4rem;
-        color: #d1d5db;
-        margin-bottom: 1rem;
+        .filter-group {
+            width: 100%;
+        }
+
+        .rates-table {
+            overflow-x: auto;
+        }
+
+        .results-summary {
+            flex-direction: column;
+            gap: 0.5rem;
+            align-items: flex-start;
+        }
+
+        .pagination {
+            font-size: 0.75rem;
+        }
+
+        .page-link {
+            padding: 0.375rem 0.5rem;
+            font-size: 0.75rem;
+        }
     }
 </style>
 
-<div class="container-fluid py-4">
-    <!-- Page Header -->
-    <div class="page-header">
-        <div class="d-flex align-items-center justify-content-between">
-            <div class="d-flex align-items-center">
-                <div class="bg-white bg-opacity-20 rounded-circle d-inline-flex align-items-center justify-content-center me-3"
-                     style="width: 60px; height: 60px;">
-                    <i class="bi bi-currency-exchange text-white" style="font-size: 28px;"></i>
-                </div>
-                <div>
-                    <h3 class="fw-bold mb-1">Exchange Rates Management</h3>
-                    <p class="mb-0 opacity-90">Manage KES to USD exchange rates for telecom billing</p>
+<!-- Page Header -->
+<div class="page-header-bar">
+    <div class="page-info">
+        <div class="module-badge">
+            <i class="bi bi-currency-exchange me-2"></i>
+            Admin / Exchange Rates
+        </div>
+        <h1 class="page-title-main">Exchange Rates Management</h1>
+    </div>
+    <button type="button" class="btn btn-primary" data-bs-toggle="modal" data-bs-target="#createRateModal" style="border-radius: 8px; padding: 0.625rem 1.5rem;">
+        <i class="bi bi-plus-circle me-2"></i>Add New Rate
+    </button>
+</div>
+
+@if (!string.IsNullOrEmpty(Model.StatusMessage))
+{
+    <div class="alert alert-@Model.StatusMessageClass alert-dismissible fade show border-0" style="border-radius: 12px;" role="alert">
+        <i class="bi bi-@(Model.StatusMessageClass == "success" ? "check-circle" : Model.StatusMessageClass == "danger" ? "x-circle" : "info-circle") me-2"></i>
+        @Model.StatusMessage
+        <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
+    </div>
+}
+
+<!-- Filter Card -->
+<div class="filter-card">
+    <form method="get" id="filterForm">
+        <div class="filter-row">
+            <div class="filter-group">
+                <label class="filter-label">
+                    <i class="bi bi-calendar text-primary"></i>
+                    Year
+                </label>
+                <select name="filterYear" class="filter-input" id="filterYear">
+                    <option value="">All Years</option>
+                    @foreach (var year in Model.ExchangeRates.Select(r => r.Year).Distinct().OrderByDescending(y => y))
+                    {
+                        <option value="@year" selected="@(Model.FilterYear == year)">@year</option>
+                    }
+                </select>
+            </div>
+
+            <div class="filter-group">
+                <label class="filter-label">
+                    <i class="bi bi-calendar-month text-primary"></i>
+                    Month
+                </label>
+                <select name="filterMonth" class="filter-input" id="filterMonth">
+                    <option value="">All Months</option>
+                    <option value="1" selected="@(Model.FilterMonth == 1)">January</option>
+                    <option value="2" selected="@(Model.FilterMonth == 2)">February</option>
+                    <option value="3" selected="@(Model.FilterMonth == 3)">March</option>
+                    <option value="4" selected="@(Model.FilterMonth == 4)">April</option>
+                    <option value="5" selected="@(Model.FilterMonth == 5)">May</option>
+                    <option value="6" selected="@(Model.FilterMonth == 6)">June</option>
+                    <option value="7" selected="@(Model.FilterMonth == 7)">July</option>
+                    <option value="8" selected="@(Model.FilterMonth == 8)">August</option>
+                    <option value="9" selected="@(Model.FilterMonth == 9)">September</option>
+                    <option value="10" selected="@(Model.FilterMonth == 10)">October</option>
+                    <option value="11" selected="@(Model.FilterMonth == 11)">November</option>
+                    <option value="12" selected="@(Model.FilterMonth == 12)">December</option>
+                </select>
+            </div>
+
+            <div class="filter-group">
+                <label class="filter-label">
+                    <i class="bi bi-search text-primary"></i>
+                    Search by User
+                </label>
+                <input type="text" name="searchTerm" class="filter-input" placeholder="Search by creator or updater..."
+                       value="@Model.SearchTerm" />
+            </div>
+
+            <div class="filter-group" style="flex: 0 0 150px;">
+                <label class="filter-label">
+                    <i class="bi bi-list-ol text-primary"></i>
+                    Per Page
+                </label>
+                <select name="pageSize" class="filter-input" id="pageSize">
+                    <option value="10" selected="@(Model.PageSize == 10)">10</option>
+                    <option value="25" selected="@(Model.PageSize == 25)">25</option>
+                    <option value="50" selected="@(Model.PageSize == 50)">50</option>
+                    <option value="100" selected="@(Model.PageSize == 100)">100</option>
+                </select>
+            </div>
+
+            <div class="filter-group" style="flex: 0 0 auto; min-width: auto;">
+                <label class="filter-label" style="visibility: hidden;">Actions</label>
+                <div class="d-flex gap-2">
+                    <button type="submit" class="btn btn-primary" style="border-radius: 8px; white-space: nowrap;">
+                        <i class="bi bi-funnel me-1"></i>Apply
+                    </button>
+                    <a href="/Admin/ExchangeRates" class="btn btn-outline-secondary" style="border-radius: 8px;">
+                        <i class="bi bi-x-circle"></i>
+                    </a>
                 </div>
             </div>
-            <button type="button" class="btn btn-light" data-bs-toggle="modal" data-bs-target="#createRateModal">
-                <i class="bi bi-plus-circle me-2"></i>Add New Rate
-            </button>
+        </div>
+        <input type="hidden" name="pageNumber" id="pageNumber" value="@Model.CurrentPage" />
+    </form>
+</div>
+
+<!-- Results Summary -->
+@if (Model.FilteredExchangeRates.Any())
+{
+    var startRecord = (Model.CurrentPage - 1) * Model.PageSize + 1;
+    var endRecord = Math.Min(Model.CurrentPage * Model.PageSize, Model.TotalRecords);
+
+    <div class="results-summary">
+        <div>
+            <i class="bi bi-list-ul me-2"></i>
+            Showing <strong>@startRecord</strong> to <strong>@endRecord</strong> of <strong>@Model.TotalRecords</strong> exchange rate(s)
+            @if (Model.FilterYear.HasValue || Model.FilterMonth.HasValue || !string.IsNullOrWhiteSpace(Model.SearchTerm))
+            {
+                <span class="text-muted">(filtered)</span>
+            }
+        </div>
+        <div class="text-muted small">
+            <i class="bi bi-info-circle me-1"></i>
+            Page @Model.CurrentPage of @Model.TotalPages
         </div>
     </div>
 
-    @if (!string.IsNullOrEmpty(Model.StatusMessage))
-    {
-        <div class="alert alert-@Model.StatusMessageClass alert-dismissible fade show" role="alert">
-            <i class="bi bi-@(Model.StatusMessageClass == "success" ? "check-circle" : Model.StatusMessageClass == "danger" ? "x-circle" : "info-circle") me-2"></i>
-            @Model.StatusMessage
-            <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
-        </div>
-    }
-
-    <!-- Exchange Rates List -->
-    @if (Model.ExchangeRates.Any())
-    {
-        <div class="row">
-            @foreach (var rate in Model.ExchangeRates)
-            {
-                <div class="col-md-6 col-lg-4 mb-3">
-                    <div class="rate-card">
-                        <div class="d-flex justify-content-between align-items-start mb-3">
-                            <div>
-                                <div class="rate-period">@rate.PeriodDisplay</div>
-                                <div class="rate-label">Exchange Rate</div>
+    <!-- Exchange Rates Table -->
+    <div class="rates-table">
+        <table class="table table-hover mb-0">
+            <thead>
+                <tr>
+                    <th style="width: 20%;">Period</th>
+                    <th style="width: 20%;">Exchange Rate</th>
+                    <th style="width: 30%;">Created By</th>
+                    <th style="width: 20%;">Last Updated</th>
+                    <th style="width: 10%; text-align: center;">Actions</th>
+                </tr>
+            </thead>
+            <tbody>
+                @foreach (var rate in Model.FilteredExchangeRates)
+                {
+                    <tr>
+                        <td>
+                            <div class="period-badge">
+                                <i class="bi bi-calendar-event me-2"></i>
+                                @rate.PeriodDisplay
                             </div>
-                            <div class="dropdown">
-                                <button class="btn btn-sm btn-light" type="button" data-bs-toggle="dropdown">
-                                    <i class="bi bi-three-dots-vertical"></i>
-                                </button>
-                                <ul class="dropdown-menu dropdown-menu-end">
-                                    <li>
-                                        <a class="dropdown-item" href="#" onclick="openUpdateModal(@rate.Id, @rate.Month, @rate.Year, @rate.Rate)">
-                                            <i class="bi bi-pencil me-2"></i>Update Rate
-                                        </a>
-                                    </li>
-                                    <li><hr class="dropdown-divider"></li>
-                                    <li>
-                                        <form method="post" asp-page-handler="Delete" asp-route-id="@rate.Id"
-                                              onsubmit="return confirm('Are you sure you want to delete this exchange rate?');" class="d-inline">
-                                            <button type="submit" class="dropdown-item text-danger">
-                                                <i class="bi bi-trash me-2"></i>Delete
-                                            </button>
-                                        </form>
-                                    </li>
-                                </ul>
+                        </td>
+                        <td>
+                            <div class="d-flex align-items-baseline gap-2">
+                                <span class="rate-value">@rate.Rate.ToString("N4")</span>
+                                <span class="rate-currency">KES per 1 USD</span>
                             </div>
-                        </div>
-
-                        <div class="d-flex align-items-baseline gap-2">
-                            <span class="rate-value">@rate.Rate.ToString("N4")</span>
-                            <span class="text-muted">KES</span>
-                        </div>
-                        <div class="text-muted small mt-1">per 1 USD</div>
-
-                        <div class="rate-audit">
-                            <div><i class="bi bi-person me-1"></i> Created by @rate.CreatedBy</div>
-                            <div><i class="bi bi-clock me-1"></i> @rate.CreatedDate.ToString("MMM dd, yyyy HH:mm")</div>
+                        </td>
+                        <td>
+                            <div class="audit-info">
+                                <div>
+                                    <i class="bi bi-person me-1"></i>
+                                    @rate.CreatedBy
+                                </div>
+                                <div>
+                                    <i class="bi bi-clock me-1"></i>
+                                    @rate.CreatedDate.ToString("MMM dd, yyyy HH:mm")
+                                </div>
+                            </div>
+                        </td>
+                        <td>
                             @if (rate.UpdatedBy != null)
                             {
-                                <div class="mt-1 text-primary">
-                                    <i class="bi bi-arrow-repeat me-1"></i> Updated by @rate.UpdatedBy on @rate.UpdatedDate?.ToString("MMM dd, yyyy HH:mm")
+                                <div class="audit-info updated">
+                                    <div>
+                                        <i class="bi bi-arrow-repeat me-1"></i>
+                                        @rate.UpdatedBy
+                                    </div>
+                                    <div>
+                                        <i class="bi bi-clock me-1"></i>
+                                        @rate.UpdatedDate?.ToString("MMM dd, yyyy HH:mm")
+                                    </div>
                                 </div>
                             }
-                        </div>
-                    </div>
-                </div>
-            }
+                            else
+                            {
+                                <span class="text-muted small">—</span>
+                            }
+                        </td>
+                        <td style="text-align: center;">
+                            <div class="d-flex gap-1 justify-content-center">
+                                <button type="button" class="action-btn action-btn-edit"
+                                        onclick="openUpdateModal(@rate.Id, @rate.Month, @rate.Year, @rate.Rate)"
+                                        title="Update Rate">
+                                    <i class="bi bi-pencil"></i>
+                                </button>
+                                <form method="post" asp-page-handler="Delete" asp-route-id="@rate.Id" class="d-inline"
+                                      onsubmit="return confirm('Are you sure you want to delete the exchange rate for @rate.PeriodDisplay?');">
+                                    <button type="submit" class="action-btn action-btn-delete" title="Delete Rate">
+                                        <i class="bi bi-trash"></i>
+                                    </button>
+                                </form>
+                            </div>
+                        </td>
+                    </tr>
+                }
+            </tbody>
+        </table>
+    </div>
+
+    <!-- Pagination Controls -->
+    @if (Model.TotalPages > 1)
+    {
+        <div class="d-flex justify-content-between align-items-center mt-3 flex-wrap gap-3">
+            <div class="text-muted small">
+                Page @Model.CurrentPage of @Model.TotalPages
+            </div>
+            <nav aria-label="Exchange rates pagination">
+                <ul class="pagination pagination-sm mb-0">
+                    <!-- Previous Button -->
+                    <li class="page-item @(Model.CurrentPage == 1 ? "disabled" : "")">
+                        <a class="page-link" href="@GetPageUrl(Model.CurrentPage - 1)" aria-label="Previous">
+                            <i class="bi bi-chevron-left"></i> Previous
+                        </a>
+                    </li>
+
+                    @{
+                        var startPage = Math.Max(1, Model.CurrentPage - 2);
+                        var endPage = Math.Min(Model.TotalPages, Model.CurrentPage + 2);
+
+                        // First page
+                        if (startPage > 1)
+                        {
+                            <li class="page-item">
+                                <a class="page-link" href="@GetPageUrl(1)">1</a>
+                            </li>
+                            if (startPage > 2)
+                            {
+                                <li class="page-item disabled">
+                                    <span class="page-link">...</span>
+                                </li>
+                            }
+                        }
+
+                        // Page numbers
+                        for (int i = startPage; i <= endPage; i++)
+                        {
+                            <li class="page-item @(i == Model.CurrentPage ? "active" : "")">
+                                <a class="page-link" href="@GetPageUrl(i)">@i</a>
+                            </li>
+                        }
+
+                        // Last page
+                        if (endPage < Model.TotalPages)
+                        {
+                            if (endPage < Model.TotalPages - 1)
+                            {
+                                <li class="page-item disabled">
+                                    <span class="page-link">...</span>
+                                </li>
+                            }
+                            <li class="page-item">
+                                <a class="page-link" href="@GetPageUrl(Model.TotalPages)">@Model.TotalPages</a>
+                            </li>
+                        }
+                    }
+
+                    <!-- Next Button -->
+                    <li class="page-item @(Model.CurrentPage >= Model.TotalPages ? "disabled" : "")">
+                        <a class="page-link" href="@GetPageUrl(Model.CurrentPage + 1)" aria-label="Next">
+                            Next <i class="bi bi-chevron-right"></i>
+                        </a>
+                    </li>
+                </ul>
+            </nav>
         </div>
     }
-    else
-    {
-        <div class="empty-state">
-            <div class="empty-state-icon">
-                <i class="bi bi-currency-exchange"></i>
-            </div>
-            <h5 class="text-muted mb-2">No Exchange Rates Defined</h5>
-            <p class="text-muted mb-3">Get started by adding your first exchange rate.</p>
-            <button type="button" class="btn btn-primary" data-bs-toggle="modal" data-bs-target="#createRateModal">
+}
+else
+{
+    <div class="empty-state">
+        <div class="empty-state-icon">
+            <i class="bi bi-currency-exchange"></i>
+        </div>
+        <h5 class="text-muted mb-2">
+            @if (Model.FilterYear.HasValue || Model.FilterMonth.HasValue || !string.IsNullOrWhiteSpace(Model.SearchTerm))
+            {
+                <text>No Exchange Rates Match Your Filters</text>
+            }
+            else
+            {
+                <text>No Exchange Rates Defined</text>
+            }
+        </h5>
+        <p class="text-muted mb-3">
+            @if (Model.FilterYear.HasValue || Model.FilterMonth.HasValue || !string.IsNullOrWhiteSpace(Model.SearchTerm))
+            {
+                <text>Try adjusting your filters or </text>
+                <a href="/Admin/ExchangeRates">clear all filters</a>
+            }
+            else
+            {
+                <text>Get started by adding your first exchange rate.</text>
+            }
+        </p>
+        @if (!Model.FilterYear.HasValue && !Model.FilterMonth.HasValue && string.IsNullOrWhiteSpace(Model.SearchTerm))
+        {
+            <button type="button" class="btn btn-primary" data-bs-toggle="modal" data-bs-target="#createRateModal" style="border-radius: 8px;">
                 <i class="bi bi-plus-circle me-2"></i>Add Exchange Rate
             </button>
-        </div>
-    }
-</div>
+        }
+    </div>
+}
 
 <!-- Create Rate Modal -->
 <div class="modal fade" id="createRateModal" tabindex="-1" aria-hidden="true">
@@ -255,7 +698,7 @@
             </div>
             <form method="post" asp-page-handler="Create">
                 <div class="modal-body">
-                    <div class="alert alert-info border-0" style="background-color: #e0f2fe;">
+                    <div class="alert alert-info border-0" style="background-color: #e0f2fe; border-radius: 8px;">
                         <i class="bi bi-info-circle me-2"></i>
                         <strong>Exchange Rate Format:</strong> Enter how many KES equals 1 USD. For example, if 1 USD = 150 KES, enter 150.
                     </div>
@@ -327,7 +770,7 @@
             <form method="post" asp-page-handler="Update">
                 <input type="hidden" name="id" id="updateId" />
                 <div class="modal-body">
-                    <div class="alert alert-warning border-0" style="background-color: #fff3cd;">
+                    <div class="alert alert-warning border-0" style="background-color: #fff3cd; border-radius: 8px;">
                         <i class="bi bi-exclamation-triangle me-2"></i>
                         <strong>Period:</strong> <span id="updatePeriod"></span>
                         <br><small>You can only update the exchange rate value. To change the period, delete and create a new rate.</small>
@@ -389,5 +832,22 @@
             const modal = new bootstrap.Modal(document.getElementById('updateRateModal'));
             modal.show();
         }
+
+        // Auto-submit form when filter changes (reset to page 1)
+        document.getElementById('filterYear').addEventListener('change', function() {
+            document.getElementById('pageNumber').value = 1;
+            document.getElementById('filterForm').submit();
+        });
+
+        document.getElementById('filterMonth').addEventListener('change', function() {
+            document.getElementById('pageNumber').value = 1;
+            document.getElementById('filterForm').submit();
+        });
+
+        // Auto-submit when page size changes (reset to page 1)
+        document.getElementById('pageSize').addEventListener('change', function() {
+            document.getElementById('pageNumber').value = 1;
+            document.getElementById('filterForm').submit();
+        });
     </script>
 }

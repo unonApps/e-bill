@@ -1294,7 +1294,7 @@ namespace TAB.Web.Pages.Admin
         {
             try
             {
-                var (success, message, tempPassword) = await _accountService.ResetPasswordAsync(userId, sendEmail: false);
+                var (success, message, tempPassword) = await _accountService.ResetPasswordAsync(userId, sendEmail: true);
 
                 if (success)
                 {
@@ -1322,7 +1322,7 @@ namespace TAB.Web.Pages.Admin
         {
             try
             {
-                var (success, message, tempPassword) = await _accountService.CreateLoginAccountAsync(userId, sendEmail: false);
+                var (success, message, tempPassword) = await _accountService.CreateLoginAccountAsync(userId, sendEmail: true);
 
                 if (success)
                 {

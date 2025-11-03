@@ -1,0 +1,20 @@
+@page
+@model TAB.Web.Pages.Admin.TestRecoveryModel
+@{
+    ViewData["Title"] = "Test Recovery";
+}
+
+<div class="container mt-4">
+    <h2>Test Recovery Job</h2>
+
+    @if (!string.IsNullOrEmpty(Model.Message))
+    {
+        <div class="alert @(Model.Success ? "alert-success" : "alert-danger")">
+            <pre>@Model.Message</pre>
+        </div>
+    }
+
+    <form method="post">
+        <button type="submit" class="btn btn-primary">Run Test Recovery</button>
+    </form>
+</div>

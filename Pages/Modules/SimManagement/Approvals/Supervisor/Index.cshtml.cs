@@ -17,14 +17,28 @@ namespace TAB.Web.Pages.Modules.SimManagement.Approvals.Supervisor
         private readonly ISimRequestHistoryService _historyService;
         private readonly INotificationService _notificationService;
         private readonly IAuditLogService _auditLogService;
+        private readonly IEnhancedEmailService _emailService;
+        private readonly ILogger<IndexModel> _logger;
+        private readonly IConfiguration _configuration;
 
-        public IndexModel(ApplicationDbContext context, UserManager<ApplicationUser> userManager, ISimRequestHistoryService historyService, INotificationService notificationService, IAuditLogService auditLogService)
+        public IndexModel(
+            ApplicationDbContext context,
+            UserManager<ApplicationUser> userManager,
+            ISimRequestHistoryService historyService,
+            INotificationService notificationService,
+            IAuditLogService auditLogService,
+            IEnhancedEmailService emailService,
+            ILogger<IndexModel> logger,
+            IConfiguration configuration)
         {
             _context = context;
             _userManager = userManager;
             _historyService = historyService;
             _notificationService = notificationService;
             _auditLogService = auditLogService;
+            _emailService = emailService;
+            _logger = logger;
+            _configuration = configuration;
         }
 
         // SIM Request Properties
@@ -304,6 +318,23 @@ namespace TAB.Web.Pages.Modules.SimManagement.Approvals.Supervisor
                 HttpContext.Connection.RemoteIpAddress?.ToString()
             );
 
+            // Send email notifications
+            try
+            {
+                // 1. Send approval email to requester
+                await SendApprovalEmailAsync(simRequest, currentUser, supervisorRemarks);
+
+                // 2. Send notification to ICTS team
+                await SendIctsNotificationEmailAsync(simRequest);
+
+                _logger.LogInformation("Approval email notifications sent for SIM request {RequestId}", requestId);
+            }
+            catch (Exception emailEx)
+            {
+                // Log error but don't fail the approval
+                _logger.LogError(emailEx, "Failed to send approval email notifications for request {RequestId}", requestId);
+            }
+
             StatusMessage = "SIM request approved successfully and forwarded to UNON/ICTS.";
             StatusMessageClass = "success";
             await LoadSimRequestsAsync();
@@ -354,6 +385,18 @@ namespace TAB.Web.Pages.Modules.SimManagement.Approvals.Supervisor
                 currentUser.Id,
                 HttpContext.Connection.RemoteIpAddress?.ToString()
             );
+
+            // Send rejection email
+            try
+            {
+                await SendRejectionEmailAsync(simRequest, currentUser, notes);
+                _logger.LogInformation("Rejection email sent for SIM request {RequestId}", requestId);
+            }
+            catch (Exception emailEx)
+            {
+                // Log error but don't fail the rejection
+                _logger.LogError(emailEx, "Failed to send rejection email for request {RequestId}", requestId);
+            }
 
             StatusMessage = "SIM request rejected successfully.";
             StatusMessageClass = "success";
@@ -467,6 +510,119 @@ namespace TAB.Web.Pages.Modules.SimManagement.Approvals.Supervisor
                 .AnyAsync(r => r.SupervisorEmail == currentUser.Email || r.Supervisor == currentUser.Email);
 
             return hasSimRequests;
+        }
+
+        private async Task SendApprovalEmailAsync(Models.SimRequest request, ApplicationUser approver, string? comments)
+        {
+            // Get request with ServiceProvider included
+            var requestWithProvider = await _context.SimRequests
+                .Include(r => r.ServiceProvider)
+                .FirstOrDefaultAsync(r => r.Id == request.Id);
+
+            if (requestWithProvider == null) return;
+
+            var placeholders = new Dictionary<string, string>
+            {
+                { "RequestId", requestWithProvider.Id.ToString() },
+                { "FirstName", requestWithProvider.FirstName ?? "" },
+                { "LastName", requestWithProvider.LastName ?? "" },
+                { "ApproverName", $"{approver.FirstName} {approver.LastName}" },
+                { "ApproverRole", "Supervisor" },
+                { "ApprovalDate", DateTime.UtcNow.ToString("MMMM dd, yyyy") },
+                { "CurrentStatus", "Pending ICTS Processing" },
+                { "SimType", requestWithProvider.SimType.ToString() },
+                { "ServiceProvider", requestWithProvider.ServiceProvider?.ServiceProviderName ?? "N/A" },
+                { "ApprovalComments", comments ?? "" },
+                { "ViewRequestLink", $"{Request.Scheme}://{Request.Host}/Modules/SimManagement/Requests/Index" },
+                { "Year", DateTime.Now.Year.ToString() }
+            };
+
+            await _emailService.SendTemplatedEmailAsync(
+                to: requestWithProvider.OfficialEmail ?? "",
+                templateCode: "SIM_REQUEST_APPROVED",
+                data: placeholders
+            );
+
+            _logger.LogInformation("Sent approval email to {Email} for request {RequestId}",
+                requestWithProvider.OfficialEmail, requestWithProvider.Id);
+        }
+
+        private async Task SendIctsNotificationEmailAsync(Models.SimRequest request)
+        {
+            // Get ICTS team email from configuration or use default
+            var ictsEmail = _configuration["Email:IctsTeamEmail"] ?? "icts@example.com";
+
+            // Get request with ServiceProvider included
+            var requestWithProvider = await _context.SimRequests
+                .Include(r => r.ServiceProvider)
+                .FirstOrDefaultAsync(r => r.Id == request.Id);
+
+            if (requestWithProvider == null) return;
+
+            var placeholders = new Dictionary<string, string>
+            {
+                { "RequestId", requestWithProvider.Id.ToString() },
+                { "RequestDate", requestWithProvider.RequestDate.ToString("MMMM dd, yyyy") },
+                { "SupervisorApprovalDate", requestWithProvider.SupervisorApprovalDate?.ToString("MMMM dd, yyyy") ?? DateTime.UtcNow.ToString("MMMM dd, yyyy") },
+                { "FirstName", requestWithProvider.FirstName ?? "" },
+                { "LastName", requestWithProvider.LastName ?? "" },
+                { "IndexNo", requestWithProvider.IndexNo ?? "" },
+                { "Organization", requestWithProvider.Organization ?? "" },
+                { "Office", requestWithProvider.Office ?? "" },
+                { "Grade", requestWithProvider.Grade ?? "" },
+                { "FunctionalTitle", requestWithProvider.FunctionalTitle ?? "" },
+                { "OfficialEmail", requestWithProvider.OfficialEmail ?? "" },
+                { "OfficeExtension", requestWithProvider.OfficeExtension ?? "N/A" },
+                { "SimType", requestWithProvider.SimType.ToString() },
+                { "ServiceProvider", requestWithProvider.ServiceProvider?.ServiceProviderName ?? "N/A" },
+                { "SupervisorName", requestWithProvider.SupervisorName ?? "" },
+                { "Remarks", requestWithProvider.Remarks ?? "" },
+                { "ProcessRequestLink", $"{Request.Scheme}://{Request.Host}/Modules/SimManagement/Approvals/ICTS" },
+                { "Year", DateTime.Now.Year.ToString() }
+            };
+
+            await _emailService.SendTemplatedEmailAsync(
+                to: ictsEmail,
+                templateCode: "SIM_REQUEST_ICTS_NOTIFICATION",
+                data: placeholders
+            );
+
+            _logger.LogInformation("Sent ICTS notification email for request {RequestId}", requestWithProvider.Id);
+        }
+
+        private async Task SendRejectionEmailAsync(Models.SimRequest request, ApplicationUser reviewer, string? reason)
+        {
+            // Get request with ServiceProvider included
+            var requestWithProvider = await _context.SimRequests
+                .Include(r => r.ServiceProvider)
+                .FirstOrDefaultAsync(r => r.Id == request.Id);
+
+            if (requestWithProvider == null) return;
+
+            var placeholders = new Dictionary<string, string>
+            {
+                { "RequestId", requestWithProvider.Id.ToString() },
+                { "FirstName", requestWithProvider.FirstName ?? "" },
+                { "LastName", requestWithProvider.LastName ?? "" },
+                { "SimType", requestWithProvider.SimType.ToString() },
+                { "ServiceProvider", requestWithProvider.ServiceProvider?.ServiceProviderName ?? "N/A" },
+                { "ReviewerName", $"{reviewer.FirstName} {reviewer.LastName}" },
+                { "ReviewerRole", "Supervisor" },
+                { "RejectionDate", DateTime.UtcNow.ToString("MMMM dd, yyyy") },
+                { "RejectionReason", reason ?? "No reason provided" },
+                { "ViewRequestLink", $"{Request.Scheme}://{Request.Host}/Modules/SimManagement/Requests/Index" },
+                { "NewRequestLink", $"{Request.Scheme}://{Request.Host}/Modules/SimManagement/Requests/Create" },
+                { "Year", DateTime.Now.Year.ToString() }
+            };
+
+            await _emailService.SendTemplatedEmailAsync(
+                to: requestWithProvider.OfficialEmail ?? "",
+                templateCode: "SIM_REQUEST_REJECTED",
+                data: placeholders
+            );
+
+            _logger.LogInformation("Sent rejection email to {Email} for request {RequestId}",
+                requestWithProvider.OfficialEmail, requestWithProvider.Id);
         }
     }
 } 

@@ -8,31 +8,131 @@
 }
 
 <style>
+    /* Statistics Grid - Matching MyCallLogs */
+    .stats-grid {
+        display: grid;
+        grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+        gap: 0.75rem;
+        margin-bottom: 1rem;
+    }
+
+    .stat-card {
+        background: white;
+        border-radius: 10px;
+        padding: 0.875rem;
+        border: 1px solid #e5e7eb;
+        position: relative;
+        overflow: hidden;
+        transition: all 0.2s ease;
+    }
+
+    .stat-card::before {
+        content: '';
+        position: absolute;
+        top: 0;
+        left: 0;
+        right: 0;
+        height: 4px;
+        background: linear-gradient(90deg, var(--gradient-start), var(--gradient-end));
+    }
+
+    .stat-card:nth-child(1)::before {
+        --gradient-start: #3b82f6;
+        --gradient-end: #60a5fa;
+    }
+
+    .stat-card:nth-child(2)::before {
+        --gradient-start: #10b981;
+        --gradient-end: #34d399;
+    }
+
+    .stat-card:nth-child(3)::before {
+        --gradient-start: #f59e0b;
+        --gradient-end: #fbbf24;
+    }
+
+    .stat-card:nth-child(4)::before {
+        --gradient-start: #ef4444;
+        --gradient-end: #f87171;
+    }
+
+    .stat-card:hover {
+        box-shadow: 0 10px 30px rgba(0, 0, 0, 0.1);
+        transform: translateY(-2px);
+    }
+
+    .stat-content {
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+    }
+
+    .stat-icon {
+        width: 40px;
+        height: 40px;
+        border-radius: 10px;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        font-size: 1.25rem;
+    }
+
+    .stat-icon-primary {
+        background: linear-gradient(135deg, #3b82f6, #60a5fa);
+        color: white;
+    }
+
+    .stat-icon-success {
+        background: linear-gradient(135deg, #10b981, #34d399);
+        color: white;
+    }
+
+    .stat-icon-warning {
+        background: linear-gradient(135deg, #f59e0b, #fbbf24);
+        color: white;
+    }
+
+    .stat-icon-danger {
+        background: linear-gradient(135deg, #ef4444, #f87171);
+        color: white;
+    }
+
+    .stat-details {
+        text-align: right;
+    }
+
+    .stat-number {
+        font-size: 1.5rem;
+        font-weight: 700;
+        color: #1f2937;
+        line-height: 1;
+        margin-bottom: 0.25rem;
+    }
+
+    .stat-label {
+        font-size: 0.8rem;
+        color: #6b7280;
+        font-weight: 500;
+    }
+
+    /* Modern Table Styling */
     .modern-table {
         border-collapse: separate;
         border-spacing: 0;
     }
 
     .modern-table thead th {
-        background-color: #009EDB;
-        color: white;
+        background-color: #f8f9fa;
+        color: #4a5568;
         font-weight: 600;
-        font-size: 0.85rem;
+        font-size: 12px;
         text-transform: uppercase;
         letter-spacing: 0.5px;
-        padding: 1rem 0.75rem;
+        padding: 0.875rem 0.75rem;
         border: none;
         position: sticky;
         top: 0;
         z-index: 10;
-    }
-
-    .modern-table thead th:first-child {
-        border-radius: 12px 0 0 0;
-    }
-
-    .modern-table thead th:last-child {
-        border-radius: 0 12px 0 0;
     }
 
     .modern-table tbody tr {
@@ -46,7 +146,7 @@
     }
 
     .modern-table tbody td {
-        padding: 0.875rem 0.75rem;
+        padding: 0.75rem;
         vertical-align: middle;
         font-size: 0.9rem;
     }
@@ -125,13 +225,13 @@
 
     .extension-header {
         background-color: #f8f9fa;
-        border-bottom: 2px solid #e0e0e0;
-        padding: 0.75rem 1rem;
+        border-bottom: 1px solid #e5e7eb;
+        padding: 0.625rem 0.875rem;
     }
 
     .extension-checkbox {
-        width: 20px;
-        height: 20px;
+        width: 18px;
+        height: 18px;
         cursor: pointer;
     }
 
@@ -155,6 +255,67 @@
     [data-bs-toggle="collapse"]:hover {
         text-decoration: none !important;
     }
+
+    /* Page Header Styling - Reduced Spacing */
+    .page-header-bar {
+        margin-bottom: 1rem;
+        padding-bottom: 0.75rem;
+    }
+
+    /* Card Styling - Space Optimization */
+    .card {
+        border-radius: 12px;
+        box-shadow: 0 1px 3px rgba(0, 0, 0, 0.05);
+    }
+
+    .card-header {
+        padding: 0.875rem 1rem;
+        background-color: white;
+        border-bottom: 1px solid #e5e7eb;
+    }
+
+    .card-body {
+        padding: 1rem;
+    }
+
+    /* Alert Styling */
+    .alert {
+        border-radius: 12px;
+        border: none;
+        padding: 0.875rem 1rem;
+    }
+
+    /* Filter Section */
+    .filter-card {
+        margin-bottom: 1rem;
+    }
+
+    /* Accordion Modernization */
+    .accordion-item {
+        border: none;
+        border-bottom: 1px solid #e5e7eb;
+        margin-bottom: 0;
+    }
+
+    .accordion-button {
+        padding: 1rem;
+        font-size: 0.95rem;
+    }
+
+    .accordion-button:not(.collapsed) {
+        background-color: #f8f9fa;
+        color: #1f2937;
+        box-shadow: none;
+    }
+
+    .accordion-button:focus {
+        box-shadow: none;
+        border-color: #e5e7eb;
+    }
+
+    .accordion-body {
+        padding: 0;
+    }
 </style>
 
 <!-- Status Message -->
@@ -167,23 +328,181 @@
     </div>
 }
 
-<!-- Header Card -->
-<div class="card border-0 shadow-sm mb-4" style="border-radius: 20px;">
-    <div class="card-body p-4">
-        <div class="d-flex align-items-center justify-content-between">
-            <div class="d-flex align-items-center">
-                <div class="bg-primary bg-opacity-10 rounded-circle d-flex align-items-center justify-content-center me-3"
-                     style="width: 60px; height: 60px;">
-                    <i class="bi bi-person-check text-primary" style="font-size: 24px;"></i>
-                </div>
-                <div>
-                    <h5 class="card-title mb-1">Supervisor Approvals</h5>
-                    <p class="text-muted mb-0">Review and approve call verifications from your team</p>
-                </div>
+@* Approval Deadline Warnings *@
+@{
+    var expiredApprovals = Model.PendingSubmissions
+        .Where(s => s.Verifications.Any(v => v.ApprovalDeadline.HasValue && v.ApprovalDeadline.Value < DateTime.UtcNow))
+        .ToList();
+
+    var urgentApprovals = Model.PendingSubmissions
+        .Where(s => s.Verifications.Any(v => v.ApprovalDeadline.HasValue &&
+                                             v.ApprovalDeadline.Value > DateTime.UtcNow &&
+                                             (v.ApprovalDeadline.Value - DateTime.UtcNow).TotalHours < 24))
+        .ToList();
+
+    var approachingApprovals = Model.PendingSubmissions
+        .Where(s => s.Verifications.Any(v => v.ApprovalDeadline.HasValue &&
+                                             v.ApprovalDeadline.Value > DateTime.UtcNow &&
+                                             (v.ApprovalDeadline.Value - DateTime.UtcNow).TotalDays >= 1 &&
+                                             (v.ApprovalDeadline.Value - DateTime.UtcNow).TotalDays < 3))
+        .ToList();
+}
+
+@if (expiredApprovals.Any())
+{
+    <div class="alert alert-danger alert-dismissible fade show mb-3" role="alert" style="border-radius: 16px; border: none; box-shadow: 0 4px 12px rgba(239, 68, 68, 0.15);">
+        <div class="d-flex align-items-start">
+            <i class="bi bi-exclamation-triangle-fill fs-4 me-3"></i>
+            <div class="flex-grow-1">
+                <h6 class="alert-heading mb-2 fw-bold">
+                    <i class="bi bi-alarm me-1"></i>Expired Approval Deadlines!
+                </h6>
+                <p class="mb-2">
+                    <strong>@expiredApprovals.Count</strong> submission(s) have passed their approval deadline.
+                </p>
+                <ul class="mb-0 small">
+                    @foreach (var submission in expiredApprovals.Take(3))
+                    {
+                        var earliestDeadline = submission.Verifications
+                            .Where(v => v.ApprovalDeadline.HasValue && v.ApprovalDeadline.Value < DateTime.UtcNow)
+                            .Min(v => v.ApprovalDeadline!.Value);
+                        var daysExpired = (int)Math.Abs((earliestDeadline - DateTime.UtcNow).TotalDays);
+                        <li>
+                            <strong>@submission.UserIndexNumber - @submission.UserName</strong>:
+                            Expired @daysExpired day(s) ago (@earliestDeadline.ToLocalTime().ToString("MMM dd, HH:mm"))
+                        </li>
+                    }
+                    @if (expiredApprovals.Count > 3)
+                    {
+                        <li class="text-muted">...and @(expiredApprovals.Count - 3) more</li>
+                    }
+                </ul>
+                <p class="mb-0 mt-2 small">
+                    <i class="bi bi-info-circle me-1"></i>
+                    <strong>Important:</strong> Unapproved calls after the deadline will be automatically assigned based on class of service.
+                </p>
             </div>
-            <div class="text-end">
-                <div class="text-muted small">Pending</div>
-                <h3 class="mb-0 text-primary">@Model.PendingSubmissions.Count</h3>
+        </div>
+        <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
+    </div>
+}
+else if (urgentApprovals.Any())
+{
+    <div class="alert alert-warning alert-dismissible fade show mb-3" role="alert" style="border-radius: 16px; border: none; box-shadow: 0 4px 12px rgba(245, 158, 11, 0.15);">
+        <div class="d-flex align-items-start">
+            <i class="bi bi-clock-fill fs-4 me-3"></i>
+            <div class="flex-grow-1">
+                <h6 class="alert-heading mb-2 fw-bold">
+                    <i class="bi bi-hourglass-split me-1"></i>Urgent: Deadlines Expiring Soon!
+                </h6>
+                <p class="mb-2">
+                    <strong>@urgentApprovals.Count</strong> submission(s) have approval deadline(s) expiring within 24 hours.
+                </p>
+                <ul class="mb-0 small">
+                    @foreach (var submission in urgentApprovals.Take(3))
+                    {
+                        var earliestDeadline = submission.Verifications
+                            .Where(v => v.ApprovalDeadline.HasValue && v.ApprovalDeadline.Value > DateTime.UtcNow)
+                            .Min(v => v.ApprovalDeadline!.Value);
+                        var hoursLeft = (int)Math.Ceiling((earliestDeadline - DateTime.UtcNow).TotalHours);
+                        <li>
+                            <strong>@submission.UserIndexNumber - @submission.UserName</strong>:
+                            <span class="text-danger">@hoursLeft hour(s)</span> remaining
+                        </li>
+                    }
+                    @if (urgentApprovals.Count > 3)
+                    {
+                        <li class="text-muted">...and @(urgentApprovals.Count - 3) more</li>
+                    }
+                </ul>
+                <p class="mb-0 mt-2 small">
+                    <i class="bi bi-shield-exclamation me-1"></i>Please review and approve immediately to avoid automatic assignment.
+                </p>
+            </div>
+        </div>
+        <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
+    </div>
+}
+else if (approachingApprovals.Any())
+{
+    <div class="alert alert-info alert-dismissible fade show mb-3" role="alert" style="border-radius: 16px; border: none; box-shadow: 0 4px 12px rgba(59, 130, 246, 0.15);">
+        <div class="d-flex align-items-start">
+            <i class="bi bi-info-circle-fill fs-4 me-3"></i>
+            <div class="flex-grow-1">
+                <h6 class="alert-heading mb-2 fw-bold">
+                    <i class="bi bi-calendar-event me-1"></i>Approval Deadlines Approaching
+                </h6>
+                <p class="mb-0">
+                    <strong>@approachingApprovals.Count</strong> submission(s) have approval deadline(s) in the next 2-3 days.
+                </p>
+            </div>
+        </div>
+        <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
+    </div>
+}
+
+<!-- Header Section -->
+<div class="page-header-bar mb-3">
+    <div class="d-flex align-items-center justify-content-between">
+        <div>
+            <h5 class="mb-1 fw-bold text-dark" style="font-size: 1.1rem;">
+                <i class="bi bi-person-check me-2 text-primary"></i>Supervisor Approvals
+            </h5>
+            <p class="text-muted mb-0" style="font-size: 0.875rem;">Review and approve call verifications from your team</p>
+        </div>
+    </div>
+</div>
+
+<!-- Statistics Grid -->
+@{
+    var totalSubmissions = Model.PendingSubmissions.Count;
+    var totalCalls = Model.PendingSubmissions.Sum(s => s.TotalCalls);
+    var totalAmount = Model.PendingSubmissions.Sum(s => s.TotalAmount);
+    var totalOverages = Model.PendingSubmissions.Sum(s => s.OverageCount);
+}
+
+<div class="stats-grid mb-3">
+    <div class="stat-card">
+        <div class="stat-content">
+            <div class="stat-icon stat-icon-primary">
+                <i class="bi bi-inbox"></i>
+            </div>
+            <div class="stat-details">
+                <div class="stat-number">@totalSubmissions</div>
+                <div class="stat-label">Pending Submissions</div>
+            </div>
+        </div>
+    </div>
+    <div class="stat-card">
+        <div class="stat-content">
+            <div class="stat-icon stat-icon-success">
+                <i class="bi bi-telephone"></i>
+            </div>
+            <div class="stat-details">
+                <div class="stat-number">@totalCalls</div>
+                <div class="stat-label">Total Calls</div>
+            </div>
+        </div>
+    </div>
+    <div class="stat-card">
+        <div class="stat-content">
+            <div class="stat-icon stat-icon-warning">
+                <i class="bi bi-currency-dollar"></i>
+            </div>
+            <div class="stat-details">
+                <div class="stat-number">$@totalAmount.ToString("N2")</div>
+                <div class="stat-label">Total Amount</div>
+            </div>
+        </div>
+    </div>
+    <div class="stat-card">
+        <div class="stat-content">
+            <div class="stat-icon stat-icon-danger">
+                <i class="bi bi-exclamation-triangle"></i>
+            </div>
+            <div class="stat-details">
+                <div class="stat-number">@totalOverages</div>
+                <div class="stat-label">Overages</div>
             </div>
         </div>
     </div>
@@ -199,28 +518,28 @@
 }
 
 <!-- Filters Card -->
-<div class="card border-0 shadow-sm mb-4" style="border-radius: 20px;">
-    <div class="card-header bg-white border-0 py-3" style="border-radius: 20px 20px 0 0;">
+<div class="card border-0 shadow-sm filter-card">
+    <div class="card-header bg-white border-0">
         <button class="btn btn-link text-decoration-none w-100 d-flex justify-content-between align-items-center p-0"
                 type="button"
                 data-bs-toggle="collapse"
                 data-bs-target="#filtersCollapse"
-                aria-expanded="@(hasActiveFilters ? "true" : "false")"
+                aria-expanded="false"
                 aria-controls="filtersCollapse">
             <div class="d-flex align-items-center">
-                <i class="bi bi-funnel text-primary me-2" style="font-size: 1.2rem;"></i>
-                <h6 class="mb-0 text-dark fw-semibold">Filters</h6>
+                <i class="bi bi-funnel text-primary me-2"></i>
+                <h6 class="mb-0 text-dark fw-semibold" style="font-size: 0.95rem;">Filters</h6>
                 @if (hasActiveFilters)
                 {
-                    <span class="badge bg-primary ms-2">Active</span>
+                    <span class="badge bg-primary ms-2" style="font-size: 0.7rem;">Active</span>
                 }
             </div>
-            <i class="bi bi-chevron-down text-muted" style="@(hasActiveFilters ? "transform: rotate(180deg);" : "")"></i>
+            <i class="bi bi-chevron-down text-muted"></i>
         </button>
     </div>
-    <div class="collapse @(hasActiveFilters ? "show" : "")" id="filtersCollapse">
-        <div class="card-body p-4 pt-2">
-            <form method="get" class="row g-3">
+    <div class="collapse" id="filtersCollapse">
+        <div class="card-body pt-2">
+            <form method="get" class="row g-2">
             <div class="col-md-4">
                 <label for="FilterUser" class="form-label small fw-semibold">Staff Member</label>
                 <select class="form-select border-0 bg-light" id="FilterUser" name="FilterUser" style="border-radius: 12px;">
@@ -281,11 +600,11 @@
                 </div>
             </div>
             <div class="col-12">
-                <button type="submit" class="btn btn-primary" style="border-radius: 12px;">
+                <button type="submit" class="btn btn-primary btn-sm" style="border-radius: 10px;">
                     <i class="bi bi-filter me-1"></i>Apply Filters
                 </button>
-                <a asp-page="/Modules/EBillManagement/CallRecords/SupervisorApprovals" class="btn btn-outline-secondary" style="border-radius: 12px;">
-                    <i class="bi bi-x-circle me-1"></i>Clear Filters
+                <a asp-page="/Modules/EBillManagement/CallRecords/SupervisorApprovals" class="btn btn-outline-secondary btn-sm" style="border-radius: 10px;">
+                    <i class="bi bi-x-circle me-1"></i>Clear
                 </a>
             </div>
             </form>
@@ -294,12 +613,11 @@
 </div>
 
 <!-- Pending Submissions -->
-<div class="card border-0 shadow-sm" style="border-radius: 20px;">
-    <div class="card-header bg-light border-0 py-3" style="border-radius: 20px 20px 0 0;">
-        <h6 class="mb-0 text-muted fw-semibold">
-            <i class="bi bi-list-check me-2"></i>
-            Pending Submissions (@Model.PendingSubmissions.Count)
-        </h6>
+<div class="card border-0 shadow-sm">
+    <div class="card-header bg-white border-0 d-flex justify-content-between align-items-center">
+        <h5 class="mb-0 text-dark fw-bold" style="font-size: 1rem;">
+            <i class="bi bi-list-check me-2 text-primary"></i>Pending Submissions <span class="text-muted" style="font-size: 0.85rem; font-weight: normal;">(@Model.PendingSubmissions.Count records)</span>
+        </h5>
     </div>
     <div class="card-body p-0">
         @if (Model.PendingSubmissions.Any())
@@ -355,6 +673,43 @@
                                                 </span>
                                             </div>
                                         }
+                                        @* Approval Deadline Badge *@
+                                        @{
+                                            var earliestDeadline = submission.Verifications
+                                                .Where(v => v.ApprovalDeadline.HasValue)
+                                                .Select(v => v.ApprovalDeadline!.Value)
+                                                .OrderBy(d => d)
+                                                .FirstOrDefault();
+
+                                            if (earliestDeadline != default(DateTime))
+                                            {
+                                                var daysUntilDeadline = (earliestDeadline - DateTime.UtcNow).TotalDays;
+                                                var hoursUntilDeadline = (earliestDeadline - DateTime.UtcNow).TotalHours;
+                                                var isExpired = daysUntilDeadline < 0;
+                                                var isUrgent = daysUntilDeadline >= 0 && daysUntilDeadline < 1;
+                                                var badgeClass = isExpired ? "bg-danger" : isUrgent ? "bg-warning text-dark" : "bg-success";
+                                                var icon = isExpired ? "bi-x-circle" : "bi-clock";
+
+                                                <div class="text-center">
+                                                    <div class="text-muted small">Deadline</div>
+                                                    <span class="badge @badgeClass">
+                                                        <i class="bi @icon me-1"></i>
+                                                        @if (isExpired)
+                                                        {
+                                                            <text>Expired</text>
+                                                        }
+                                                        else if (hoursUntilDeadline < 24)
+                                                        {
+                                                            <text>@((int)Math.Ceiling(hoursUntilDeadline))h</text>
+                                                        }
+                                                        else
+                                                        {
+                                                            <text>@((int)Math.Ceiling(daysUntilDeadline))d</text>
+                                                        }
+                                                    </span>
+                                                </div>
+                                            }
+                                        }
                                     </div>
                                 </div>
                             </button>
@@ -375,6 +730,9 @@
                                     var extensionCount = extensionCalls.Count;
                                     var extensionId = $"ext_{submission.UserIndexNumber}_{extensionNumber}".Replace(" ", "_");
 
+                                    var justification = submission.PhoneOverageJustifications.FirstOrDefault(j => j.UserPhone != null && j.UserPhone.PhoneNumber == extensionNumber);
+                                    var modalId = $"justificationModal_{submission.UserIndexNumber}_{extensionNumber}".Replace(" ", "_").Replace(".", "_");
+
                                     <div class="extension-header">
                                         <div class="d-flex justify-content-between align-items-center">
                                             <div class="d-flex align-items-center">
@@ -387,6 +745,22 @@
                                                     <i class="bi bi-telephone-fill me-1"></i>@extensionNumber
                                                 </span>
                                                 <span class="text-muted">@extensionCount call(s)</span>
+
+                                                @if (justification != null)
+                                                {
+                                                    <button type="button"
+                                                            class="btn btn-warning btn-sm ms-3"
+                                                            data-bs-toggle="modal"
+                                                            data-bs-target="#@modalId"
+                                                            title="View Overage Justification">
+                                                        <i class="bi bi-exclamation-triangle-fill me-1"></i>
+                                                        Overage Justification
+                                                        @if (justification.Documents?.Any() == true)
+                                                        {
+                                                            <span class="badge bg-light text-dark ms-1">@justification.Documents.Count</span>
+                                                        }
+                                                    </button>
+                                                }
                                             </div>
                                             <div class="fw-bold text-primary">
                                                 Total: $@extensionTotal.ToString("N2")
@@ -422,6 +796,8 @@
                                                                    data-extension="@extensionId"
                                                                    data-verification-id="@verification.Id"
                                                                    data-amount="@verification.ActualAmount"
+                                                                   data-call-number="@verification.CallRecord.CallNumber"
+                                                                   data-destination="@verification.CallRecord.CallDestination"
                                                                    onchange="updateSelectionSummary()">
                                                         </td>
                                                         <td>
@@ -503,36 +879,180 @@
                                             </tbody>
                                         </table>
                                     </div>
+
+                                    @* Phone Overage Justification Modal *@
+                                    @if (justification != null)
+                                    {
+                                        <div class="modal fade" id="@modalId" tabindex="-1" aria-labelledby="@(modalId)Label" aria-hidden="true">
+                                            <div class="modal-dialog modal-dialog-centered modal-lg">
+                                                <div class="modal-content" style="border-radius: 16px; border: none; box-shadow: 0 20px 60px rgba(0, 0, 0, 0.15);">
+                                                    <!-- Modal Header -->
+                                                    <div class="modal-header" style="background: linear-gradient(135deg, #fbbf24 0%, #f59e0b 100%); border-radius: 16px 16px 0 0; border: none; padding: 1.5rem;">
+                                                        <div class="d-flex align-items-center gap-3 py-2">
+                                                            <div class="bg-white rounded-circle d-flex align-items-center justify-content-center flex-shrink-0" style="width: 50px; height: 50px;">
+                                                                <i class="bi bi-exclamation-triangle-fill text-warning" style="font-size: 28px;"></i>
+                                                            </div>
+                                                            <div>
+                                                                <h5 class="modal-title fw-bold text-white mb-0" id="@(modalId)Label">Extension Overage Justification</h5>
+                                                                <p class="text-white text-opacity-75 mb-0 small">Extension: @extensionNumber</p>
+                                                            </div>
+                                                        </div>
+                                                        <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal" aria-label="Close"></button>
+                                                    </div>
+
+                                                    <!-- Modal Body -->
+                                                    <div class="modal-body" style="padding: 2rem;">
+                                                        <!-- Overage Summary -->
+                                                        <div class="row g-3 mb-4">
+                                                            <div class="col-md-4">
+                                                                <div class="p-3 bg-light rounded">
+                                                                    <small class="text-muted d-block mb-1">Allowance Limit</small>
+                                                                    <h5 class="mb-0 fw-bold">$@justification.AllowanceLimit.ToString("N2")</h5>
+                                                                </div>
+                                                            </div>
+                                                            <div class="col-md-4">
+                                                                <div class="p-3 bg-light rounded">
+                                                                    <small class="text-muted d-block mb-1">Total Usage</small>
+                                                                    <h5 class="mb-0 fw-bold">$@justification.TotalUsage.ToString("N2")</h5>
+                                                                </div>
+                                                            </div>
+                                                            <div class="col-md-4">
+                                                                <div class="p-3 bg-danger bg-opacity-10 rounded">
+                                                                    <small class="text-danger d-block mb-1">Overage Amount</small>
+                                                                    <h5 class="mb-0 fw-bold text-danger">$@justification.OverageAmount.ToString("N2")</h5>
+                                                                </div>
+                                                            </div>
+                                                        </div>
+
+                                                        <!-- Justification Text -->
+                                                        <div class="mb-4">
+                                                            <h6 class="fw-bold mb-2">
+                                                                <i class="bi bi-file-text me-2"></i>Justification
+                                                            </h6>
+                                                            <div class="p-3 bg-light rounded">
+                                                                <p class="mb-0">@justification.JustificationText</p>
+                                                            </div>
+                                                        </div>
+
+                                                        <!-- Submission Details -->
+                                                        <div class="mb-4">
+                                                            <h6 class="fw-bold mb-2">
+                                                                <i class="bi bi-info-circle me-2"></i>Submission Details
+                                                            </h6>
+                                                            <div class="row g-3">
+                                                                <div class="col-md-6">
+                                                                    <small class="text-muted d-block">Submitted By</small>
+                                                                    <strong>@justification.SubmittedBy</strong>
+                                                                </div>
+                                                                <div class="col-md-6">
+                                                                    <small class="text-muted d-block">Submitted Date</small>
+                                                                    <strong>@justification.SubmittedDate.ToString("MMMM dd, yyyy")</strong>
+                                                                </div>
+                                                                <div class="col-md-6">
+                                                                    <small class="text-muted d-block">Period</small>
+                                                                    <strong>@(new DateTime(justification.Year, justification.Month, 1).ToString("MMMM yyyy"))</strong>
+                                                                </div>
+                                                                <div class="col-md-6">
+                                                                    <small class="text-muted d-block">Status</small>
+                                                                    <span class="badge bg-@(justification.ApprovalStatus == "Approved" ? "success" : justification.ApprovalStatus == "Rejected" ? "danger" : "warning")">
+                                                                        @justification.ApprovalStatus
+                                                                    </span>
+                                                                </div>
+                                                            </div>
+                                                        </div>
+
+                                                        <!-- Supporting Documents -->
+                                                        @if (justification.Documents?.Any() == true)
+                                                        {
+                                                            <div class="mb-3">
+                                                                <h6 class="fw-bold mb-3">
+                                                                    <i class="bi bi-paperclip me-2"></i>Supporting Documents (@justification.Documents.Count)
+                                                                </h6>
+                                                                <div class="list-group">
+                                                                    @foreach (var document in justification.Documents)
+                                                                    {
+                                                                        <div class="list-group-item d-flex justify-content-between align-items-center">
+                                                                            <div class="d-flex align-items-center">
+                                                                                <i class="bi bi-file-earmark-pdf text-danger me-3" style="font-size: 1.5rem;"></i>
+                                                                                <div>
+                                                                                    <div class="fw-semibold">@document.FileName</div>
+                                                                                    <small class="text-muted">
+                                                                                        Uploaded on @document.UploadedDate.ToString("MMM dd, yyyy") •
+                                                                                        @((document.FileSize / 1024.0).ToString("N0")) KB
+                                                                                    </small>
+                                                                                </div>
+                                                                            </div>
+                                                                            <a href="@document.FilePath"
+                                                                               download="@document.FileName"
+                                                                               class="btn btn-sm btn-outline-primary"
+                                                                               target="_blank">
+                                                                                <i class="bi bi-download me-1"></i>Download
+                                                                            </a>
+                                                                        </div>
+                                                                    }
+                                                                </div>
+                                                            </div>
+                                                        }
+                                                    </div>
+
+                                                    <!-- Modal Footer -->
+                                                    <div class="modal-footer" style="border: none; padding: 1rem 1.5rem 1.5rem;">
+                                                        <button type="button" class="btn btn-secondary" data-bs-dismiss="modal" style="border-radius: 10px; padding: 0.6rem 1.5rem;">
+                                                            <i class="bi bi-x-circle me-2"></i>Close
+                                                        </button>
+                                                    </div>
+                                                </div>
+                                            </div>
+                                        </div>
+                                    }
                                 }
 
-                                <div class="p-3 bg-white border-top approve-selected-btn">
+                                <div class="p-2 bg-white border-top approve-selected-btn">
                                     <div class="d-flex justify-content-between align-items-center">
-                                        <div id="selection-summary-@submission.UserIndexNumber" class="text-muted">
+                                        <div id="selection-summary-@submission.UserIndexNumber" class="text-muted" style="font-size: 0.875rem;">
                                             <span class="fw-semibold">No calls selected</span>
                                         </div>
-                                        <div class="d-flex gap-2">
+                                        <div class="d-flex gap-2 flex-wrap">
                                             <button type="button"
-                                                    class="btn btn-success"
-                                                    style="border-radius: 12px;"
+                                                    class="btn btn-success btn-sm"
+                                                    style="border-radius: 10px;"
                                                     id="approve-selected-@submission.UserIndexNumber"
                                                     onclick="approveSelected('@submission.UserIndexNumber')"
                                                     disabled>
-                                                <i class="bi bi-check-circle me-1"></i>Approve Selected
+                                                <i class="bi bi-check-circle me-1"></i>Approve All
                                             </button>
                                             <button type="button"
-                                                    class="btn btn-primary"
-                                                    style="border-radius: 12px;"
+                                                    class="btn btn-primary btn-sm"
+                                                    style="border-radius: 10px;"
+                                                    id="partial-approve-selected-@submission.UserIndexNumber"
+                                                    onclick="partialApproveSelected('@submission.UserIndexNumber')"
+                                                    disabled>
+                                                <i class="bi bi-check2-square me-1"></i>Approve Partially
+                                            </button>
+                                            <button type="button"
+                                                    class="btn btn-danger btn-sm"
+                                                    style="border-radius: 10px;"
+                                                    id="reject-selected-@submission.UserIndexNumber"
+                                                    onclick="rejectSelected('@submission.UserIndexNumber')"
+                                                    disabled>
+                                                <i class="bi bi-x-circle me-1"></i>Reject
+                                            </button>
+                                            <button type="button"
+                                                    class="btn btn-warning btn-sm"
+                                                    style="border-radius: 10px;"
+                                                    id="revert-selected-@submission.UserIndexNumber"
+                                                    onclick="revertSelected('@submission.UserIndexNumber')"
+                                                    disabled>
+                                                <i class="bi bi-arrow-counterclockwise me-1"></i>Revert
+                                            </button>
+                                            <button type="button"
+                                                    class="btn btn-outline-secondary btn-sm"
+                                                    style="border-radius: 10px;"
                                                     id="review-selected-@submission.UserIndexNumber"
                                                     onclick="reviewSelected('@submission.UserIndexNumber', '@submission.SubmittedDate.ToString("yyyy-MM-dd")')"
                                                     disabled>
                                                 <i class="bi bi-eye me-1"></i>Review Selected
                                             </button>
-                                            <a asp-page="/Modules/EBillManagement/CallRecords/ReviewVerification"
-                                               asp-route-indexNumber="@submission.UserIndexNumber"
-                                               asp-route-date="@submission.SubmittedDate.ToString("yyyy-MM-dd")"
-                                               class="btn btn-outline-primary" style="border-radius: 12px;">
-                                                <i class="bi bi-list-ul me-1"></i>Review All
-                                            </a>
                                         </div>
                                     </div>
                                 </div>
@@ -557,17 +1077,17 @@
 <div class="modal fade" id="approvalConfirmationModal" tabindex="-1">
     <div class="modal-dialog modal-dialog-centered">
         <div class="modal-content border-0 shadow-lg" style="border-radius: 20px;">
-            <div class="modal-header border-0 pb-0" style="background-color: #10b981; border-radius: 20px 20px 0 0;">
-                <div class="w-100 text-center py-3">
-                    <div class="mb-3">
-                        <div class="bg-white rounded-circle d-inline-flex align-items-center justify-content-center" style="width: 70px; height: 70px;">
-                            <i class="bi bi-check-circle-fill text-success" style="font-size: 40px;"></i>
-                        </div>
+            <div class="modal-header border-0" style="background: linear-gradient(135deg, #10b981 0%, #059669 100%); border-radius: 20px 20px 0 0;">
+                <div class="d-flex align-items-center gap-3 py-2">
+                    <div class="bg-white rounded-circle d-flex align-items-center justify-content-center flex-shrink-0" style="width: 50px; height: 50px;">
+                        <i class="bi bi-check-circle-fill text-success" style="font-size: 28px;"></i>
                     </div>
-                    <h4 class="modal-title fw-bold text-white mb-1">Confirm Approval</h4>
-                    <p class="text-white text-opacity-75 mb-0 small">Review the details before approving</p>
+                    <div>
+                        <h5 class="modal-title fw-bold text-white mb-0">Confirm Approval</h5>
+                        <p class="text-white text-opacity-75 mb-0 small">Review the details before approving</p>
+                    </div>
                 </div>
-                <button type="button" class="btn-close btn-close-white position-absolute top-0 end-0 m-3" data-bs-dismiss="modal"></button>
+                <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal"></button>
             </div>
             <div class="modal-body p-4">
                 <div class="card border-success border-2 mb-3">
@@ -603,12 +1123,21 @@
                     </div>
                 </div>
 
-                <div class="bg-light p-3" style="border-radius: 12px;">
-                    <h6 class="fw-semibold mb-2">
-                        <i class="bi bi-list-check me-2 text-primary"></i>Selected Call Details
-                    </h6>
-                    <div id="modal-call-list" class="small" style="max-height: 200px; overflow-y: auto;">
-                        <!-- Call list will be populated by JavaScript -->
+                <div class="accordion" id="approveCallDetailsAccordion">
+                    <div class="accordion-item" style="border-radius: 12px; border: none; overflow: hidden;">
+                        <h2 class="accordion-header">
+                            <button class="accordion-button collapsed bg-light" type="button" data-bs-toggle="collapse" data-bs-target="#approveCallDetailsCollapse" style="border-radius: 12px;">
+                                <i class="bi bi-list-check me-2 text-success"></i>
+                                <strong>Selected Call Details</strong>
+                            </button>
+                        </h2>
+                        <div id="approveCallDetailsCollapse" class="accordion-collapse collapse">
+                            <div class="accordion-body bg-light p-3">
+                                <div id="modal-call-list" class="small" style="max-height: 200px; overflow-y: auto;">
+                                    <!-- Call list will be populated by JavaScript -->
+                                </div>
+                            </div>
+                        </div>
                     </div>
                 </div>
             </div>
@@ -618,6 +1147,207 @@
                 </button>
                 <button type="button" class="btn btn-success" id="confirm-approve-btn" style="border-radius: 12px; min-width: 120px;">
                     <i class="bi bi-check-circle me-1"></i>Approve Now
+                </button>
+            </div>
+        </div>
+    </div>
+</div>
+
+
+<!-- Partial Approval Modal -->
+<div class="modal fade" id="partialApprovalModal" tabindex="-1">
+    <div class="modal-dialog modal-lg modal-dialog-centered">
+        <div class="modal-content border-0 shadow-lg" style="border-radius: 20px;">
+            <div class="modal-header border-0" style="background: linear-gradient(135deg, #3b82f6 0%, #2563eb 100%); border-radius: 20px 20px 0 0;">
+                <div class="d-flex align-items-center gap-3 py-2">
+                    <div class="bg-white rounded-circle d-flex align-items-center justify-content-center flex-shrink-0" style="width: 50px; height: 50px;">
+                        <i class="bi bi-check2-square text-primary" style="font-size: 28px;"></i>
+                    </div>
+                    <div>
+                        <h5 class="modal-title fw-bold text-white mb-0">Partial Approval</h5>
+                        <p class="text-white text-opacity-75 mb-0 small">Approve a custom amount</p>
+                    </div>
+                </div>
+                <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal"></button>
+            </div>
+            <div class="modal-body p-4">
+                <!-- Summary Cards -->
+                <div class="card border-primary border-2 mb-3">
+                    <div class="card-body p-3">
+                        <div class="row g-3">
+                            <div class="col-4">
+                                <div class="text-center">
+                                    <div class="text-muted small mb-1">Selected Calls</div>
+                                    <h3 class="mb-0 text-primary" id="partialModalSelectedCount">0</h3>
+                                </div>
+                            </div>
+                            <div class="col-4">
+                                <div class="text-center">
+                                    <div class="text-muted small mb-1">Total Amount</div>
+                                    <h3 class="mb-0 text-primary" id="partialModalTotalAmount">$0.00</h3>
+                                </div>
+                            </div>
+                            <div class="col-4">
+                                <div class="text-center">
+                                    <div class="text-muted small mb-1">To Recover</div>
+                                    <h3 class="mb-0 text-danger" id="partialModalRecoveryTotal">$0.00</h3>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="alert alert-info mb-3" style="border-radius: 12px; background-color: #e0f2fe; border-color: #38bdf8;">
+                    <div class="d-flex align-items-start">
+                        <i class="bi bi-info-circle-fill text-info me-2" style="font-size: 1.25rem;"></i>
+                        <div class="small text-info">
+                            Enter the total amount to approve. Any difference will be recovered as Personal and distributed proportionally across all selected calls.
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Approved Amount Input -->
+                <div class="mb-3">
+                    <label class="form-label fw-semibold">
+                        <i class="bi bi-currency-dollar me-1 text-primary"></i>Total Approved Amount <span class="text-danger">*</span>
+                    </label>
+                    <div class="input-group" style="border-radius: 12px;">
+                        <span class="input-group-text" style="border-radius: 12px 0 0 12px;">$</span>
+                        <input type="number"
+                               id="partialApprovedAmountInput"
+                               class="form-control"
+                               style="border-radius: 0 12px 12px 0;"
+                               step="0.01"
+                               min="0"
+                               placeholder="0.00"
+                               onchange="updatePartialModalSummary()"
+                               oninput="updatePartialModalSummary()"
+                               required>
+                    </div>
+                </div>
+
+                <!-- Selected Calls List -->
+                <div class="accordion mb-3" id="partialCallDetailsAccordion">
+                    <div class="accordion-item" style="border-radius: 12px; border: none; overflow: hidden;">
+                        <h2 class="accordion-header">
+                            <button class="accordion-button collapsed bg-light" type="button" data-bs-toggle="collapse" data-bs-target="#partialCallDetailsCollapse" style="border-radius: 12px;">
+                                <i class="bi bi-list-check me-2 text-primary"></i>
+                                <strong>Selected Call Details</strong>
+                            </button>
+                        </h2>
+                        <div id="partialCallDetailsCollapse" class="accordion-collapse collapse">
+                            <div class="accordion-body bg-light p-3">
+                                <div id="partialApprovalCallsList" class="small" style="max-height: 200px; overflow-y: auto;"></div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Comments -->
+                <div class="mb-3">
+                    <label class="form-label fw-semibold">
+                        <i class="bi bi-chat-left-text me-1 text-primary"></i>Supervisor Comments (Optional)
+                    </label>
+                    <textarea id="partialApprovalComments" class="form-control" rows="2"
+                              style="border-radius: 12px;" placeholder="Add any comments..."></textarea>
+                </div>
+            </div>
+            <div class="modal-footer border-0 pt-0 px-4 pb-4">
+                <button type="button" class="btn btn-outline-secondary" data-bs-dismiss="modal" style="border-radius: 12px; min-width: 120px;">
+                    <i class="bi bi-x-circle me-1"></i>Cancel
+                </button>
+                <button type="button" class="btn btn-primary" onclick="submitPartialApprovalModal()" style="border-radius: 12px; min-width: 120px;">
+                    <i class="bi bi-check2-square me-1"></i>Approve Now
+                </button>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Reject Modal -->
+<div class="modal fade" id="rejectModal" tabindex="-1">
+    <div class="modal-dialog modal-dialog-centered">
+        <div class="modal-content border-0 shadow-lg" style="border-radius: 20px;">
+            <div class="modal-header border-0" style="background: linear-gradient(135deg, #ef4444 0%, #dc2626 100%); border-radius: 20px 20px 0 0;">
+                <div class="d-flex align-items-center gap-3 py-2">
+                    <div class="bg-white rounded-circle d-flex align-items-center justify-content-center flex-shrink-0" style="width: 50px; height: 50px;">
+                        <i class="bi bi-x-circle-fill text-danger" style="font-size: 28px;"></i>
+                    </div>
+                    <div>
+                        <h5 class="modal-title fw-bold text-white mb-0">Reject Verifications</h5>
+                        <p class="text-white text-opacity-75 mb-0 small">Provide a reason for rejection</p>
+                    </div>
+                </div>
+                <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal"></button>
+            </div>
+            <div class="modal-body p-4">
+                <div class="alert alert-warning mb-3" style="border-radius: 12px; background-color: #fef3c7; border-color: #fbbf24;">
+                    <div class="d-flex align-items-start">
+                        <i class="bi bi-exclamation-triangle-fill text-warning me-2" style="font-size: 1.25rem;"></i>
+                        <div class="small" style="color: #92400e;">
+                            You are about to reject <strong id="rejectModalCount">0</strong> call verification(s). This action cannot be undone.
+                        </div>
+                    </div>
+                </div>
+                <div class="mb-3">
+                    <label class="form-label fw-semibold">
+                        <i class="bi bi-chat-left-text me-1 text-danger"></i>Rejection Reason <span class="text-danger">*</span>
+                    </label>
+                    <textarea id="rejectReason" class="form-control" rows="4" required
+                              style="border-radius: 12px;" placeholder="Please explain why you are rejecting these verifications..."></textarea>
+                </div>
+            </div>
+            <div class="modal-footer border-0 pt-0 px-4 pb-4">
+                <button type="button" class="btn btn-outline-secondary" data-bs-dismiss="modal" style="border-radius: 12px; min-width: 120px;">
+                    <i class="bi bi-arrow-left me-1"></i>Cancel
+                </button>
+                <button type="button" class="btn btn-danger" onclick="submitRejectModal()" style="border-radius: 12px; min-width: 120px;">
+                    <i class="bi bi-x-circle me-1"></i>Reject Now
+                </button>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Revert Modal -->
+<div class="modal fade" id="revertModal" tabindex="-1">
+    <div class="modal-dialog modal-dialog-centered">
+        <div class="modal-content border-0 shadow-lg" style="border-radius: 20px;">
+            <div class="modal-header border-0" style="background: linear-gradient(135deg, #f59e0b 0%, #d97706 100%); border-radius: 20px 20px 0 0;">
+                <div class="d-flex align-items-center gap-3 py-2">
+                    <div class="bg-white rounded-circle d-flex align-items-center justify-content-center flex-shrink-0" style="width: 50px; height: 50px;">
+                        <i class="bi bi-arrow-counterclockwise text-warning" style="font-size: 28px;"></i>
+                    </div>
+                    <div>
+                        <h5 class="modal-title fw-bold text-white mb-0">Revert to Staff</h5>
+                        <p class="text-white text-opacity-75 mb-0 small">Send back for corrections</p>
+                    </div>
+                </div>
+                <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal"></button>
+            </div>
+            <div class="modal-body p-4">
+                <div class="alert alert-info mb-3" style="border-radius: 12px; background-color: #dbeafe; border-color: #60a5fa;">
+                    <div class="d-flex align-items-start">
+                        <i class="bi bi-info-circle-fill text-info me-2" style="font-size: 1.25rem;"></i>
+                        <div class="small text-info">
+                            Reverting <strong id="revertModalCount">0</strong> call verification(s) back to the staff member for corrections. They will be able to modify and resubmit.
+                        </div>
+                    </div>
+                </div>
+                <div class="mb-3">
+                    <label class="form-label fw-semibold">
+                        <i class="bi bi-chat-left-text me-1 text-warning"></i>Revert Reason <span class="text-danger">*</span>
+                    </label>
+                    <textarea id="revertReason" class="form-control" rows="4" required
+                              style="border-radius: 12px;" placeholder="Explain what needs to be corrected..."></textarea>
+                </div>
+            </div>
+            <div class="modal-footer border-0 pt-0 px-4 pb-4">
+                <button type="button" class="btn btn-outline-secondary" data-bs-dismiss="modal" style="border-radius: 12px; min-width: 120px;">
+                    <i class="bi bi-arrow-left me-1"></i>Cancel
+                </button>
+                <button type="button" class="btn btn-warning" onclick="submitRevertModal()" style="border-radius: 12px; min-width: 120px;">
+                    <i class="bi bi-arrow-counterclockwise me-1"></i>Revert Now
                 </button>
             </div>
         </div>
@@ -671,15 +1401,29 @@
                     `;
                     approveBtn.disabled = false;
 
-                    // Enable Review Selected button
+                    // Enable all action buttons
+                    const partialApproveBtn = accordion.querySelector(`[id^="partial-approve-selected-"]`);
+                    const rejectBtn = accordion.querySelector(`[id^="reject-selected-"]`);
+                    const revertBtn = accordion.querySelector(`[id^="revert-selected-"]`);
                     const reviewBtn = accordion.querySelector(`[id^="review-selected-"]`);
+
+                    if (partialApproveBtn) partialApproveBtn.disabled = false;
+                    if (rejectBtn) rejectBtn.disabled = false;
+                    if (revertBtn) revertBtn.disabled = false;
                     if (reviewBtn) reviewBtn.disabled = false;
                 } else {
                     summaryDiv.innerHTML = '<span class="fw-semibold">No calls selected</span>';
                     approveBtn.disabled = true;
 
-                    // Disable Review Selected button
+                    // Disable all action buttons
+                    const partialApproveBtn = accordion.querySelector(`[id^="partial-approve-selected-"]`);
+                    const rejectBtn = accordion.querySelector(`[id^="reject-selected-"]`);
+                    const revertBtn = accordion.querySelector(`[id^="revert-selected-"]`);
                     const reviewBtn = accordion.querySelector(`[id^="review-selected-"]`);
+
+                    if (partialApproveBtn) partialApproveBtn.disabled = true;
+                    if (rejectBtn) rejectBtn.disabled = true;
+                    if (revertBtn) revertBtn.disabled = true;
                     if (reviewBtn) reviewBtn.disabled = true;
                 }
 
@@ -830,6 +1574,290 @@
             document.body.appendChild(form);
             form.submit();
         });
+
+        // Global variables for current action context
+        let currentActionUser = null;
+        let currentActionData = null;
+        let partialApprovalCalls = [];
+
+        // Partial Approve Selected
+        function partialApproveSelected(userIndexNumber) {
+            currentActionUser = userIndexNumber;
+            const accordion = document.querySelector(`[id*="${userIndexNumber}"]`).closest('.accordion-item');
+            const checkedBoxes = accordion.querySelectorAll('input.call-checkbox:checked');
+
+            if (checkedBoxes.length === 0) {
+                alert('Please select at least one call to approve.');
+                return;
+            }
+
+            // Build list of calls (read-only display)
+            let callsListHTML = '<div class="list-group list-group-flush">';
+            let totalActual = 0;
+            partialApprovalCalls = [];
+
+            checkedBoxes.forEach((checkbox, index) => {
+                const verificationId = checkbox.dataset.verificationId;
+                const amount = parseFloat(checkbox.dataset.amount);
+                const callNumber = checkbox.dataset.callNumber || 'N/A';
+                const destination = checkbox.dataset.destination || 'N/A';
+
+                totalActual += amount;
+
+                // Store call data for later submission
+                partialApprovalCalls.push({
+                    verificationId: verificationId,
+                    amount: amount,
+                    callNumber: callNumber,
+                    destination: destination
+                });
+
+                callsListHTML += `
+                    <div class="list-group-item px-2 py-2">
+                        <div class="d-flex justify-content-between align-items-center">
+                            <div class="flex-grow-1">
+                                <strong>${callNumber}</strong> → ${destination}
+                            </div>
+                            <div class="text-end">
+                                <strong class="text-primary">$${amount.toFixed(2)}</strong>
+                            </div>
+                        </div>
+                    </div>
+                `;
+            });
+            callsListHTML += '</div>';
+
+            document.getElementById('partialApprovalCallsList').innerHTML = callsListHTML;
+            document.getElementById('partialModalSelectedCount').textContent = checkedBoxes.length;
+            document.getElementById('partialModalTotalAmount').textContent = '$' + totalActual.toFixed(2);
+
+            // Set initial approved amount to total amount
+            document.getElementById('partialApprovedAmountInput').value = totalActual.toFixed(2);
+            document.getElementById('partialApprovedAmountInput').max = totalActual;
+            document.getElementById('partialModalRecoveryTotal').textContent = '$0.00';
+
+            const modal = new bootstrap.Modal(document.getElementById('partialApprovalModal'));
+            modal.show();
+        }
+
+        // Update partial modal summary
+        function updatePartialModalSummary() {
+            const approvedInput = document.getElementById('partialApprovedAmountInput');
+            const totalAmount = partialApprovalCalls.reduce((sum, call) => sum + call.amount, 0);
+            const approvedAmount = parseFloat(approvedInput.value) || 0;
+            const recovery = Math.max(0, totalAmount - approvedAmount);
+
+            document.getElementById('partialModalRecoveryTotal').textContent = '$' + recovery.toFixed(2);
+        }
+
+        // Submit partial approval
+        function submitPartialApprovalModal() {
+            const approvedInput = document.getElementById('partialApprovedAmountInput');
+            const totalApprovedAmount = parseFloat(approvedInput.value);
+
+            if (!totalApprovedAmount || totalApprovedAmount <= 0) {
+                alert('Please enter a valid approved amount.');
+                return;
+            }
+
+            const totalAmount = partialApprovalCalls.reduce((sum, call) => sum + call.amount, 0);
+
+            if (totalApprovedAmount > totalAmount) {
+                alert('Approved amount cannot exceed the total amount.');
+                return;
+            }
+
+            // Distribute approved amount proportionally across all calls
+            const partialApprovals = [];
+            let remainingApproved = totalApprovedAmount;
+
+            partialApprovalCalls.forEach((call, index) => {
+                let approvedForCall;
+
+                if (index === partialApprovalCalls.length - 1) {
+                    // Last call gets the remaining amount to avoid rounding issues
+                    approvedForCall = remainingApproved;
+                } else {
+                    // Proportional distribution
+                    approvedForCall = (call.amount / totalAmount) * totalApprovedAmount;
+                    remainingApproved -= approvedForCall;
+                }
+
+                partialApprovals.push({
+                    VerificationId: parseInt(call.verificationId),
+                    ApprovedAmount: Math.max(0, approvedForCall),
+                    Reason: ''
+                });
+            });
+
+            const comments = document.getElementById('partialApprovalComments').value;
+
+            // Submit to server
+            const form = document.createElement('form');
+            form.method = 'POST';
+            form.action = '?handler=ApprovePartially';
+
+            // Add anti-forgery token
+            const token = document.querySelector('input[name="__RequestVerificationToken"]').value;
+            const tokenInput = document.createElement('input');
+            tokenInput.type = 'hidden';
+            tokenInput.name = '__RequestVerificationToken';
+            tokenInput.value = token;
+            form.appendChild(tokenInput);
+
+            // Add partial approvals as JSON
+            const dataInput = document.createElement('input');
+            dataInput.type = 'hidden';
+            dataInput.name = 'PartialApprovalsJson';
+            dataInput.value = JSON.stringify(partialApprovals);
+            form.appendChild(dataInput);
+
+            // Add comments
+            const commentsInput = document.createElement('input');
+            commentsInput.type = 'hidden';
+            commentsInput.name = 'SupervisorComments';
+            commentsInput.value = comments;
+            form.appendChild(commentsInput);
+
+            document.body.appendChild(form);
+            form.submit();
+        }
+
+        // Reject Selected
+        function rejectSelected(userIndexNumber) {
+            currentActionUser = userIndexNumber;
+            const accordion = document.querySelector(`[id*="${userIndexNumber}"]`).closest('.accordion-item');
+            const checkedBoxes = accordion.querySelectorAll('input.call-checkbox:checked');
+
+            if (checkedBoxes.length === 0) {
+                alert('Please select at least one call to reject.');
+                return;
+            }
+
+            document.getElementById('rejectModalCount').textContent = checkedBoxes.length;
+            document.getElementById('rejectReason').value = '';
+
+            const modal = new bootstrap.Modal(document.getElementById('rejectModal'));
+            modal.show();
+        }
+
+        // Submit reject
+        function submitRejectModal() {
+            const reason = document.getElementById('rejectReason').value.trim();
+            
+            if (!reason) {
+                alert('Please provide a rejection reason.');
+                return;
+            }
+
+            const accordion = document.querySelector(`[id*="${currentActionUser}"]`).closest('.accordion-item');
+            const checkedBoxes = accordion.querySelectorAll('input.call-checkbox:checked');
+            const verificationIds = [];
+
+            checkedBoxes.forEach(checkbox => {
+                verificationIds.push(checkbox.dataset.verificationId);
+            });
+
+            // Submit to server
+            const form = document.createElement('form');
+            form.method = 'POST';
+            form.action = '?handler=Reject';
+
+            // Add anti-forgery token
+            const token = document.querySelector('input[name="__RequestVerificationToken"]').value;
+            const tokenInput = document.createElement('input');
+            tokenInput.type = 'hidden';
+            tokenInput.name = '__RequestVerificationToken';
+            tokenInput.value = token;
+            form.appendChild(tokenInput);
+
+            // Add verification IDs
+            verificationIds.forEach(id => {
+                const input = document.createElement('input');
+                input.type = 'hidden';
+                input.name = 'verificationIds';
+                input.value = id;
+                form.appendChild(input);
+            });
+
+            // Add reason
+            const reasonInput = document.createElement('input');
+            reasonInput.type = 'hidden';
+            reasonInput.name = 'rejectionReason';
+            reasonInput.value = reason;
+            form.appendChild(reasonInput);
+
+            document.body.appendChild(form);
+            form.submit();
+        }
+
+        // Revert Selected
+        function revertSelected(userIndexNumber) {
+            currentActionUser = userIndexNumber;
+            const accordion = document.querySelector(`[id*="${userIndexNumber}"]`).closest('.accordion-item');
+            const checkedBoxes = accordion.querySelectorAll('input.call-checkbox:checked');
+
+            if (checkedBoxes.length === 0) {
+                alert('Please select at least one call to revert.');
+                return;
+            }
+
+            document.getElementById('revertModalCount').textContent = checkedBoxes.length;
+            document.getElementById('revertReason').value = '';
+
+            const modal = new bootstrap.Modal(document.getElementById('revertModal'));
+            modal.show();
+        }
+
+        // Submit revert
+        function submitRevertModal() {
+            const reason = document.getElementById('revertReason').value.trim();
+            
+            if (!reason) {
+                alert('Please provide a revert reason.');
+                return;
+            }
+
+            const accordion = document.querySelector(`[id*="${currentActionUser}"]`).closest('.accordion-item');
+            const checkedBoxes = accordion.querySelectorAll('input.call-checkbox:checked');
+            const verificationIds = [];
+
+            checkedBoxes.forEach(checkbox => {
+                verificationIds.push(checkbox.dataset.verificationId);
+            });
+
+            // Submit to server
+            const form = document.createElement('form');
+            form.method = 'POST';
+            form.action = '?handler=Revert';
+
+            // Add anti-forgery token
+            const token = document.querySelector('input[name="__RequestVerificationToken"]').value;
+            const tokenInput = document.createElement('input');
+            tokenInput.type = 'hidden';
+            tokenInput.name = '__RequestVerificationToken';
+            tokenInput.value = token;
+            form.appendChild(tokenInput);
+
+            // Add verification IDs
+            verificationIds.forEach(id => {
+                const input = document.createElement('input');
+                input.type = 'hidden';
+                input.name = 'verificationIds';
+                input.value = id;
+                form.appendChild(input);
+            });
+
+            // Add reason
+            const reasonInput = document.createElement('input');
+            reasonInput.type = 'hidden';
+            reasonInput.name = 'revertReason';
+            reasonInput.value = reason;
+            form.appendChild(reasonInput);
+
+            document.body.appendChild(form);
+            form.submit();
+        }
 
         // Initialize on page load
         document.addEventListener('DOMContentLoaded', function() {

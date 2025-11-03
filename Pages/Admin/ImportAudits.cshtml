@@ -112,101 +112,6 @@
         font-weight: 500;
     }
 
-    /* Filter Section */
-    .filter-section {
-        background: white;
-        border-radius: 12px;
-        padding: 1.5rem;
-        margin-bottom: 2rem;
-        box-shadow: 0 2px 10px rgba(0, 0, 0, 0.05);
-        border: 1px solid #e5e7eb;
-    }
-
-    .filter-header {
-        display: flex;
-        align-items: center;
-        justify-content: space-between;
-        margin-bottom: 1.5rem;
-        padding-bottom: 1rem;
-        border-bottom: 2px solid #f3f4f6;
-    }
-
-    .filter-title {
-        font-size: 1.25rem;
-        font-weight: 600;
-        color: #1f2937;
-        display: flex;
-        align-items: center;
-        gap: 0.5rem;
-    }
-
-    .filter-title i {
-        color: #009EDB;
-    }
-
-    .filter-grid {
-        display: grid;
-        grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
-        gap: 1rem;
-    }
-
-    .filter-group {
-        display: flex;
-        flex-direction: column;
-        gap: 0.5rem;
-    }
-
-    .filter-label {
-        font-size: 0.875rem;
-        font-weight: 600;
-        color: #4b5563;
-        display: flex;
-        align-items: center;
-        gap: 0.5rem;
-    }
-
-    .filter-label i {
-        color: #009EDB;
-        font-size: 0.875rem;
-    }
-
-    .filter-input,
-    .filter-select {
-        padding: 0.625rem 1rem;
-        border: 2px solid #e5e7eb;
-        border-radius: 8px;
-        font-size: 0.875rem;
-        transition: all 0.2s ease;
-        background: white;
-    }
-
-    .filter-input:focus,
-    .filter-select:focus {
-        outline: none;
-        border-color: #009EDB;
-        box-shadow: 0 0 0 3px rgba(0, 158, 219, 0.1);
-    }
-
-    .btn-clear-filters {
-        padding: 0.625rem 1.25rem;
-        background: #f3f4f6;
-        color: #4b5563;
-        border: none;
-        border-radius: 8px;
-        font-weight: 500;
-        font-size: 0.875rem;
-        display: inline-flex;
-        align-items: center;
-        gap: 0.5rem;
-        transition: all 0.2s ease;
-        text-decoration: none;
-    }
-
-    .btn-clear-filters:hover {
-        background: #e5e7eb;
-        color: #1f2937;
-        text-decoration: none;
-    }
 
     /* Table Row Effects */
     .audit-row {
@@ -258,10 +163,6 @@
     }
 
     @@media (max-width: 768px) {
-        .filter-grid {
-            grid-template-columns: 1fr;
-        }
-
         .stats-grid {
             grid-template-columns: repeat(2, 1fr);
             gap: 1rem;
@@ -328,20 +229,14 @@
 </div>
 
 <!-- Filter Section (Collapsible) -->
-<div class="mb-3">
-    <button class="btn btn-outline-primary" type="button" data-bs-toggle="collapse" data-bs-target="#filterCollapse" aria-expanded="false" aria-controls="filterCollapse">
-        <i class="bi bi-funnel"></i> Show Filters
-    </button>
-</div>
-<div class="collapse" id="filterCollapse">
-    <div class="filter-section">
-        <div class="filter-header">
-            <h2 class="filter-title">
-                <i class="bi bi-funnel"></i>
-                Filters
-            </h2>
-            <div class="filter-actions">
-                <span class="badge bg-light text-dark">
+<div class="card border-0 shadow-sm mb-4" style="border-radius: 20px;">
+    <div class="card-header bg-white border-0 p-3" style="cursor: pointer; border-radius: 20px 20px 0 0;" data-bs-toggle="collapse" data-bs-target="#filterCollapse">
+        <div class="d-flex justify-content-between align-items-center">
+            <h6 class="mb-0 fw-bold">
+                <i class="bi bi-funnel me-2"></i>Filters
+            </h6>
+            <div class="d-flex align-items-center gap-3">
+                <span class="badge bg-light text-dark" style="font-weight: 500;">
                     @if (Model.ImportAudits.Any())
                     {
                         <text>@Model.ImportAudits.Count results</text>
@@ -351,65 +246,69 @@
                         <text>No results</text>
                     }
                 </span>
+                <i class="bi bi-chevron-down"></i>
             </div>
         </div>
+    </div>
+    <div class="collapse" id="filterCollapse">
+        <div class="card-body p-4">
+            <form method="get" class="filter-form" id="filterForm">
+                <div class="row g-3">
+                    <div class="col-md-3">
+                        <label class="form-label text-muted small" for="searchFilter">Search</label>
+                        <input type="text" name="SearchTerm" id="searchFilter"
+                               class="form-control border-0 bg-light filter-search-input"
+                               style="border-radius: 12px;"
+                               placeholder="File, user, or type..." value="@Model.SearchTerm" />
+                    </div>
 
-        <form method="get" class="filter-form" id="filterForm">
-            <div class="filter-grid">
-                <div class="filter-group">
-                    <label class="filter-label" for="searchFilter">
-                        <i class="bi bi-search"></i> Search
-                    </label>
-                    <input type="text" name="SearchTerm" id="searchFilter" class="filter-input filter-search-input"
-                           placeholder="File, user, or type..." value="@Model.SearchTerm" />
-                </div>
+                    <div class="col-md-3">
+                        <label class="form-label text-muted small" for="typeFilter">Import Type</label>
+                        <select name="FilterType" id="typeFilter"
+                                class="form-select border-0 bg-light filter-auto-submit"
+                                style="border-radius: 12px;">
+                            <option value="all" selected="@(Model.FilterType == "all")">All Types</option>
+                            <option value="CallLogs" selected="@(Model.FilterType == "CallLogs")">Call Logs</option>
+                            <option value="EbillUsers" selected="@(Model.FilterType == "EbillUsers")">E-bill Users</option>
+                        </select>
+                    </div>
 
-                <div class="filter-group">
-                    <label class="filter-label" for="typeFilter">
-                        <i class="bi bi-file-earmark"></i> Import Type
-                    </label>
-                    <select name="FilterType" id="typeFilter" class="filter-select filter-auto-submit">
-                        <option value="all" selected="@(Model.FilterType == "all")">All Types</option>
-                        <option value="CallLogs" selected="@(Model.FilterType == "CallLogs")">Call Logs</option>
-                        <option value="EbillUsers" selected="@(Model.FilterType == "EbillUsers")">E-bill Users</option>
-                    </select>
-                </div>
+                    <div class="col-md-3">
+                        <label class="form-label text-muted small" for="resultFilter">Result Status</label>
+                        <select name="ResultFilter" id="resultFilter"
+                                class="form-select border-0 bg-light filter-auto-submit"
+                                style="border-radius: 12px;">
+                            <option value="" selected="@(string.IsNullOrEmpty(Model.ResultFilter))">All Results</option>
+                            <option value="success" selected="@(Model.ResultFilter == "success")">Success Only</option>
+                            <option value="errors" selected="@(Model.ResultFilter == "errors")">With Errors</option>
+                            <option value="partial" selected="@(Model.ResultFilter == "partial")">Partial Success</option>
+                        </select>
+                    </div>
 
-                <div class="filter-group">
-                    <label class="filter-label" for="resultFilter">
-                        <i class="bi bi-flag"></i> Result Status
-                    </label>
-                    <select name="ResultFilter" id="resultFilter" class="filter-select filter-auto-submit">
-                        <option value="" selected="@(string.IsNullOrEmpty(Model.ResultFilter))">All Results</option>
-                        <option value="success" selected="@(Model.ResultFilter == "success")">Success Only</option>
-                        <option value="errors" selected="@(Model.ResultFilter == "errors")">With Errors</option>
-                        <option value="partial" selected="@(Model.ResultFilter == "partial")">Partial Success</option>
-                    </select>
-                </div>
+                    <div class="col-md-3">
+                        <label class="form-label text-muted small" for="startDate">Start Date</label>
+                        <input type="date" name="StartDate" id="startDate"
+                               class="form-control border-0 bg-light filter-auto-submit"
+                               style="border-radius: 12px;"
+                               value="@Model.StartDate?.ToString("yyyy-MM-dd")" />
+                    </div>
 
-                <div class="filter-group">
-                    <label class="filter-label" for="startDate">
-                        <i class="bi bi-calendar-minus"></i> Start Date
-                    </label>
-                    <input type="date" name="StartDate" id="startDate" class="filter-input filter-auto-submit"
-                           value="@Model.StartDate?.ToString("yyyy-MM-dd")" />
-                </div>
+                    <div class="col-md-3">
+                        <label class="form-label text-muted small" for="endDate">End Date</label>
+                        <input type="date" name="EndDate" id="endDate"
+                               class="form-control border-0 bg-light filter-auto-submit"
+                               style="border-radius: 12px;"
+                               value="@Model.EndDate?.ToString("yyyy-MM-dd")" />
+                    </div>
 
-                <div class="filter-group">
-                    <label class="filter-label" for="endDate">
-                        <i class="bi bi-calendar-plus"></i> End Date
-                    </label>
-                    <input type="date" name="EndDate" id="endDate" class="filter-input filter-auto-submit"
-                           value="@Model.EndDate?.ToString("yyyy-MM-dd")" />
+                    <div class="col-md-9 d-flex align-items-end">
+                        <a href="/Admin/ImportAudits" class="btn btn-outline-secondary btn-sm" style="border-radius: 12px;">
+                            <i class="bi bi-x-circle me-1"></i> Clear Filters
+                        </a>
+                    </div>
                 </div>
-
-                <div class="filter-group align-self-end">
-                    <a href="/Admin/ImportAudits" class="btn-clear-filters">
-                        <i class="bi bi-x-circle"></i> Clear Filters
-                    </a>
-                </div>
-            </div>
-        </form>
+            </form>
+        </div>
     </div>
 </div>
 
@@ -605,15 +504,23 @@ else
                 });
             }
 
-            // Filter toggle
-            const filterToggle = document.querySelector('[data-bs-target="#filterCollapse"]');
+            // Update chevron icon when filters are shown/hidden
             const filterCollapse = document.getElementById('filterCollapse');
-            if (filterToggle && filterCollapse) {
+            if (filterCollapse) {
+                const chevronIcon = document.querySelector('[data-bs-target="#filterCollapse"] .bi-chevron-down');
+
                 filterCollapse.addEventListener('show.bs.collapse', function () {
-                    filterToggle.innerHTML = '<i class="bi bi-funnel-fill"></i> Hide Filters';
+                    if (chevronIcon) {
+                        chevronIcon.classList.remove('bi-chevron-down');
+                        chevronIcon.classList.add('bi-chevron-up');
+                    }
                 });
+
                 filterCollapse.addEventListener('hide.bs.collapse', function () {
-                    filterToggle.innerHTML = '<i class="bi bi-funnel"></i> Show Filters';
+                    if (chevronIcon) {
+                        chevronIcon.classList.remove('bi-chevron-up');
+                        chevronIcon.classList.add('bi-chevron-down');
+                    }
                 });
 
                 // Check if any filters are active
@@ -624,8 +531,10 @@ else
                                                     Model.EndDate.HasValue).ToString().ToLower());
                 if (hasActiveFilters) {
                     filterCollapse.classList.add('show');
-                    filterToggle.innerHTML = '<i class="bi bi-funnel-fill"></i> Hide Filters';
-                    filterToggle.setAttribute('aria-expanded', 'true');
+                    if (chevronIcon) {
+                        chevronIcon.classList.remove('bi-chevron-down');
+                        chevronIcon.classList.add('bi-chevron-up');
+                    }
                 }
             }
 

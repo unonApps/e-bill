@@ -2,11 +2,17 @@
 // for details on configuring this project to bundle and minify static web assets.
 
 $(document).ready(function () {
+    // Restore sidebar scroll position from previous page
+    restoreSidebarScrollPosition();
+
     // Initialize menu state first
     initializeMenuState();
-    
+
     // Then bind event handlers
     bindMenuEventHandlers();
+
+    // Save sidebar scroll position before navigation
+    saveSidebarScrollOnNavigation();
 });
 
 function initializeMenuState() {
@@ -100,11 +106,11 @@ function bindMenuEventHandlers() {
 
 function scrollToExpandedMenu(parentElement) {
     const sidebar = $('#sidebar')[0];
-    
+
     // Check if the expanded menu is outside the visible area
     const parentRect = parentElement.getBoundingClientRect();
     const sidebarRect = sidebar.getBoundingClientRect();
-    
+
     if (parentRect.bottom > sidebarRect.bottom) {
         // Scroll down to show the expanded content
         const scrollAmount = parentRect.bottom - sidebarRect.bottom + 50;
@@ -116,6 +122,42 @@ function scrollToExpandedMenu(parentElement) {
         } else {
             // Fallback for older browsers
             $(sidebar).animate({ scrollTop: sidebar.scrollTop + scrollAmount }, 300);
+        }
+    }
+}
+
+// Save sidebar scroll position to sessionStorage before navigating
+function saveSidebarScrollOnNavigation() {
+    // Save scroll position when clicking any link in the sidebar
+    $('#sidebar a').on('click', function(e) {
+        const sidebar = $('#sidebar')[0];
+        if (sidebar) {
+            sessionStorage.setItem('sidebarScrollPosition', sidebar.scrollTop);
+        }
+    });
+
+    // Also save when the page is about to unload
+    $(window).on('beforeunload', function() {
+        const sidebar = $('#sidebar')[0];
+        if (sidebar) {
+            sessionStorage.setItem('sidebarScrollPosition', sidebar.scrollTop);
+        }
+    });
+}
+
+// Restore sidebar scroll position from sessionStorage
+function restoreSidebarScrollPosition() {
+    const savedScrollPosition = sessionStorage.getItem('sidebarScrollPosition');
+    if (savedScrollPosition !== null) {
+        const sidebar = $('#sidebar')[0];
+        if (sidebar) {
+            // Restore immediately
+            sidebar.scrollTop = parseInt(savedScrollPosition);
+
+            // Also restore after a short delay to ensure DOM is fully loaded
+            setTimeout(function() {
+                sidebar.scrollTop = parseInt(savedScrollPosition);
+            }, 50);
         }
     }
 }

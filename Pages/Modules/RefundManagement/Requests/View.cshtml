@@ -462,13 +462,31 @@
                     </button>
                 </li>
                 <li class="nav-item" role="presentation">
-                    <button class="nav-link" id="financial-tab" data-bs-toggle="tab" 
+                    <button class="nav-link" id="financial-tab" data-bs-toggle="tab"
                             data-bs-target="#financial" type="button" role="tab">
                         <i class="bi bi-currency-dollar"></i> Financial Details
                     </button>
                 </li>
                 <li class="nav-item" role="presentation">
-                    <button class="nav-link" id="workflow-tab" data-bs-toggle="tab" 
+                    <button class="nav-link" id="supervisor-tab" data-bs-toggle="tab"
+                            data-bs-target="#supervisor-approval" type="button" role="tab">
+                        <i class="bi bi-check-circle"></i> Supervisor Approval
+                    </button>
+                </li>
+                <li class="nav-item" role="presentation">
+                    <button class="nav-link" id="budget-tab" data-bs-toggle="tab"
+                            data-bs-target="#budget-officer" type="button" role="tab">
+                        <i class="bi bi-calculator"></i> Budget Officer
+                    </button>
+                </li>
+                <li class="nav-item" role="presentation">
+                    <button class="nav-link" id="claims-tab" data-bs-toggle="tab"
+                            data-bs-target="#claims-processing" type="button" role="tab">
+                        <i class="bi bi-receipt"></i> Claims Processing
+                    </button>
+                </li>
+                <li class="nav-item" role="presentation">
+                    <button class="nav-link" id="workflow-tab" data-bs-toggle="tab"
                             data-bs-target="#workflow" type="button" role="tab">
                         <i class="bi bi-diagram-3"></i> Workflow History
                     </button>
@@ -607,6 +625,72 @@
                         </div>
                     </div>
 
+                    <!-- Purchase Receipt Section -->
+                    @if (Model.RefundRequest.PurchaseReceiptData != null && Model.RefundRequest.PurchaseReceiptData.Length > 0)
+                    {
+                        <div class="detail-section">
+                            <h6 class="section-header">
+                                <i class="bi bi-file-earmark-pdf section-icon"></i>
+                                Purchase Receipt
+                            </h6>
+                            <div class="detail-row">
+                                <div class="detail-item">
+                                    <div class="detail-label">File Name</div>
+                                    <div class="detail-value">@Model.RefundRequest.PurchaseReceiptFileName</div>
+                                </div>
+                                <div class="detail-item">
+                                    <div class="detail-label">Upload Date</div>
+                                    <div class="detail-value">@Model.RefundRequest.PurchaseReceiptUploadDate?.ToString("MMM dd, yyyy hh:mm tt")</div>
+                                </div>
+                                <div class="detail-item">
+                                    <div class="detail-label">File Size</div>
+                                    <div class="detail-value">@((Model.RefundRequest.PurchaseReceiptData.Length / 1024.0).ToString("N2")) KB</div>
+                                </div>
+                            </div>
+                            <div class="mt-3">
+                                <a href="/Modules/RefundManagement/Requests/DownloadReceipt/@Model.RefundRequest.Id"
+                                   class="btn btn-primary"
+                                   style="background-color: #009EDB; border: none; padding: 0.625rem 1.25rem; border-radius: 8px; display: inline-flex; align-items: center; gap: 0.5rem;"
+                                   target="_blank">
+                                    <i class="bi bi-download"></i>
+                                    Download Receipt
+                                </a>
+                            </div>
+                        </div>
+                    }
+                    else if (!string.IsNullOrEmpty(Model.RefundRequest.PurchaseReceiptPath) && !Model.RefundRequest.PurchaseReceiptPath.StartsWith("database:"))
+                    {
+                        <!-- Legacy file system path support -->
+                        <div class="detail-section">
+                            <h6 class="section-header">
+                                <i class="bi bi-file-earmark-pdf section-icon"></i>
+                                Purchase Receipt
+                            </h6>
+                            <div class="mt-3">
+                                <a href="@Model.RefundRequest.PurchaseReceiptPath"
+                                   class="btn btn-primary"
+                                   style="background-color: #009EDB; border: none; padding: 0.625rem 1.25rem; border-radius: 8px; display: inline-flex; align-items: center; gap: 0.5rem;"
+                                   target="_blank">
+                                    <i class="bi bi-download"></i>
+                                    Download Receipt (Legacy)
+                                </a>
+                            </div>
+                        </div>
+                    }
+                    else
+                    {
+                        <div class="detail-section">
+                            <h6 class="section-header">
+                                <i class="bi bi-file-earmark-pdf section-icon"></i>
+                                Purchase Receipt
+                            </h6>
+                            <div class="alert alert-info mb-0" style="border-radius: 8px; border-left: 4px solid #009EDB;">
+                                <i class="bi bi-info-circle me-2"></i>
+                                No receipt has been uploaded for this request.
+                            </div>
+                        </div>
+                    }
+
                     <!-- Cost Allocation Section -->
                     @if (!string.IsNullOrEmpty(Model.RefundRequest.CostObject) || !string.IsNullOrEmpty(Model.RefundRequest.CostCenter) || !string.IsNullOrEmpty(Model.RefundRequest.FundCommitment))
                     {
@@ -672,6 +756,298 @@
                                     </div>
                                 }
                             </div>
+                        </div>
+                    }
+                </div>
+
+                <!-- Supervisor Approval Tab -->
+                <div class="tab-pane fade" id="supervisor-approval" role="tabpanel">
+                    @if (!string.IsNullOrEmpty(Model.RefundRequest.SupervisorName) ||
+                         !string.IsNullOrEmpty(Model.RefundRequest.SupervisorRemarks) ||
+                         !string.IsNullOrEmpty(Model.RefundRequest.SupervisorNotes))
+                    {
+                        <div class="detail-section">
+                            <div class="section-header">
+                                <i class="bi bi-person-check"></i>
+                                <h5>Supervisor Information</h5>
+                            </div>
+                            <div class="detail-grid">
+                                @if (!string.IsNullOrEmpty(Model.RefundRequest.SupervisorName))
+                                {
+                                    <div class="detail-item">
+                                        <div class="detail-label">Supervisor Name</div>
+                                        <div class="detail-value">@Model.RefundRequest.SupervisorName</div>
+                                    </div>
+                                }
+                                @if (!string.IsNullOrEmpty(Model.RefundRequest.SupervisorEmail))
+                                {
+                                    <div class="detail-item">
+                                        <div class="detail-label">Supervisor Email</div>
+                                        <div class="detail-value">@Model.RefundRequest.SupervisorEmail</div>
+                                    </div>
+                                }
+                                @if (Model.RefundRequest.SupervisorApprovalDate.HasValue)
+                                {
+                                    <div class="detail-item">
+                                        <div class="detail-label">Approval Date</div>
+                                        <div class="detail-value">@Model.RefundRequest.SupervisorApprovalDate.Value.ToString("MMMM dd, yyyy")</div>
+                                    </div>
+                                }
+                            </div>
+                        </div>
+
+                        @if (!string.IsNullOrEmpty(Model.RefundRequest.SupervisorRemarks))
+                        {
+                            <div class="detail-section">
+                                <div class="section-header">
+                                    <i class="bi bi-chat-square-text"></i>
+                                    <h5>Supervisor Remarks</h5>
+                                </div>
+                                <div class="remarks-content">
+                                    @Model.RefundRequest.SupervisorRemarks
+                                </div>
+                            </div>
+                        }
+
+                        @if (!string.IsNullOrEmpty(Model.RefundRequest.SupervisorNotes))
+                        {
+                            <div class="detail-section">
+                                <div class="section-header">
+                                    <i class="bi bi-sticky"></i>
+                                    <h5>Supervisor Notes</h5>
+                                </div>
+                                <div class="remarks-content">
+                                    @Model.RefundRequest.SupervisorNotes
+                                </div>
+                            </div>
+                        }
+                    }
+                    else
+                    {
+                        <div class="text-center py-5">
+                            <i class="bi bi-hourglass-split" style="font-size: 3rem; color: #cbd5e1;"></i>
+                            <h5 class="text-muted mt-3 mb-2">Pending Supervisor Approval</h5>
+                            <p class="text-muted" style="font-size: 0.875rem;">
+                                The supervisor has not yet reviewed and approved this request.
+                            </p>
+                        </div>
+                    }
+                </div>
+
+                <!-- Budget Officer Tab -->
+                <div class="tab-pane fade" id="budget-officer" role="tabpanel">
+                    @if (!string.IsNullOrEmpty(Model.RefundRequest.BudgetOfficerName) ||
+                         !string.IsNullOrEmpty(Model.RefundRequest.CostObject) ||
+                         !string.IsNullOrEmpty(Model.RefundRequest.BudgetOfficerRemarks))
+                    {
+                        @if (!string.IsNullOrEmpty(Model.RefundRequest.BudgetOfficerName) ||
+                             !string.IsNullOrEmpty(Model.RefundRequest.BudgetOfficerEmail))
+                        {
+                            <div class="detail-section">
+                                <div class="section-header">
+                                    <i class="bi bi-person-check"></i>
+                                    <h5>Budget Officer Information</h5>
+                                </div>
+                                <div class="detail-grid">
+                                    @if (!string.IsNullOrEmpty(Model.RefundRequest.BudgetOfficerName))
+                                    {
+                                        <div class="detail-item">
+                                            <div class="detail-label">Budget Officer Name</div>
+                                            <div class="detail-value">@Model.RefundRequest.BudgetOfficerName</div>
+                                        </div>
+                                    }
+                                    @if (!string.IsNullOrEmpty(Model.RefundRequest.BudgetOfficerEmail))
+                                    {
+                                        <div class="detail-item">
+                                            <div class="detail-label">Budget Officer Email</div>
+                                            <div class="detail-value">@Model.RefundRequest.BudgetOfficerEmail</div>
+                                        </div>
+                                    }
+                                    @if (Model.RefundRequest.BudgetOfficerApprovalDate.HasValue)
+                                    {
+                                        <div class="detail-item">
+                                            <div class="detail-label">Approval Date</div>
+                                            <div class="detail-value">@Model.RefundRequest.BudgetOfficerApprovalDate.Value.ToString("MMMM dd, yyyy")</div>
+                                        </div>
+                                    }
+                                </div>
+                            </div>
+                        }
+
+                        @if (!string.IsNullOrEmpty(Model.RefundRequest.CostObject) ||
+                             !string.IsNullOrEmpty(Model.RefundRequest.CostCenter) ||
+                             !string.IsNullOrEmpty(Model.RefundRequest.FundCommitment))
+                        {
+                            <div class="detail-section">
+                                <div class="section-header">
+                                    <i class="bi bi-calculator"></i>
+                                    <h5>Cost Accounting</h5>
+                                </div>
+                                <div class="detail-grid">
+                                    @if (!string.IsNullOrEmpty(Model.RefundRequest.CostObject))
+                                    {
+                                        <div class="detail-item">
+                                            <div class="detail-label">Cost Object</div>
+                                            <div class="detail-value">@Model.RefundRequest.CostObject</div>
+                                        </div>
+                                    }
+                                    @if (!string.IsNullOrEmpty(Model.RefundRequest.CostCenter))
+                                    {
+                                        <div class="detail-item">
+                                            <div class="detail-label">Cost Center</div>
+                                            <div class="detail-value">@Model.RefundRequest.CostCenter</div>
+                                        </div>
+                                    }
+                                    @if (!string.IsNullOrEmpty(Model.RefundRequest.FundCommitment))
+                                    {
+                                        <div class="detail-item">
+                                            <div class="detail-label">Fund Commitment</div>
+                                            <div class="detail-value">@Model.RefundRequest.FundCommitment</div>
+                                        </div>
+                                    }
+                                </div>
+                            </div>
+                        }
+
+                        @if (!string.IsNullOrEmpty(Model.RefundRequest.BudgetOfficerRemarks))
+                        {
+                            <div class="detail-section">
+                                <div class="section-header">
+                                    <i class="bi bi-chat-square-text"></i>
+                                    <h5>Budget Officer Remarks</h5>
+                                </div>
+                                <div class="remarks-content">
+                                    @Model.RefundRequest.BudgetOfficerRemarks
+                                </div>
+                            </div>
+                        }
+
+                        @if (!string.IsNullOrEmpty(Model.RefundRequest.BudgetOfficerNotes))
+                        {
+                            <div class="detail-section">
+                                <div class="section-header">
+                                    <i class="bi bi-sticky"></i>
+                                    <h5>Budget Officer Notes</h5>
+                                </div>
+                                <div class="remarks-content">
+                                    @Model.RefundRequest.BudgetOfficerNotes
+                                </div>
+                            </div>
+                        }
+                    }
+                    else
+                    {
+                        <div class="text-center py-5">
+                            <i class="bi bi-hourglass-split" style="font-size: 3rem; color: #cbd5e1;"></i>
+                            <h5 class="text-muted mt-3 mb-2">Pending Budget Officer Approval</h5>
+                            <p class="text-muted" style="font-size: 0.875rem;">
+                                The budget officer has not yet reviewed and approved this request.
+                            </p>
+                        </div>
+                    }
+                </div>
+
+                <!-- Claims Processing Tab -->
+                <div class="tab-pane fade" id="claims-processing" role="tabpanel">
+                    @if (!string.IsNullOrEmpty(Model.RefundRequest.StaffClaimsOfficerName) ||
+                         !string.IsNullOrEmpty(Model.RefundRequest.UmojaPaymentDocumentId) ||
+                         !string.IsNullOrEmpty(Model.RefundRequest.StaffClaimsRemarks))
+                    {
+                        @if (!string.IsNullOrEmpty(Model.RefundRequest.StaffClaimsOfficerName) ||
+                             !string.IsNullOrEmpty(Model.RefundRequest.StaffClaimsOfficerEmail))
+                        {
+                            <div class="detail-section">
+                                <div class="section-header">
+                                    <i class="bi bi-person-check"></i>
+                                    <h5>Claims Officer Information</h5>
+                                </div>
+                                <div class="detail-grid">
+                                    @if (!string.IsNullOrEmpty(Model.RefundRequest.StaffClaimsOfficerName))
+                                    {
+                                        <div class="detail-item">
+                                            <div class="detail-label">Claims Officer Name</div>
+                                            <div class="detail-value">@Model.RefundRequest.StaffClaimsOfficerName</div>
+                                        </div>
+                                    }
+                                    @if (!string.IsNullOrEmpty(Model.RefundRequest.StaffClaimsOfficerEmail))
+                                    {
+                                        <div class="detail-item">
+                                            <div class="detail-label">Claims Officer Email</div>
+                                            <div class="detail-value">@Model.RefundRequest.StaffClaimsOfficerEmail</div>
+                                        </div>
+                                    }
+                                    @if (Model.RefundRequest.StaffClaimsApprovalDate.HasValue)
+                                    {
+                                        <div class="detail-item">
+                                            <div class="detail-label">Processing Date</div>
+                                            <div class="detail-value">@Model.RefundRequest.StaffClaimsApprovalDate.Value.ToString("MMMM dd, yyyy")</div>
+                                        </div>
+                                    }
+                                </div>
+                            </div>
+                        }
+
+                        @if (!string.IsNullOrEmpty(Model.RefundRequest.UmojaPaymentDocumentId) ||
+                             Model.RefundRequest.RefundUsdAmount.HasValue)
+                        {
+                            <div class="detail-section">
+                                <div class="section-header">
+                                    <i class="bi bi-receipt"></i>
+                                    <h5>Payment Details</h5>
+                                </div>
+                                <div class="detail-grid">
+                                    @if (!string.IsNullOrEmpty(Model.RefundRequest.UmojaPaymentDocumentId))
+                                    {
+                                        <div class="detail-item">
+                                            <div class="detail-label">Umoja Payment Document ID</div>
+                                            <div class="detail-value">@Model.RefundRequest.UmojaPaymentDocumentId</div>
+                                        </div>
+                                    }
+                                    @if (Model.RefundRequest.RefundUsdAmount.HasValue)
+                                    {
+                                        <div class="detail-item">
+                                            <div class="detail-label">Refund Amount (USD)</div>
+                                            <div class="detail-value">$@Model.RefundRequest.RefundUsdAmount.Value.ToString("N2")</div>
+                                        </div>
+                                    }
+                                </div>
+                            </div>
+                        }
+
+                        @if (!string.IsNullOrEmpty(Model.RefundRequest.StaffClaimsRemarks))
+                        {
+                            <div class="detail-section">
+                                <div class="section-header">
+                                    <i class="bi bi-chat-square-text"></i>
+                                    <h5>Claims Unit Remarks</h5>
+                                </div>
+                                <div class="remarks-content">
+                                    @Model.RefundRequest.StaffClaimsRemarks
+                                </div>
+                            </div>
+                        }
+
+                        @if (!string.IsNullOrEmpty(Model.RefundRequest.StaffClaimsNotes))
+                        {
+                            <div class="detail-section">
+                                <div class="section-header">
+                                    <i class="bi bi-sticky"></i>
+                                    <h5>Claims Unit Notes</h5>
+                                </div>
+                                <div class="remarks-content">
+                                    @Model.RefundRequest.StaffClaimsNotes
+                                </div>
+                            </div>
+                        }
+                    }
+                    else
+                    {
+                        <div class="text-center py-5">
+                            <i class="bi bi-hourglass-split" style="font-size: 3rem; color: #cbd5e1;"></i>
+                            <h5 class="text-muted mt-3 mb-2">Pending Claims Processing</h5>
+                            <p class="text-muted" style="font-size: 0.875rem;">
+                                The claims unit has not yet processed this request.
+                            </p>
                         </div>
                     }
                 </div>

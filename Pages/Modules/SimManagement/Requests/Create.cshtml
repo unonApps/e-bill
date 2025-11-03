@@ -894,13 +894,13 @@
                             </div>
                             <div class="col-12 col-md-6">
                                 <div class="form-floating dropdown-field">
-                                    <select asp-for="SimRequest.PreviouslyAssignedLines" class="form-select" required>
+                                    <select asp-for="SimRequest.PreviouslyAssignedLines" class="form-select" title="Indicate whether you have been previously assigned any mobile phone lines">
                                         <option value="">Select Option</option>
                                         <option value="Yes">Yes</option>
                                         <option value="No">No</option>
                                     </select>
                                     <label asp-for="SimRequest.PreviouslyAssignedLines">
-                                        <span class="text-danger">*</span> Previously Assigned Lines
+                                        Previously Assigned Lines
                                     </label>
                                     <span asp-validation-for="SimRequest.PreviouslyAssignedLines" class="text-danger"></span>
                                 </div>

@@ -1020,6 +1020,9 @@ namespace TAB.Web.Migrations
                     b.Property<decimal?>("AllowanceAmount")
                         .HasColumnType("decimal(18,4)");
 
+                    b.Property<DateTime?>("ApprovalDeadline")
+                        .HasColumnType("datetime2");
+
                     b.Property<string>("ApprovalStatus")
                         .IsRequired()
                         .HasMaxLength(20)
@@ -1027,6 +1030,9 @@ namespace TAB.Web.Migrations
 
                     b.Property<decimal?>("ApprovedAmount")
                         .HasColumnType("decimal(18,4)");
+
+                    b.Property<Guid?>("BatchId")
+                        .HasColumnType("uniqueidentifier");
 
                     b.Property<int>("CallRecordId")
                         .HasColumnType("int");
@@ -1036,6 +1042,9 @@ namespace TAB.Web.Migrations
 
                     b.Property<DateTime>("CreatedDate")
                         .HasColumnType("datetime2");
+
+                    b.Property<bool>("DeadlineMissed")
+                        .HasColumnType("bit");
 
                     b.Property<bool>("IsOverage")
                         .HasColumnType("bit");
@@ -1058,6 +1067,15 @@ namespace TAB.Web.Migrations
                     b.Property<string>("RejectionReason")
                         .HasMaxLength(500)
                         .HasColumnType("nvarchar(500)");
+
+                    b.Property<int>("RevertCount")
+                        .HasColumnType("int");
+
+                    b.Property<DateTime?>("RevertDeadline")
+                        .HasColumnType("datetime2");
+
+                    b.Property<DateTime?>("SubmissionDeadline")
+                        .HasColumnType("datetime2");
 
                     b.Property<DateTime?>("SubmittedDate")
                         .HasColumnType("datetime2");
@@ -1102,6 +1120,8 @@ namespace TAB.Web.Migrations
 
                     b.HasIndex("ApprovalStatus");
 
+                    b.HasIndex("BatchId");
+
                     b.HasIndex("ClassOfServiceId");
 
                     b.HasIndex("PaymentAssignmentId");
@@ -1122,6 +1142,10 @@ namespace TAB.Web.Migrations
                         .HasColumnType("int");
 
                     SqlServerPropertyBuilderExtensions.UseIdentityColumn(b.Property<int>("Id"));
+
+                    b.Property<DateTime?>("ApprovalPeriod")
+                        .HasColumnType("datetime2")
+                        .HasColumnName("approval_period");
 
                     b.Property<string>("AssignmentStatus")
                         .IsRequired()
@@ -1215,6 +1239,11 @@ namespace TAB.Web.Migrations
                         .HasColumnType("nvarchar(50)")
                         .HasColumnName("ext_no");
 
+                    b.Property<string>("FinalAssignmentType")
+                        .HasMaxLength(50)
+                        .HasColumnType("nvarchar(50)")
+                        .HasColumnName("final_assignment_type");
+
                     b.Property<bool>("IsCertified")
                         .HasColumnType("bit")
                         .HasColumnName("call_cert_ind");
@@ -1226,6 +1255,10 @@ namespace TAB.Web.Migrations
                     b.Property<bool>("IsVerified")
                         .HasColumnType("bit")
                         .HasColumnName("call_ver_ind");
+
+                    b.Property<DateTime?>("LastRevertDate")
+                        .HasColumnType("datetime2")
+                        .HasColumnName("last_revert_date");
 
                     b.Property<bool>("OverageJustified")
                         .HasColumnType("bit")
@@ -1240,10 +1273,37 @@ namespace TAB.Web.Migrations
                         .HasColumnType("int")
                         .HasColumnName("payment_assignment_id");
 
+                    b.Property<decimal?>("RecoveryAmount")
+                        .HasColumnType("decimal(18,2)")
+                        .HasColumnName("recovery_amount");
+
+                    b.Property<DateTime?>("RecoveryDate")
+                        .HasColumnType("datetime2")
+                        .HasColumnName("recovery_date");
+
+                    b.Property<string>("RecoveryProcessedBy")
+                        .HasMaxLength(100)
+                        .HasColumnType("nvarchar(100)")
+                        .HasColumnName("recovery_processed_by");
+
+                    b.Property<string>("RecoveryStatus")
+                        .HasMaxLength(50)
+                        .HasColumnType("nvarchar(50)")
+                        .HasColumnName("recovery_status");
+
                     b.Property<string>("ResponsibleIndexNumber")
                         .HasMaxLength(50)
                         .HasColumnType("nvarchar(50)")
                         .HasColumnName("ext_resp_index");
+
+                    b.Property<int>("RevertCount")
+                        .HasColumnType("int")
+                        .HasColumnName("revert_count");
+
+                    b.Property<string>("RevertReason")
+                        .HasMaxLength(500)
+                        .HasColumnType("nvarchar(500)")
+                        .HasColumnName("revert_reason");
 
                     b.Property<Guid?>("SourceBatchId")
                         .HasColumnType("uniqueidentifier");
@@ -1367,6 +1427,86 @@ namespace TAB.Web.Migrations
                     b.HasKey("Id");
 
                     b.ToTable("ClassOfServices");
+                });
+
+            modelBuilder.Entity("TAB.Web.Models.DeadlineTracking", b =>
+                {
+                    b.Property<int>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("int");
+
+                    SqlServerPropertyBuilderExtensions.UseIdentityColumn(b.Property<int>("Id"));
+
+                    b.Property<Guid>("BatchId")
+                        .HasColumnType("uniqueidentifier");
+
+                    b.Property<string>("CreatedBy")
+                        .HasMaxLength(100)
+                        .HasColumnType("nvarchar(100)");
+
+                    b.Property<DateTime>("CreatedDate")
+                        .HasColumnType("datetime2");
+
+                    b.Property<DateTime>("DeadlineDate")
+                        .HasColumnType("datetime2");
+
+                    b.Property<string>("DeadlineStatus")
+                        .IsRequired()
+                        .HasMaxLength(50)
+                        .HasColumnType("nvarchar(50)");
+
+                    b.Property<string>("DeadlineType")
+                        .IsRequired()
+                        .HasMaxLength(50)
+                        .HasColumnType("nvarchar(50)");
+
+                    b.Property<DateTime?>("ExtendedDeadline")
+                        .HasColumnType("datetime2");
+
+                    b.Property<string>("ExtensionApprovedBy")
+                        .HasMaxLength(100)
+                        .HasColumnType("nvarchar(100)");
+
+                    b.Property<DateTime?>("ExtensionApprovedDate")
+                        .HasColumnType("datetime2");
+
+                    b.Property<string>("ExtensionReason")
+                        .HasMaxLength(500)
+                        .HasColumnType("nvarchar(500)");
+
+                    b.Property<DateTime?>("MissedDate")
+                        .HasColumnType("datetime2");
+
+                    b.Property<string>("Notes")
+                        .HasMaxLength(1000)
+                        .HasColumnType("nvarchar(1000)");
+
+                    b.Property<bool>("RecoveryProcessed")
+                        .HasColumnType("bit");
+
+                    b.Property<DateTime?>("RecoveryProcessedDate")
+                        .HasColumnType("datetime2");
+
+                    b.Property<string>("TargetEntity")
+                        .IsRequired()
+                        .HasMaxLength(100)
+                        .HasColumnType("nvarchar(100)");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("BatchId");
+
+                    b.HasIndex("DeadlineDate");
+
+                    b.HasIndex("DeadlineStatus");
+
+                    b.HasIndex("TargetEntity");
+
+                    b.HasIndex("DeadlineDate", "DeadlineStatus");
+
+                    b.HasIndex("DeadlineType", "TargetEntity");
+
+                    b.ToTable("DeadlineTracking");
                 });
 
             modelBuilder.Entity("TAB.Web.Models.Ebill", b =>
@@ -1586,6 +1726,291 @@ namespace TAB.Web.Migrations
                     b.HasIndex("SubOfficeId");
 
                     b.ToTable("EbillUsers");
+                });
+
+            modelBuilder.Entity("TAB.Web.Models.EmailAttachment", b =>
+                {
+                    b.Property<int>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("int");
+
+                    SqlServerPropertyBuilderExtensions.UseIdentityColumn(b.Property<int>("Id"));
+
+                    b.Property<string>("ContentType")
+                        .HasMaxLength(100)
+                        .HasColumnType("nvarchar(100)");
+
+                    b.Property<DateTime>("CreatedDate")
+                        .HasColumnType("datetime2");
+
+                    b.Property<int>("EmailLogId")
+                        .HasColumnType("int");
+
+                    b.Property<string>("FileName")
+                        .IsRequired()
+                        .HasMaxLength(255)
+                        .HasColumnType("nvarchar(255)");
+
+                    b.Property<string>("FilePath")
+                        .IsRequired()
+                        .HasMaxLength(500)
+                        .HasColumnType("nvarchar(500)");
+
+                    b.Property<long>("FileSize")
+                        .HasColumnType("bigint");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("EmailLogId");
+
+                    b.ToTable("EmailAttachments");
+                });
+
+            modelBuilder.Entity("TAB.Web.Models.EmailConfiguration", b =>
+                {
+                    b.Property<int>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("int");
+
+                    SqlServerPropertyBuilderExtensions.UseIdentityColumn(b.Property<int>("Id"));
+
+                    b.Property<DateTime>("CreatedDate")
+                        .HasColumnType("datetime2");
+
+                    b.Property<bool>("EnableSsl")
+                        .HasColumnType("bit");
+
+                    b.Property<string>("FromEmail")
+                        .IsRequired()
+                        .HasMaxLength(255)
+                        .HasColumnType("nvarchar(255)");
+
+                    b.Property<string>("FromName")
+                        .IsRequired()
+                        .HasMaxLength(255)
+                        .HasColumnType("nvarchar(255)");
+
+                    b.Property<bool>("IsActive")
+                        .HasColumnType("bit");
+
+                    b.Property<string>("ModifiedBy")
+                        .HasMaxLength(100)
+                        .HasColumnType("nvarchar(100)");
+
+                    b.Property<DateTime?>("ModifiedDate")
+                        .HasColumnType("datetime2");
+
+                    b.Property<string>("Notes")
+                        .HasMaxLength(500)
+                        .HasColumnType("nvarchar(500)");
+
+                    b.Property<string>("Password")
+                        .IsRequired()
+                        .HasMaxLength(500)
+                        .HasColumnType("nvarchar(500)");
+
+                    b.Property<int>("SmtpPort")
+                        .HasColumnType("int");
+
+                    b.Property<string>("SmtpServer")
+                        .IsRequired()
+                        .HasMaxLength(255)
+                        .HasColumnType("nvarchar(255)");
+
+                    b.Property<int>("Timeout")
+                        .HasColumnType("int");
+
+                    b.Property<bool>("UseDefaultCredentials")
+                        .HasColumnType("bit");
+
+                    b.Property<string>("Username")
+                        .IsRequired()
+                        .HasMaxLength(255)
+                        .HasColumnType("nvarchar(255)");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("IsActive");
+
+                    b.ToTable("EmailConfigurations");
+                });
+
+            modelBuilder.Entity("TAB.Web.Models.EmailLog", b =>
+                {
+                    b.Property<int>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("int");
+
+                    SqlServerPropertyBuilderExtensions.UseIdentityColumn(b.Property<int>("Id"));
+
+                    b.Property<string>("BccEmails")
+                        .HasMaxLength(1000)
+                        .HasColumnType("nvarchar(1000)");
+
+                    b.Property<string>("Body")
+                        .IsRequired()
+                        .HasColumnType("nvarchar(max)");
+
+                    b.Property<string>("CcEmails")
+                        .HasMaxLength(1000)
+                        .HasColumnType("nvarchar(1000)");
+
+                    b.Property<string>("CreatedBy")
+                        .HasMaxLength(100)
+                        .HasColumnType("nvarchar(100)");
+
+                    b.Property<DateTime>("CreatedDate")
+                        .HasColumnType("datetime2");
+
+                    b.Property<int?>("EmailTemplateId")
+                        .HasColumnType("int");
+
+                    b.Property<string>("ErrorMessage")
+                        .HasMaxLength(2000)
+                        .HasColumnType("nvarchar(2000)");
+
+                    b.Property<int>("MaxRetries")
+                        .HasColumnType("int");
+
+                    b.Property<int>("OpenCount")
+                        .HasColumnType("int");
+
+                    b.Property<DateTime?>("OpenedDate")
+                        .HasColumnType("datetime2");
+
+                    b.Property<string>("PlainTextBody")
+                        .HasColumnType("nvarchar(max)");
+
+                    b.Property<int>("Priority")
+                        .HasColumnType("int");
+
+                    b.Property<string>("RelatedEntityId")
+                        .HasMaxLength(100)
+                        .HasColumnType("nvarchar(100)");
+
+                    b.Property<string>("RelatedEntityType")
+                        .HasMaxLength(100)
+                        .HasColumnType("nvarchar(100)");
+
+                    b.Property<int>("RetryCount")
+                        .HasColumnType("int");
+
+                    b.Property<DateTime?>("ScheduledSendDate")
+                        .HasColumnType("datetime2");
+
+                    b.Property<DateTime?>("SentDate")
+                        .HasColumnType("datetime2");
+
+                    b.Property<string>("Status")
+                        .IsRequired()
+                        .HasMaxLength(50)
+                        .HasColumnType("nvarchar(50)");
+
+                    b.Property<string>("Subject")
+                        .IsRequired()
+                        .HasMaxLength(500)
+                        .HasColumnType("nvarchar(500)");
+
+                    b.Property<string>("ToEmail")
+                        .IsRequired()
+                        .HasMaxLength(255)
+                        .HasColumnType("nvarchar(255)");
+
+                    b.Property<string>("TrackingId")
+                        .HasMaxLength(100)
+                        .HasColumnType("nvarchar(100)");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("CreatedDate");
+
+                    b.HasIndex("EmailTemplateId");
+
+                    b.HasIndex("SentDate");
+
+                    b.HasIndex("Status");
+
+                    b.HasIndex("ToEmail");
+
+                    b.HasIndex("TrackingId");
+
+                    b.HasIndex("RelatedEntityType", "RelatedEntityId");
+
+                    b.HasIndex("Status", "CreatedDate");
+
+                    b.ToTable("EmailLogs");
+                });
+
+            modelBuilder.Entity("TAB.Web.Models.EmailTemplate", b =>
+                {
+                    b.Property<int>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("int");
+
+                    SqlServerPropertyBuilderExtensions.UseIdentityColumn(b.Property<int>("Id"));
+
+                    b.Property<string>("AvailablePlaceholders")
+                        .HasMaxLength(2000)
+                        .HasColumnType("nvarchar(2000)");
+
+                    b.Property<string>("Category")
+                        .HasMaxLength(100)
+                        .HasColumnType("nvarchar(100)");
+
+                    b.Property<DateTime>("CreatedDate")
+                        .HasColumnType("datetime2");
+
+                    b.Property<string>("Description")
+                        .HasMaxLength(1000)
+                        .HasColumnType("nvarchar(1000)");
+
+                    b.Property<string>("HtmlBody")
+                        .IsRequired()
+                        .HasColumnType("nvarchar(max)");
+
+                    b.Property<bool>("IsActive")
+                        .HasColumnType("bit");
+
+                    b.Property<bool>("IsSystemTemplate")
+                        .HasColumnType("bit");
+
+                    b.Property<string>("ModifiedBy")
+                        .HasMaxLength(100)
+                        .HasColumnType("nvarchar(100)");
+
+                    b.Property<DateTime?>("ModifiedDate")
+                        .HasColumnType("datetime2");
+
+                    b.Property<string>("Name")
+                        .IsRequired()
+                        .HasMaxLength(255)
+                        .HasColumnType("nvarchar(255)");
+
+                    b.Property<string>("PlainTextBody")
+                        .HasColumnType("nvarchar(max)");
+
+                    b.Property<string>("Subject")
+                        .IsRequired()
+                        .HasMaxLength(500)
+                        .HasColumnType("nvarchar(500)");
+
+                    b.Property<string>("TemplateCode")
+                        .IsRequired()
+                        .HasMaxLength(100)
+                        .HasColumnType("nvarchar(100)");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("Category");
+
+                    b.HasIndex("IsActive");
+
+                    b.HasIndex("IsSystemTemplate");
+
+                    b.HasIndex("TemplateCode")
+                        .IsUnique();
+
+                    b.ToTable("EmailTemplates");
                 });
 
             modelBuilder.Entity("TAB.Web.Models.ExchangeRate", b =>
@@ -2014,6 +2439,121 @@ namespace TAB.Web.Migrations
                     b.ToTable("PSTNs");
                 });
 
+            modelBuilder.Entity("TAB.Web.Models.PhoneOverageDocument", b =>
+                {
+                    b.Property<int>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("int");
+
+                    SqlServerPropertyBuilderExtensions.UseIdentityColumn(b.Property<int>("Id"));
+
+                    b.Property<string>("ContentType")
+                        .IsRequired()
+                        .HasMaxLength(100)
+                        .HasColumnType("nvarchar(100)");
+
+                    b.Property<string>("Description")
+                        .HasMaxLength(500)
+                        .HasColumnType("nvarchar(500)");
+
+                    b.Property<string>("FileName")
+                        .IsRequired()
+                        .HasMaxLength(255)
+                        .HasColumnType("nvarchar(255)");
+
+                    b.Property<string>("FilePath")
+                        .IsRequired()
+                        .HasMaxLength(500)
+                        .HasColumnType("nvarchar(500)");
+
+                    b.Property<long>("FileSize")
+                        .HasColumnType("bigint");
+
+                    b.Property<int>("PhoneOverageJustificationId")
+                        .HasColumnType("int");
+
+                    b.Property<string>("UploadedBy")
+                        .IsRequired()
+                        .HasMaxLength(50)
+                        .HasColumnType("nvarchar(50)");
+
+                    b.Property<DateTime>("UploadedDate")
+                        .HasColumnType("datetime2");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("PhoneOverageJustificationId");
+
+                    b.ToTable("PhoneOverageDocuments");
+                });
+
+            modelBuilder.Entity("TAB.Web.Models.PhoneOverageJustification", b =>
+                {
+                    b.Property<int>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("int");
+
+                    SqlServerPropertyBuilderExtensions.UseIdentityColumn(b.Property<int>("Id"));
+
+                    b.Property<decimal>("AllowanceLimit")
+                        .HasColumnType("decimal(18,4)");
+
+                    b.Property<string>("ApprovalComments")
+                        .HasMaxLength(500)
+                        .HasColumnType("nvarchar(500)");
+
+                    b.Property<string>("ApprovalStatus")
+                        .HasMaxLength(20)
+                        .HasColumnType("nvarchar(20)");
+
+                    b.Property<string>("ApprovedBy")
+                        .HasMaxLength(50)
+                        .HasColumnType("nvarchar(50)");
+
+                    b.Property<DateTime?>("ApprovedDate")
+                        .HasColumnType("datetime2");
+
+                    b.Property<string>("JustificationText")
+                        .IsRequired()
+                        .HasColumnType("nvarchar(max)");
+
+                    b.Property<int>("Month")
+                        .HasColumnType("int");
+
+                    b.Property<decimal>("OverageAmount")
+                        .HasColumnType("decimal(18,4)");
+
+                    b.Property<string>("SubmittedBy")
+                        .IsRequired()
+                        .HasMaxLength(50)
+                        .HasColumnType("nvarchar(50)");
+
+                    b.Property<DateTime>("SubmittedDate")
+                        .HasColumnType("datetime2");
+
+                    b.Property<decimal>("TotalUsage")
+                        .HasColumnType("decimal(18,4)");
+
+                    b.Property<int>("UserPhoneId")
+                        .HasColumnType("int");
+
+                    b.Property<int>("Year")
+                        .HasColumnType("int");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("ApprovalStatus");
+
+                    b.HasIndex("UserPhoneId");
+
+                    b.HasIndex("Month", "Year");
+
+                    b.HasIndex("UserPhoneId", "Month", "Year")
+                        .IsUnique();
+
+                    b.ToTable("PhoneOverageJustifications");
+                });
+
             modelBuilder.Entity("TAB.Web.Models.PrivateWire", b =>
                 {
                     b.Property<int>("Id")
@@ -2111,6 +2651,226 @@ namespace TAB.Web.Migrations
                     b.HasIndex("UserPhoneId");
 
                     b.ToTable("PrivateWires");
+                });
+
+            modelBuilder.Entity("TAB.Web.Models.RecoveryConfiguration", b =>
+                {
+                    b.Property<int>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("int");
+
+                    SqlServerPropertyBuilderExtensions.UseIdentityColumn(b.Property<int>("Id"));
+
+                    b.Property<string>("AdminNotificationEmail")
+                        .HasMaxLength(200)
+                        .HasColumnType("nvarchar(200)");
+
+                    b.Property<bool>("AutomationEnabled")
+                        .HasColumnType("bit");
+
+                    b.Property<string>("ConfigValue")
+                        .HasColumnType("nvarchar(max)");
+
+                    b.Property<string>("CreatedBy")
+                        .HasMaxLength(100)
+                        .HasColumnType("nvarchar(100)");
+
+                    b.Property<DateTime>("CreatedDate")
+                        .HasColumnType("datetime2");
+
+                    b.Property<int?>("DefaultApprovalDays")
+                        .HasColumnType("int");
+
+                    b.Property<int?>("DefaultRevertDays")
+                        .HasColumnType("int");
+
+                    b.Property<int?>("DefaultVerificationDays")
+                        .HasColumnType("int");
+
+                    b.Property<string>("Description")
+                        .HasMaxLength(500)
+                        .HasColumnType("nvarchar(500)");
+
+                    b.Property<bool>("EnableEmailNotifications")
+                        .HasColumnType("bit");
+
+                    b.Property<bool>("IsEnabled")
+                        .HasColumnType("bit");
+
+                    b.Property<int?>("JobIntervalMinutes")
+                        .HasColumnType("int");
+
+                    b.Property<int>("MaxRevertsAllowed")
+                        .HasColumnType("int");
+
+                    b.Property<string>("ModifiedBy")
+                        .HasMaxLength(100)
+                        .HasColumnType("nvarchar(100)");
+
+                    b.Property<DateTime?>("ModifiedDate")
+                        .HasColumnType("datetime2");
+
+                    b.Property<bool>("NotificationEnabled")
+                        .HasColumnType("bit");
+
+                    b.Property<int?>("ReminderDaysBefore")
+                        .HasColumnType("int");
+
+                    b.Property<bool>("RequireApprovalForAutomation")
+                        .HasColumnType("bit");
+
+                    b.Property<string>("RuleName")
+                        .IsRequired()
+                        .HasMaxLength(100)
+                        .HasColumnType("nvarchar(100)");
+
+                    b.Property<string>("RuleType")
+                        .IsRequired()
+                        .HasMaxLength(50)
+                        .HasColumnType("nvarchar(50)");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("IsEnabled");
+
+                    b.HasIndex("RuleName")
+                        .IsUnique();
+
+                    b.HasIndex("RuleType");
+
+                    b.ToTable("RecoveryConfiguration");
+                });
+
+            modelBuilder.Entity("TAB.Web.Models.RecoveryJobExecution", b =>
+                {
+                    b.Property<int>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("int");
+
+                    SqlServerPropertyBuilderExtensions.UseIdentityColumn(b.Property<int>("Id"));
+
+                    b.Property<long?>("DurationMs")
+                        .HasColumnType("bigint");
+
+                    b.Property<DateTime?>("EndTime")
+                        .HasColumnType("datetime2");
+
+                    b.Property<string>("ErrorMessage")
+                        .HasColumnType("nvarchar(max)");
+
+                    b.Property<string>("ExecutionLog")
+                        .HasColumnType("nvarchar(max)");
+
+                    b.Property<int>("ExpiredApprovalsProcessed")
+                        .HasColumnType("int");
+
+                    b.Property<int>("ExpiredVerificationsProcessed")
+                        .HasColumnType("int");
+
+                    b.Property<DateTime?>("NextScheduledRun")
+                        .HasColumnType("datetime2");
+
+                    b.Property<int>("RemindersSent")
+                        .HasColumnType("int");
+
+                    b.Property<int>("RevertedVerificationsProcessed")
+                        .HasColumnType("int");
+
+                    b.Property<string>("RunType")
+                        .IsRequired()
+                        .HasMaxLength(50)
+                        .HasColumnType("nvarchar(50)");
+
+                    b.Property<DateTime>("StartTime")
+                        .HasColumnType("datetime2");
+
+                    b.Property<string>("Status")
+                        .IsRequired()
+                        .HasMaxLength(50)
+                        .HasColumnType("nvarchar(50)");
+
+                    b.Property<decimal>("TotalAmountRecovered")
+                        .HasColumnType("decimal(18,2)");
+
+                    b.Property<int>("TotalRecordsProcessed")
+                        .HasColumnType("int");
+
+                    b.Property<string>("TriggeredBy")
+                        .HasMaxLength(100)
+                        .HasColumnType("nvarchar(100)");
+
+                    b.HasKey("Id");
+
+                    b.ToTable("RecoveryJobExecutions");
+                });
+
+            modelBuilder.Entity("TAB.Web.Models.RecoveryLog", b =>
+                {
+                    b.Property<int>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("int");
+
+                    SqlServerPropertyBuilderExtensions.UseIdentityColumn(b.Property<int>("Id"));
+
+                    b.Property<decimal>("AmountRecovered")
+                        .HasColumnType("decimal(18,2)");
+
+                    b.Property<Guid>("BatchId")
+                        .HasColumnType("uniqueidentifier");
+
+                    b.Property<int>("CallRecordId")
+                        .HasColumnType("int");
+
+                    b.Property<DateTime?>("DeadlineDate")
+                        .HasColumnType("datetime2");
+
+                    b.Property<bool>("IsAutomated")
+                        .HasColumnType("bit");
+
+                    b.Property<string>("Metadata")
+                        .HasColumnType("nvarchar(max)");
+
+                    b.Property<string>("ProcessedBy")
+                        .HasMaxLength(100)
+                        .HasColumnType("nvarchar(100)");
+
+                    b.Property<string>("RecoveredFrom")
+                        .HasMaxLength(100)
+                        .HasColumnType("nvarchar(100)");
+
+                    b.Property<string>("RecoveryAction")
+                        .IsRequired()
+                        .HasMaxLength(50)
+                        .HasColumnType("nvarchar(50)");
+
+                    b.Property<DateTime>("RecoveryDate")
+                        .HasColumnType("datetime2");
+
+                    b.Property<string>("RecoveryReason")
+                        .IsRequired()
+                        .HasMaxLength(1000)
+                        .HasColumnType("nvarchar(1000)");
+
+                    b.Property<string>("RecoveryType")
+                        .IsRequired()
+                        .HasMaxLength(50)
+                        .HasColumnType("nvarchar(50)");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("BatchId");
+
+                    b.HasIndex("CallRecordId");
+
+                    b.HasIndex("RecoveredFrom");
+
+                    b.HasIndex("RecoveryDate");
+
+                    b.HasIndex("RecoveryType");
+
+                    b.HasIndex("RecoveryDate", "RecoveryType");
+
+                    b.ToTable("RecoveryLogs");
                 });
 
             modelBuilder.Entity("TAB.Web.Models.RefundRequest", b =>
@@ -2253,10 +3013,24 @@ namespace TAB.Web.Migrations
                         .HasMaxLength(450)
                         .HasColumnType("nvarchar(450)");
 
+                    b.Property<string>("PurchaseReceiptContentType")
+                        .HasMaxLength(100)
+                        .HasColumnType("nvarchar(100)");
+
+                    b.Property<byte[]>("PurchaseReceiptData")
+                        .HasColumnType("varbinary(max)");
+
+                    b.Property<string>("PurchaseReceiptFileName")
+                        .HasMaxLength(255)
+                        .HasColumnType("nvarchar(255)");
+
                     b.Property<string>("PurchaseReceiptPath")
                         .IsRequired()
                         .HasMaxLength(500)
                         .HasColumnType("nvarchar(500)");
+
+                    b.Property<DateTime?>("PurchaseReceiptUploadDate")
+                        .HasColumnType("datetime2");
 
                     b.Property<decimal?>("RefundUsdAmount")
                         .HasColumnType("decimal(18,2)");
@@ -2776,6 +3550,13 @@ namespace TAB.Web.Migrations
                     b.Property<int>("RecordsWithAnomalies")
                         .HasColumnType("int");
 
+                    b.Property<DateTime?>("RecoveryProcessingDate")
+                        .HasColumnType("datetime2");
+
+                    b.Property<string>("RecoveryStatus")
+                        .HasMaxLength(50)
+                        .HasColumnType("nvarchar(50)");
+
                     b.Property<int>("RejectedRecords")
                         .HasColumnType("int");
 
@@ -2786,8 +3567,20 @@ namespace TAB.Web.Migrations
                     b.Property<DateTime?>("StartProcessingDate")
                         .HasColumnType("datetime2");
 
+                    b.Property<decimal?>("TotalClassOfServiceAmount")
+                        .HasColumnType("decimal(18,2)");
+
+                    b.Property<decimal?>("TotalOfficialAmount")
+                        .HasColumnType("decimal(18,2)");
+
+                    b.Property<decimal?>("TotalPersonalAmount")
+                        .HasColumnType("decimal(18,2)");
+
                     b.Property<int>("TotalRecords")
                         .HasColumnType("int");
+
+                    b.Property<decimal?>("TotalRecoveredAmount")
+                        .HasColumnType("decimal(18,2)");
 
                     b.Property<string>("VerifiedBy")
                         .HasMaxLength(100)
@@ -2900,6 +3693,9 @@ namespace TAB.Web.Migrations
                     b.Property<bool>("IsPrimary")
                         .HasColumnType("bit");
 
+                    b.Property<int>("LineType")
+                        .HasColumnType("int");
+
                     b.Property<string>("Location")
                         .HasMaxLength(200)
                         .HasColumnType("nvarchar(200)");
@@ -2938,6 +3734,60 @@ namespace TAB.Web.Migrations
                     b.HasIndex("IndexNumber", "PhoneNumber", "IsActive");
 
                     b.ToTable("UserPhones");
+                });
+
+            modelBuilder.Entity("TAB.Web.Models.UserPhoneHistory", b =>
+                {
+                    b.Property<int>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("int");
+
+                    SqlServerPropertyBuilderExtensions.UseIdentityColumn(b.Property<int>("Id"));
+
+                    b.Property<string>("Action")
+                        .IsRequired()
+                        .HasMaxLength(100)
+                        .HasColumnType("nvarchar(100)");
+
+                    b.Property<string>("ChangedBy")
+                        .HasMaxLength(200)
+                        .HasColumnType("nvarchar(200)");
+
+                    b.Property<DateTime>("ChangedDate")
+                        .HasColumnType("datetime2");
+
+                    b.Property<string>("Description")
+                        .HasMaxLength(1000)
+                        .HasColumnType("nvarchar(1000)");
+
+                    b.Property<string>("FieldChanged")
+                        .HasMaxLength(100)
+                        .HasColumnType("nvarchar(100)");
+
+                    b.Property<string>("IPAddress")
+                        .HasMaxLength(50)
+                        .HasColumnType("nvarchar(50)");
+
+                    b.Property<string>("NewValue")
+                        .HasMaxLength(500)
+                        .HasColumnType("nvarchar(500)");
+
+                    b.Property<string>("OldValue")
+                        .HasMaxLength(500)
+                        .HasColumnType("nvarchar(500)");
+
+                    b.Property<string>("UserAgent")
+                        .HasMaxLength(500)
+                        .HasColumnType("nvarchar(500)");
+
+                    b.Property<int>("UserPhoneId")
+                        .HasColumnType("int");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("UserPhoneId");
+
+                    b.ToTable("UserPhoneHistories");
                 });
 
             modelBuilder.Entity("Microsoft.AspNetCore.Identity.IdentityRoleClaim<string>", b =>
@@ -3139,6 +3989,10 @@ namespace TAB.Web.Migrations
 
             modelBuilder.Entity("TAB.Web.Models.CallLogVerification", b =>
                 {
+                    b.HasOne("TAB.Web.Models.StagingBatch", "StagingBatch")
+                        .WithMany()
+                        .HasForeignKey("BatchId");
+
                     b.HasOne("TAB.Web.Models.CallRecord", "CallRecord")
                         .WithMany()
                         .HasForeignKey("CallRecordId")
@@ -3159,6 +4013,8 @@ namespace TAB.Web.Migrations
                     b.Navigation("ClassOfService");
 
                     b.Navigation("PaymentAssignment");
+
+                    b.Navigation("StagingBatch");
                 });
 
             modelBuilder.Entity("TAB.Web.Models.CallRecord", b =>
@@ -3184,6 +4040,17 @@ namespace TAB.Web.Migrations
                     b.Navigation("ResponsibleUser");
 
                     b.Navigation("UserPhone");
+                });
+
+            modelBuilder.Entity("TAB.Web.Models.DeadlineTracking", b =>
+                {
+                    b.HasOne("TAB.Web.Models.StagingBatch", "StagingBatch")
+                        .WithMany()
+                        .HasForeignKey("BatchId")
+                        .OnDelete(DeleteBehavior.Restrict)
+                        .IsRequired();
+
+                    b.Navigation("StagingBatch");
                 });
 
             modelBuilder.Entity("TAB.Web.Models.Ebill", b =>
@@ -3216,6 +4083,27 @@ namespace TAB.Web.Migrations
                     b.Navigation("OrganizationEntity");
 
                     b.Navigation("SubOfficeEntity");
+                });
+
+            modelBuilder.Entity("TAB.Web.Models.EmailAttachment", b =>
+                {
+                    b.HasOne("TAB.Web.Models.EmailLog", "EmailLog")
+                        .WithMany()
+                        .HasForeignKey("EmailLogId")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired();
+
+                    b.Navigation("EmailLog");
+                });
+
+            modelBuilder.Entity("TAB.Web.Models.EmailLog", b =>
+                {
+                    b.HasOne("TAB.Web.Models.EmailTemplate", "EmailTemplate")
+                        .WithMany("EmailLogs")
+                        .HasForeignKey("EmailTemplateId")
+                        .OnDelete(DeleteBehavior.SetNull);
+
+                    b.Navigation("EmailTemplate");
                 });
 
             modelBuilder.Entity("TAB.Web.Models.InterimUpdate", b =>
@@ -3280,6 +4168,28 @@ namespace TAB.Web.Migrations
                     b.Navigation("UserPhone");
                 });
 
+            modelBuilder.Entity("TAB.Web.Models.PhoneOverageDocument", b =>
+                {
+                    b.HasOne("TAB.Web.Models.PhoneOverageJustification", "PhoneOverageJustification")
+                        .WithMany("Documents")
+                        .HasForeignKey("PhoneOverageJustificationId")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired();
+
+                    b.Navigation("PhoneOverageJustification");
+                });
+
+            modelBuilder.Entity("TAB.Web.Models.PhoneOverageJustification", b =>
+                {
+                    b.HasOne("TAB.Web.Models.UserPhone", "UserPhone")
+                        .WithMany()
+                        .HasForeignKey("UserPhoneId")
+                        .OnDelete(DeleteBehavior.Restrict)
+                        .IsRequired();
+
+                    b.Navigation("UserPhone");
+                });
+
             modelBuilder.Entity("TAB.Web.Models.PrivateWire", b =>
                 {
                     b.HasOne("TAB.Web.Models.EbillUser", "EbillUser")
@@ -3299,6 +4209,25 @@ namespace TAB.Web.Migrations
                     b.Navigation("ImportAudit");
 
                     b.Navigation("UserPhone");
+                });
+
+            modelBuilder.Entity("TAB.Web.Models.RecoveryLog", b =>
+                {
+                    b.HasOne("TAB.Web.Models.StagingBatch", "StagingBatch")
+                        .WithMany()
+                        .HasForeignKey("BatchId")
+                        .OnDelete(DeleteBehavior.Restrict)
+                        .IsRequired();
+
+                    b.HasOne("TAB.Web.Models.CallRecord", "CallRecord")
+                        .WithMany()
+                        .HasForeignKey("CallRecordId")
+                        .OnDelete(DeleteBehavior.Restrict)
+                        .IsRequired();
+
+                    b.Navigation("CallRecord");
+
+                    b.Navigation("StagingBatch");
                 });
 
             modelBuilder.Entity("TAB.Web.Models.Safaricom", b =>
@@ -3382,6 +4311,17 @@ namespace TAB.Web.Migrations
                     b.Navigation("EbillUser");
                 });
 
+            modelBuilder.Entity("TAB.Web.Models.UserPhoneHistory", b =>
+                {
+                    b.HasOne("TAB.Web.Models.UserPhone", "UserPhone")
+                        .WithMany()
+                        .HasForeignKey("UserPhoneId")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired();
+
+                    b.Navigation("UserPhone");
+                });
+
             modelBuilder.Entity("TAB.Web.Models.BillingPeriod", b =>
                 {
                     b.Navigation("InterimUpdates");
@@ -3408,6 +4348,11 @@ namespace TAB.Web.Migrations
                     b.Navigation("ApplicationUser");
                 });
 
+            modelBuilder.Entity("TAB.Web.Models.EmailTemplate", b =>
+                {
+                    b.Navigation("EmailLogs");
+                });
+
             modelBuilder.Entity("TAB.Web.Models.Office", b =>
                 {
                     b.Navigation("SubOffices");
@@ -3420,6 +4365,11 @@ namespace TAB.Web.Migrations
                     b.Navigation("Offices");
 
                     b.Navigation("Users");
+                });
+
+            modelBuilder.Entity("TAB.Web.Models.PhoneOverageJustification", b =>
+                {
+                    b.Navigation("Documents");
                 });
 
             modelBuilder.Entity("TAB.Web.Models.SimRequest", b =>

@@ -48,6 +48,9 @@ namespace TAB.Web.Pages.Modules.EBillManagement.CallRecords
         [BindProperty]
         public List<PartialApprovalInput> PartialApprovals { get; set; } = new();
 
+        [BindProperty]
+        public string? PartialApprovalsJson { get; set; }
+
         [TempData]
         public string? StatusMessage { get; set; }
 
@@ -203,6 +206,21 @@ namespace TAB.Web.Pages.Modules.EBillManagement.CallRecords
             var user = await _userManager.GetUserAsync(User);
             if (user == null)
                 return Challenge();
+
+            // Deserialize JSON if provided
+            if (!string.IsNullOrEmpty(PartialApprovalsJson))
+            {
+                try
+                {
+                    PartialApprovals = System.Text.Json.JsonSerializer.Deserialize<List<PartialApprovalInput>>(PartialApprovalsJson) ?? new();
+                }
+                catch (Exception ex)
+                {
+                    StatusMessage = $"Error parsing approval data: {ex.Message}";
+                    StatusMessageClass = "danger";
+                    return RedirectToPage(new { indexNumber, date });
+                }
+            }
 
             if (PartialApprovals == null || !PartialApprovals.Any())
             {

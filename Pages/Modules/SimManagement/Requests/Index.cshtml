@@ -174,8 +174,24 @@
         --gradient-end: #f87171;
     }
 
+    .stat-card {
+        cursor: pointer;
+        transition: all 0.3s ease;
+    }
+
     .stat-card:hover {
         box-shadow: 0 10px 30px rgba(0, 0, 0, 0.1);
+        transform: translateY(-2px);
+    }
+
+    .stat-card:active {
+        transform: translateY(0);
+    }
+
+    .stat-card.active {
+        box-shadow: 0 10px 30px rgba(0, 0, 0, 0.15);
+        transform: translateY(-2px);
+        border: 2px solid #009EDB;
     }
 
     .stat-content {
@@ -294,44 +310,64 @@
     .status-badge {
         padding: 0.5rem 1rem;
         border-radius: 20px;
-        font-size: 0.75rem;
+        font-size: 11px;
         font-weight: 600;
         display: inline-flex;
         align-items: center;
         gap: 0.5rem;
         text-transform: uppercase;
-        letter-spacing: 0.5px;
+        letter-spacing: 0.8px;
+        white-space: nowrap;
+        box-shadow: 0 2px 8px rgba(0, 0, 0, 0.08);
+        border: 1.5px solid;
+        transition: all 0.2s ease;
     }
-    
-    /* UN Color Scheme for Status Badges */
+
+    .status-badge i {
+        font-size: 13px;
+        font-weight: 700;
+    }
+
+    .status-badge:hover {
+        transform: translateY(-1px);
+        box-shadow: 0 4px 12px rgba(0, 0, 0, 0.12);
+    }
+
+    /* Professional Status Color Scheme - Colored Text with Transparent Background */
     .status-draft {
-        background-color: #4A4A49; /* UN Gray */
-        color: white;
+        background-color: transparent;
+        color: #64748b;
+        border-color: #cbd5e1;
     }
-    
+
     .status-pending {
-        background-color: #E07A00; /* UN Orange */
-        color: white;
+        background-color: transparent;
+        color: #d97706;
+        border-color: #f59e0b;
     }
-    
+
     .status-approved {
-        background-color: #72BF44; /* UN Green */
-        color: white;
+        background-color: transparent;
+        color: #059669;
+        border-color: #10b981;
     }
-    
+
     .status-completed {
-        background-color: #664F90; /* UN Purple */
-        color: white;
+        background-color: transparent;
+        color: #2563eb;
+        border-color: #3b82f6;
     }
-    
+
     .status-rejected {
-        background-color: #EB1C24; /* UN Red */
-        color: white;
+        background-color: transparent;
+        color: #dc2626;
+        border-color: #ef4444;
     }
-    
+
     .status-cancelled {
-        background-color: #000000; /* UN Black */
-        color: white;
+        background-color: transparent;
+        color: #6b7280;
+        border-color: #9ca3af;
     }
 
     .request-actions {
@@ -342,38 +378,53 @@
     }
     
     .action-btn {
-        padding: 0.5rem 1rem;
+        width: 36px;
+        height: 36px;
         border-radius: 8px;
-        font-size: 0.75rem;
-        font-weight: 600;
+        font-size: 16px;
         border: none;
-        transition: all 0.3s ease;
-        display: flex;
+        transition: all 0.2s ease;
+        display: inline-flex;
         align-items: center;
-        gap: 0.5rem;
+        justify-content: center;
         text-decoration: none;
         cursor: pointer;
     }
-    
+
     .action-btn:hover {
-        transform: translateY(-1px);
+        transform: translateY(-2px);
         box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
         text-decoration: none;
     }
-    
+
     /* UN Color Scheme for Action Buttons */
     .btn-view {
         background-color: #009EDB; /* UN Blue */
         color: white;
     }
-    
+
+    .btn-view:hover {
+        background-color: #0084c7;
+        color: white;
+    }
+
     .btn-edit {
         background-color: #72BF44; /* UN Green */
         color: white;
     }
-    
+
+    .btn-edit:hover {
+        background-color: #5da936;
+        color: white;
+    }
+
     .btn-cancel {
         background-color: #EB1C24; /* UN Red */
+        color: white;
+    }
+
+    .btn-cancel:hover {
+        background-color: #d01018;
         color: white;
     }
     
@@ -425,13 +476,14 @@
     }
     
     .sim-type-badge {
-        padding: 0.25rem 0.75rem;
-        border-radius: 12px;
-        font-size: 0.75rem;
+        padding: 0.35rem 0.8rem;
+        border-radius: 8px;
+        font-size: 11px;
         font-weight: 600;
         text-transform: uppercase;
         letter-spacing: 0.5px;
         white-space: nowrap;
+        box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
     }
     
     .sim-type-physical {
@@ -714,6 +766,84 @@
         </div>
     </div>
 
+    <!-- Status Messages -->
+    @if (!string.IsNullOrEmpty(Model.StatusMessage))
+    {
+        <div class="alert alert-@(Model.StatusMessageClass ?? "info") alert-dismissible fade show" role="alert">
+            @Model.StatusMessage
+            <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
+        </div>
+    }
+
+    <!-- Statistics Cards -->
+    <div class="stats-grid mb-3">
+        <div class="stat-card @(Model.SelectedStatus == null ? "active" : "")" onclick="filterByStatus('all')" title="Click to show all requests">
+            <div class="stat-content">
+                <div class="stat-icon stat-icon-primary">
+                    <i class="bi bi-collection"></i>
+                </div>
+                <div class="stat-details">
+                    <div class="stat-number">@Model.TotalRequests</div>
+                    <div class="stat-label">Total Requests</div>
+                </div>
+            </div>
+        </div>
+
+        @{
+            var isPendingActive = Model.SelectedStatus == RequestStatus.PendingSupervisor ||
+                                  Model.SelectedStatus == RequestStatus.PendingIcts ||
+                                  Model.SelectedStatus == RequestStatus.PendingAdmin ||
+                                  Model.SelectedStatus == RequestStatus.PendingServiceProvider ||
+                                  Model.SelectedStatus == RequestStatus.PendingSIMCollection;
+        }
+
+        <div class="stat-card @(isPendingActive ? "active" : "")" onclick="filterByStatus('pending')" title="Click to show pending requests">
+            <div class="stat-content">
+                <div class="stat-icon stat-icon-warning">
+                    <i class="bi bi-clock"></i>
+                </div>
+                <div class="stat-details">
+                    <div class="stat-number">@Model.PendingRequests</div>
+                    <div class="stat-label">Pending</div>
+                </div>
+            </div>
+        </div>
+
+        @{
+            var isApprovedActive = Model.SelectedStatus == RequestStatus.Approved ||
+                                   Model.SelectedStatus == RequestStatus.Completed;
+        }
+
+        <div class="stat-card @(isApprovedActive ? "active" : "")" onclick="filterByStatus('approved')" title="Click to show approved requests">
+            <div class="stat-content">
+                <div class="stat-icon stat-icon-success">
+                    <i class="bi bi-check-circle"></i>
+                </div>
+                <div class="stat-details">
+                    <div class="stat-number">@Model.ApprovedRequests</div>
+                    <div class="stat-label">Approved</div>
+                </div>
+            </div>
+        </div>
+
+        @{
+            var isRejectedActive = Model.SelectedStatus == RequestStatus.Rejected ||
+                                   Model.SelectedStatus == RequestStatus.Cancelled;
+        }
+
+        <div class="stat-card @(isRejectedActive ? "active" : "")" onclick="filterByStatus('rejected')" title="Click to show rejected/cancelled requests">
+            <div class="stat-content">
+                <div class="stat-icon stat-icon-danger">
+                    <i class="bi bi-x-circle"></i>
+                </div>
+                <div class="stat-details">
+                    <div class="stat-number">@Model.RejectedRequests</div>
+                    <div class="stat-label">Rejected/Cancelled</div>
+                </div>
+            </div>
+        </div>
+    </div>
+
     <!-- Filters Card (Collapsible) -->
     <div class="card border-0 shadow-sm mb-4" style="border-radius: 20px;">
         <div class="card-header bg-white border-0 p-3" style="cursor: pointer; border-radius: 20px 20px 0 0;" data-bs-toggle="collapse" data-bs-target="#filterCollapse">
@@ -778,7 +908,7 @@
                             <label class="form-label text-muted small">Search</label>
                             <input type="text" name="SearchTerm" id="searchTerm" class="form-control border-0 bg-light filter-search-input" style="border-radius: 12px;" placeholder="Name, Index..." value="@Model.SearchTerm" />
                         </div>
-                
+
                     </div>
                     <div class="row mt-2">
                         <div class="col-md-12">
@@ -794,8 +924,31 @@
             </div>
         </div>
     </div>
-    
+
     <script>
+        // Filter by status card click
+        function filterByStatus(statusType) {
+            const statusFilter = document.getElementById('statusFilter');
+            const form = document.getElementById('filterForm');
+
+            if (statusType === 'all') {
+                // Clear all filters and redirect to base page
+                window.location.href = '/Modules/SimManagement/Requests';
+            } else if (statusType === 'pending') {
+                // Show first pending status - PendingSupervisor
+                statusFilter.value = '@((int)RequestStatus.PendingSupervisor)';
+                form.submit();
+            } else if (statusType === 'approved') {
+                // Show approved status
+                statusFilter.value = '@((int)RequestStatus.Approved)';
+                form.submit();
+            } else if (statusType === 'rejected') {
+                // Show rejected status
+                statusFilter.value = '@((int)RequestStatus.Rejected)';
+                form.submit();
+            }
+        }
+
         // Auto-submit form on filter change
         document.addEventListener('DOMContentLoaded', function() {
             // Handle select and date input changes
@@ -805,7 +958,7 @@
                     document.getElementById('filterForm').submit();
                 });
             });
-            
+
             // Handle search input with debounce
             let searchTimeout;
             const searchInput = document.querySelector('.filter-search-input');
@@ -816,7 +969,7 @@
                         document.getElementById('filterForm').submit();
                     }, 500); // Wait 500ms after user stops typing
                 });
-                
+
                 // Also submit on Enter key
                 searchInput.addEventListener('keypress', function(e) {
                     if (e.key === 'Enter') {
@@ -829,66 +982,6 @@
         });
     </script>
 
-    <!-- Status Messages -->
-    @if (!string.IsNullOrEmpty(Model.StatusMessage))
-    {
-        <div class="alert alert-@(Model.StatusMessageClass ?? "info") alert-dismissible fade show" role="alert">
-            @Model.StatusMessage
-            <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
-        </div>
-    }
-
-    <!-- Statistics Cards -->
-    <div class="stats-grid mb-3">
-        <div class="stat-card">
-            <div class="stat-content">
-                <div class="stat-icon stat-icon-primary">
-                    <i class="bi bi-collection"></i>
-                </div>
-                <div class="stat-details">
-                    <div class="stat-number">@Model.TotalRequests</div>
-                    <div class="stat-label">Total Requests</div>
-                </div>
-            </div>
-        </div>
-
-        <div class="stat-card">
-            <div class="stat-content">
-                <div class="stat-icon stat-icon-warning">
-                    <i class="bi bi-clock"></i>
-                </div>
-                <div class="stat-details">
-                    <div class="stat-number">@Model.PendingRequests</div>
-                    <div class="stat-label">Pending</div>
-                </div>
-            </div>
-        </div>
-
-        <div class="stat-card">
-            <div class="stat-content">
-                <div class="stat-icon stat-icon-success">
-                    <i class="bi bi-check-circle"></i>
-                </div>
-                <div class="stat-details">
-                    <div class="stat-number">@Model.ApprovedRequests</div>
-                    <div class="stat-label">Approved</div>
-                </div>
-            </div>
-        </div>
-
-        <div class="stat-card">
-            <div class="stat-content">
-                <div class="stat-icon stat-icon-danger">
-                    <i class="bi bi-x-circle"></i>
-                </div>
-                <div class="stat-details">
-                    <div class="stat-number">@Model.RejectedRequests</div>
-                    <div class="stat-label">Rejected/Cancelled</div>
-                </div>
-            </div>
-        </div>
-    </div>
-
     <!-- Requests List -->
     <div class="card border-0 shadow-sm" style="border-radius: 16px;">
         <div class="card-header bg-gradient border-0 py-4" style="background: linear-gradient(135deg, #f8f9fa 0%, #e9ecef 100%); border-radius: 16px 16px 0 0;">
@@ -897,7 +990,24 @@
                     <h5 class="card-title mb-1 text-dark fw-bold">
                         <i class="bi bi-list-ul me-2 text-primary"></i>SIM Requests
                     </h5>
-                    <p class="text-muted mb-0">@Model.TotalRecords total records</p>
+                    @{
+                        var startRecord = Model.TotalRecords > 0 ? ((Model.PageNumber - 1) * Model.PageSize) + 1 : 0;
+                        var endRecord = Math.Min(Model.PageNumber * Model.PageSize, Model.TotalRecords);
+                    }
+                    <p class="text-muted mb-0">
+                        @if (Model.TotalRecords > 0)
+                        {
+                            <span>Showing <strong>@startRecord-@endRecord</strong> of <strong>@Model.TotalRecords</strong> records</span>
+                            @if (Model.TotalPages > 1)
+                            {
+                                <span class="ms-2">| Page <strong>@Model.PageNumber</strong> of <strong>@Model.TotalPages</strong></span>
+                            }
+                        }
+                        else
+                        {
+                            <span>No records found</span>
+                        }
+                    </p>
                 </div>
             </div>
         </div>
@@ -919,73 +1029,78 @@
         }
         else
         {
-            @foreach (var request in Model.UserRequests)
-            {
-                <div class="request-item">
-                    <div class="request-header">
-                        <div>
-                            <div class="request-id">Request #@request.Id</div>
-                            <div class="request-date">@request.RequestDate.ToString("MMM dd, yyyy")</div>
-                        </div>
-                        <div class="status-badge status-@(GetStatusClass(request.Status))">
-                            <i class="@TAB.Web.Pages.Modules.SimManagement.Requests.IndexModel.GetStatusIcon(request.Status)"></i>
-                            @request.Status.ToString().Replace("Pending", "Pending ")
-                            </div>
-                        </div>
-                        
-                    <div class="request-details">
-                        <div class="detail-item">
-                            <div class="detail-label">Full Name</div>
-                            <div class="detail-value">@request.FirstName @request.LastName</div>
-                            </div>
-                        <div class="detail-item">
-                            <div class="detail-label">Organization</div>
-                            <div class="detail-value">@request.Organization</div>
-                        </div>
-                        <div class="detail-item">
-                            <div class="detail-label">SIM Type</div>
-                            <div class="detail-value">
-                                <span class="sim-type-badge sim-type-@(request.SimType.ToString().ToLower())">
-                                    @request.SimType
-                                </span>
-                            </div>
-                        </div>
-                        <div class="detail-item">
-                            <div class="detail-label">Service Provider</div>
-                            <div class="detail-value">@(request.ServiceProvider?.ServiceProviderName ?? "Not specified")</div>
-                            </div>
-                        </div>
-                        
-                    <div class="request-actions">
-                        <a asp-page="Details" asp-route-id="@request.Id" class="action-btn btn-view">
-                            <i class="bi bi-eye"></i>
-                            <span>View Details</span>
-                        </a>
-                        
-                        @if (request.Status == TAB.Web.Models.RequestStatus.Draft)
-                                {
-                            <a asp-page="Edit" asp-route-id="@request.Id" class="action-btn btn-edit">
-                                <i class="bi bi-pencil"></i>
-                                <span>Edit</span>
-                            </a>
+            <div class="table-responsive">
+                <table class="table table-hover align-middle mb-0">
+                    <thead style="background: #f8fafc; border-bottom: 2px solid #e5e7eb;">
+                        <tr>
+                            <th class="border-0 px-4 py-3" style="font-size: 13px; font-weight: 600; color: #475569; text-transform: uppercase; letter-spacing: 0.5px;">Request ID</th>
+                            <th class="border-0 px-4 py-3" style="font-size: 13px; font-weight: 600; color: #475569; text-transform: uppercase; letter-spacing: 0.5px;">Staff Name</th>
+                            <th class="border-0 px-4 py-3" style="font-size: 13px; font-weight: 600; color: #475569; text-transform: uppercase; letter-spacing: 0.5px;">Organization</th>
+                            <th class="border-0 px-4 py-3" style="font-size: 13px; font-weight: 600; color: #475569; text-transform: uppercase; letter-spacing: 0.5px;">SIM Type</th>
+                            <th class="border-0 px-4 py-3" style="font-size: 13px; font-weight: 600; color: #475569; text-transform: uppercase; letter-spacing: 0.5px;">Service Provider</th>
+                            <th class="border-0 px-4 py-3" style="font-size: 13px; font-weight: 600; color: #475569; text-transform: uppercase; letter-spacing: 0.5px;">Request Date</th>
+                            <th class="border-0 px-4 py-3" style="font-size: 13px; font-weight: 600; color: #475569; text-transform: uppercase; letter-spacing: 0.5px;">Status</th>
+                            <th class="border-0 px-4 py-3 text-center" style="font-size: 13px; font-weight: 600; color: #475569; text-transform: uppercase; letter-spacing: 0.5px;">Actions</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        @foreach (var request in Model.UserRequests)
+                        {
+                            <tr style="border-bottom: 1px solid #f1f5f9;">
+                                <td class="px-4 py-3">
+                                    <strong style="color: #1e293b; font-size: 15px;">#@request.Id</strong>
+                                </td>
+                                <td class="px-4 py-3">
+                                    <div style="color: #1e293b; font-weight: 600;">@request.FirstName @request.LastName</div>
+                                    <div style="color: #64748b; font-size: 13px;">@request.IndexNo</div>
+                                </td>
+                                <td class="px-4 py-3" style="color: #475569;">@request.Organization</td>
+                                <td class="px-4 py-3">
+                                    <span class="sim-type-badge sim-type-@(request.SimType.ToString().ToLower())">
+                                        @request.SimType
+                                    </span>
+                                </td>
+                                <td class="px-4 py-3" style="color: #475569;">@(request.ServiceProvider?.ServiceProviderName ?? "Not specified")</td>
+                                <td class="px-4 py-3" style="color: #64748b; font-size: 14px;">@request.RequestDate.ToString("MMM dd, yyyy")</td>
+                                <td class="px-4 py-3">
+                                    <span class="status-badge status-@(GetStatusClass(request.Status))">
+                                        <i class="@TAB.Web.Pages.Modules.SimManagement.Requests.IndexModel.GetStatusIcon(request.Status)"></i>
+                                        @request.Status.ToString().Replace("Pending", "Pending ")
+                                    </span>
+                                </td>
+                                <td class="px-4 py-3">
+                                    <div class="d-flex gap-2 justify-content-center">
+                                        <a asp-page="Details" asp-route-id="@request.Id" class="action-btn btn-view" title="View Details">
+                                            <i class="bi bi-eye"></i>
+                                        </a>
+
+                                        @if (request.Status == TAB.Web.Models.RequestStatus.Draft)
+                                        {
+                                            <a asp-page="Edit" asp-route-id="@request.Id" class="action-btn btn-edit" title="Edit">
+                                                <i class="bi bi-pencil"></i>
+                                            </a>
+                                        }
+
+                                        @if ((request.Status == TAB.Web.Models.RequestStatus.Draft ||
+                                              request.Status == TAB.Web.Models.RequestStatus.PendingSupervisor) &&
+                                             request.Status != TAB.Web.Models.RequestStatus.Cancelled)
+                                        {
+                                            <button type="button" class="action-btn btn-cancel"
+                                                    data-bs-toggle="modal"
+                                                    data-bs-target="#cancelModal"
+                                                    data-request-id="@request.Id"
+                                                    data-request-number="@request.Id"
+                                                    title="Cancel">
+                                                <i class="bi bi-x-circle"></i>
+                                            </button>
+                                        }
+                                    </div>
+                                </td>
+                            </tr>
                         }
-                        
-                        @if ((request.Status == TAB.Web.Models.RequestStatus.Draft || 
-                              request.Status == TAB.Web.Models.RequestStatus.PendingSupervisor) &&
-                             request.Status != TAB.Web.Models.RequestStatus.Cancelled)
-                                {
-                            <button type="button" class="action-btn btn-cancel" 
-                                    data-bs-toggle="modal" 
-                                    data-bs-target="#cancelModal"
-                                    data-request-id="@request.Id"
-                                    data-request-number="@request.Id">
-                                <i class="bi bi-x-circle"></i>
-                                <span>Cancel</span>
-                            </button>
-                                }
-                    </div>
-                </div>
-            }
+                    </tbody>
+                </table>
+            </div>
         }
         </div>
 

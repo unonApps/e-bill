@@ -1,0 +1,609 @@
+@page
+@model TAB.Web.Pages.Staff.MyRecoveryReportModel
+@{
+    ViewData["Title"] = "My Recovery Report";
+    Layout = "~/Pages/Shared/_Layout.cshtml";
+}
+
+<style>
+    /* Statistics Cards */
+    .stats-container {
+        display: grid;
+        grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+        gap: 1.5rem;
+        margin-bottom: 2rem;
+    }
+
+    .stat-card {
+        background: white;
+        border-radius: 12px;
+        padding: 1rem 1.25rem;
+        box-shadow: 0 2px 10px rgba(0, 0, 0, 0.06);
+        cursor: pointer;
+        transition: all 0.3s;
+        border: 2px solid transparent;
+        display: flex;
+        flex-direction: column;
+        gap: 1rem;
+    }
+
+    .stat-card:hover {
+        transform: translateY(-2px);
+        box-shadow: 0 6px 20px rgba(0, 0, 0, 0.12);
+    }
+
+    .stat-card-top {
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        gap: 1rem;
+    }
+
+    .stat-card-left {
+        display: flex;
+        align-items: center;
+        gap: 1rem;
+        flex: 1;
+    }
+
+    .stat-icon {
+        width: 40px;
+        height: 40px;
+        border-radius: 10px;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        font-size: 20px;
+        flex-shrink: 0;
+    }
+
+    .stat-icon-danger {
+        background: #fee2e2;
+        color: #ef4444;
+    }
+
+    .stat-icon-warning {
+        background: #fef3c7;
+        color: #f59e0b;
+    }
+
+    .stat-icon-info {
+        background: #cffafe;
+        color: #06b6d4;
+    }
+
+    .stat-icon-primary {
+        background: #dbeafe;
+        color: #3b82f6;
+    }
+
+    .stat-label {
+        color: #64748b;
+        font-size: 14px;
+        font-weight: 500;
+        margin: 0;
+    }
+
+    .stat-value {
+        font-size: 28px;
+        font-weight: 700;
+        color: #1e293b;
+        margin: 0;
+        flex-shrink: 0;
+    }
+
+    .stat-card-bottom {
+        border-top: 1px solid #e5e7eb;
+        padding-top: 0.75rem;
+    }
+
+    /* Page Header Bar */
+    .page-header-bar {
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        margin-bottom: 2rem;
+        padding-bottom: 1.5rem;
+        border-bottom: 2px solid #e5e7eb;
+        flex-wrap: wrap;
+        gap: 1rem;
+    }
+
+    .page-info {
+        flex: 1;
+    }
+
+    .module-badge {
+        display: inline-flex;
+        align-items: center;
+        padding: 0.375rem 0.875rem;
+        background: linear-gradient(135deg, #009EDB 0%, #0084c7 100%);
+        color: white;
+        border-radius: 6px;
+        font-size: 0.75rem;
+        font-weight: 600;
+        text-transform: uppercase;
+        letter-spacing: 0.5px;
+        margin-bottom: 0.5rem;
+    }
+
+    .page-title-main {
+        font-size: 1.75rem;
+        font-weight: 700;
+        color: #1f2937;
+        margin: 0;
+        letter-spacing: -0.02em;
+    }
+
+    .current-date {
+        display: flex;
+        align-items: center;
+        gap: 0.5rem;
+        padding: 0.625rem 1rem;
+        background: #f3f4f6;
+        border-radius: 8px;
+        color: #4b5563;
+        font-size: 0.875rem;
+        font-weight: 500;
+    }
+
+    .current-date i {
+        color: #009EDB;
+    }
+
+    /* User Info Card */
+    .user-info-card {
+        background: white;
+        border-radius: 16px;
+        padding: 1.5rem;
+        border: 1px solid #e5e7eb;
+        margin-bottom: 2rem;
+        box-shadow: 0 1px 3px rgba(0, 0, 0, 0.05);
+    }
+
+    .user-info-card::before {
+        content: '';
+        position: absolute;
+        top: 0;
+        left: 0;
+        right: 0;
+        height: 4px;
+        background: linear-gradient(90deg, #009EDB, #0084c7);
+        border-radius: 16px 16px 0 0;
+    }
+
+    /* Filter Section */
+    .filter-card {
+        background: white;
+        border-radius: 20px;
+        border: 1px solid #e5e7eb;
+        margin-bottom: 2rem;
+        overflow: hidden;
+    }
+
+    .filter-header {
+        background: white;
+        padding: 1.25rem 1.5rem;
+        cursor: pointer;
+        border-bottom: 1px solid #e5e7eb;
+    }
+
+    .filter-body {
+        padding: 1.5rem;
+    }
+
+    /* Table Styles */
+    .data-table-card {
+        background: white;
+        border-radius: 16px;
+        border: 1px solid #e5e7eb;
+        overflow: hidden;
+    }
+
+    .table-header {
+        background: linear-gradient(135deg, #f8f9fa 0%, #e9ecef 100%);
+        padding: 1.25rem 1.5rem;
+        border-bottom: 1px solid #e5e7eb;
+    }
+
+    .table thead th {
+        background: #f8f9fa;
+        border: 0;
+        font-size: 12px;
+        font-weight: 600;
+        color: #4a5568;
+        text-transform: uppercase;
+        letter-spacing: 0.5px;
+        padding: 1rem;
+    }
+
+    .table tbody tr {
+        border-bottom: 1px solid #f3f4f6;
+        transition: all 0.2s;
+    }
+
+    .table tbody tr:hover {
+        background-color: #f9fafb;
+        box-shadow: 0 2px 4px rgba(0, 0, 0, 0.05);
+    }
+
+    /* Form Controls */
+    .form-control, .form-select {
+        border: 0;
+        background: #f3f4f6;
+        border-radius: 12px;
+        padding: 0.75rem 1rem;
+        font-size: 0.9375rem;
+        transition: all 0.2s;
+    }
+
+    .form-control:focus, .form-select:focus {
+        background: white;
+        border: 2px solid #009EDB;
+        box-shadow: 0 0 0 3px rgba(0, 158, 219, 0.1);
+    }
+
+    .form-label {
+        font-size: 0.875rem;
+        font-weight: 500;
+        color: #6b7280;
+        margin-bottom: 0.5rem;
+        text-transform: uppercase;
+        letter-spacing: 0.5px;
+    }
+
+    /* Responsive */
+    @@media (max-width: 768px) {
+        .page-header-bar {
+            flex-direction: column;
+            align-items: flex-start;
+        }
+
+        .page-title-main {
+            font-size: 1.5rem;
+        }
+
+        .stats-container {
+            grid-template-columns: 1fr;
+        }
+
+        .stat-value {
+            font-size: 1.5rem;
+        }
+    }
+</style>
+
+<div class="container-fluid">
+    <!-- Page Header -->
+    <div class="page-header-bar">
+        <div class="page-info">
+            <div class="module-badge">
+                <i class="bi bi-exclamation-triangle me-2"></i>
+                Recovery Management
+            </div>
+            <h1 class="page-title-main">My Recovery Report</h1>
+        </div>
+        <div class="d-flex gap-2 align-items-center">
+            <div class="current-date">
+                <i class="bi bi-calendar3"></i>
+                <span>@DateTime.Now.ToString("dddd, MMMM dd, yyyy")</span>
+            </div>
+            <form method="post" asp-page-handler="Export" class="d-inline">
+                <input type="hidden" name="StartDate" value="@Model.StartDate?.ToString("yyyy-MM-dd")" />
+                <input type="hidden" name="EndDate" value="@Model.EndDate?.ToString("yyyy-MM-dd")" />
+                <button type="submit" class="btn btn-success" style="border-radius: 12px;">
+                    <i class="bi bi-download me-1"></i>Export CSV
+                </button>
+            </form>
+        </div>
+    </div>
+
+    <!-- Statistics Cards -->
+    <div class="stats-container">
+        <div class="stat-card">
+            <div class="stat-card-top">
+                <div class="stat-card-left">
+                    <div class="stat-icon stat-icon-danger">
+                        <i class="bi bi-exclamation-triangle-fill"></i>
+                    </div>
+                    <p class="stat-label">Total Recovered Calls</p>
+                </div>
+                <h3 class="stat-value">@Model.Summary.TotalRecordsRecovered</h3>
+            </div>
+            <div class="stat-card-bottom">
+                @if (Model.RecoveryDetails.Any())
+                {
+                    @foreach (var currencyGroup in Model.RecoveryDetails.GroupBy(d => d.Currency).OrderBy(g => g.Key))
+                    {
+                        <div class="d-flex justify-content-between align-items-center mb-1">
+                            <span class="badge bg-@(currencyGroup.Key == "USD" ? "success" : "secondary") bg-opacity-10 text-@(currencyGroup.Key == "USD" ? "success" : "secondary")" style="font-size: 11px;">
+                                @currencyGroup.Key
+                            </span>
+                            <strong class="text-danger">@currencyGroup.Sum(d => d.RecoveryAmount).ToString("N2")</strong>
+                        </div>
+                    }
+                }
+                else
+                {
+                    <strong class="text-danger fs-5">@Model.Summary.TotalAmountRecovered.ToString("C0")</strong>
+                }
+            </div>
+        </div>
+
+        <div class="stat-card">
+            <div class="stat-card-top">
+                <div class="stat-card-left">
+                    <div class="stat-icon stat-icon-warning">
+                        <i class="bi bi-clock-history"></i>
+                    </div>
+                    <p class="stat-label">Expired Verifications</p>
+                </div>
+                <h3 class="stat-value">@Model.Summary.ExpiredVerifications</h3>
+            </div>
+            <div class="stat-card-bottom">
+                <small class="text-muted">Missed verification deadline</small>
+            </div>
+        </div>
+
+        <div class="stat-card">
+            <div class="stat-card-top">
+                <div class="stat-card-left">
+                    <div class="stat-icon stat-icon-info">
+                        <i class="bi bi-hourglass-split"></i>
+                    </div>
+                    <p class="stat-label">Expired Approvals</p>
+                </div>
+                <h3 class="stat-value">@Model.Summary.ExpiredApprovals</h3>
+            </div>
+            <div class="stat-card-bottom">
+                <small class="text-muted">Supervisor didn't approve</small>
+            </div>
+        </div>
+
+        <div class="stat-card">
+            <div class="stat-card-top">
+                <div class="stat-card-left">
+                    <div class="stat-icon stat-icon-primary">
+                        <i class="bi bi-clock"></i>
+                    </div>
+                    <p class="stat-label">Pending Now</p>
+                </div>
+                <h3 class="stat-value">@Model.Summary.PendingVerifications</h3>
+            </div>
+            <div class="stat-card-bottom">
+                <a asp-page="/Modules/EBillManagement/CallRecords/MyCallLogs" class="btn btn-sm btn-primary" style="border-radius: 8px; width: 100%;">
+                    <i class="bi bi-arrow-right me-1"></i>Verify Now
+                </a>
+            </div>
+        </div>
+    </div>
+
+    @if (Model.Summary.MissedDeadlines > 0)
+    {
+        <div class="alert alert-danger border-0" style="border-radius: 12px; border-left: 4px solid #ef4444;" role="alert">
+            <div class="d-flex align-items-center justify-content-between">
+                <div>
+                    <i class="bi bi-exclamation-circle-fill me-2"></i>
+                    <strong>Urgent:</strong> You have <strong>@Model.Summary.MissedDeadlines</strong> calls with missed deadlines that will be recovered soon!
+                </div>
+                <a asp-page="/Modules/EBillManagement/CallRecords/MyCallLogs" class="btn btn-sm btn-danger" style="border-radius: 8px;">
+                    <i class="bi bi-arrow-right me-1"></i>Verify Now
+                </a>
+            </div>
+        </div>
+    }
+
+    <!-- Filter Card (Collapsible) -->
+    <div class="filter-card">
+        <div class="filter-header" data-bs-toggle="collapse" data-bs-target="#filterCollapse">
+            <div class="d-flex justify-content-between align-items-center">
+                <h6 class="mb-0 fw-bold">
+                    <i class="bi bi-funnel me-2"></i>Filter Options
+                </h6>
+                <i class="bi bi-chevron-down"></i>
+            </div>
+        </div>
+        <div class="collapse" id="filterCollapse">
+            <div class="filter-body">
+                <form method="get">
+                    <div class="row g-3">
+                        <div class="col-md-4">
+                            <label for="StartDate" class="form-label"><i class="bi bi-calendar-event me-1"></i>Start Date</label>
+                            <input type="date" class="form-control" id="StartDate" name="StartDate"
+                                   value="@Model.StartDate?.ToString("yyyy-MM-dd")" />
+                        </div>
+                        <div class="col-md-4">
+                            <label for="EndDate" class="form-label"><i class="bi bi-calendar-check me-1"></i>End Date</label>
+                            <input type="date" class="form-control" id="EndDate" name="EndDate"
+                                   value="@Model.EndDate?.ToString("yyyy-MM-dd")" />
+                        </div>
+                        <div class="col-md-4">
+                            <label for="RecoveryType" class="form-label"><i class="bi bi-tag me-1"></i>Recovery Type</label>
+                            <select class="form-select" id="RecoveryType" name="RecoveryType">
+                                <option value="">All Types</option>
+                                <option value="StaffNonVerification" selected="@(Model.RecoveryType == "StaffNonVerification")">You Didn't Verify (Missed Deadline)</option>
+                                <option value="SupervisorNonApproval" selected="@(Model.RecoveryType == "SupervisorNonApproval")">Supervisor Didn't Approve (Missed Deadline)</option>
+                                <option value="SupervisorRevertFailure" selected="@(Model.RecoveryType == "SupervisorRevertFailure")">Didn't Re-verify After Revert</option>
+                                <option value="SupervisorRejection" selected="@(Model.RecoveryType == "SupervisorRejection")">Supervisor Rejected</option>
+                                <option value="SupervisorPartialApproval" selected="@(Model.RecoveryType == "SupervisorPartialApproval")">Supervisor Approved/Reviewed</option>
+                                <option value="ManualOverride" selected="@(Model.RecoveryType == "ManualOverride")">Manual Override</option>
+                            </select>
+                        </div>
+                    </div>
+                    <div class="row mt-3">
+                        <div class="col">
+                            <button type="submit" class="btn btn-primary" style="border-radius: 12px;">
+                                <i class="bi bi-search me-1"></i>Apply Filters
+                            </button>
+                            <a asp-page="/Staff/MyRecoveryReport" class="btn btn-outline-secondary" style="border-radius: 12px;">
+                                <i class="bi bi-x-circle me-1"></i>Clear
+                            </a>
+                        </div>
+                    </div>
+                </form>
+            </div>
+        </div>
+    </div>
+
+    <!-- Recovery Details Section -->
+    <div>
+            <div class="data-table-card">
+                <div class="table-header">
+                    <h5 class="mb-0 fw-bold text-dark">
+                        <i class="bi bi-list-ul me-2 text-primary"></i>Recovery Details
+                    </h5>
+                    <p class="text-muted mb-0">@Model.RecoveryDetails.Count records found</p>
+                </div>
+                <div class="p-0">
+                    @if (Model.RecoveryDetails.Any())
+                    {
+                        <div class="alert alert-info border-0 m-3" style="border-radius: 12px;">
+                            <i class="bi bi-info-circle me-2"></i>
+                            These amounts were deducted from your account because calls were not verified within the deadline or approvals were not obtained in time.
+                        </div>
+                        <div class="table-responsive">
+                            <table class="table table-hover mb-0">
+                                <thead>
+                                    <tr>
+                                        <th><i class="bi bi-calendar me-1"></i>Call Date</th>
+                                        <th><i class="bi bi-telephone me-1"></i>Number</th>
+                                        <th><i class="bi bi-geo-alt me-1"></i>Destination</th>
+                                        <th><i class="bi bi-clock me-1"></i>Duration</th>
+                                        <th class="text-end"><i class="bi bi-currency-dollar me-1"></i>Cost</th>
+                                        <th><i class="bi bi-cash me-1"></i>Currency</th>
+                                        <th class="text-end"><i class="bi bi-exclamation-triangle me-1"></i>Recovered</th>
+                                        <th><i class="bi bi-calendar-check me-1"></i>Recovery Date</th>
+                                        <th><i class="bi bi-tag me-1"></i>Reason</th>
+                                        <th><i class="bi bi-arrow-right me-1"></i>Assignment</th>
+                                    </tr>
+                                </thead>
+                                <tbody>
+                                    @foreach (var detail in Model.RecoveryDetails)
+                                    {
+                                        <tr>
+                                            <td>
+                                                <div>@detail.CallDate.ToString("MMM dd, yyyy")</div>
+                                                <small class="text-muted">@detail.CallDate.ToString("hh:mm tt")</small>
+                                            </td>
+                                            <td><code style="color: #009EDB;">@detail.CallNumber</code></td>
+                                            <td>@detail.CallDestination</td>
+                                            <td>@TimeSpan.FromSeconds(detail.CallDuration).ToString(@"hh\:mm\:ss")</td>
+                                            <td class="text-end">@detail.CallCost.ToString("N2")</td>
+                                            <td>
+                                                <span class="badge bg-@(detail.Currency == "USD" ? "success" : "secondary") bg-opacity-10 text-@(detail.Currency == "USD" ? "success" : "secondary")">
+                                                    @detail.Currency
+                                                </span>
+                                            </td>
+                                            <td class="text-end">
+                                                <strong class="text-danger">@detail.RecoveryAmount.ToString("N2")</strong>
+                                            </td>
+                                            <td>
+                                                @if (detail.RecoveryDate.HasValue)
+                                                {
+                                                    <div>@detail.RecoveryDate.Value.ToString("MMM dd, yyyy")</div>
+                                                    <small class="text-muted">@detail.RecoveryDate.Value.ToString("hh:mm tt")</small>
+                                                }
+                                            </td>
+                                            <td>
+                                                @{
+                                                    // Categorize by RecoveryType for badge styling
+                                                    var badgeClass = detail.RecoveryType switch
+                                                    {
+                                                        "StaffNonVerification" => "bg-danger text-white",
+                                                        "SupervisorNonApproval" => "bg-warning text-dark",
+                                                        "SupervisorRevertFailure" => "bg-danger text-white",
+                                                        "SupervisorRejection" => "bg-secondary text-white",
+                                                        "SupervisorPartialApproval" => "bg-info text-white",
+                                                        "ManualOverride" => "bg-primary text-white",
+                                                        _ => "bg-secondary text-white"
+                                                    };
+
+                                                    // Short category label for the badge
+                                                    var categoryLabel = detail.RecoveryType switch
+                                                    {
+                                                        "StaffNonVerification" => "You Missed Deadline",
+                                                        "SupervisorNonApproval" => "Supervisor Missed Deadline",
+                                                        "SupervisorRevertFailure" => "Didn't Re-verify",
+                                                        "SupervisorRejection" => "Rejected",
+                                                        "SupervisorPartialApproval" => "Reviewed",
+                                                        "ManualOverride" => "Manual Override",
+                                                        _ => "Unknown"
+                                                    };
+                                                }
+                                                <div class="d-flex flex-column gap-1">
+                                                    <span class="badge @badgeClass" style="font-size: 0.75rem;">
+                                                        <i class="bi bi-@(detail.RecoveryType switch {
+                                                            "StaffNonVerification" => "exclamation-triangle-fill",
+                                                            "SupervisorNonApproval" => "hourglass-split",
+                                                            "SupervisorRevertFailure" => "arrow-counterclockwise",
+                                                            "SupervisorRejection" => "x-circle-fill",
+                                                            "SupervisorPartialApproval" => "check-circle-fill",
+                                                            "ManualOverride" => "gear-fill",
+                                                            _ => "question-circle"
+                                                        }) me-1"></i>
+                                                        @categoryLabel
+                                                    </span>
+                                                    @if (!string.IsNullOrEmpty(detail.RecoveryReason))
+                                                    {
+                                                        <small class="text-muted" style="font-size: 0.75rem;" title="@detail.RecoveryReason">
+                                                            @(detail.RecoveryReason.Length > 60 ? detail.RecoveryReason.Substring(0, 60) + "..." : detail.RecoveryReason)
+                                                        </small>
+                                                    }
+                                                </div>
+                                            </td>
+                                            <td>
+                                                @if (detail.FinalAssignment == "Personal")
+                                                {
+                                                    <span class="badge bg-danger bg-opacity-10 text-danger">Personal</span>
+                                                }
+                                                else if (detail.FinalAssignment == "ClassOfService")
+                                                {
+                                                    <span class="badge bg-warning bg-opacity-10 text-warning">Over Limit</span>
+                                                }
+                                            </td>
+                                        </tr>
+                                    }
+                                </tbody>
+                                <tfoot style="background: #f8f9fa;">
+                                    @foreach (var currencyGroup in Model.RecoveryDetails.GroupBy(d => d.Currency).OrderBy(g => g.Key))
+                                    {
+                                        <tr>
+                                            <th colspan="5" class="text-end px-3 py-3">Total (@currencyGroup.Key):</th>
+                                            <th class="px-3 py-3">
+                                                <span class="badge bg-@(currencyGroup.Key == "USD" ? "success" : "secondary")">@currencyGroup.Key</span>
+                                            </th>
+                                            <th class="text-end px-3 py-3">
+                                                <strong class="text-danger fs-5">@currencyGroup.Sum(d => d.RecoveryAmount).ToString("N2")</strong>
+                                            </th>
+                                            <th colspan="3"></th>
+                                        </tr>
+                                    }
+                                </tfoot>
+                            </table>
+                        </div>
+                    }
+                    else
+                    {
+                        <div class="text-center py-5">
+                            <i class="bi bi-check-circle display-1 text-success"></i>
+                            <p class="text-muted mt-3 fs-5">No recovery records found for the selected period.</p>
+                            <p class="text-success fw-bold">Great job meeting your deadlines!</p>
+                        </div>
+                    }
+                </div>
+            </div>
+    </div>
+
+    <!-- Help Card -->
+    <div class="alert alert-info border-0 mt-4" style="border-radius: 16px; border-left: 4px solid #06b6d4;">
+        <h6 class="fw-bold text-info">
+            <i class="bi bi-info-circle me-2"></i>How to Avoid Recovery
+        </h6>
+        <ul class="mb-0">
+            <li>Verify your calls within the verification deadline (usually 5 business days)</li>
+            <li>Mark personal calls correctly during verification</li>
+            <li>If you have official calls that exceed your limit, submit to supervisor for approval within the deadline</li>
+            <li>Keep track of your deadlines on the <a asp-page="/Modules/EBillManagement/CallRecords/MyCallLogs">verification page</a></li>
+        </ul>
+    </div>
+</div>

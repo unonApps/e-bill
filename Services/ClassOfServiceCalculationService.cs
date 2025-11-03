@@ -263,5 +263,42 @@ namespace TAB.Web.Services
                 TopDestinations = topDestinations
             };
         }
+
+        // ===================================================================
+        // Phone-Specific Methods (Per UserPhone, not per User)
+        // ===================================================================
+
+        public async Task<decimal?> GetPhoneAllowanceLimitAsync(int userPhoneId)
+        {
+            var userPhone = await _context.UserPhones
+                .Include(up => up.ClassOfService)
+                .FirstOrDefaultAsync(up => up.Id == userPhoneId && up.IsActive);
+
+            if (userPhone?.ClassOfService == null)
+                return null;
+
+            // NULL means Unlimited
+            return userPhone.ClassOfService.AirtimeAllowanceAmount;
+        }
+
+        public async Task<decimal> GetPhoneMonthlyUsageAsync(int userPhoneId, int month, int year)
+        {
+            // Get calls for this specific phone only
+            return await _context.CallRecords
+                .Where(c => c.UserPhoneId == userPhoneId
+                    && c.CallMonth == month
+                    && c.CallYear == year
+                    && c.VerificationType == VerificationType.Official.ToString())
+                .SumAsync(c => c.CallCostUSD);
+        }
+
+        public async Task<bool> IsPhoneWithinAllowanceAsync(int userPhoneId, decimal amount, int month, int year)
+        {
+            var limit = await GetPhoneAllowanceLimitAsync(userPhoneId);
+            if (limit == null || limit == 0) return true; // Unlimited or no limit set
+
+            var usage = await GetPhoneMonthlyUsageAsync(userPhoneId, month, year);
+            return (usage + amount) <= limit.Value;
+        }
     }
 }

@@ -372,45 +372,98 @@
                 </div>
             </div>
 
-            <!-- Overage Justification Section (only if overage exists) -->
-            @if (Model.HasOverage)
+            <!-- Phone-Level Overage Justification Section -->
+            @{
+                var overagePhones = Model.PhoneOverages.Where(p => p.HasOverage).ToList();
+                var overageIndex = 0;
+            }
+            @foreach (var phoneOverage in overagePhones)
             {
                 <div class="overage-card p-4 mb-4">
-                    <h6 class="fw-bold text-warning mb-3">
-                        <i class="bi bi-exclamation-triangle me-2"></i>Overage Justification Required
-                    </h6>
-
-                    <div class="mb-3">
-                        <label for="overageJustification" class="form-label fw-semibold">
-                            Justification <span class="text-danger">*</span>
-                        </label>
-                        <textarea class="form-control"
-                                  id="overageJustification"
-                                  name="overageJustification"
-                                  rows="4"
-                                  required
-                                  placeholder="Please explain why your official calls exceeded the monthly allowance of $@Model.MonthlyAllowance.ToString("N2"). Include details such as business needs, urgent projects, client requirements, etc."></textarea>
-                        <small class="text-muted">
-                            <i class="bi bi-info-circle me-1"></i>
-                            Your justification will be reviewed by your supervisor along with the supporting document.
-                        </small>
+                    <!-- Phone Header -->
+                    <div class="d-flex justify-content-between align-items-start mb-3">
+                        <div>
+                            <h6 class="fw-bold text-warning mb-1">
+                                <i class="bi bi-exclamation-triangle me-2"></i>Extension Overage Justification Required
+                            </h6>
+                            <div class="small text-muted">
+                                <i class="bi bi-telephone me-1"></i>
+                                <strong>@phoneOverage.PhoneNumber</strong> (@phoneOverage.PhoneType)
+                                @if (!string.IsNullOrEmpty(phoneOverage.ClassOfService))
+                                {
+                                    <span class="badge bg-info bg-opacity-10 text-info ms-2">@phoneOverage.ClassOfService</span>
+                                }
+                            </div>
+                        </div>
+                        <div class="text-end">
+                            <div class="text-danger fw-bold">$@phoneOverage.OverageAmount.ToString("N2") Over</div>
+                            <div class="small text-muted">Limit: $@phoneOverage.AllowanceLimit.ToString("N2")</div>
+                        </div>
                     </div>
 
-                    <div class="mb-3">
-                        <label for="overageDocument" class="form-label fw-semibold">
-                            Supporting Document <span class="text-danger">*</span>
-                        </label>
-                        <input type="file"
-                               class="form-control"
-                               id="overageDocument"
-                               name="overageDocument"
-                               required
-                               accept=".pdf,.doc,.docx,.jpg,.jpeg,.png" />
-                        <small class="text-muted">
-                            <i class="bi bi-paperclip me-1"></i>
-                            Upload approval letter, authorization, or other supporting documentation (PDF, Word, or Image).
-                        </small>
-                    </div>
+                    @if (phoneOverage.HasExistingJustification)
+                    {
+                        <!-- Show existing justification (read-only) -->
+                        <div class="alert alert-info mb-3">
+                            <div class="d-flex align-items-start">
+                                <i class="bi bi-info-circle-fill me-2 mt-1"></i>
+                                <div class="flex-grow-1">
+                                    <strong>Justification Already Submitted</strong>
+                                    <p class="mb-2 mt-2">@phoneOverage.ExistingJustification.JustificationText</p>
+                                    <small class="text-muted">
+                                        Submitted on @phoneOverage.ExistingJustification.SubmittedDate.ToString("MMMM dd, yyyy") •
+                                        Status: <span class="badge bg-@(phoneOverage.ExistingJustification.ApprovalStatus == "Approved" ? "success" : phoneOverage.ExistingJustification.ApprovalStatus == "Rejected" ? "danger" : "warning")">
+                                            @phoneOverage.ExistingJustification.ApprovalStatus
+                                        </span>
+                                    </small>
+                                    @if (phoneOverage.ExistingJustification.Documents?.Any() == true)
+                                    {
+                                        <div class="mt-2">
+                                            <small><i class="bi bi-paperclip me-1"></i>@phoneOverage.ExistingJustification.Documents.Count document(s) attached</small>
+                                        </div>
+                                    }
+                                </div>
+                            </div>
+                        </div>
+                    }
+                    else
+                    {
+                        <!-- Collect new justification -->
+                        <input type="hidden" name="phoneOverageJustifications[@overageIndex].UserPhoneId" value="@phoneOverage.UserPhoneId" />
+
+                        <div class="mb-3">
+                            <label for="justification_@phoneOverage.UserPhoneId" class="form-label fw-semibold">
+                                Justification <span class="text-danger">*</span>
+                            </label>
+                            <textarea class="form-control"
+                                      id="justification_@phoneOverage.UserPhoneId"
+                                      name="phoneOverageJustifications[@overageIndex].Justification"
+                                      rows="4"
+                                      required
+                                      placeholder="Explain why calls for extension @phoneOverage.PhoneNumber exceeded the monthly allowance of $@phoneOverage.AllowanceLimit.ToString("N2"). Include details such as business needs, urgent projects, client requirements, etc."></textarea>
+                            <small class="text-muted">
+                                <i class="bi bi-info-circle me-1"></i>
+                                This justification applies to ALL calls from extension @phoneOverage.PhoneNumber for @(new DateTime(Model.CallYear, Model.CallMonth, 1).ToString("MMMM yyyy")).
+                            </small>
+                        </div>
+
+                        <div class="mb-3">
+                            <label for="document_@phoneOverage.UserPhoneId" class="form-label fw-semibold">
+                                Supporting Document <span class="text-danger">*</span>
+                            </label>
+                            <input type="file"
+                                   class="form-control"
+                                   id="document_@phoneOverage.UserPhoneId"
+                                   name="phoneOverageJustifications[@overageIndex].Document"
+                                   required
+                                   accept=".pdf,.doc,.docx,.jpg,.jpeg,.png" />
+                            <small class="text-muted">
+                                <i class="bi bi-paperclip me-1"></i>
+                                Upload approval letter, authorization, or other supporting documentation for this extension (PDF, Word, or Image).
+                            </small>
+                        </div>
+                        <text>@{overageIndex++;}</text>
+                    }
                 </div>
             }
 

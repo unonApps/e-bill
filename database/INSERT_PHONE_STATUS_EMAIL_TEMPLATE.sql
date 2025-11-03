@@ -1,0 +1,196 @@
+-- =============================================
+-- Insert Phone Status Changed Email Template
+-- =============================================
+
+USE TABDB;
+GO
+
+-- Remove existing template if it exists (for re-insertion)
+DELETE FROM EmailTemplates WHERE TemplateCode = 'PHONE_STATUS_CHANGED';
+GO
+
+-- Insert Phone Status Changed Template
+INSERT INTO EmailTemplates (
+    TemplateCode,
+    Name,
+    Category,
+    Subject,
+    HtmlBody,
+    IsActive,
+    IsSystemTemplate,
+    CreatedDate
+)
+VALUES (
+    'PHONE_STATUS_CHANGED',
+    'Phone Status Changed',
+    'Phone Management',
+    'Phone Status Updated - UNON E-Billing',
+    '<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Phone Status Changed</title>
+</head>
+<body style="margin: 0; padding: 0; font-family: ''Segoe UI'', Tahoma, Geneva, Verdana, sans-serif; background-color: #f3f4f6;">
+    <table role="presentation" style="width: 100%; border-collapse: collapse;">
+        <tr>
+            <td style="padding: 40px 20px;">
+                <table role="presentation" style="max-width: 600px; margin: 0 auto; background-color: #ffffff; border-radius: 8px; box-shadow: 0 2px 4px rgba(0,0,0,0.1);">
+                    <!-- Header with Gradient -->
+                    <tr>
+                        <td style="background: linear-gradient(135deg, #f59e0b 0%, #d97706 100%); padding: 40px 30px; text-align: center; border-radius: 8px 8px 0 0;">
+                            <h1 style="margin: 0; color: #ffffff; font-size: 28px; font-weight: 600;">PHONE STATUS CHANGED</h1>
+                            <p style="margin: 10px 0 0 0; color: #ffffff; font-size: 14px; opacity: 0.95;">UNON E-Billing System</p>
+                        </td>
+                    </tr>
+
+                    <!-- Main Content -->
+                    <tr>
+                        <td style="padding: 40px 30px;">
+                            <p style="margin: 0 0 20px 0; color: #374151; font-size: 16px; line-height: 1.6;">
+                                Dear <strong>{{FirstName}} {{LastName}}</strong>,
+                            </p>
+
+                            <p style="margin: 0 0 30px 0; color: #374151; font-size: 16px; line-height: 1.6;">
+                                The status of phone number <strong>{{PhoneNumber}}</strong> has been updated in the UNON E-Billing System.
+                            </p>
+
+                            <!-- Status Change Details Box -->
+                            <table role="presentation" style="width: 100%; border-collapse: collapse; background-color: #fef3c7; border-left: 4px solid #f59e0b; border-radius: 6px; margin-bottom: 30px;">
+                                <tr>
+                                    <td style="padding: 20px;">
+                                        <h3 style="margin: 0 0 15px 0; color: #92400e; font-size: 16px; font-weight: 600;">Status Change Details</h3>
+
+                                        <table role="presentation" style="width: 100%; border-collapse: collapse;">
+                                            <tr>
+                                                <td style="padding: 8px 0; color: #92400e; font-size: 14px; width: 40%;">
+                                                    <strong>Phone Number:</strong>
+                                                </td>
+                                                <td style="padding: 8px 0; color: #78350f; font-size: 14px;">
+                                                    {{PhoneNumber}}
+                                                </td>
+                                            </tr>
+                                            <tr>
+                                                <td style="padding: 8px 0; color: #92400e; font-size: 14px;">
+                                                    <strong>Previous Status:</strong>
+                                                </td>
+                                                <td style="padding: 8px 0; color: #78350f; font-size: 14px;">
+                                                    <span style="display: inline-block; padding: 4px 12px; background-color: {{OldStatusBadgeColor}}; color: {{OldStatusTextColor}}; border-radius: 12px; font-size: 13px; font-weight: 500;">{{OldStatus}}</span>
+                                                </td>
+                                            </tr>
+                                            <tr>
+                                                <td style="padding: 8px 0; color: #92400e; font-size: 14px;">
+                                                    <strong>New Status:</strong>
+                                                </td>
+                                                <td style="padding: 8px 0; color: #78350f; font-size: 14px;">
+                                                    <span style="display: inline-block; padding: 4px 12px; background-color: {{NewStatusBadgeColor}}; color: {{NewStatusTextColor}}; border-radius: 12px; font-size: 13px; font-weight: 500;">{{NewStatus}}</span>
+                                                </td>
+                                            </tr>
+                                            <tr>
+                                                <td style="padding: 8px 0; color: #92400e; font-size: 14px;">
+                                                    <strong>Index Number:</strong>
+                                                </td>
+                                                <td style="padding: 8px 0; color: #78350f; font-size: 14px;">
+                                                    {{IndexNumber}}
+                                                </td>
+                                            </tr>
+                                            <tr>
+                                                <td style="padding: 8px 0; color: #92400e; font-size: 14px;">
+                                                    <strong>Change Date:</strong>
+                                                </td>
+                                                <td style="padding: 8px 0; color: #78350f; font-size: 14px;">
+                                                    {{ChangeDate}}
+                                                </td>
+                                            </tr>
+                                        </table>
+                                    </td>
+                                </tr>
+                            </table>
+
+                            <!-- What This Means -->
+                            <div style="background-color: #f9fafb; border-radius: 6px; padding: 20px; margin-bottom: 30px;">
+                                <h3 style="margin: 0 0 15px 0; color: #374151; font-size: 16px; font-weight: 600;">What This Means:</h3>
+                                <ul style="margin: 0; padding-left: 20px; color: #4b5563; font-size: 14px; line-height: 1.8;">
+                                    {{StatusDescription}}
+                                </ul>
+                            </div>
+
+                            <!-- Reason (if provided) -->
+                            {{#if Reason}}
+                            <div style="background-color: #eff6ff; border-radius: 6px; padding: 20px; margin-bottom: 30px; border-left: 4px solid: #3b82f6;">
+                                <h3 style="margin: 0 0 10px 0; color: #1e40af; font-size: 16px; font-weight: 600;">Reason for Change:</h3>
+                                <p style="margin: 0; color: #1e3a8a; font-size: 14px; line-height: 1.6;">
+                                    {{Reason}}
+                                </p>
+                            </div>
+                            {{/if}}
+
+                            <!-- Action Button -->
+                            <table role="presentation" style="width: 100%; border-collapse: collapse; margin: 30px 0;">
+                                <tr>
+                                    <td style="text-align: center;">
+                                        <a href="{{UserPhonesUrl}}" style="display: inline-block; padding: 14px 32px; background-color: #f59e0b; color: #ffffff; text-decoration: none; border-radius: 6px; font-weight: 600; font-size: 16px;">View Your Phones</a>
+                                    </td>
+                                </tr>
+                            </table>
+
+                            <!-- Contact Information -->
+                            <div style="background-color: #fef3c7; border-radius: 6px; padding: 20px; margin-top: 30px;">
+                                <p style="margin: 0 0 10px 0; color: #92400e; font-size: 14px; font-weight: 600;">Need Assistance?</p>
+                                <p style="margin: 0; color: #78350f; font-size: 13px; line-height: 1.6;">
+                                    If you have questions about this status change or need assistance, please contact:
+                                </p>
+                                <p style="margin: 10px 0 0 0; color: #78350f; font-size: 13px; line-height: 1.6;">
+                                    <strong>UNON ICTS Service Desk</strong><br>
+                                    Email: <a href="mailto:ICTS.Servicedesk@un.org" style="color: #f59e0b; text-decoration: none;">ICTS.Servicedesk@un.org</a><br>
+                                    Phone: +254 20 76 21111
+                                </p>
+                            </div>
+                        </td>
+                    </tr>
+
+                    <!-- Footer -->
+                    <tr>
+                        <td style="padding: 30px; text-align: center; border-top: 1px solid #e5e7eb;">
+                            <p style="margin: 0 0 10px 0; color: #6b7280; font-size: 13px;">
+                                This is an automated notification from the UNON E-Billing System.
+                            </p>
+                            <p style="margin: 0; color: #9ca3af; font-size: 12px;">
+                                © 2025 United Nations Office at Nairobi. All rights reserved.
+                            </p>
+                        </td>
+                    </tr>
+
+                    <!-- UN SDG Rainbow Footer -->
+                    <tr>
+                        <td style="padding: 0; height: 8px; border-radius: 0 0 8px 8px; background: linear-gradient(to right, #e5243b 0%, #dda63a 14.28%, #4c9f38 28.56%, #c5192d 42.84%, #ff3a21 57.12%, #26bde2 71.4%, #fcc30b 85.68%, #a21942 100%);">
+                        </td>
+                    </tr>
+                </table>
+            </td>
+        </tr>
+    </table>
+</body>
+</html>',
+    1,  -- IsActive
+    1,  -- IsSystemTemplate
+    GETDATE()
+);
+GO
+
+PRINT 'Phone Status Changed email template inserted successfully!';
+GO
+
+-- Verify insertion
+SELECT
+    TemplateCode,
+    Name,
+    Category,
+    Subject,
+    IsActive,
+    IsSystemTemplate,
+    CreatedDate
+FROM EmailTemplates
+WHERE TemplateCode = 'PHONE_STATUS_CHANGED';
+GO

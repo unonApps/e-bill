@@ -1,0 +1,28 @@
+<!DOCTYPE html>
+<html><head><meta charset="UTF-8"></head>
+<body style="margin: 0; padding: 0; font-family: Arial, sans-serif; background-color: #f4f4f4;">
+    <table width="100%" cellpadding="20"><tr><td align="center">
+        <table width="600" style="background-color: #ffffff; border-radius: 8px;">
+            <tr><td style="background-color: #e74c3c; padding: 30px; text-align: center; color: #ffffff;"><h1 style="margin: 0;">Request Not Approved</h1></td></tr>
+            <tr><td style="padding: 30px;">
+                <p style="font-size: 16px;">Dear <strong>{{RequesterName}}</strong>,</p>
+                <p style="color: #555555;">Your device reimbursement request #{{RequestId}} has been rejected.</p>
+                <table width="100%" style="background-color: #fadbd8; padding: 15px; margin: 20px 0; border-left: 4px solid #e74c3c;">
+                    <tr><td>Request ID:</td><td><strong>#{{RequestId}}</strong></td></tr>
+                    <tr><td>Rejected By:</td><td>{{RejectedBy}}</td></tr>
+                    <tr><td>Date:</td><td>{{RejectionDate}}</td></tr>
+                    <tr><td>Reason:</td><td style="color: #721c24;"><strong>{{RejectionReason}}</strong></td></tr>
+                </table>
+                <div style="background-color: #fff3cd; padding: 15px; margin: 20px 0; border-left: 4px solid #ffc107;">
+                    <p style="margin: 0; color: #856404;">If you believe this decision was made in error or would like to discuss this further, please contact {{RejectedBy}} or the HR department.</p>
+                </div>
+                <div style="text-align: center;">
+                    <a href="{{NewRequestLink}}" style="background-color: #667eea; color: #ffffff; text-decoration: none; padding: 12px 30px; border-radius: 5px; display: inline-block;">Submit New Request</a>
+                </div>
+            </td></tr>
+            <tr><td style="background-color: #f8f9fa; padding: 20px; text-align: center;"><p style="color: #999999; font-size: 12px; margin: 0;">© {{Year}} TAB System</p></td></tr>
+        </table>
+    </td></tr></table>
+</body></html>
+
+(1 rows affected)

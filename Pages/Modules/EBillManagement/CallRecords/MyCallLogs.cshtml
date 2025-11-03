@@ -44,15 +44,15 @@
     /* Statistics Grid */
     .stats-grid {
         display: grid;
-        grid-template-columns: repeat(auto-fit, minmax(240px, 1fr));
-        gap: 1.25rem;
-        margin-bottom: 2rem;
+        grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+        gap: 0.75rem;
+        margin-bottom: 1rem;
     }
 
     .stat-card {
         background: white;
-        border-radius: 12px;
-        padding: 1.5rem;
+        border-radius: 10px;
+        padding: 0.875rem;
         border: 1px solid #e5e7eb;
         position: relative;
         overflow: hidden;
@@ -79,13 +79,13 @@
     }
 
     .stat-card:nth-child(3)::before {
-        --gradient-start: #06b6d4;
-        --gradient-end: #22d3ee;
+        --gradient-start: #f59e0b;
+        --gradient-end: #fbbf24;
     }
 
     .stat-card:nth-child(4)::before {
-        --gradient-start: #f59e0b;
-        --gradient-end: #fbbf24;
+        --gradient-start: #06b6d4;
+        --gradient-end: #22d3ee;
     }
 
     .stat-card:hover {
@@ -99,13 +99,13 @@
     }
 
     .stat-icon {
-        width: 50px;
-        height: 50px;
-        border-radius: 12px;
+        width: 40px;
+        height: 40px;
+        border-radius: 10px;
         display: flex;
         align-items: center;
         justify-content: center;
-        font-size: 1.5rem;
+        font-size: 1.25rem;
     }
 
     .stat-icon-primary {
@@ -133,7 +133,7 @@
     }
 
     .stat-number {
-        font-size: 1.75rem;
+        font-size: 1.5rem;
         font-weight: 700;
         color: #1f2937;
         line-height: 1;
@@ -141,7 +141,7 @@
     }
 
     .stat-label {
-        font-size: 0.875rem;
+        font-size: 0.8rem;
         color: #6b7280;
         font-weight: 500;
     }
@@ -176,16 +176,16 @@
         /* Statistics Grid - Stack on mobile */
         .stats-grid {
             grid-template-columns: 1fr;
-            gap: 1rem;
-            margin-bottom: 1.5rem;
+            gap: 0.5rem;
+            margin-bottom: 1rem;
         }
 
         .stat-card {
-            padding: 1rem;
+            padding: 0.75rem;
         }
 
         .stat-number {
-            font-size: 1.5rem !important;
+            font-size: 1.25rem !important;
         }
 
         /* Filter buttons - Stack on mobile */
@@ -388,11 +388,17 @@
         }
 
         .stat-number {
-            font-size: 1.25rem !important;
+            font-size: 1.1rem !important;
         }
 
         .stat-label {
-            font-size: 0.75rem;
+            font-size: 0.7rem;
+        }
+
+        .stat-icon {
+            width: 32px;
+            height: 32px;
+            font-size: 1rem;
         }
 
         /* Make pagination scrollable */
@@ -413,33 +419,35 @@
         display: flex;
         justify-content: space-between;
         align-items: center;
-        margin-bottom: 2rem;
-        padding-bottom: 1.5rem;
-        border-bottom: 2px solid #e5e7eb;
+        margin-bottom: 1rem;
+        padding-bottom: 0.75rem;
+        border-bottom: 1px solid #e5e7eb;
         flex-wrap: wrap;
-        gap: 1rem;
+        gap: 0.75rem;
     }
 
     .page-info {
         flex: 1;
+        display: flex;
+        align-items: center;
+        gap: 0.75rem;
     }
 
     .module-badge {
         display: inline-flex;
         align-items: center;
-        padding: 0.375rem 0.875rem;
+        padding: 0.25rem 0.625rem;
         background: linear-gradient(135deg, #009EDB 0%, #0084c7 100%);
         color: white;
         border-radius: 6px;
-        font-size: 0.75rem;
+        font-size: 0.7rem;
         font-weight: 600;
         text-transform: uppercase;
         letter-spacing: 0.5px;
-        margin-bottom: 0.5rem;
     }
 
     .page-title-main {
-        font-size: 1.75rem;
+        font-size: 1.5rem;
         font-weight: 700;
         color: #1f2937;
         margin: 0;
@@ -450,11 +458,11 @@
         display: flex;
         align-items: center;
         gap: 0.5rem;
-        padding: 0.625rem 1rem;
+        padding: 0.375rem 0.75rem;
         background: #f3f4f6;
-        border-radius: 8px;
+        border-radius: 6px;
         color: #4b5563;
-        font-size: 0.875rem;
+        font-size: 0.8rem;
         font-weight: 500;
     }
 
@@ -466,17 +474,29 @@
         .page-header-bar {
             flex-direction: column;
             align-items: flex-start;
-            gap: 1rem;
-            padding-bottom: 1rem;
+            gap: 0.5rem;
+            padding-bottom: 0.5rem;
+            margin-bottom: 0.75rem;
+        }
+
+        .page-info {
+            flex-direction: column;
+            align-items: flex-start;
+            gap: 0.5rem;
         }
 
         .page-title-main {
-            font-size: 1.5rem;
+            font-size: 1.25rem;
         }
 
         .current-date {
             font-size: 0.75rem;
-            padding: 0.5rem 0.75rem;
+            padding: 0.25rem 0.5rem;
+        }
+
+        .module-badge {
+            font-size: 0.65rem;
+            padding: 0.2rem 0.5rem;
         }
     }
 </style>
@@ -484,10 +504,9 @@
 <!-- Page Header -->
 <div class="page-header-bar">
     <div class="page-info">
-        <div class="module-badge">
-            <i class="bi bi-telephone me-2"></i>
-            E-Bill Management
-        </div>
+        <span class="module-badge">
+            <i class="bi bi-telephone me-1"></i>E-BILL MANAGEMENT
+        </span>
         <h1 class="page-title-main">My Call Logs</h1>
     </div>
     <div class="current-date">
@@ -505,6 +524,85 @@
         <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
     </div>
 }
+
+<!-- Quick Guide - Color Legend -->
+<div class="card border-0 shadow-sm mb-2" style="border-radius: 12px; background: linear-gradient(135deg, #f8f9fa 0%, #ffffff 100%);">
+    <div class="card-body p-2">
+        <div class="d-flex justify-content-between align-items-center">
+            <h6 class="mb-0 fw-bold text-primary" style="font-size: 0.9rem;">
+                <i class="bi bi-info-circle-fill me-2"></i>Quick Guide - Understanding Your Call Logs
+            </h6>
+            <button class="btn btn-sm btn-outline-secondary py-1 px-2" type="button" data-bs-toggle="collapse" data-bs-target="#guideCollapse" style="border-radius: 6px; font-size: 0.75rem;">
+                <i class="bi bi-chevron-down"></i>
+            </button>
+        </div>
+        <div class="collapse" id="guideCollapse">
+            <div class="row g-2 mt-2">
+                <!-- Row Colors -->
+                <div class="col-md-12 mb-2">
+                    <strong class="d-block mb-2" style="font-size: 0.95rem;"><i class="bi bi-palette-fill me-2 text-primary"></i>Row Colors:</strong>
+                </div>
+                <div class="col-md-4">
+                    <div class="d-flex align-items-center p-2 rounded" style="border-left: 4px solid #10b981; background-color: rgba(16, 185, 129, 0.05);">
+                        <i class="bi bi-square-fill text-success me-2"></i>
+                        <div>
+                            <strong class="d-block" style="font-size: 0.9rem;">Green Border</strong>
+                            <small class="text-muted">Your phone calls - You are responsible</small>
+                        </div>
+                    </div>
+                </div>
+                <div class="col-md-4">
+                    <div class="d-flex align-items-center p-2 rounded" style="border-left: 4px solid #f59e0b; background-color: rgba(245, 158, 11, 0.05);">
+                        <i class="bi bi-square-fill text-warning me-2"></i>
+                        <div>
+                            <strong class="d-block" style="font-size: 0.9rem;">Orange Border</strong>
+                            <small class="text-muted">Assigned to you - Needs your decision</small>
+                        </div>
+                    </div>
+                </div>
+                <div class="col-md-4">
+                    <div class="d-flex align-items-center p-2 rounded" style="border-left: 4px solid #06b6d4; background-color: rgba(6, 182, 212, 0.05);">
+                        <i class="bi bi-square-fill text-info me-2"></i>
+                        <div>
+                            <strong class="d-block" style="font-size: 0.9rem;">Blue Border</strong>
+                            <small class="text-muted">You assigned this to someone else</small>
+                        </div>
+                    </div>
+                </div>
+            </div>
+            <!-- Action Priorities -->
+            <div class="row g-2 mt-3">
+                <div class="col-md-12 mb-2">
+                    <strong class="d-block mb-2" style="font-size: 0.95rem;"><i class="bi bi-flag-fill me-2 text-danger"></i>What Needs Your Attention:</strong>
+                </div>
+                <div class="col-md-3">
+                    <div class="d-flex align-items-start">
+                        <span class="badge bg-danger me-2" style="min-width: 80px;">URGENT</span>
+                        <small class="text-muted">Deadline passed or needs immediate acceptance</small>
+                    </div>
+                </div>
+                <div class="col-md-3">
+                    <div class="d-flex align-items-start">
+                        <span class="badge bg-warning text-dark me-2" style="min-width: 80px;">ACTION</span>
+                        <small class="text-muted">Needs verification or your decision</small>
+                    </div>
+                </div>
+                <div class="col-md-3">
+                    <div class="d-flex align-items-start">
+                        <span class="badge bg-info me-2" style="min-width: 80px;">WAITING</span>
+                        <small class="text-muted">Pending someone else's action</small>
+                    </div>
+                </div>
+                <div class="col-md-3">
+                    <div class="d-flex align-items-start">
+                        <span class="badge bg-success me-2" style="min-width: 80px;">DONE</span>
+                        <small class="text-muted">Verified and approved</small>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
 
 <!-- Admin View Indicator -->
 @if (User.IsInRole("Admin") && string.IsNullOrEmpty(Model.UserIndexNumber))
@@ -544,6 +642,28 @@
 
     <div class="stat-card">
         <div class="stat-content">
+            <div class="stat-icon stat-icon-warning">
+                <i class="bi bi-exclamation-circle"></i>
+            </div>
+            <div class="stat-details">
+                <div class="stat-number @(Model.Summary?.UnverifiedCalls > 0 ? "text-warning" : "text-success")">
+                    @Model.Summary?.UnverifiedCalls.ToString("N0")
+                </div>
+                <div class="stat-label">
+                    Unverified Calls
+                    @if (Model.Summary?.UnverifiedCalls > 0)
+                    {
+                        <span class="text-danger ms-1">
+                            <i class="bi bi-alarm"></i>
+                        </span>
+                    }
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <div class="stat-card">
+        <div class="stat-content">
             <div class="stat-icon stat-icon-info">
                 <i class="bi bi-currency-dollar"></i>
             </div>
@@ -553,38 +673,28 @@
             </div>
         </div>
     </div>
-
-    <div class="stat-card">
-        <div class="stat-content">
-            <div class="stat-icon stat-icon-warning">
-                <i class="bi bi-speedometer"></i>
-            </div>
-            <div class="stat-details">
-                <div class="stat-number">$@(Model.IsOverAllowance ? Model.Summary?.OverageAmount.ToString("N2") : Model.RemainingAllowance.ToString("N2"))</div>
-                <div class="stat-label">@(Model.IsOverAllowance ? "Over Allowance" : "Remaining") / $@Model.AllowanceLimit.ToString("N2")</div>
-            </div>
-        </div>
-    </div>
 </div>
 
 <!-- Filters Card (Collapsible) -->
-<div class="card border-0 shadow-sm mb-4" style="border-radius: 20px;">
-    <div class="card-header bg-white border-0 p-3" style="cursor: pointer; border-radius: 20px 20px 0 0;" data-bs-toggle="collapse" data-bs-target="#filterCollapse">
+<div class="card border-0 shadow-sm mb-2" style="border-radius: 12px;">
+    <div class="card-header bg-white border-0 p-2" style="cursor: pointer; border-radius: 12px 12px 0 0;" data-bs-toggle="collapse" data-bs-target="#filterCollapse">
         <div class="d-flex justify-content-between align-items-center">
-            <h6 class="mb-0 fw-bold">
+            <h6 class="mb-0 fw-bold" style="font-size: 0.9rem;">
                 <i class="bi bi-funnel me-2"></i>Filters
             </h6>
             <i class="bi bi-chevron-down"></i>
         </div>
     </div>
     <div class="collapse" id="filterCollapse">
-        <div class="card-body p-4">
+        <div class="card-body p-3">
             <form method="get" id="filterForm">
-                <div class="row g-3">
+                <div class="row g-2">
                     <!-- Call Type Filter -->
                     <div class="col-md-2">
-                        <label class="form-label text-muted small">Call Type</label>
-                        <select asp-for="FilterAssignmentType" class="form-select border-0 bg-light" style="border-radius: 12px;">
+                        <label class="form-label text-muted mb-1" style="font-size: 0.75rem;" data-bs-toggle="tooltip" title="Filter by who is responsible for the call">
+                            <i class="bi bi-filter-circle me-1"></i>Call Type
+                        </label>
+                        <select asp-for="FilterAssignmentType" class="form-select form-select-sm border-0 bg-light" style="border-radius: 10px;">
                             <option value="">All Calls</option>
                             <option value="own">My Phone Calls</option>
                             <option value="assigned">Reassigned to Me</option>
@@ -593,8 +703,8 @@
 
                     <!-- Month/Year Filter -->
                     <div class="col-md-2">
-                        <label class="form-label text-muted small">Month</label>
-                        <select asp-for="FilterMonth" class="form-select border-0 bg-light" style="border-radius: 12px;">
+                        <label class="form-label text-muted mb-1" style="font-size: 0.75rem;">Month</label>
+                        <select asp-for="FilterMonth" class="form-select form-select-sm border-0 bg-light" style="border-radius: 10px;">
                             <option value="">All</option>
                             @for (int i = 1; i <= 12; i++)
                             {
@@ -604,8 +714,9 @@
                     </div>
 
                     <div class="col-md-2">
-                        <label class="form-label text-muted small">Year</label>
-                        <select asp-for="FilterYear" class="form-select border-0 bg-light" style="border-radius: 12px;">
+                        <label class="form-label text-muted mb-1" style="font-size: 0.75rem;">Year</label>
+                        <select asp-for="FilterYear" class="form-select form-select-sm border-0 bg-light" style="border-radius: 10px;">
+                            <option value="">All</option>
                             @for (int year = DateTime.Now.Year; year >= DateTime.Now.Year - 2; year--)
                             {
                                 <option value="@year">@year</option>
@@ -615,8 +726,8 @@
 
                     <!-- Status Filter -->
                     <div class="col-md-2">
-                        <label class="form-label text-muted small">Status</label>
-                        <select asp-for="FilterStatus" class="form-select border-0 bg-light" style="border-radius: 12px;">
+                        <label class="form-label text-muted mb-1" style="font-size: 0.75rem;">Status</label>
+                        <select asp-for="FilterStatus" class="form-select form-select-sm border-0 bg-light" style="border-radius: 10px;">
                             <option value="">All</option>
                             <option value="unverified">Unverified</option>
                             <option value="verified">Verified</option>
@@ -628,26 +739,22 @@
 
                     <!-- Min Cost Filter -->
                     <div class="col-md-2">
-                        <label class="form-label text-muted small">Min Cost (USD)</label>
-                        <input asp-for="FilterMinCost" type="number" step="0.01" class="form-control border-0 bg-light"
-                               style="border-radius: 12px;" placeholder="0.00" />
+                        <label class="form-label text-muted mb-1" style="font-size: 0.75rem;">Min Cost (USD)</label>
+                        <input asp-for="FilterMinCost" type="number" step="0.01" class="form-control form-control-sm border-0 bg-light"
+                               style="border-radius: 10px;" placeholder="0.00" />
                     </div>
 
                     <!-- Actions -->
                     <div class="col-md-2">
                         <label class="form-label text-muted small">&nbsp;</label>
-                        <div class="d-flex gap-2">
-                            <button type="submit" class="btn btn-primary w-100" style="border-radius: 12px;">
+                        <div class="d-grid gap-1">
+                            <button type="submit" class="btn btn-primary btn-sm" style="border-radius: 10px;">
                                 <i class="bi bi-funnel me-1"></i> Apply
                             </button>
+                            <a asp-page="/Modules/EBillManagement/CallRecords/MyCallLogs" class="btn btn-outline-secondary btn-sm" style="border-radius: 10px;">
+                                <i class="bi bi-x-circle me-1"></i> Clear
+                            </a>
                         </div>
-                    </div>
-                </div>
-                <div class="row mt-2">
-                    <div class="col-md-12">
-                        <a asp-page="/Modules/EBillManagement/CallRecords/MyCallLogs" class="btn btn-outline-secondary btn-sm" style="border-radius: 12px;">
-                            <i class="bi bi-x-circle me-1"></i> Clear Filters
-                        </a>
                     </div>
                 </div>
             </form>
@@ -656,38 +763,37 @@
 </div>
 
 <!-- Call Records Table -->
-<div class="card border-0 shadow-sm" style="border-radius: 16px;">
-    <div class="card-header bg-gradient border-0 py-4" style="background: linear-gradient(135deg, #f8f9fa 0%, #e9ecef 100%); border-radius: 16px 16px 0 0;">
+<div class="card border-0 shadow-sm" style="border-radius: 12px;">
+    <div class="card-header bg-gradient border-0 py-2" style="background: linear-gradient(135deg, #f8f9fa 0%, #e9ecef 100%); border-radius: 12px 12px 0 0;">
         <div class="d-flex justify-content-between align-items-center">
             <div>
-                <h5 class="card-title mb-1 text-dark fw-bold">
-                    <i class="bi bi-list-ul me-2 text-primary"></i>Call Records
+                <h5 class="card-title mb-0 text-dark fw-bold" style="font-size: 1rem;">
+                    <i class="bi bi-list-ul me-2 text-primary"></i>Call Records <span class="text-muted" style="font-size: 0.85rem; font-weight: normal;">(@Model.TotalRecords records)</span>
                 </h5>
-                <p class="text-muted mb-0">@Model.TotalRecords total records</p>
             </div>
             <div class="d-flex gap-2 align-items-center">
-                <button type="button" class="btn btn-success btn-sm" onclick="submitToSupervisor()" style="border-radius: 10px;">
+                <button type="button" class="btn btn-success btn-sm" onclick="submitToSupervisor()" style="border-radius: 10px;" data-bs-toggle="tooltip" title="Submit selected verified calls to your supervisor for approval">
                     <i class="bi bi-send me-1"></i> Submit to Supervisor
                 </button>
                 <div class="btn-group" role="group">
-                    <button type="button" class="btn btn-outline-secondary btn-sm" onclick="expandAllExtensions()" title="Expand all extension groups" style="border-radius: 8px 0 0 8px;">
+                    <button type="button" class="btn btn-outline-secondary btn-sm" onclick="expandAllExtensions()" data-bs-toggle="tooltip" title="Show all call details" style="border-radius: 8px 0 0 8px;">
                         <i class="bi bi-chevron-down"></i>
                     </button>
-                    <button type="button" class="btn btn-outline-secondary btn-sm" onclick="collapseAllExtensions()" title="Collapse all extension groups" style="border-radius: 0 8px 8px 0;">
+                    <button type="button" class="btn btn-outline-secondary btn-sm" onclick="collapseAllExtensions()" data-bs-toggle="tooltip" title="Hide all call details" style="border-radius: 0 8px 8px 0;">
                         <i class="bi bi-chevron-right"></i>
                     </button>
                 </div>
                 <div class="btn-group" role="group">
                     <input type="checkbox" class="btn-check" id="selectAll" autocomplete="off" onclick="toggleSelectAll(this)">
-                    <label class="btn btn-outline-primary btn-sm" for="selectAll" style="border-radius: 8px;">
+                    <label class="btn btn-outline-primary btn-sm" for="selectAll" style="border-radius: 8px;" data-bs-toggle="tooltip" title="Select all unlocked calls">
                         <i class="bi bi-check2-square me-1"></i> Select All
                     </label>
                 </div>
                 <div id="quickVerifyButtons" class="btn-group" role="group" style="display: none;">
-                    <button type="button" class="btn btn-success btn-sm" onclick="quickVerifySelected('Official')" style="border-radius: 8px 0 0 8px;">
+                    <button type="button" class="btn btn-success btn-sm" onclick="quickVerifySelected('Official')" style="border-radius: 8px 0 0 8px;" data-bs-toggle="tooltip" title="Mark selected calls as work-related">
                         <i class="bi bi-briefcase me-1"></i> Mark as Official
                     </button>
-                    <button type="button" class="btn btn-warning btn-sm" onclick="quickVerifySelected('Personal')" style="border-radius: 0 8px 8px 0;">
+                    <button type="button" class="btn btn-warning btn-sm" onclick="quickVerifySelected('Personal')" style="border-radius: 0 8px 8px 0;" data-bs-toggle="tooltip" title="Mark selected calls as personal use">
                         <i class="bi bi-person me-1"></i> Mark as Personal
                     </button>
                 </div>
@@ -705,20 +811,20 @@
                         <th class="border-0 px-3 py-3 text-center" style="font-weight: 600; color: #4a5568; width: 50px;">
                             <input type="checkbox" id="selectAllCheckbox" onclick="toggleSelectAll(this)" style="width: 18px; height: 18px;" />
                         </th>
+                        <th class="border-0 px-3 py-3 text-center" style="font-weight: 600; color: #4a5568; text-transform: uppercase; font-size: 12px; letter-spacing: 0.5px; width: 100px;" data-bs-toggle="tooltip" title="Priority of action needed">
+                            <i class="bi bi-flag-fill me-2"></i>Priority
+                        </th>
                         <th class="border-0 px-3 py-3" style="font-weight: 600; color: #4a5568; text-transform: uppercase; font-size: 12px; letter-spacing: 0.5px;">
                             <i class="bi bi-calendar me-2"></i>
                             <a asp-page="/Modules/EBillManagement/CallRecords/MyCallLogs"
                                asp-route-sortBy="CallDate"
                                asp-route-sortDescending="@(!Model.SortDescending)"
                                class="text-decoration-none" style="color: #4a5568;">
-                                Date <i class="bi bi-arrow-@(Model.SortBy == "CallDate" ? (Model.SortDescending ? "down" : "up") : "down-up")"></i>
+                                Call Period <i class="bi bi-arrow-@(Model.SortBy == "CallDate" ? (Model.SortDescending ? "down" : "up") : "down-up")"></i>
                             </a>
                         </th>
                         <th class="border-0 px-3 py-3" style="font-weight: 600; color: #4a5568; text-transform: uppercase; font-size: 12px; letter-spacing: 0.5px;">
                             <i class="bi bi-telephone me-2"></i>Extension
-                        </th>
-                        <th class="border-0 px-3 py-3" style="font-weight: 600; color: #4a5568; text-transform: uppercase; font-size: 12px; letter-spacing: 0.5px;">
-                            <i class="bi bi-star me-2"></i>Class of Service
                         </th>
                         <th class="border-0 px-3 py-3" style="font-weight: 600; color: #4a5568; text-transform: uppercase; font-size: 12px; letter-spacing: 0.5px;">
                             <i class="bi bi-geo-alt me-2"></i>Destination
@@ -749,6 +855,9 @@
                         </th>
                         <th class="border-0 px-3 py-3" style="font-weight: 600; color: #4a5568; text-transform: uppercase; font-size: 12px; letter-spacing: 0.5px;">
                             <i class="bi bi-cash me-2"></i>Cost (KSH)
+                        </th>
+                        <th class="border-0 px-3 py-3" style="font-weight: 600; color: #4a5568; text-transform: uppercase; font-size: 12px; letter-spacing: 0.5px;" data-bs-toggle="tooltip" title="Amount recovered due to non-verification or policy">
+                            <i class="bi bi-arrow-repeat me-2"></i>Recovered
                         </th>
                         <th class="border-0 px-3 py-3 text-center" style="font-weight: 600; color: #4a5568; text-transform: uppercase; font-size: 12px; letter-spacing: 0.5px;">
                             <i class="bi bi-shield-check me-2"></i>Status
@@ -844,50 +953,109 @@
                                         // Check if call has been submitted to supervisor
                                         var isSubmitted = Model.SubmittedCallIds.Contains(call.Id);
 
-                                        // Only lock if call is assigned out and pending acceptance OR if already submitted
-                                        var isLocked = isSubmitted ||
+                                        // Check if verification deadline has passed
+                                        var isExpired = call.VerificationPeriod.HasValue && call.VerificationPeriod.Value < DateTime.UtcNow;
+
+                                        // Check if supervisor has approved the call
+                                        var callApprovalStatus = isSubmitted && Model.VerificationStatuses.ContainsKey(call.Id)
+                                            ? Model.VerificationStatuses[call.Id]
+                                            : "";
+                                        var isSupervisorApproved = callApprovalStatus == "Approved" || callApprovalStatus == "PartiallyApproved";
+
+                                        // Lock if:
+                                        // 1. Deadline has expired, OR
+                                        // 2. Assigned out and pending acceptance, OR
+                                        // 3. Submitted AND supervisor has approved/partially approved
+                                        // Staff CAN change if submitted but not yet approved by supervisor (Pending/Rejected/Reverted)
+                                        var isLocked = isExpired ||
                                                       (call.AssignmentStatus == "Pending" &&
                                                        call.ResponsibleIndexNumber == Model.UserIndexNumber &&
-                                                       call.PayingIndexNumber != Model.UserIndexNumber);
+                                                       call.PayingIndexNumber != Model.UserIndexNumber) ||
+                                                      (isSubmitted && isSupervisorApproved);
                                     }
                                     <input type="checkbox" class="call-checkbox" value="@call.Id"
                                            data-verified="@call.IsVerified.ToString().ToLower()"
                                            data-locked="@isLocked.ToString().ToLower()"
                                            data-submitted="@isSubmitted.ToString().ToLower()"
+                                           data-approval-status="@callApprovalStatus"
+                                           data-expired="@isExpired.ToString().ToLower()"
                                            data-extension="@extension.Replace(" ", "_")"
                                            onchange="updateQuickVerifyButtons(); updateExtensionCheckbox('@extension.Replace(" ", "_")')"
                                            @(isLocked ? "disabled" : "") />
                                 </td>
+                                <td class="text-center">
+                                    @{
+                                        // Determine priority based on status
+                                        string priorityBadge = "";
+                                        string priorityIcon = "";
+                                        string priorityTooltip = "";
+
+                                        // URGENT: Expired deadline or pending acceptance
+                                        if (isExpired && !call.IsVerified)
+                                        {
+                                            priorityBadge = "bg-danger";
+                                            priorityIcon = "bi-exclamation-triangle-fill";
+                                            priorityTooltip = "URGENT: Verification deadline has passed";
+                                        }
+                                        else if (call.AssignmentStatus == "Pending" && call.PayingIndexNumber == Model.UserIndexNumber)
+                                        {
+                                            priorityBadge = "bg-danger";
+                                            priorityIcon = "bi-bell-fill";
+                                            priorityTooltip = "URGENT: Accept or reject this assignment";
+                                        }
+                                        // ACTION: Needs verification or decision
+                                        else if (!call.IsVerified && !isExpired)
+                                        {
+                                            priorityBadge = "bg-warning text-dark";
+                                            priorityIcon = "bi-pencil-square";
+                                            priorityTooltip = "ACTION: Needs verification";
+                                        }
+                                        // ACTION: Verified but not yet submitted to supervisor
+                                        else if (call.IsVerified && !isSubmitted)
+                                        {
+                                            priorityBadge = "bg-warning text-dark";
+                                            priorityIcon = "bi-upload";
+                                            priorityTooltip = "ACTION: Ready to submit to supervisor";
+                                        }
+                                        // WAITING: Assigned out and pending
+                                        else if (call.AssignmentStatus == "Pending" && call.ResponsibleIndexNumber == Model.UserIndexNumber)
+                                        {
+                                            priorityBadge = "bg-info";
+                                            priorityIcon = "bi-clock-history";
+                                            priorityTooltip = "WAITING: Pending acceptance from assignee";
+                                        }
+                                        // DONE: Verified and approved
+                                        else if (call.IsVerified && isSubmitted && Model.VerificationStatuses.ContainsKey(call.Id) && Model.VerificationStatuses[call.Id] == "Approved")
+                                        {
+                                            priorityBadge = "bg-success";
+                                            priorityIcon = "bi-check-circle-fill";
+                                            priorityTooltip = "DONE: Verified and approved";
+                                        }
+                                        // WAITING: Verified and submitted, pending supervisor approval
+                                        else if (call.IsVerified && isSubmitted)
+                                        {
+                                            priorityBadge = "bg-info";
+                                            priorityIcon = "bi-hourglass-split";
+                                            priorityTooltip = "WAITING: Verified, pending supervisor approval";
+                                        }
+                                        else
+                                        {
+                                            priorityBadge = "bg-secondary";
+                                            priorityIcon = "bi-dash-circle";
+                                            priorityTooltip = "No action needed";
+                                        }
+                                    }
+                                    <span class="badge @priorityBadge" data-bs-toggle="tooltip" title="@priorityTooltip" style="font-size: 0.75rem; padding: 0.35rem 0.5rem;">
+                                        <i class="bi @priorityIcon"></i>
+                                    </span>
+                                </td>
                                 <td>
-                                    <div>@call.CallDate.ToString("MMM dd, yyyy")</div>
-                                    <small class="text-muted">@call.CallDate.ToString("hh:mm tt")</small>
+                                    @{
+                                        var monthName = new DateTime(call.CallYear, call.CallMonth, 1).ToString("MMMM");
+                                    }
+                                    <div>@monthName @call.CallYear</div>
                                 </td>
                                 <td>@call.ExtensionNumber</td>
-                                <td>
-                                    @if (call.UserPhone?.ClassOfService != null)
-                                    {
-                                        <div class="fw-semibold">@call.UserPhone.ClassOfService.Class</div>
-                                        <small class="text-muted">@call.UserPhone.ClassOfService.Service</small>
-                                        @if (!string.IsNullOrEmpty(call.UserPhone.ClassOfService.AirtimeAllowance))
-                                        {
-                                            <br />
-                                            <small class="text-success">
-                                                <i class="bi bi-telephone"></i> @call.UserPhone.ClassOfService.AirtimeAllowance
-                                            </small>
-                                        }
-                                        @if (!string.IsNullOrEmpty(call.UserPhone.ClassOfService.DataAllowance))
-                                        {
-                                            <br />
-                                            <small class="text-info">
-                                                <i class="bi bi-wifi"></i> @call.UserPhone.ClassOfService.DataAllowance
-                                            </small>
-                                        }
-                                    }
-                                    else
-                                    {
-                                        <span class="text-muted">-</span>
-                                    }
-                                </td>
                                 <td>
                                     <div>@call.CallDestination</div>
                                     <small class="text-muted">@call.CallDestinationType</small>
@@ -899,57 +1067,43 @@
                                 </td>
                                 <td>
                                     @* Display assignment status based on stored AssignmentStatus field *@
-                                    @if (call.AssignmentStatus == "Pending" && call.PayingIndexNumber == Model.UserIndexNumber)
-                                    {
-                                        @* Call assigned to me, awaiting my acceptance *@
-                                        <span class="badge bg-warning bg-opacity-10 text-warning">
-                                            <i class="bi bi-hourglass me-1"></i>Pending Your Acceptance
-                                        </span>
-                                        @if (call.ResponsibleUser != null)
+                                    <div class="d-flex flex-column gap-1">
+                                        @if (call.AssignmentStatus == "Pending" && call.PayingIndexNumber == Model.UserIndexNumber)
                                         {
-                                            <br /><small class="text-muted">From: @call.ResponsibleUser.FirstName @call.ResponsibleUser.LastName</small>
+                                            @* Call assigned to me, awaiting my acceptance *@
+                                            <span class="badge bg-warning bg-opacity-10 text-warning" data-bs-toggle="tooltip" title="From: @(call.ResponsibleUser?.FirstName ?? "") @(call.ResponsibleUser?.LastName ?? "")">
+                                                <i class="bi bi-bell-fill me-1"></i>Needs Acceptance
+                                            </span>
                                         }
-                                    }
-                                    else if (call.AssignmentStatus == "Accepted" && call.PayingIndexNumber == Model.UserIndexNumber)
-                                    {
-                                        @* Call assigned to me and I accepted it *@
-                                        <span class="badge bg-warning bg-opacity-10 text-warning">
-                                            <i class="bi bi-arrow-down-circle me-1"></i>Reassigned to You
-                                        </span>
-                                        @if (call.ResponsibleUser != null)
+                                        else if (call.AssignmentStatus == "Accepted" && call.PayingIndexNumber == Model.UserIndexNumber)
                                         {
-                                            <br /><small class="text-muted">From: @call.ResponsibleUser.FirstName @call.ResponsibleUser.LastName</small>
+                                            @* Call assigned to me and I accepted it *@
+                                            <span class="badge bg-warning bg-opacity-10 text-warning" data-bs-toggle="tooltip" title="From: @(call.ResponsibleUser?.FirstName ?? "") @(call.ResponsibleUser?.LastName ?? "")">
+                                                <i class="bi bi-arrow-down-circle-fill me-1"></i>Assigned to Me
+                                            </span>
                                         }
-                                    }
-                                    else if (call.AssignmentStatus == "Pending" && call.ResponsibleIndexNumber == Model.UserIndexNumber)
-                                    {
-                                        @* I assigned this call out, awaiting acceptance *@
-                                        <span class="badge bg-info bg-opacity-10 text-info">
-                                            <i class="bi bi-arrow-up-circle me-1"></i>Assigned Out (Pending)
-                                        </span>
-                                        @if (call.PayingUser != null)
+                                        else if (call.AssignmentStatus == "Pending" && call.ResponsibleIndexNumber == Model.UserIndexNumber)
                                         {
-                                            <br /><small class="text-muted">To: @call.PayingUser.FirstName @call.PayingUser.LastName</small>
+                                            @* I assigned this call out, awaiting acceptance *@
+                                            <span class="badge bg-info bg-opacity-10 text-info" data-bs-toggle="tooltip" title="To: @(call.PayingUser?.FirstName ?? "") @(call.PayingUser?.LastName ?? "") - Pending">
+                                                <i class="bi bi-arrow-up-circle me-1"></i>Assigned Out
+                                            </span>
                                         }
-                                    }
-                                    else if (call.AssignmentStatus == "Accepted" && call.ResponsibleIndexNumber == Model.UserIndexNumber)
-                                    {
-                                        @* I assigned this call out and it was accepted *@
-                                        <span class="badge bg-info bg-opacity-10 text-info">
-                                            <i class="bi bi-arrow-up-circle me-1"></i>Assigned Out
-                                        </span>
-                                        @if (call.PayingUser != null)
+                                        else if (call.AssignmentStatus == "Accepted" && call.ResponsibleIndexNumber == Model.UserIndexNumber)
                                         {
-                                            <br /><small class="text-muted">To: @call.PayingUser.FirstName @call.PayingUser.LastName</small>
+                                            @* I assigned this call out and it was accepted *@
+                                            <span class="badge bg-info bg-opacity-10 text-info" data-bs-toggle="tooltip" title="To: @(call.PayingUser?.FirstName ?? "") @(call.PayingUser?.LastName ?? "") - Accepted">
+                                                <i class="bi bi-arrow-up-circle-fill me-1"></i>Assigned Out
+                                            </span>
                                         }
-                                    }
-                                    else
-                                    {
-                                        @* Status = "None" or "Rejected" - belongs to original phone owner *@
-                                        <span class="badge bg-success bg-opacity-10 text-success">
-                                            <i class="bi bi-person-check me-1"></i>My Phone Call
-                                        </span>
-                                    }
+                                        else
+                                        {
+                                            @* Status = "None" or "Rejected" - belongs to original phone owner *@
+                                            <span class="badge bg-success bg-opacity-10 text-success" data-bs-toggle="tooltip" title="Your phone call">
+                                                <i class="bi bi-person-check-fill me-1"></i>My Call
+                                            </span>
+                                        }
+                                    </div>
                                 </td>
                                 <td>@call.GetDurationFormatted()</td>
                                 <td>
@@ -963,63 +1117,94 @@
                                     <div class="fw-semibold">KSh @call.CallCostKSHS.ToString("N2")</div>
                                 </td>
                                 <td>
-                                    @if (call.IsVerified)
+                                    @if (call.RecoveryAmount.HasValue && call.RecoveryAmount.Value > 0)
                                     {
-                                        <span class="badge bg-success">
-                                            <i class="bi bi-check-circle me-1"></i>Verified
-                                        </span>
-                                        @if (!string.IsNullOrEmpty(call.VerificationType))
+                                        var currencySymbol = call.SourceSystem?.ToUpper() switch
                                         {
-                                            <br /><small class="text-muted">@call.VerificationType</small>
+                                            "PRIVATEWIRES" => "$",
+                                            "PRIVATEWIRE" => "$",
+                                            "SAFARICOM" => "KSh ",
+                                            "AIRTEL" => "KSh ",
+                                            "PSTN" => "KSh ",
+                                            _ => "KSh "
+                                        };
+                                        var currencyName = call.SourceSystem?.ToUpper() switch
+                                        {
+                                            "PRIVATEWIRES" => "USD",
+                                            "PRIVATEWIRE" => "USD",
+                                            _ => "KSH"
+                                        };
+                                        <div class="fw-semibold text-danger" data-bs-toggle="tooltip" title="Amount recovered in @currencyName">
+                                            @currencySymbol@call.RecoveryAmount.Value.ToString("N2")
+                                        </div>
+                                        @if (!string.IsNullOrEmpty(call.RecoveryStatus) && call.RecoveryStatus == "Processed")
+                                        {
+                                            <small class="text-muted" style="font-size: 0.7rem;">
+                                                <i class="bi bi-arrow-repeat"></i> Recovered
+                                            </small>
                                         }
-                                    }
-                                    else if (call.VerificationPeriod.HasValue && call.VerificationPeriod.Value < DateTime.UtcNow)
-                                    {
-                                        <span class="badge bg-danger">
-                                            <i class="bi bi-clock me-1"></i>Overdue
-                                        </span>
                                     }
                                     else
                                     {
-                                        <span class="badge bg-warning">
-                                            <i class="bi bi-hourglass me-1"></i>Pending
-                                        </span>
+                                        <span class="text-muted">-</span>
                                     }
-
-                                    @* Show verification status based on approval status *@
-                                    @if (isSubmitted && Model.VerificationStatuses.ContainsKey(call.Id))
-                                    {
-                                        var approvalStatus = Model.VerificationStatuses[call.Id];
-                                        <br />
-                                        @switch (approvalStatus)
+                                </td>
+                                <td>
+                                    <div class="d-flex flex-column gap-1">
+                                        @* Verification Status *@
+                                        @if (call.IsVerified)
                                         {
-                                            case "Approved":
-                                                <span class="badge bg-success bg-opacity-10 text-success mt-1">
-                                                    <i class="bi bi-check-circle me-1"></i>Approved by Supervisor
-                                                </span>
-                                                break;
-                                            case "PartiallyApproved":
-                                                <span class="badge bg-info bg-opacity-10 text-info mt-1">
-                                                    <i class="bi bi-check-circle-fill me-1"></i>Partially Approved
-                                                </span>
-                                                break;
-                                            case "Rejected":
-                                                <span class="badge bg-danger bg-opacity-10 text-danger mt-1">
-                                                    <i class="bi bi-x-circle me-1"></i>Rejected by Supervisor
-                                                </span>
-                                                break;
-                                            case "Reverted":
-                                                <span class="badge bg-warning bg-opacity-10 text-warning mt-1">
-                                                    <i class="bi bi-arrow-counterclockwise me-1"></i>Reverted - Needs Resubmission
-                                                </span>
-                                                break;
-                                            default: // "Pending"
-                                                <span class="badge bg-primary bg-opacity-10 text-primary mt-1">
-                                                    <i class="bi bi-send-check me-1"></i>Pending Supervisor Approval
-                                                </span>
-                                                break;
+                                            <span class="badge bg-success" data-bs-toggle="tooltip" title="Verified as @call.VerificationType">
+                                                <i class="bi bi-check-circle-fill me-1"></i>@call.VerificationType
+                                            </span>
                                         }
-                                    }
+                                        else if (call.VerificationPeriod.HasValue && call.VerificationPeriod.Value < DateTime.UtcNow)
+                                        {
+                                            <span class="badge bg-danger" data-bs-toggle="tooltip" title="Verification deadline: @call.VerificationPeriod.Value.ToString("MMM dd, yyyy")">
+                                                <i class="bi bi-exclamation-triangle-fill me-1"></i>Expired
+                                            </span>
+                                        }
+                                        else
+                                        {
+                                            <span class="badge bg-warning text-dark" data-bs-toggle="tooltip" title="Deadline: @(call.VerificationPeriod.HasValue ? call.VerificationPeriod.Value.ToString("MMM dd, yyyy") : "Not set")">
+                                                <i class="bi bi-hourglass-split me-1"></i>Unverified
+                                            </span>
+                                        }
+
+                                        @* Approval Status - only if submitted *@
+                                        @if (isSubmitted && Model.VerificationStatuses.ContainsKey(call.Id))
+                                        {
+                                            var approvalStatus = Model.VerificationStatuses[call.Id];
+                                            @switch (approvalStatus)
+                                            {
+                                                case "Approved":
+                                                    <span class="badge bg-success bg-opacity-10 text-success" data-bs-toggle="tooltip" title="Approved by supervisor">
+                                                        <i class="bi bi-patch-check-fill me-1"></i>Approved
+                                                    </span>
+                                                    break;
+                                                case "PartiallyApproved":
+                                                    <span class="badge bg-info bg-opacity-10 text-info" data-bs-toggle="tooltip" title="Partially approved by supervisor">
+                                                        <i class="bi bi-check-circle me-1"></i>Partial
+                                                    </span>
+                                                    break;
+                                                case "Rejected":
+                                                    <span class="badge bg-danger bg-opacity-10 text-danger" data-bs-toggle="tooltip" title="Rejected by supervisor">
+                                                        <i class="bi bi-x-circle-fill me-1"></i>Rejected
+                                                    </span>
+                                                    break;
+                                                case "Reverted":
+                                                    <span class="badge bg-warning bg-opacity-10 text-warning" data-bs-toggle="tooltip" title="Reverted - needs resubmission">
+                                                        <i class="bi bi-arrow-counterclockwise me-1"></i>Reverted
+                                                    </span>
+                                                    break;
+                                                default: // "Pending"
+                                                    <span class="badge bg-primary bg-opacity-10 text-primary" data-bs-toggle="tooltip" title="Submitted, awaiting supervisor review">
+                                                        <i class="bi bi-send-check me-1"></i>Submitted
+                                                    </span>
+                                                    break;
+                                            }
+                                        }
+                                    </div>
                                 </td>
                                 <td class="text-end">
                                     @* Check if call is assigned TO me and pending my acceptance *@
@@ -1044,6 +1229,18 @@
                                             </button>
                                         </div>
                                     }
+                                    @* Check if verification deadline has expired *@
+                                    @if (isExpired && !call.IsVerified)
+                                    {
+                                        <div class="d-flex flex-column gap-1 align-items-center">
+                                            <span class="badge bg-danger" style="font-size: 0.85rem; padding: 0.5rem 0.75rem; border-radius: 8px;">
+                                                <i class="bi bi-exclamation-triangle-fill me-1"></i>EXPIRED
+                                            </span>
+                                            <small class="text-danger fw-semibold" style="font-size: 0.7rem;">
+                                                @call.VerificationPeriod.Value.ToString("MMM dd, yyyy")
+                                            </small>
+                                        </div>
+                                    }
                                     @* Check if call is assigned out and pending - cannot verify *@
                                     else if (call.AssignmentStatus == "Pending" &&
                                              call.ResponsibleIndexNumber == Model.UserIndexNumber &&
@@ -1057,14 +1254,68 @@
                                             <i class="bi bi-lock me-1"></i>Locked
                                         </button>
                                     }
+                                    @* Check if supervisor has approved - locked from changes *@
+                                    else if (isSubmitted && isSupervisorApproved)
+                                    {
+                                        <button type="button"
+                                                class="btn btn-sm btn-success"
+                                                style="border-radius: 8px; opacity: 0.7;"
+                                                disabled
+                                                title="Approved by supervisor - cannot be changed">
+                                            <i class="bi bi-shield-check me-1"></i>Approved
+                                        </button>
+                                    }
                                     else
                                     {
-                                        <a asp-page="/Modules/EBillManagement/CallRecords/Verify"
-                                           asp-route-id="@call.Id"
-                                           class="btn btn-sm @(call.IsVerified ? "btn-outline-primary" : "btn-primary")"
-                                           style="border-radius: 8px;">
-                                            <i class="bi bi-@(call.IsVerified ? "eye" : "check-circle") me-1"></i>@(call.IsVerified ? "View" : "Verify")
-                                        </a>
+                                        <div class="d-flex gap-2 align-items-center">
+                                            @* Quick Verification Dropdown *@
+                                            @if (!call.IsVerified)
+                                            {
+                                                <select class="form-select form-select-sm"
+                                                        style="width: 130px; border-radius: 8px; font-size: 0.875rem;"
+                                                        onchange="quickVerifyCall(@call.Id, this.value, '@call.CallNumber', '@call.CallCostUSD.ToString("N2")', '@call.CallCostKSHS.ToString("N2")', '@((call.CallDuration / 60.0m).ToString("N2"))', '@call.CallDate.ToString("MMM dd")')"
+                                                        data-call-id="@call.Id">
+                                                    <option value="" selected>Mark as...</option>
+                                                    <option value="Official" style="color: #10b981;">Official</option>
+                                                    <option value="Personal" style="color: #f59e0b;">Personal</option>
+                                                </select>
+                                            }
+                                            else
+                                            {
+                                                // Show light blue background if submitted but pending supervisor approval
+                                                var bgColor = call.VerificationType == "Official" ? "#d1fae5" : "#fef3c7";
+                                                if (isSubmitted && !isSupervisorApproved)
+                                                {
+                                                    bgColor = "#dbeafe"; // Light blue to indicate submitted but editable
+                                                }
+                                                <select class="form-select form-select-sm"
+                                                        style="width: 130px; border-radius: 8px; font-size: 0.875rem; background-color: @bgColor; @(isSubmitted && !isSupervisorApproved ? "border: 2px solid #3b82f6;" : "")"
+                                                        onchange="quickVerifyCall(@call.Id, this.value, '@call.CallNumber', '@call.CallCostUSD.ToString("N2")', '@call.CallCostKSHS.ToString("N2")', '@((call.CallDuration / 60.0m).ToString("N2"))', '@call.CallDate.ToString("MMM dd")')"
+                                                        data-call-id="@call.Id"
+                                                        title="@(isSubmitted && !isSupervisorApproved ? "Submitted but can still be changed before supervisor approval" : "")">
+                                                    <option value="" disabled>Change to...</option>
+                                                    @if (call.VerificationType == "Official")
+                                                    {
+                                                        <option value="Official" selected style="color: #10b981;">Official</option>
+                                                        <option value="Personal" style="color: #f59e0b;">Personal</option>
+                                                    }
+                                                    else
+                                                    {
+                                                        <option value="Official" style="color: #10b981;">Official</option>
+                                                        <option value="Personal" selected style="color: #f59e0b;">Personal</option>
+                                                    }
+                                                </select>
+                                            }
+
+                                            @* View Details Button *@
+                                            <a asp-page="/Modules/EBillManagement/CallRecords/Verify"
+                                               asp-route-id="@call.Id"
+                                               class="btn btn-sm btn-outline-secondary"
+                                               style="border-radius: 8px;"
+                                               title="View details">
+                                                <i class="bi bi-eye"></i>
+                                            </a>
+                                        </div>
                                     }
                                 </td>
                             </tr>
@@ -1089,7 +1340,7 @@
                     else
                     {
                         <tr>
-                            <td colspan="12" class="text-center py-5">
+                            <td colspan="13" class="text-center py-5">
                                 <i class="bi bi-inbox display-4 text-muted"></i>
                                 <p class="text-muted mt-3">No call records found for the selected filters.</p>
                             </td>
@@ -1331,6 +1582,177 @@
     </div>
 </div>
 
+@* Quick Verify Confirmation Modal - Official *@
+<div class="modal fade" id="confirmOfficialModal" tabindex="-1" aria-labelledby="confirmOfficialLabel" aria-hidden="true">
+    <div class="modal-dialog modal-dialog-centered">
+        <div class="modal-content" style="border-radius: 16px; border: none; box-shadow: 0 10px 40px rgba(0,0,0,0.15);">
+            <div class="modal-header" style="background: linear-gradient(135deg, #10b981 0%, #059669 100%); border-bottom: none; padding: 1.5rem; border-radius: 16px 16px 0 0;">
+                <div class="d-flex align-items-center gap-3">
+                    <div class="bg-white rounded-circle d-flex align-items-center justify-content-center" style="width: 48px; height: 48px;">
+                        <i class="bi bi-briefcase-fill text-success" style="font-size: 1.5rem;"></i>
+                    </div>
+                    <div>
+                        <h5 class="modal-title fw-bold text-white mb-0" id="confirmOfficialLabel">Mark as Official</h5>
+                        <p class="text-white text-opacity-75 small mb-0">Work-related call verification</p>
+                    </div>
+                </div>
+                <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal" aria-label="Close"></button>
+            </div>
+            <div class="modal-body" style="padding: 1.5rem;">
+                <div class="alert alert-success border-0" style="background-color: #d1fae5;">
+                    <div class="d-flex align-items-start">
+                        <i class="bi bi-info-circle-fill text-success me-2 mt-1"></i>
+                        <div>
+                            <strong>What this means:</strong>
+                            <ul class="mb-0 mt-2">
+                                <li>These calls will be marked as work-related</li>
+                                <li>They will be approved and no recovery will be initiated</li>
+                                <li>This action will be submitted to your supervisor for approval</li>
+                            </ul>
+                        </div>
+                    </div>
+                </div>
+                <div class="border-start border-4 border-success ps-3 py-2 bg-light rounded">
+                    <p class="mb-1"><strong><i class="bi bi-check-square me-2"></i>Selected Calls:</strong></p>
+                    <p class="mb-0 fs-4 fw-bold text-success" id="officialCallCount">0 calls</p>
+                </div>
+            </div>
+            <div class="modal-footer" style="border-top: 1px solid #e5e7eb; padding: 1rem 1.5rem;">
+                <button type="button" class="btn btn-outline-secondary" data-bs-dismiss="modal" style="border-radius: 8px;">
+                    <i class="bi bi-x-lg me-1"></i>Cancel
+                </button>
+                <button type="button" class="btn btn-success" onclick="confirmQuickVerifyOfficial()" style="border-radius: 8px;">
+                    <i class="bi bi-check-lg me-1"></i>Confirm & Mark as Official
+                </button>
+            </div>
+        </div>
+    </div>
+</div>
+
+@* Quick Verify Confirmation Modal - Personal *@
+<div class="modal fade" id="confirmPersonalModal" tabindex="-1" aria-labelledby="confirmPersonalLabel" aria-hidden="true">
+    <div class="modal-dialog modal-dialog-centered">
+        <div class="modal-content" style="border-radius: 16px; border: none; box-shadow: 0 10px 40px rgba(0,0,0,0.15);">
+            <div class="modal-header" style="background: linear-gradient(135deg, #f59e0b 0%, #d97706 100%); border-bottom: none; padding: 1.5rem; border-radius: 16px 16px 0 0;">
+                <div class="d-flex align-items-center gap-3">
+                    <div class="bg-white rounded-circle d-flex align-items-center justify-content-center" style="width: 48px; height: 48px;">
+                        <i class="bi bi-person-fill text-warning" style="font-size: 1.5rem;"></i>
+                    </div>
+                    <div>
+                        <h5 class="modal-title fw-bold text-white mb-0" id="confirmPersonalLabel">Mark as Personal</h5>
+                        <p class="text-white text-opacity-75 small mb-0">Personal call verification</p>
+                    </div>
+                </div>
+                <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal" aria-label="Close"></button>
+            </div>
+            <div class="modal-body" style="padding: 1.5rem;">
+                <div class="alert alert-warning border-0" style="background-color: #fef3c7;">
+                    <div class="d-flex align-items-start">
+                        <i class="bi bi-exclamation-triangle-fill text-warning me-2 mt-1"></i>
+                        <div>
+                            <strong>What this means:</strong>
+                            <ul class="mb-0 mt-2">
+                                <li>These calls will be marked as personal use</li>
+                                <li>You will be responsible for reimbursing the call charges</li>
+                                <li>This will be submitted to your supervisor for approval</li>
+                            </ul>
+                        </div>
+                    </div>
+                </div>
+                <div class="border-start border-4 border-warning ps-3 py-2 bg-light rounded">
+                    <p class="mb-1"><strong><i class="bi bi-check-square me-2"></i>Selected Calls:</strong></p>
+                    <p class="mb-0 fs-4 fw-bold text-warning" id="personalCallCount">0 calls</p>
+                </div>
+            </div>
+            <div class="modal-footer" style="border-top: 1px solid #e5e7eb; padding: 1rem 1.5rem;">
+                <button type="button" class="btn btn-outline-secondary" data-bs-dismiss="modal" style="border-radius: 8px;">
+                    <i class="bi bi-x-lg me-1"></i>Cancel
+                </button>
+                <button type="button" class="btn btn-warning" onclick="confirmQuickVerifyPersonal()" style="border-radius: 8px;">
+                    <i class="bi bi-check-lg me-1"></i>Confirm & Mark as Personal
+                </button>
+            </div>
+        </div>
+    </div>
+</div>
+
+@* Quick Verification Modal *@
+<div class="modal fade" id="quickVerifyModal" tabindex="-1" aria-labelledby="quickVerifyModalLabel" aria-hidden="true">
+    <div class="modal-dialog modal-dialog-centered">
+        <div class="modal-content" style="border-radius: 16px; border: none; box-shadow: 0 10px 40px rgba(0,0,0,0.15);">
+            <div class="modal-header" id="quickVerifyModalHeader" style="border-bottom: 2px solid #e5e7eb; padding: 1.5rem; border-radius: 16px 16px 0 0;">
+                <h5 class="modal-title fw-bold" id="quickVerifyModalLabel">
+                    <i class="bi bi-check-circle me-2" id="quickVerifyIcon"></i><span id="quickVerifyTitle">Verify Call</span>
+                </h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+            </div>
+            <div class="modal-body" style="padding: 1.5rem;">
+                <p class="mb-3" id="quickVerifyMessage" style="font-size: 1.05rem; color: #4b5563;"></p>
+
+                <div class="card border-0" style="background: linear-gradient(135deg, #f8f9fa 0%, #ffffff 100%); border-radius: 12px;">
+                    <div class="card-body p-3">
+                        <h6 class="fw-bold mb-3" style="color: #1f2937;">
+                            <i class="bi bi-info-circle me-2 text-primary"></i>Call Details
+                        </h6>
+                        <div class="row g-2">
+                            <div class="col-6">
+                                <div class="d-flex align-items-center gap-2">
+                                    <i class="bi bi-telephone-fill text-primary"></i>
+                                    <div>
+                                        <small class="text-muted d-block" style="font-size: 0.75rem;">Number</small>
+                                        <strong id="verifyCallNumber" style="font-size: 0.95rem;">-</strong>
+                                    </div>
+                                </div>
+                            </div>
+                            <div class="col-6">
+                                <div class="d-flex align-items-center gap-2">
+                                    <i class="bi bi-currency-dollar text-success"></i>
+                                    <div>
+                                        <small class="text-muted d-block" style="font-size: 0.75rem;">Cost</small>
+                                        <strong id="verifyCallCost" style="font-size: 0.95rem;">-</strong>
+                                    </div>
+                                </div>
+                            </div>
+                            <div class="col-6">
+                                <div class="d-flex align-items-center gap-2">
+                                    <i class="bi bi-clock-fill text-warning"></i>
+                                    <div>
+                                        <small class="text-muted d-block" style="font-size: 0.75rem;">Duration</small>
+                                        <strong id="verifyCallDuration" style="font-size: 0.95rem;">-</strong>
+                                    </div>
+                                </div>
+                            </div>
+                            <div class="col-6">
+                                <div class="d-flex align-items-center gap-2">
+                                    <i class="bi bi-calendar-fill text-info"></i>
+                                    <div>
+                                        <small class="text-muted d-block" style="font-size: 0.75rem;">Date</small>
+                                        <strong id="verifyCallDate" style="font-size: 0.95rem;">-</strong>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="alert mt-3 mb-0" id="quickVerifyNote" style="border-radius: 10px; border: none;">
+                    <i class="bi me-2" id="quickVerifyNoteIcon"></i>
+                    <span id="quickVerifyNoteText"></span>
+                </div>
+            </div>
+            <div class="modal-footer" style="border-top: 2px solid #e5e7eb; padding: 1rem 1.5rem;">
+                <button type="button" class="btn btn-light" data-bs-dismiss="modal" style="border-radius: 10px; padding: 0.6rem 1.5rem;">
+                    <i class="bi bi-x-circle me-1"></i>Cancel
+                </button>
+                <button type="button" class="btn" id="confirmQuickVerifyBtn" onclick="confirmQuickVerify()" style="border-radius: 10px; padding: 0.6rem 1.5rem;">
+                    <i class="bi bi-check-circle me-1"></i>
+                    <span id="confirmVerifyBtnText">Confirm</span>
+                </button>
+            </div>
+        </div>
+    </div>
+</div>
+
 @section Scripts {
     <script>
         // Extension collapse/expand functionality
@@ -1462,11 +1884,46 @@
         }
 
         function submitToSupervisor() {
-            const selectedIds = Array.from(document.querySelectorAll('.call-checkbox:checked'))
-                .map(cb => cb.value);
+            const selectedCheckboxes = Array.from(document.querySelectorAll('.call-checkbox:checked'));
+
+            if (selectedCheckboxes.length === 0) {
+                alert('Please select at least one call to submit to supervisor.');
+                return;
+            }
+
+            // Filter by different criteria
+            const expiredCalls = selectedCheckboxes.filter(cb => cb.getAttribute('data-expired') === 'true');
+            const alreadySubmittedCalls = selectedCheckboxes.filter(cb => {
+                const isSubmitted = cb.getAttribute('data-submitted') === 'true';
+                const approvalStatus = cb.getAttribute('data-approval-status');
+                // Call is already submitted if it's submitted AND has Pending/Approved/PartiallyApproved status
+                return isSubmitted && (approvalStatus === 'Pending' || approvalStatus === 'Approved' || approvalStatus === 'PartiallyApproved');
+            });
+            const validCalls = selectedCheckboxes
+                .filter(cb => cb.getAttribute('data-expired') === 'false')
+                .filter(cb => {
+                    const isSubmitted = cb.getAttribute('data-submitted') === 'true';
+                    const approvalStatus = cb.getAttribute('data-approval-status');
+                    return !(isSubmitted && (approvalStatus === 'Pending' || approvalStatus === 'Approved' || approvalStatus === 'PartiallyApproved'));
+                });
+
+            const selectedIds = validCalls.map(cb => cb.value);
+
+            // Build warning message
+            let warnings = [];
+            if (expiredCalls.length > 0) {
+                warnings.push(`${expiredCalls.length} expired call(s) cannot be submitted (will be auto-recovered)`);
+            }
+            if (alreadySubmittedCalls.length > 0) {
+                warnings.push(`${alreadySubmittedCalls.length} call(s) already submitted to supervisor`);
+            }
+
+            if (warnings.length > 0) {
+                alert('Warning:\n• ' + warnings.join('\n• '));
+            }
 
             if (selectedIds.length === 0) {
-                alert('Please select at least one verified call to submit.');
+                alert('No valid calls to submit. Please select calls that are:\n• Not expired\n• Not already submitted to supervisor\n• Verified as Official or Personal');
                 return;
             }
 
@@ -1474,19 +1931,175 @@
             window.location.href = '/Modules/EBillManagement/CallRecords/SubmitToSupervisor?ids=' + selectedIds.join(',');
         }
 
-        function quickVerifySelected(verificationType) {
-            // Only get unverified calls
-            const selectedIds = Array.from(document.querySelectorAll('.call-checkbox:checked'))
-                .filter(cb => cb.getAttribute('data-verified') === 'false')
-                .map(cb => cb.value);
+        // Store current verification data
+        let currentVerificationData = null;
 
-            if (selectedIds.length === 0) {
-                alert('Please select at least one unverified call.');
+        // Quick verify single call from inline dropdown
+        function quickVerifyCall(callId, verificationType, callNumber, costUSD, costKSH, duration, callDate) {
+            // Reset dropdown if no selection
+            if (!verificationType) {
                 return;
             }
 
-            if (!confirm(`Are you sure you want to mark ${selectedIds.length} unverified call(s) as ${verificationType}?`)) {
+            // Store data for confirmation
+            currentVerificationData = { callId, verificationType };
+
+            // Configure modal based on verification type
+            const isOfficial = verificationType === 'Official';
+            const modalHeader = document.getElementById('quickVerifyModalHeader');
+            const modalIcon = document.getElementById('quickVerifyIcon');
+            const modalTitle = document.getElementById('quickVerifyTitle');
+            const modalMessage = document.getElementById('quickVerifyMessage');
+            const confirmBtn = document.getElementById('confirmQuickVerifyBtn');
+            const noteAlert = document.getElementById('quickVerifyNote');
+            const noteIcon = document.getElementById('quickVerifyNoteIcon');
+            const noteText = document.getElementById('quickVerifyNoteText');
+            const btnText = document.getElementById('confirmVerifyBtnText');
+
+            // Set colors and content
+            if (isOfficial) {
+                modalHeader.style.background = 'linear-gradient(135deg, #10b981, #34d399)';
+                modalHeader.style.color = 'white';
+                modalHeader.querySelector('.btn-close').classList.add('btn-close-white');
+                modalIcon.className = 'bi bi-check-circle-fill me-2';
+                modalTitle.textContent = 'Mark as Official';
+                modalMessage.textContent = 'You are about to mark this call as Official (work-related).';
+                confirmBtn.className = 'btn btn-success';
+                btnText.textContent = 'Mark as Official';
+                noteAlert.className = 'alert alert-success mt-3 mb-0';
+                noteIcon.className = 'bi bi-check-circle-fill me-2';
+                noteText.textContent = 'This call will count towards your official usage and allowance.';
+            } else {
+                modalHeader.style.background = 'linear-gradient(135deg, #f59e0b, #fbbf24)';
+                modalHeader.style.color = 'white';
+                modalHeader.querySelector('.btn-close').classList.add('btn-close-white');
+                modalIcon.className = 'bi bi-exclamation-triangle-fill me-2';
+                modalTitle.textContent = 'Mark as Personal';
+                modalMessage.textContent = 'You are about to mark this call as Personal (non-work-related).';
+                confirmBtn.className = 'btn btn-warning';
+                btnText.textContent = 'Mark as Personal';
+                noteAlert.className = 'alert alert-warning mt-3 mb-0';
+                noteIcon.className = 'bi bi-exclamation-triangle-fill me-2';
+                noteText.textContent = 'This call may require payment or reimbursement.';
+            }
+
+            // Fill in call details
+            document.getElementById('verifyCallNumber').textContent = callNumber;
+            document.getElementById('verifyCallCost').textContent = `$${costUSD} (KSh ${costKSH})`;
+            document.getElementById('verifyCallDuration').textContent = `${duration} min`;
+            document.getElementById('verifyCallDate').textContent = callDate;
+
+            // Show modal
+            const modalElement = document.getElementById('quickVerifyModal');
+            const modal = new bootstrap.Modal(modalElement);
+
+            // Reset dropdown if modal is dismissed without confirming
+            modalElement.addEventListener('hidden.bs.modal', function () {
+                if (currentVerificationData) {
+                    const dropdown = document.querySelector(`select[data-call-id="${currentVerificationData.callId}"]`);
+                    if (dropdown) {
+                        dropdown.selectedIndex = 0;
+                    }
+                    currentVerificationData = null;
+                }
+            }, { once: true });
+
+            modal.show();
+        }
+
+        // Confirm quick verification from modal
+        function confirmQuickVerify() {
+            if (!currentVerificationData) return;
+
+            const { callId, verificationType } = currentVerificationData;
+
+            // Close modal
+            const modalElement = document.getElementById('quickVerifyModal');
+            const modal = bootstrap.Modal.getInstance(modalElement);
+            modal.hide();
+
+            // Create form and submit
+            const form = document.createElement('form');
+            form.method = 'POST';
+            form.action = '?handler=QuickVerify';
+
+            // Add anti-forgery token
+            const tokenInput = document.createElement('input');
+            tokenInput.type = 'hidden';
+            tokenInput.name = '__RequestVerificationToken';
+            tokenInput.value = document.querySelector('input[name="__RequestVerificationToken"]').value;
+            form.appendChild(tokenInput);
+
+            // Add verification type
+            const typeInput = document.createElement('input');
+            typeInput.type = 'hidden';
+            typeInput.name = 'verificationType';
+            typeInput.value = verificationType;
+            form.appendChild(typeInput);
+
+            // Add call ID
+            const idInput = document.createElement('input');
+            idInput.type = 'hidden';
+            idInput.name = 'selectedIds';
+            idInput.value = callId;
+            form.appendChild(idInput);
+
+            document.body.appendChild(form);
+            form.submit();
+        }
+
+        // Store selected IDs for confirmation
+        let pendingVerificationIds = [];
+        let pendingVerificationType = '';
+
+        function quickVerifySelected(verificationType) {
+            // Only get unverified, non-expired calls
+            const selectedCheckboxes = Array.from(document.querySelectorAll('.call-checkbox:checked'));
+            const expiredCount = selectedCheckboxes.filter(cb => cb.getAttribute('data-expired') === 'true').length;
+            const selectedIds = selectedCheckboxes
+                .filter(cb => cb.getAttribute('data-verified') === 'false' && cb.getAttribute('data-expired') === 'false')
+                .map(cb => cb.value);
+
+            if (expiredCount > 0) {
+                // Show warning in modal instead of alert
+                showWarningModal(`Warning: ${expiredCount} expired call(s) cannot be verified. They will be automatically recovered.`);
+            }
+
+            if (selectedIds.length === 0) {
+                showWarningModal('Please select at least one unverified, non-expired call.');
                 return;
+            }
+
+            // Store the data for later submission
+            pendingVerificationIds = selectedIds;
+            pendingVerificationType = verificationType;
+
+            // Show appropriate modal
+            if (verificationType === 'Official') {
+                document.getElementById('officialCallCount').textContent = `${selectedIds.length} call${selectedIds.length !== 1 ? 's' : ''}`;
+                const modal = new bootstrap.Modal(document.getElementById('confirmOfficialModal'));
+                modal.show();
+            } else if (verificationType === 'Personal') {
+                document.getElementById('personalCallCount').textContent = `${selectedIds.length} call${selectedIds.length !== 1 ? 's' : ''}`;
+                const modal = new bootstrap.Modal(document.getElementById('confirmPersonalModal'));
+                modal.show();
+            }
+        }
+
+        function confirmQuickVerifyOfficial() {
+            submitQuickVerification('Official');
+        }
+
+        function confirmQuickVerifyPersonal() {
+            submitQuickVerification('Personal');
+        }
+
+        function submitQuickVerification(verificationType) {
+            // Close the modal
+            const modalId = verificationType === 'Official' ? 'confirmOfficialModal' : 'confirmPersonalModal';
+            const modal = bootstrap.Modal.getInstance(document.getElementById(modalId));
+            if (modal) {
+                modal.hide();
             }
 
             // Create form and submit
@@ -1509,7 +2122,7 @@
             form.appendChild(typeInput);
 
             // Add selected IDs
-            selectedIds.forEach(id => {
+            pendingVerificationIds.forEach(id => {
                 const idInput = document.createElement('input');
                 idInput.type = 'hidden';
                 idInput.name = 'selectedIds';
@@ -1519,6 +2132,24 @@
 
             document.body.appendChild(form);
             form.submit();
+        }
+
+        function showWarningModal(message) {
+            // Create a simple alert-style modal for warnings
+            const alertDiv = document.createElement('div');
+            alertDiv.className = 'alert alert-warning alert-dismissible fade show position-fixed';
+            alertDiv.style.cssText = 'top: 20px; right: 20px; z-index: 9999; max-width: 400px;';
+            alertDiv.innerHTML = `
+                <i class="bi bi-exclamation-triangle me-2"></i>${message}
+                <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
+            `;
+            document.body.appendChild(alertDiv);
+
+            // Auto-dismiss after 5 seconds
+            setTimeout(() => {
+                alertDiv.classList.remove('show');
+                setTimeout(() => alertDiv.remove(), 300);
+            }, 5000);
         }
 
         // Assignment Accept/Reject Functions
@@ -1613,6 +2244,15 @@
             document.querySelectorAll('.extension-checkbox').forEach(extCheck => {
                 const extensionId = extCheck.getAttribute('data-extension');
                 updateExtensionCheckbox(extensionId);
+            });
+
+            // Initialize Bootstrap tooltips
+            var tooltipTriggerList = [].slice.call(document.querySelectorAll('[data-bs-toggle="tooltip"]'));
+            var tooltipList = tooltipTriggerList.map(function (tooltipTriggerEl) {
+                return new bootstrap.Tooltip(tooltipTriggerEl, {
+                    trigger: 'hover',
+                    delay: { show: 300, hide: 100 }
+                });
             });
         });
     </script>

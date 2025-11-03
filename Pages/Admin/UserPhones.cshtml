@@ -337,8 +337,9 @@
                                                     }
                                                     @phone.PhoneNumber
                                                 </h6>
-                                                <div class="d-flex align-items-center gap-2">
+                                                <div class="d-flex align-items-center gap-2 flex-wrap">
                                                     <span class="phone-type-badge badge bg-light text-dark">@phone.PhoneType</span>
+                                                    <span class="badge bg-@phone.LineTypeBadgeColor">@phone.LineTypeDisplay</span>
                                                     @if (phone.IsPrimary)
                                                     {
                                                         <span class="primary-indicator">PRIMARY</span>
@@ -352,12 +353,18 @@
                                                 </button>
                                                 <ul class="dropdown-menu dropdown-menu-end">
                                                     <li>
+                                                        <button type="button" class="dropdown-item" onclick="viewPhoneHistory(@phone.Id)">
+                                                            <i class="bi bi-clock-history text-info"></i>View History
+                                                        </button>
+                                                    </li>
+                                                    <li>
                                                         <button type="button" class="dropdown-item"
                                                                 data-bs-toggle="modal"
                                                                 data-bs-target="#editPhoneModal"
                                                                 data-phone-id="@phone.Id"
                                                                 data-phone-number="@phone.PhoneNumber"
                                                                 data-phone-type="@phone.PhoneType"
+                                                                data-phone-linetype="@((int)phone.LineType)"
                                                                 data-phone-location="@phone.Location"
                                                                 data-phone-notes="@phone.Notes"
                                                                 data-phone-primary="@phone.IsPrimary"
@@ -369,7 +376,7 @@
                                                     @if (!phone.IsPrimary)
                                                     {
                                                         <li>
-                                                            <form method="post" asp-page-handler="SetPrimary" asp-route-phoneId="@phone.Id" class="d-inline">
+                                                            <form method="post" asp-page-handler="SetPrimary" asp-route-phoneId="@phone.Id" class="d-inline set-primary-form">
                                                                 <button type="submit" class="dropdown-item">
                                                                     <i class="bi bi-star text-warning"></i>Set as Primary
                                                                 </button>
@@ -478,6 +485,20 @@
                         </div>
 
                         <div class="mb-3">
+                            <label for="Input_LineType" class="form-label">
+                                <i class="bi bi-tag"></i>
+                                Line Type
+                            </label>
+                            <select name="Input.LineType" id="Input_LineType" class="form-select" required>
+                                <option value="1">Primary</option>
+                                <option value="2" selected>Secondary</option>
+                                <option value="3">Reserved</option>
+                                <option value="4">Data</option>
+                            </select>
+                            <span asp-validation-for="Input.LineType" class="text-danger small"></span>
+                        </div>
+
+                        <div class="mb-3">
                             <label for="Input_ClassOfServiceId" class="form-label">
                                 <i class="bi bi-award"></i>
                                 Class of Service
@@ -531,6 +552,9 @@
                             <label for="Input_IsPrimary" class="form-check-label">
                                 Set as Primary Phone
                             </label>
+                            <div class="form-text">
+                                <i class="bi bi-info-circle"></i> Automatically controlled by Line Type selection
+                            </div>
                         </div>
 
                         <button type="submit" class="btn btn-primary w-100 btn-action">
@@ -578,6 +602,19 @@
                             <option value="Mobile">Mobile</option>
                             <option value="Desk">Desk Phone</option>
                             <option value="Extension">Extension</option>
+                        </select>
+                    </div>
+
+                    <div class="mb-4">
+                        <label for="edit_LineType" class="form-label">
+                            <i class="bi bi-tag"></i>
+                            Line Type
+                        </label>
+                        <select name="EditInput.LineType" id="edit_LineType" class="form-select" required>
+                            <option value="1">Primary</option>
+                            <option value="2">Secondary</option>
+                            <option value="3">Reserved</option>
+                            <option value="4">Data</option>
                         </select>
                     </div>
 
@@ -632,6 +669,9 @@
                             <i class="bi bi-star text-warning me-1"></i>
                             Set as Primary Phone
                         </label>
+                        <div class="form-text mt-2">
+                            <i class="bi bi-info-circle"></i> Automatically controlled by Line Type selection
+                        </div>
                     </div>
                 </div>
                 <div class="modal-footer" style="background-color: #f8f9fa; border: none; padding: 1.5rem;">
@@ -785,15 +825,135 @@
     </div>
 </div>
 
+<!-- Primary Line Confirmation Modal -->
+<div class="modal fade" id="primaryLineConfirmModal" tabindex="-1" data-bs-backdrop="static">
+    <div class="modal-dialog modal-dialog-centered">
+        <div class="modal-content" style="border-radius: 12px; border: none; overflow: hidden;">
+            <div class="modal-header" style="background: linear-gradient(135deg, #10b981, #059669); border: none; padding: 1.5rem;">
+                <h5 class="modal-title text-white d-flex align-items-center">
+                    <i class="bi bi-star-fill me-2"></i>
+                    Set as Primary Line
+                </h5>
+                <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal"></button>
+            </div>
+            <div class="modal-body" style="padding: 2rem;">
+                <div class="text-center mb-4">
+                    <div class="d-inline-flex align-items-center justify-content-center rounded-circle"
+                         style="width: 64px; height: 64px; background-color: #d1fae5;">
+                        <i class="bi bi-star text-success" style="font-size: 28px;"></i>
+                    </div>
+                </div>
+
+                <h6 class="text-center mb-4">You are about to set this line as the Primary line</h6>
+
+                <div class="alert d-flex align-items-start"
+                     style="background-color: #fef3c7; border: 1px solid #fcd34d; color: #92400e;">
+                    <i class="bi bi-info-circle-fill me-2 mt-1" style="color: #f59e0b;"></i>
+                    <div>
+                        <strong>Important:</strong> Setting this as the primary line will automatically change any existing primary line for this user to secondary.
+                    </div>
+                </div>
+
+                <div class="border rounded p-3 mt-3" style="background-color: #f9fafb; border-color: #e5e7eb !important;">
+                    <div class="form-check">
+                        <input class="form-check-input" type="checkbox" id="confirmPrimaryCheckbox" style="border-width: 2px;">
+                        <label class="form-check-label fw-medium" for="confirmPrimaryCheckbox">
+                            I understand this will set this line as the primary line
+                        </label>
+                    </div>
+                </div>
+            </div>
+            <div class="modal-footer" style="background-color: #f8f9fa; border: none; padding: 1.5rem;">
+                <button type="button" class="btn btn-light px-4" data-bs-dismiss="modal"
+                        style="border-radius: 8px; font-weight: 500;">
+                    Cancel
+                </button>
+                <button type="button" class="btn btn-success px-4" id="confirmPrimaryButton" disabled
+                        style="background: linear-gradient(135deg, #10b981, #059669); border: none; border-radius: 8px; font-weight: 500;">
+                    <i class="bi bi-check-circle me-2"></i>Confirm Primary Line
+                </button>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Phone History Modal -->
+<div class="modal fade" id="phoneHistoryModal" tabindex="-1">
+    <div class="modal-dialog modal-lg modal-dialog-scrollable">
+        <div class="modal-content" style="border-radius: 12px; border: none;">
+            <div class="modal-header" style="background: linear-gradient(135deg, #6366f1, #4f46e5); border: none; padding: 1.5rem;">
+                <h5 class="modal-title text-white d-flex align-items-center">
+                    <i class="bi bi-clock-history me-2"></i>
+                    Phone Line History
+                </h5>
+                <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal"></button>
+            </div>
+            <div class="modal-body" style="padding: 2rem; max-height: 600px;">
+                <div id="historyTimeline">
+                    <!-- Timeline will be loaded here -->
+                    <div class="text-center py-5">
+                        <div class="spinner-border text-primary" role="status">
+                            <span class="visually-hidden">Loading...</span>
+                        </div>
+                        <p class="text-muted mt-3">Loading history...</p>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
 @section Scripts {
     <partial name="_ValidationScriptsPartial" />
     <script>
+        // Global variables for primary line confirmation
+        var pendingPrimaryAction = null; // 'assign', 'edit', or 'setPrimary'
+        var pendingSetPrimaryForm = null;
+        var assignFormSubmitting = false;
+        var editFormSubmitting = false;
+        var setPrimaryFormSubmitting = false;
+
+        // Primary Confirmation Modal - Enable/Disable confirm button
+        document.getElementById('confirmPrimaryCheckbox').addEventListener('change', function() {
+            document.getElementById('confirmPrimaryButton').disabled = !this.checked;
+        });
+
+        // Primary Confirmation Modal - Handle confirmation
+        document.getElementById('confirmPrimaryButton').addEventListener('click', function() {
+            // Hide the confirmation modal
+            var modal = bootstrap.Modal.getInstance(document.getElementById('primaryLineConfirmModal'));
+            modal.hide();
+
+            // Submit the appropriate form
+            if (pendingPrimaryAction === 'assign') {
+                assignFormSubmitting = true;
+                document.querySelector('form[asp-page-handler="AssignPhone"]').submit();
+            } else if (pendingPrimaryAction === 'edit') {
+                editFormSubmitting = true;
+                document.querySelector('form[asp-page-handler="EditPhone"]').submit();
+            } else if (pendingPrimaryAction === 'setPrimary' && pendingSetPrimaryForm) {
+                setPrimaryFormSubmitting = true;
+                pendingSetPrimaryForm.submit();
+            }
+        });
+
+        // Reset modal state when closed
+        document.getElementById('primaryLineConfirmModal').addEventListener('hidden.bs.modal', function() {
+            document.getElementById('confirmPrimaryCheckbox').checked = false;
+            document.getElementById('confirmPrimaryButton').disabled = true;
+            if (!assignFormSubmitting && !editFormSubmitting && !setPrimaryFormSubmitting) {
+                pendingPrimaryAction = null;
+                pendingSetPrimaryForm = null;
+            }
+        });
+
         // Edit Phone Modal
         document.getElementById('editPhoneModal').addEventListener('show.bs.modal', function (event) {
             var button = event.relatedTarget;
             var phoneId = button.getAttribute('data-phone-id');
             var phoneNumber = button.getAttribute('data-phone-number');
             var phoneType = button.getAttribute('data-phone-type');
+            var lineType = button.getAttribute('data-phone-linetype');
             var location = button.getAttribute('data-phone-location');
             var notes = button.getAttribute('data-phone-notes');
             var isPrimary = button.getAttribute('data-phone-primary') === 'True';
@@ -803,6 +963,7 @@
             document.getElementById('edit_PhoneId').value = phoneId;
             document.getElementById('edit_PhoneNumber').value = phoneNumber;
             document.getElementById('edit_PhoneType').value = phoneType;
+            document.getElementById('edit_LineType').value = lineType || '2';
             document.getElementById('edit_Location').value = location || '';
             document.getElementById('edit_Notes').value = notes || '';
             document.getElementById('edit_IsPrimary').checked = isPrimary;
@@ -833,6 +994,241 @@
                 reassignModal.show();
                 </text>
             }
+
+            // Intercept "Set as Primary" quick action forms
+            var setPrimaryForms = document.querySelectorAll('.set-primary-form');
+            setPrimaryForms.forEach(function(form) {
+                form.addEventListener('submit', function(e) {
+                    if (!setPrimaryFormSubmitting) {
+                        e.preventDefault();
+                        pendingPrimaryAction = 'setPrimary';
+                        pendingSetPrimaryForm = this;
+                        var modal = new bootstrap.Modal(document.getElementById('primaryLineConfirmModal'));
+                        modal.show();
+                        return false;
+                    }
+                });
+            });
+
+            // Intercept Assign Form submission for Primary confirmation
+            var assignForm = document.querySelector('form[asp-page-handler="AssignPhone"]');
+            if (assignForm) {
+                assignForm.addEventListener('submit', function(e) {
+                    var lineType = document.getElementById('Input_LineType').value;
+
+                    // If LineType is Primary and we haven't confirmed yet, show modal
+                    if (lineType === '1' && !assignFormSubmitting) {
+                        e.preventDefault();
+                        pendingPrimaryAction = 'assign';
+                        var modal = new bootstrap.Modal(document.getElementById('primaryLineConfirmModal'));
+                        modal.show();
+                        return false;
+                    }
+                });
+            }
+
+            // Intercept Edit Form submission for Primary confirmation
+            var editForm = document.querySelector('form[asp-page-handler="EditPhone"]');
+            if (editForm) {
+                editForm.addEventListener('submit', function(e) {
+                    var lineType = document.getElementById('edit_LineType').value;
+
+                    // If LineType is Primary and we haven't confirmed yet, show modal
+                    if (lineType === '1' && !editFormSubmitting) {
+                        e.preventDefault();
+                        pendingPrimaryAction = 'edit';
+                        var modal = new bootstrap.Modal(document.getElementById('primaryLineConfirmModal'));
+                        modal.show();
+                        return false;
+                    }
+                });
+            }
+
+            // Sync LineType with IsPrimary for Assign Form
+            // Rule: LineType Primary = IsPrimary checked, anything else = IsPrimary unchecked
+            var inputLineType = document.getElementById('Input_LineType');
+            var inputIsPrimary = document.getElementById('Input_IsPrimary');
+
+            if (inputLineType && inputIsPrimary) {
+                // When LineType changes
+                inputLineType.addEventListener('change', function() {
+                    if (this.value === '1') { // Primary
+                        inputIsPrimary.checked = true;
+                        inputIsPrimary.disabled = true; // Disable checkbox when Primary
+                    } else { // Secondary, Reserved, or Data
+                        inputIsPrimary.checked = false;
+                        inputIsPrimary.disabled = true; // Always disabled - controlled by LineType
+                    }
+                });
+
+                // When IsPrimary checkbox changes (though it should be disabled)
+                inputIsPrimary.addEventListener('change', function() {
+                    if (this.checked) {
+                        inputLineType.value = '1'; // Set to Primary
+                    } else {
+                        if (inputLineType.value === '1') {
+                            inputLineType.value = '2'; // Set to Secondary
+                        }
+                    }
+                });
+
+                // Set initial state based on current LineType value
+                inputIsPrimary.disabled = true;
+                if (inputLineType.value === '1') {
+                    inputIsPrimary.checked = true;
+                } else {
+                    inputIsPrimary.checked = false;
+                }
+            }
+
+            // Sync LineType with IsPrimary for Edit Form
+            var editLineType = document.getElementById('edit_LineType');
+            var editIsPrimary = document.getElementById('edit_IsPrimary');
+
+            if (editLineType && editIsPrimary) {
+                // When LineType changes
+                editLineType.addEventListener('change', function() {
+                    if (this.value === '1') { // Primary
+                        editIsPrimary.checked = true;
+                        editIsPrimary.disabled = true; // Disable checkbox when Primary
+                    } else { // Secondary, Reserved, or Data
+                        editIsPrimary.checked = false;
+                        editIsPrimary.disabled = true; // Always disabled - controlled by LineType
+                    }
+                });
+
+                // When IsPrimary checkbox changes (though it should be disabled)
+                editIsPrimary.addEventListener('change', function() {
+                    if (this.checked) {
+                        editLineType.value = '1'; // Set to Primary
+                    } else {
+                        if (editLineType.value === '1') {
+                            editLineType.value = '2'; // Set to Secondary
+                        }
+                    }
+                });
+
+                // Set initial state based on current LineType value
+                editIsPrimary.disabled = true;
+                if (editLineType.value === '1') {
+                    editIsPrimary.checked = true;
+                } else {
+                    editIsPrimary.checked = false;
+                }
+            }
         });
+
+        // Function to view phone history
+        async function viewPhoneHistory(phoneId) {
+            // Show modal
+            const modal = new bootstrap.Modal(document.getElementById('phoneHistoryModal'));
+            modal.show();
+
+            // Reset to loading state
+            document.getElementById('historyTimeline').innerHTML = `
+                <div class="text-center py-5">
+                    <div class="spinner-border text-primary" role="status">
+                        <span class="visually-hidden">Loading...</span>
+                    </div>
+                    <p class="text-muted mt-3">Loading history...</p>
+                </div>
+            `;
+
+            try {
+                // Fetch history
+                const response = await fetch(`/Admin/UserPhones?handler=PhoneHistory&phoneId=${phoneId}`);
+
+                if (!response.ok) {
+                    throw new Error('Failed to load history');
+                }
+
+                const history = await response.json();
+
+                // Build timeline HTML
+                let timelineHtml = '';
+
+                if (history.length === 0) {
+                    timelineHtml = `
+                        <div class="text-center py-5">
+                            <i class="bi bi-inbox" style="font-size: 48px; color: #cbd5e1;"></i>
+                            <p class="text-muted mt-3">No history available for this phone line.</p>
+                        </div>
+                    `;
+                } else {
+                    timelineHtml = '<div class="timeline position-relative">';
+
+                    history.forEach((entry, index) => {
+                        const isLast = index === history.length - 1;
+
+                        // Determine icon and color based on action
+                        let icon = 'bi-clock-history';
+                        let color = '#6366f1';
+
+                        if (entry.action === 'Created' || entry.action === 'Assigned') {
+                            icon = 'bi-plus-circle-fill';
+                            color = '#10b981';
+                        } else if (entry.action === 'Updated' || entry.action === 'LineTypeChanged') {
+                            icon = 'bi-pencil-fill';
+                            color = '#3b82f6';
+                        } else if (entry.action === 'SetPrimary') {
+                            icon = 'bi-star-fill';
+                            color = '#f59e0b';
+                        } else if (entry.action === 'Unassigned') {
+                            icon = 'bi-x-circle-fill';
+                            color = '#ef4444';
+                        }
+
+                        timelineHtml += `
+                            <div class="timeline-item d-flex mb-4" style="position: relative;">
+                                ${!isLast ? '<div style="position: absolute; left: 19px; top: 42px; bottom: -24px; width: 2px; background: #e5e7eb;"></div>' : ''}
+
+                                <div class="timeline-icon d-flex align-items-center justify-content-center rounded-circle flex-shrink-0"
+                                     style="width: 40px; height: 40px; background-color: ${color}15; z-index: 1;">
+                                    <i class="bi ${icon}" style="color: ${color}; font-size: 16px;"></i>
+                                </div>
+
+                                <div class="timeline-content ms-3 flex-grow-1">
+                                    <div class="d-flex justify-content-between align-items-start mb-1">
+                                        <h6 class="mb-0 fw-semibold">${entry.action}</h6>
+                                        <small class="text-muted">${entry.timeAgo}</small>
+                                    </div>
+
+                                    ${entry.description ? `<p class="text-muted mb-2 small">${entry.description}</p>` : ''}
+
+                                    ${entry.fieldChanged ? `
+                                        <div class="small">
+                                            <span class="badge bg-light text-dark">${entry.fieldChanged}</span>
+                                            ${entry.oldValue ? `
+                                                <span class="text-danger ms-2"><s>${entry.oldValue}</s></span>
+                                                <i class="bi bi-arrow-right mx-1"></i>
+                                            ` : ''}
+                                            ${entry.newValue ? `<span class="text-success">${entry.newValue}</span>` : ''}
+                                        </div>
+                                    ` : ''}
+
+                                    <div class="text-muted small mt-1">
+                                        <i class="bi bi-person-circle me-1"></i>${entry.changedBy || 'System'}
+                                    </div>
+                                </div>
+                            </div>
+                        `;
+                    });
+
+                    timelineHtml += '</div>';
+                }
+
+                // Display the timeline
+                document.getElementById('historyTimeline').innerHTML = timelineHtml;
+
+            } catch (error) {
+                console.error('Error loading history:', error);
+                document.getElementById('historyTimeline').innerHTML = `
+                    <div class="text-center py-5">
+                        <i class="bi bi-exclamation-triangle text-danger" style="font-size: 48px;"></i>
+                        <p class="text-danger mt-3">Failed to load history. Please try again.</p>
+                    </div>
+                `;
+            }
+        }
     </script>
 }

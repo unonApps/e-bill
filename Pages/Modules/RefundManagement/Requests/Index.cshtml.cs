@@ -105,32 +105,31 @@ namespace TAB.Web.Pages.Modules.RefundManagement.Requests
 
         private async Task LoadAllRefundRequestsAsync()
         {
-            // Build query with filters
-            var query = _context.RefundRequests.AsQueryable();
+            // Build base query
+            var baseQuery = _context.RefundRequests.AsQueryable();
 
-            // Apply filters
-            query = ApplyFilters(query);
-
-            // Get all filtered results for statistics
-            var allRequests = await query.ToListAsync();
-
-            // Calculate statistics from all filtered results
-            TotalRequests = allRequests.Count;
-            PendingRequests = allRequests.Count(r =>
+            // Calculate statistics from UNFILTERED data (before applying status/date/search filters)
+            var allRequestsForStats = await baseQuery.ToListAsync();
+            TotalRequests = allRequestsForStats.Count;
+            PendingRequests = allRequestsForStats.Count(r =>
                 r.Status == RefundRequestStatus.Draft ||
                 r.Status == RefundRequestStatus.PendingSupervisor ||
                 r.Status == RefundRequestStatus.PendingBudgetOfficer ||
                 r.Status == RefundRequestStatus.PendingStaffClaimsUnit ||
                 r.Status == RefundRequestStatus.PendingPaymentApproval);
-            ApprovedRequests = allRequests.Count(r => r.Status == RefundRequestStatus.Completed);
-            CancelledRequests = allRequests.Count(r => r.Status == RefundRequestStatus.Cancelled);
+            ApprovedRequests = allRequestsForStats.Count(r => r.Status == RefundRequestStatus.Completed);
+            CancelledRequests = allRequestsForStats.Count(r => r.Status == RefundRequestStatus.Cancelled);
 
-            // Calculate pagination
-            TotalRecords = allRequests.Count;
+            // Now apply filters for the table display
+            var filteredQuery = ApplyFilters(baseQuery);
+            var filteredRequests = await filteredQuery.ToListAsync();
+
+            // Calculate pagination based on filtered results
+            TotalRecords = filteredRequests.Count;
             TotalPages = (int)Math.Ceiling(TotalRecords / (double)PageSize);
 
             // Apply pagination
-            RefundRequests = allRequests
+            RefundRequests = filteredRequests
                 .OrderByDescending(r => r.RequestDate)
                 .Skip((PageNumber - 1) * PageSize)
                 .Take(PageSize)
@@ -139,33 +138,32 @@ namespace TAB.Web.Pages.Modules.RefundManagement.Requests
 
         private async Task LoadUserRefundRequestsAsync(string userId)
         {
-            // Build query with user filter
-            var query = _context.RefundRequests
+            // Build base query with user filter
+            var baseQuery = _context.RefundRequests
                 .Where(r => r.RequestedBy == userId);
 
-            // Apply additional filters
-            query = ApplyFilters(query);
-
-            // Get all filtered results for statistics
-            var allRequests = await query.ToListAsync();
-
-            // Calculate statistics from all filtered results
-            TotalRequests = allRequests.Count;
-            PendingRequests = allRequests.Count(r =>
+            // Calculate statistics from UNFILTERED data (before applying status/date/search filters)
+            var allRequestsForStats = await baseQuery.ToListAsync();
+            TotalRequests = allRequestsForStats.Count;
+            PendingRequests = allRequestsForStats.Count(r =>
                 r.Status == RefundRequestStatus.Draft ||
                 r.Status == RefundRequestStatus.PendingSupervisor ||
                 r.Status == RefundRequestStatus.PendingBudgetOfficer ||
                 r.Status == RefundRequestStatus.PendingStaffClaimsUnit ||
                 r.Status == RefundRequestStatus.PendingPaymentApproval);
-            ApprovedRequests = allRequests.Count(r => r.Status == RefundRequestStatus.Completed);
-            CancelledRequests = allRequests.Count(r => r.Status == RefundRequestStatus.Cancelled);
+            ApprovedRequests = allRequestsForStats.Count(r => r.Status == RefundRequestStatus.Completed);
+            CancelledRequests = allRequestsForStats.Count(r => r.Status == RefundRequestStatus.Cancelled);
 
-            // Calculate pagination
-            TotalRecords = allRequests.Count;
+            // Now apply filters for the table display
+            var filteredQuery = ApplyFilters(baseQuery);
+            var filteredRequests = await filteredQuery.ToListAsync();
+
+            // Calculate pagination based on filtered results
+            TotalRecords = filteredRequests.Count;
             TotalPages = (int)Math.Ceiling(TotalRecords / (double)PageSize);
 
             // Apply pagination
-            RefundRequests = allRequests
+            RefundRequests = filteredRequests
                 .OrderByDescending(r => r.RequestDate)
                 .Skip((PageNumber - 1) * PageSize)
                 .Take(PageSize)

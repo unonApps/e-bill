@@ -1,0 +1,17 @@
+@model TAB.Web.ViewComponents.PendingRequestCounts
+
+@{
+    // This view component returns the counts as JSON to be used by JavaScript
+    var counts = new
+    {
+        simCount = Model.SimRequestCount,
+        refundCount = Model.RefundRequestCount,
+        ebillCount = Model.EBillRequestCount,
+        totalCount = Model.TotalPendingCount
+    };
+}
+
+<script>
+    // Store counts in a global variable for the menu to use
+    window.pendingRequestCounts = @Html.Raw(System.Text.Json.JsonSerializer.Serialize(counts));
+</script>

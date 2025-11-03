@@ -5,66 +5,146 @@
 }
 
 <style>
-    .minimal-card {
-        background: #ffffff;
-        border: none;
-        border-radius: 12px;
-        box-shadow: 0 2px 12px rgba(0, 0, 0, 0.04);
-        transition: all 0.3s ease;
+    /* Statistics Cards */
+    .stats-container {
+        display: grid;
+        grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+        gap: 1.5rem;
+        margin-bottom: 2rem;
     }
-    
-    .minimal-card:hover {
-        box-shadow: 0 4px 20px rgba(0, 0, 0, 0.08);
+
+    .stat-card {
+        background: white;
+        border-radius: 12px;
+        padding: 1rem 1.25rem;
+        box-shadow: 0 2px 10px rgba(0, 0, 0, 0.06);
+        cursor: pointer;
+        transition: all 0.3s;
+        border: 2px solid transparent;
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        gap: 1rem;
+    }
+
+    .stat-card:hover {
         transform: translateY(-2px);
+        box-shadow: 0 6px 20px rgba(0, 0, 0, 0.12);
     }
-    
+
+    .stat-card.active {
+        border-color: #009EDB;
+        background: #f0f9ff;
+    }
+
+    .stat-card-left {
+        display: flex;
+        align-items: center;
+        gap: 1rem;
+        flex: 1;
+    }
+
     .stat-icon {
-        width: 48px;
-        height: 48px;
-        border-radius: 12px;
+        width: 40px;
+        height: 40px;
+        border-radius: 10px;
         display: flex;
         align-items: center;
         justify-content: center;
         font-size: 20px;
-        color: white;
+        flex-shrink: 0;
     }
-    
-    .stat-pending { background: linear-gradient(135deg, #f59e0b, #f97316); }
-    .stat-processed { background: linear-gradient(135deg, #10b981, #059669); }
-    .stat-rejected { background: linear-gradient(135deg, #ef4444, #dc2626); }
+
+    .stat-icon.stat-pending { background: #fef3c7; color: #f59e0b; }
+    .stat-icon.stat-processed { background: #d1fae5; color: #10b981; }
+    .stat-icon.stat-rejected { background: #fee2e2; color: #ef4444; }
+
+    .stat-label {
+        color: #64748b;
+        font-size: 14px;
+        font-weight: 500;
+        margin: 0;
+    }
+
+    .stat-value {
+        font-size: 28px;
+        font-weight: 700;
+        color: #1e293b;
+        margin: 0;
+        flex-shrink: 0;
+    }
     
     .minimal-table {
         background: white;
-        border-radius: 12px;
+        border-radius: 16px;
         overflow: hidden;
         box-shadow: 0 2px 12px rgba(0, 0, 0, 0.04);
         border: none;
     }
-    
+
     .minimal-table thead th {
         background: #f8fafc;
         border: none;
-        padding: 20px 16px;
+        border-bottom: 2px solid #e5e7eb;
+        padding: 16px;
         font-weight: 600;
-        font-size: 14px;
+        font-size: 13px;
         color: #475569;
         text-transform: uppercase;
         letter-spacing: 0.5px;
     }
-    
+
     .minimal-table tbody td {
         border: none;
-        padding: 20px 16px;
+        padding: 16px;
         border-bottom: 1px solid #f1f5f9;
         vertical-align: middle;
     }
-    
+
     .minimal-table tbody tr:last-child td {
         border-bottom: none;
     }
-    
+
     .minimal-table tbody tr:hover {
         background: #f8fafc;
+    }
+
+    /* Fix dropdown overflow issues */
+    .table-responsive {
+        overflow: visible !important;
+    }
+
+    .minimal-table {
+        overflow: visible !important;
+    }
+
+    .minimal-table tbody,
+    .minimal-table tbody tr,
+    .minimal-table tbody td {
+        overflow: visible !important;
+    }
+
+    .dropdown {
+        position: static !important;
+    }
+
+    .dropdown-menu {
+        position: absolute !important;
+        z-index: 1050 !important;
+        box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15) !important;
+        border: 1px solid #e5e7eb;
+        border-radius: 8px;
+        margin-top: 0.25rem;
+    }
+
+    .dropdown-item {
+        padding: 0.625rem 1rem;
+        font-size: 14px;
+        transition: all 0.2s ease;
+    }
+
+    .dropdown-item:hover {
+        background-color: #f8fafc;
     }
     
     .request-id {
@@ -99,79 +179,99 @@
     .priority-low { background: #f0fdf4; color: #16a34a; }
     
     .status-badge {
-        padding: 8px 16px;
+        padding: 0.5rem 1rem;
         border-radius: 20px;
-        font-size: 12px;
+        font-size: 11px;
         font-weight: 600;
         display: inline-flex;
         align-items: center;
-        gap: 6px;
-    }
-    
-    .status-pending {
-        background: linear-gradient(135deg, #f59e0b, #f97316);
-        color: white;
-    }
-    
-    .status-approved {
-        background: linear-gradient(135deg, #10b981, #059669);
-        color: white;
-    }
-    
-    .status-rejected {
-        background: linear-gradient(135deg, #ef4444, #dc2626);
-        color: white;
-    }
-    
-    .action-btn {
-        padding: 8px 16px;
-        border-radius: 8px;
-        font-size: 12px;
-        font-weight: 500;
-        border: 1px solid;
+        gap: 0.5rem;
+        text-transform: uppercase;
+        letter-spacing: 0.8px;
+        white-space: nowrap;
+        box-shadow: 0 2px 8px rgba(0, 0, 0, 0.08);
+        border: 1.5px solid;
         transition: all 0.2s ease;
-        display: flex;
-        align-items: center;
-        gap: 6px;
-        justify-content: center;
-        min-width: 100px;
+        background-color: transparent;
     }
-    
-    .action-btn:hover {
+
+    .status-pending {
+        color: #d97706;
+        border-color: #f59e0b;
+    }
+
+    .status-pending:hover {
+        box-shadow: 0 4px 12px rgba(217, 119, 6, 0.2);
         transform: translateY(-1px);
-        box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
     }
-    
-    .btn-approve {
-        background: #dcfce7;
-        border-color: #16a34a;
-        color: #15803d;
+
+    .status-approved {
+        color: #059669;
+        border-color: #10b981;
     }
-    
-    .btn-approve:hover {
-        background: #16a34a;
-        color: white;
+
+    .status-approved:hover {
+        box-shadow: 0 4px 12px rgba(5, 150, 105, 0.2);
+        transform: translateY(-1px);
     }
-    
-    .btn-view {
-        background: #f0f9ff;
-        border-color: #0ea5e9;
-        color: #0c4a6e;
-    }
-    
-    .btn-view:hover {
-        background: #0ea5e9;
-        color: white;
-    }
-    
-    .btn-reject {
-        background: #fef2f2;
-        border-color: #ef4444;
+
+    .status-rejected {
         color: #dc2626;
+        border-color: #ef4444;
     }
-    
+
+    .status-rejected:hover {
+        box-shadow: 0 4px 12px rgba(220, 38, 38, 0.2);
+        transform: translateY(-1px);
+    }
+
+    .action-btn {
+        width: 36px;
+        height: 36px;
+        border-radius: 8px;
+        font-size: 16px;
+        border: none;
+        transition: all 0.2s ease;
+        display: inline-flex;
+        align-items: center;
+        justify-content: center;
+        text-decoration: none;
+        cursor: pointer;
+    }
+
+    .action-btn:hover {
+        transform: translateY(-2px);
+        box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
+        text-decoration: none;
+    }
+
+    .btn-approve {
+        background-color: #72BF44; /* UN Green */
+        color: white;
+    }
+
+    .btn-approve:hover {
+        background-color: #5da936;
+        color: white;
+    }
+
+    .btn-view {
+        background-color: #009EDB; /* UN Blue */
+        color: white;
+    }
+
+    .btn-view:hover {
+        background-color: #0084c7;
+        color: white;
+    }
+
+    .btn-reject {
+        background-color: #EB1C24; /* UN Red */
+        color: white;
+    }
+
     .btn-reject:hover {
-        background: #ef4444;
+        background-color: #d01018;
         color: white;
     }
     
@@ -269,23 +369,13 @@
     }
     
     .status-draft {
-        background: #f3f4f6 !important;
-        color: #374151 !important;
+        color: #64748b;
+        border-color: #cbd5e1;
     }
-    
-    .status-pending {
-        background: linear-gradient(135deg, #f59e0b, #f97316) !important;
-        color: white !important;
-    }
-    
-    .status-approved {
-        background: linear-gradient(135deg, #10b981, #059669) !important;
-        color: white !important;
-    }
-    
-    .status-rejected {
-        background: linear-gradient(135deg, #ef4444, #dc2626) !important;
-        color: white !important;
+
+    .status-draft:hover {
+        box-shadow: 0 4px 12px rgba(100, 116, 139, 0.2);
+        transform: translateY(-1px);
     }
     
     @@keyframes pulse {
@@ -296,9 +386,30 @@
             opacity: 0.5;
         }
     }
+
+    /* View Modal Tab Styles */
+    #viewDetailsModal .nav-tabs .nav-link:hover {
+        color: #009EDB;
+        background: rgba(0, 158, 219, 0.05);
+        border-bottom-color: rgba(0, 158, 219, 0.3);
+    }
+
+    #viewDetailsModal .nav-tabs .nav-link.active {
+        color: #009EDB;
+        background: white;
+        border-bottom-color: #009EDB;
+        font-weight: 600;
+    }
 </style>
 
 <div class="container-fluid px-4">
+    <!-- Back Button -->
+    <div class="mb-3">
+        <a href="/Modules/RefundManagement/Approvals" class="btn btn-outline-secondary btn-sm">
+            <i class="bi bi-arrow-left me-2"></i>Back to Overview
+        </a>
+    </div>
+
     <!-- Page Header -->
     <div class="page-header">
         <div class="d-flex justify-content-between align-items-start">
@@ -354,71 +465,77 @@
     }
 
     <!-- Statistics Cards -->
-    <div class="row g-4 mb-5">
-        <div class="col-md-4">
-            <div class="minimal-card p-4">
-                <div class="d-flex align-items-center">
-                    <div class="stat-icon stat-pending me-4">
-                        <i class="bi bi-clock-history"></i>
-                    </div>
-                    <div>
-                        @if (Model.CurrentUserRole.Contains("Supervisor"))
-                        {
-                            <h3 class="mb-1 fw-bold text-dark">@Model.PendingRequests.Count(r => r.Status == TAB.Web.Models.RefundRequestStatus.PendingSupervisor)</h3>
-                            <p class="mb-0 text-muted">Pending Approval</p>
-                        }
-                        else if (Model.CurrentUserRole.Contains("Budget"))
-                        {
-                            <h3 class="mb-1 fw-bold text-dark">@Model.PendingRequests.Count(r => r.Status == TAB.Web.Models.RefundRequestStatus.PendingBudgetOfficer)</h3>
-                            <p class="mb-0 text-muted">Pending Review</p>
-                        }
-                        else
-                        {
-                            <h3 class="mb-1 fw-bold text-dark">@Model.PendingRequests.Count(r => r.Status == TAB.Web.Models.RefundRequestStatus.PendingSupervisor || r.Status == TAB.Web.Models.RefundRequestStatus.PendingBudgetOfficer)</h3>
-                            <p class="mb-0 text-muted">Pending</p>
-                        }
-                    </div>
+    <div class="stats-container">
+        <div class="stat-card">
+            <div class="stat-card-left">
+                <div class="stat-icon stat-pending">
+                    <i class="bi bi-clock-history"></i>
                 </div>
+                @if (Model.CurrentUserRole.Contains("Supervisor"))
+                {
+                    <p class="stat-label">Pending Approval</p>
+                }
+                else if (Model.CurrentUserRole.Contains("Budget"))
+                {
+                    <p class="stat-label">Pending Review</p>
+                }
+                else
+                {
+                    <p class="stat-label">Pending</p>
+                }
             </div>
+            @if (Model.CurrentUserRole.Contains("Supervisor"))
+            {
+                <h3 class="stat-value">@Model.PendingRequests.Count(r => r.Status == TAB.Web.Models.RefundRequestStatus.PendingSupervisor)</h3>
+            }
+            else if (Model.CurrentUserRole.Contains("Budget"))
+            {
+                <h3 class="stat-value">@Model.PendingRequests.Count(r => r.Status == TAB.Web.Models.RefundRequestStatus.PendingBudgetOfficer)</h3>
+            }
+            else
+            {
+                <h3 class="stat-value">@Model.PendingRequests.Count(r => r.Status == TAB.Web.Models.RefundRequestStatus.PendingSupervisor || r.Status == TAB.Web.Models.RefundRequestStatus.PendingBudgetOfficer)</h3>
+            }
         </div>
-        <div class="col-md-4">
-            <div class="minimal-card p-4">
-                <div class="d-flex align-items-center">
-                    <div class="stat-icon stat-processed me-4">
-                        <i class="bi bi-check-circle"></i>
-                    </div>
-                    <div>
-                        @if (Model.CurrentUserRole.Contains("Supervisor"))
-                        {
-                            <h3 class="mb-1 fw-bold text-dark">@Model.PendingRequests.Count(r => r.Status == TAB.Web.Models.RefundRequestStatus.PendingBudgetOfficer)</h3>
-                            <p class="mb-0 text-muted">Forwarded to Budget</p>
-                        }
-                        else if (Model.CurrentUserRole.Contains("Budget"))
-                        {
-                            <h3 class="mb-1 fw-bold text-dark">@Model.PendingRequests.Count(r => r.Status == TAB.Web.Models.RefundRequestStatus.PendingStaffClaimsUnit)</h3>
-                            <p class="mb-0 text-muted">Approved & Forwarded</p>
-                        }
-                        else
-                        {
-                            <h3 class="mb-1 fw-bold text-dark">@Model.PendingRequests.Count(r => r.Status == TAB.Web.Models.RefundRequestStatus.Completed)</h3>
-                            <p class="mb-0 text-muted">Completed</p>
-                        }
-                    </div>
+        <div class="stat-card">
+            <div class="stat-card-left">
+                <div class="stat-icon stat-processed">
+                    <i class="bi bi-check-circle"></i>
                 </div>
+                @if (Model.CurrentUserRole.Contains("Supervisor"))
+                {
+                    <p class="stat-label">Forwarded to Budget</p>
+                }
+                else if (Model.CurrentUserRole.Contains("Budget"))
+                {
+                    <p class="stat-label">Approved & Forwarded</p>
+                }
+                else
+                {
+                    <p class="stat-label">Completed</p>
+                }
             </div>
+            @if (Model.CurrentUserRole.Contains("Supervisor"))
+            {
+                <h3 class="stat-value">@Model.PendingRequests.Count(r => r.Status == TAB.Web.Models.RefundRequestStatus.PendingBudgetOfficer)</h3>
+            }
+            else if (Model.CurrentUserRole.Contains("Budget"))
+            {
+                <h3 class="stat-value">@Model.PendingRequests.Count(r => r.Status == TAB.Web.Models.RefundRequestStatus.PendingStaffClaimsUnit)</h3>
+            }
+            else
+            {
+                <h3 class="stat-value">@Model.PendingRequests.Count(r => r.Status == TAB.Web.Models.RefundRequestStatus.Completed)</h3>
+            }
         </div>
-        <div class="col-md-4">
-            <div class="minimal-card p-4">
-                <div class="d-flex align-items-center">
-                    <div class="stat-icon stat-rejected me-4">
-                        <i class="bi bi-x-circle"></i>
-                    </div>
-                    <div>
-                        <h3 class="mb-1 fw-bold text-dark">@Model.PendingRequests.Count(r => r.Status == TAB.Web.Models.RefundRequestStatus.Cancelled)</h3>
-                        <p class="mb-0 text-muted">Rejected</p>
-                    </div>
+        <div class="stat-card">
+            <div class="stat-card-left">
+                <div class="stat-icon stat-rejected">
+                    <i class="bi bi-x-circle"></i>
                 </div>
+                <p class="stat-label">Rejected</p>
             </div>
+            <h3 class="stat-value">@Model.PendingRequests.Count(r => r.Status == TAB.Web.Models.RefundRequestStatus.Cancelled)</h3>
         </div>
     </div>
 
@@ -480,14 +597,20 @@
             @if (pendingRequests.Any())
             {
                 <div class="table-responsive">
-                    <table class="table minimal-table">
+                    <table class="table minimal-table align-middle">
                         <thead>
                             <tr>
-                                <th>Request</th>
-                                <th>Staff</th>
-                                <th>Amount Details</th>
-                                <th>Priority</th>
-                                <th>Actions</th>
+                                <th>Request ID</th>
+                                <th>Staff Name</th>
+                                <th>Organization</th>
+                                <th>Mobile Number</th>
+                                <th>Mobile Service</th>
+                                <th>Class of Service</th>
+                                <th>Purchase Amount</th>
+                                <th>Device Allowance</th>
+                                <th>Request Date</th>
+                                <th>Status</th>
+                                <th class="text-center">Actions</th>
                             </tr>
                         </thead>
                         <tbody>
@@ -495,34 +618,30 @@
                             {
                                 <tr>
                                     <td>
-                                        <div class="d-flex align-items-center">
-                                            <i class="bi bi-credit-card text-primary me-3 fs-5"></i>
-                                            <div>
-                                                <div class="request-id">#@request.Id</div>
-                                                <span class="status-badge @Model.GetStatusClass(request.Status)">
-                                                    <i class="bi bi-clock-history"></i>
-                                                    @Model.GetStatusText(request.Status)
-                                                </span>
-                                            </div>
-                                        </div>
+                                        <strong style="color: #1e293b; font-size: 15px;">#@request.Id</strong>
                                     </td>
                                     <td>
-                                        <div class="Staff-name">@request.MobileNumberAssignedTo</div>
-                                        <div class="Staff-details">
-                                            <div><i class="bi bi-telephone me-1"></i>@request.PrimaryMobileNumber</div>
-                                            <div><i class="bi bi-building me-1"></i>@request.Organization</div>
-                                            <div><i class="bi bi-person-badge me-1"></i>@request.Supervisor</div>
-                                        </div>
+                                        <div style="color: #1e293b; font-weight: 600;">@request.MobileNumberAssignedTo</div>
+                                        <div style="color: #64748b; font-size: 13px;">@request.IndexNo</div>
                                     </td>
                                     <td>
-                                        <div class="amount-details mb-2">
-                                            @request.DevicePurchaseCurrency @request.DevicePurchaseAmount.ToString("N2")
-                                        </div>
-                                        <div class="small text-muted">
-                                            <div><strong>Allowance:</strong> $@request.DeviceAllowance.ToString("N2")</div>
-                                            <div><strong>Mobile Service:</strong> @request.MobileService</div>
-                                            <div><strong>Class:</strong> @request.ClassOfService</div>
-                                        </div>
+                                        <div style="color: #1e293b;">@request.Organization</div>
+                                        <div style="color: #64748b; font-size: 13px;">@request.Office</div>
+                                    </td>
+                                    <td>
+                                        <span style="color: #1e293b;">@request.PrimaryMobileNumber</span>
+                                    </td>
+                                    <td>
+                                        <span style="color: #1e293b;">@request.MobileService</span>
+                                    </td>
+                                    <td>
+                                        <span style="color: #1e293b;">@request.ClassOfService</span>
+                                    </td>
+                                    <td>
+                                        <div style="color: #1e293b; font-weight: 600;">@request.DevicePurchaseCurrency @request.DevicePurchaseAmount.ToString("N2")</div>
+                                    </td>
+                                    <td>
+                                        <div style="color: #1e293b; font-weight: 600;">$@request.DeviceAllowance.ToString("N2")</div>
                                     </td>
                                     <td>
                                         @{
@@ -530,39 +649,68 @@
                                             var priorityClass = daysDiff > 7 ? "priority-high" : (daysDiff > 3 ? "priority-medium" : "priority-low");
                                             var priority = daysDiff > 7 ? "High" : (daysDiff > 3 ? "Medium" : "Low");
                                         }
-                                        <span class="priority-badge @priorityClass">
-                                            @priority
-                                        </span>
-                                        <div class="request-date mt-1">@request.RequestDate.ToString("MMM dd, yyyy")</div>
+                                        <div style="color: #1e293b;">@request.RequestDate.ToString("MMM dd, yyyy")</div>
+                                        <span class="priority-badge @priorityClass" style="font-size: 11px; padding: 0.25rem 0.5rem;">@priority Priority</span>
                                     </td>
                                     <td>
-                                        <div class="d-flex flex-column gap-2">
-                                            <button type="button" class="action-btn btn-view" onclick="viewRequest(@request.Id)">
-                                                <i class="bi bi-eye"></i>
-                                                View Details
+                                        <span class="status-badge @Model.GetStatusClass(request.Status)">
+                                            <i class="bi bi-clock-history"></i>
+                                            @Model.GetStatusText(request.Status)
+                                        </span>
+                                    </td>
+                                    <td class="text-center">
+                                        <div class="dropdown">
+                                            <button class="btn btn-sm dropdown-toggle" type="button"
+                                                    style="background-color: #009EDB; color: white; border: none; padding: 0.5rem 1rem; border-radius: 6px; font-size: 13px;"
+                                                    data-bs-toggle="dropdown"
+                                                    data-bs-auto-close="true"
+                                                    data-bs-boundary="viewport"
+                                                    aria-expanded="false">
+                                                <i class="bi bi-three-dots-vertical"></i>
+                                                Actions
                                             </button>
-                                            @if (Model.CurrentUserRole.Contains("Supervisor"))
-                                            {
-                                                <button type="button" class="action-btn btn-approve" onclick="approveRequest(@request.Id)">
-                                                    <i class="bi bi-check-lg"></i>
-                                                    Approve
-                                                </button>
-                                                <button type="button" class="action-btn btn-reject" onclick="rejectRequest(@request.Id)">
-                                                    <i class="bi bi-x-lg"></i>
-                                                    Reject
-                                                </button>
-                                            }
-                                            else if (Model.CurrentUserRole.Contains("Budget"))
-                                            {
-                                                <button type="button" class="action-btn btn-approve" onclick="budgetOfficerApprove(@request.Id)">
-                                                    <i class="bi bi-check-lg"></i>
-                                                    Approve Budget
-                                                </button>
-                                                <button type="button" class="action-btn btn-reject" onclick="rejectRequest(@request.Id)">
-                                                    <i class="bi bi-x-lg"></i>
-                                                    Reject
-                                                </button>
-                                            }
+                                            <ul class="dropdown-menu dropdown-menu-end" style="min-width: 200px;">
+                                                <li>
+                                                    <a class="dropdown-item" href="#" onclick="viewRequest(@request.Id); return false;">
+                                                        <i class="bi bi-eye me-2" style="color: #009EDB;"></i>
+                                                        View Details
+                                                    </a>
+                                                </li>
+                                                @if (Model.CurrentUserRole.Contains("Supervisor"))
+                                                {
+                                                    <li><hr class="dropdown-divider"></li>
+                                                    <li>
+                                                        <a class="dropdown-item" href="#" onclick="approveRequest(@request.Id); return false;">
+                                                            <i class="bi bi-check-circle me-2" style="color: #72BF44;"></i>
+                                                            Approve
+                                                        </a>
+                                                    </li>
+                                                    <li><hr class="dropdown-divider"></li>
+                                                    <li>
+                                                        <a class="dropdown-item text-danger" href="#" onclick="rejectRequest(@request.Id); return false;">
+                                                            <i class="bi bi-x-circle me-2"></i>
+                                                            Reject Request
+                                                        </a>
+                                                    </li>
+                                                }
+                                                else if (Model.CurrentUserRole.Contains("Budget"))
+                                                {
+                                                    <li><hr class="dropdown-divider"></li>
+                                                    <li>
+                                                        <a class="dropdown-item" href="#" onclick="budgetOfficerApprove(@request.Id); return false;">
+                                                            <i class="bi bi-check-circle me-2" style="color: #72BF44;"></i>
+                                                            Approve Budget
+                                                        </a>
+                                                    </li>
+                                                    <li><hr class="dropdown-divider"></li>
+                                                    <li>
+                                                        <a class="dropdown-item text-danger" href="#" onclick="rejectRequest(@request.Id); return false;">
+                                                            <i class="bi bi-x-circle me-2"></i>
+                                                            Reject Request
+                                                        </a>
+                                                    </li>
+                                                }
+                                            </ul>
                                         </div>
                                     </td>
                                 </tr>
@@ -972,221 +1120,286 @@
 
 <!-- View Details Modal -->
 <div class="modal fade" id="viewDetailsModal" tabindex="-1">
-    <div class="modal-dialog modal-xl modal-dialog-centered">
-        <div class="modal-content" style="border: none; border-radius: 20px; box-shadow: 0 20px 60px rgba(0,0,0,0.1);">
-            <div class="modal-header" style="border: none; padding: 32px 32px 0 32px;">
-                <div class="d-flex align-items-center">
-                    <div class="me-3" style="width: 48px; height: 48px; background: linear-gradient(135deg, #3b82f6, #1d4ed8); border-radius: 16px; display: flex; align-items: center; justify-content: center;">
-                        <i class="bi bi-eye text-white" style="font-size: 24px;"></i>
-                    </div>
-                    <div>
-                        <h4 class="mb-1" style="font-weight: 700; color: #111827; font-size: 24px;">Request Details <span id="viewRequestId" class="text-muted" style="font-size: 18px;">#4</span></h4>
-                        <p class="mb-0 text-muted" style="font-size: 14px;">Mobile Device Reimbursement Request Information</p>
-                    </div>
+    <div class="modal-dialog modal-xl modal-dialog-centered modal-dialog-scrollable">
+        <div class="modal-content" style="border: none; border-radius: 12px; box-shadow: 0 4px 20px rgba(0,0,0,0.15);">
+            <div class="modal-header" style="background-color: #009EDB; color: white; border: none; padding: 1rem 1.5rem; border-radius: 12px 12px 0 0;">
+                <div>
+                    <h4 class="mb-1" style="font-weight: 600; font-size: 1.25rem; display: flex; align-items: center; gap: 0.5rem;">
+                        <i class="bi bi-eye-fill"></i>
+                        Request Details <span id="viewRequestId" style="opacity: 0.9; font-size: 1rem;">#4</span>
+                    </h4>
+                    <p class="mb-0" style="font-size: 0.875rem; opacity: 0.9;">Comprehensive request information and workflow tracking</p>
                 </div>
-                <button type="button" class="btn-close" data-bs-dismiss="modal" style="margin: 0; padding: 12px;"></button>
+                <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal"></button>
             </div>
-            <div class="modal-body" style="padding: 24px 32px;">
-                
-                <!-- Request Overview Card -->
-                <div class="mb-4" style="background: linear-gradient(135deg, #f0f9ff, #e0f2fe); border-radius: 16px; padding: 24px; border: 1px solid #bae6fd;">
-                    <div class="row g-4">
-                        <div class="col-md-6">
-                            <div class="d-flex align-items-center mb-3">
-                                <i class="bi bi-person-circle me-3" style="font-size: 20px; color: #0ea5e9;"></i>
-                                <h6 class="mb-0" style="font-weight: 600; color: #0c4a6e;">Staff Information</h6>
-                            </div>
-                            <div class="mb-2">
-                                <span class="text-muted" style="font-size: 12px; font-weight: 500; text-transform: uppercase; letter-spacing: 0.5px;">Assigned To</span>
-                                <div id="viewStaffName" style="font-weight: 500; color: #111827; font-size: 15px;">Loading...</div>
-                            </div>
-                            <div class="mb-2">
-                                <span class="text-muted" style="font-size: 12px; font-weight: 500; text-transform: uppercase; letter-spacing: 0.5px;">Mobile Number</span>
-                                <div id="viewMobileNumber" style="font-weight: 500; color: #111827; font-size: 15px;">Loading...</div>
-                            </div>
-                            <div class="mb-2">
-                                <span class="text-muted" style="font-size: 12px; font-weight: 500; text-transform: uppercase; letter-spacing: 0.5px;">Index No</span>
-                                <div id="viewIndexNo" style="font-weight: 500; color: #111827; font-size: 15px;">Loading...</div>
-                            </div>
-                        </div>
-                        <div class="col-md-6">
-                            <div class="d-flex align-items-center mb-3">
-                                <i class="bi bi-calendar-check me-3" style="font-size: 20px; color: #0ea5e9;"></i>
-                                <h6 class="mb-0" style="font-weight: 600; color: #0c4a6e;">Request Status</h6>
-                            </div>
-                            <div class="mb-2">
-                                <span class="text-muted" style="font-size: 12px; font-weight: 500; text-transform: uppercase; letter-spacing: 0.5px;">Current Status</span>
-                                <div>
-                                    <span id="viewStatus" class="badge status-pending" style="font-size: 12px; padding: 6px 12px; border-radius: 8px; font-weight: 500;">Loading...</span>
+            <div class="modal-body" style="padding: 0;">
+                <!-- Navigation Tabs -->
+                <ul class="nav nav-tabs" style="background: #f8fafc; padding: 0.75rem 1.25rem 0; border-bottom: 2px solid #e2e8f0; margin-bottom: 0;">
+                    <li class="nav-item">
+                        <button class="nav-link active" id="modal-overview-tab" data-bs-toggle="tab" data-bs-target="#modal-overview" type="button" style="color: #64748b; border: none; border-bottom: 3px solid transparent; padding: 0.75rem 1.5rem; font-weight: 500; font-size: 0.875rem; border-radius: 8px 8px 0 0;">
+                            <i class="bi bi-info-circle me-2"></i>Overview
+                        </button>
+                    </li>
+                    <li class="nav-item">
+                        <button class="nav-link" id="modal-financial-tab" data-bs-toggle="tab" data-bs-target="#modal-financial" type="button" style="color: #64748b; border: none; border-bottom: 3px solid transparent; padding: 0.75rem 1.5rem; font-weight: 500; font-size: 0.875rem; border-radius: 8px 8px 0 0;">
+                            <i class="bi bi-currency-dollar me-2"></i>Financial Details
+                        </button>
+                    </li>
+                    <li class="nav-item">
+                        <button class="nav-link" id="modal-supervisor-tab" data-bs-toggle="tab" data-bs-target="#modal-supervisor" type="button" style="color: #64748b; border: none; border-bottom: 3px solid transparent; padding: 0.75rem 1.5rem; font-weight: 500; font-size: 0.875rem; border-radius: 8px 8px 0 0;">
+                            <i class="bi bi-check-circle me-2"></i>Supervisor Approval
+                        </button>
+                    </li>
+                    <li class="nav-item">
+                        <button class="nav-link" id="modal-budget-tab" data-bs-toggle="tab" data-bs-target="#modal-budget" type="button" style="color: #64748b; border: none; border-bottom: 3px solid transparent; padding: 0.75rem 1.5rem; font-weight: 500; font-size: 0.875rem; border-radius: 8px 8px 0 0;">
+                            <i class="bi bi-calculator me-2"></i>Budget Officer
+                        </button>
+                    </li>
+                    <li class="nav-item">
+                        <button class="nav-link" id="modal-claims-tab" data-bs-toggle="tab" data-bs-target="#modal-claims" type="button" style="color: #64748b; border: none; border-bottom: 3px solid transparent; padding: 0.75rem 1.5rem; font-weight: 500; font-size: 0.875rem; border-radius: 8px 8px 0 0;">
+                            <i class="bi bi-receipt me-2"></i>Claims Processing
+                        </button>
+                    </li>
+                    <li class="nav-item">
+                        <button class="nav-link" id="modal-workflow-tab" data-bs-toggle="tab" data-bs-target="#modal-workflow" type="button" style="color: #64748b; border: none; border-bottom: 3px solid transparent; padding: 0.75rem 1.5rem; font-weight: 500; font-size: 0.875rem; border-radius: 8px 8px 0 0;">
+                            <i class="bi bi-diagram-3 me-2"></i>Workflow History
+                        </button>
+                    </li>
+                    <li class="nav-item">
+                        <button class="nav-link" id="modal-remarks-tab" data-bs-toggle="tab" data-bs-target="#modal-remarks" type="button" style="color: #64748b; border: none; border-bottom: 3px solid transparent; padding: 0.75rem 1.5rem; font-weight: 500; font-size: 0.875rem; border-radius: 8px 8px 0 0;">
+                            <i class="bi bi-chat-square-text me-2"></i>Remarks
+                        </button>
+                    </li>
+                </ul>
+
+                <!-- Tab Content -->
+                <div class="tab-content" style="background: white; padding: 1.5rem;">
+                    <!-- Overview Tab -->
+                    <div class="tab-pane fade show active" id="modal-overview">
+                        <!-- Current Status Section -->
+                        <div class="mb-4" style="background: #f8fafc; border-radius: 8px; padding: 1.25rem; border: 1px solid #e2e8f0;">
+                            <h6 style="font-size: 0.875rem; font-weight: 600; color: #4a5568; margin-bottom: 1rem; padding-bottom: 0.5rem; border-bottom: 2px solid #e2e8f0; display: flex; align-items: center;">
+                                <i class="bi bi-flag me-2" style="color: #009EDB;"></i>Current Status
+                            </h6>
+                            <div class="row">
+                                <div class="col-md-4 mb-3">
+                                    <div style="font-size: 12px; color: #6b7280; margin-bottom: 4px; font-weight: 500; text-transform: uppercase; letter-spacing: 0.025em;">Status</div>
+                                    <span id="viewStatus" class="status-badge status-pending">Loading...</span>
+                                </div>
+                                <div class="col-md-4 mb-3">
+                                    <div style="font-size: 12px; color: #6b7280; margin-bottom: 4px; font-weight: 500; text-transform: uppercase; letter-spacing: 0.025em;">Request Date</div>
+                                    <div id="viewRequestDate" style="font-size: 14px; color: #1f2937; font-weight: 500;">Loading...</div>
+                                </div>
+                                <div class="col-md-4 mb-3">
+                                    <div style="font-size: 12px; color: #6b7280; margin-bottom: 4px; font-weight: 500; text-transform: uppercase; letter-spacing: 0.025em;">Request ID</div>
+                                    <div id="viewRequestIdValue" style="font-size: 14px; color: #1f2937; font-weight: 500;">Loading...</div>
                                 </div>
                             </div>
-                            <div class="mb-2">
-                                <span class="text-muted" style="font-size: 12px; font-weight: 500; text-transform: uppercase; letter-spacing: 0.5px;">Request Date</span>
-                                <div id="viewRequestDate" style="color: #6b7280; font-size: 14px;">Loading...</div>
-                            </div>
                         </div>
-                    </div>
-                </div>
 
-                <!-- Mobile Service Details -->
-                <div class="mb-4" style="background: #fff; border-radius: 16px; padding: 24px; border: 1px solid #e5e7eb;">
-                    <div class="d-flex align-items-center mb-3">
-                        <i class="bi bi-phone me-3" style="font-size: 20px; color: #059669;"></i>
-                        <h6 class="mb-0" style="font-weight: 600; color: #111827;">Mobile Service Information</h6>
-                    </div>
-                    <div class="row g-3">
-                        <div class="col-md-6">
-                            <div class="mb-2">
-                                <span class="text-muted" style="font-size: 12px; font-weight: 500; text-transform: uppercase; letter-spacing: 0.5px;">Office</span>
-                                <div id="viewOffice" style="font-weight: 500; color: #111827; font-size: 14px;">Loading...</div>
+                        <!-- Staff Information Section -->
+                        <div class="mb-4" style="background: #f8fafc; border-radius: 8px; padding: 1.25rem; border: 1px solid #e2e8f0;">
+                            <h6 style="font-size: 0.875rem; font-weight: 600; color: #4a5568; margin-bottom: 1rem; padding-bottom: 0.5rem; border-bottom: 2px solid #e2e8f0; display: flex; align-items: center;">
+                                <i class="bi bi-person-circle me-2" style="color: #009EDB;"></i>Staff Information
+                            </h6>
+                            <div class="row">
+                                <div class="col-md-6 mb-3">
+                                    <div style="font-size: 12px; color: #6b7280; margin-bottom: 4px; font-weight: 500; text-transform: uppercase; letter-spacing: 0.025em;">Staff Name</div>
+                                    <div id="viewStaffName" style="font-size: 14px; color: #1f2937; font-weight: 500;">Loading...</div>
+                                </div>
+                                <div class="col-md-6 mb-3">
+                                    <div style="font-size: 12px; color: #6b7280; margin-bottom: 4px; font-weight: 500; text-transform: uppercase; letter-spacing: 0.025em;">Index Number</div>
+                                    <div id="viewIndexNo" style="font-size: 14px; color: #1f2937; font-weight: 500;">Loading...</div>
+                                </div>
+                                <div class="col-md-6 mb-3">
+                                    <div style="font-size: 12px; color: #6b7280; margin-bottom: 4px; font-weight: 500; text-transform: uppercase; letter-spacing: 0.025em;">Primary Mobile Number</div>
+                                    <div id="viewMobileNumber" style="font-size: 14px; color: #1f2937; font-weight: 500;">Loading...</div>
+                                </div>
+                                <div class="col-md-6 mb-3">
+                                    <div style="font-size: 12px; color: #6b7280; margin-bottom: 4px; font-weight: 500; text-transform: uppercase; letter-spacing: 0.025em;">Office Extension</div>
+                                    <div id="viewOfficeExtension" style="font-size: 14px; color: #1f2937; font-weight: 500;">Loading...</div>
+                                </div>
                             </div>
                         </div>
-                        <div class="col-md-6">
-                            <div class="mb-2">
-                                <span class="text-muted" style="font-size: 12px; font-weight: 500; text-transform: uppercase; letter-spacing: 0.5px;">Organization</span>
-                                <div id="viewOrganization" style="font-weight: 500; color: #111827; font-size: 14px;">Loading...</div>
-                            </div>
-                        </div>
-                        <div class="col-md-4">
-                            <div class="mb-2">
-                                <span class="text-muted" style="font-size: 12px; font-weight: 500; text-transform: uppercase; letter-spacing: 0.5px;">Mobile Service</span>
-                                <div id="viewMobileService" style="font-weight: 500; color: #111827; font-size: 14px;">Loading...</div>
-                            </div>
-                        </div>
-                        <div class="col-md-4">
-                            <div class="mb-2">
-                                <span class="text-muted" style="font-size: 12px; font-weight: 500; text-transform: uppercase; letter-spacing: 0.5px;">Class of Service</span>
-                                <div id="viewClassOfService" style="font-weight: 500; color: #111827; font-size: 14px;">Loading...</div>
-                            </div>
-                        </div>
-                        <div class="col-md-4">
-                            <div class="mb-2">
-                                <span class="text-muted" style="font-size: 12px; font-weight: 500; text-transform: uppercase; letter-spacing: 0.5px;">Office Extension</span>
-                                <div id="viewOfficeExtension" style="font-weight: 500; color: #111827; font-size: 14px;">Loading...</div>
-                            </div>
-                        </div>
-                        <div class="col-md-12">
-                            <div class="mb-2">
-                                <span class="text-muted" style="font-size: 12px; font-weight: 500; text-transform: uppercase; letter-spacing: 0.5px;">Supervisor</span>
-                                <div id="viewSupervisor" style="font-weight: 500; color: #111827; font-size: 14px;">Loading...</div>
-                            </div>
-                        </div>
-                    </div>
-                </div>
 
-                <!-- Financial Details -->
-                <div class="mb-4" style="background: #fefce8; border-radius: 16px; padding: 24px; border: 1px solid #fde047;">
-                    <div class="d-flex align-items-center mb-3">
-                        <i class="bi bi-currency-dollar me-3" style="font-size: 20px; color: #ca8a04;"></i>
-                        <h6 class="mb-0" style="font-weight: 600; color: #713f12;">Financial Information</h6>
-                    </div>
-                    <div class="row g-3">
-                        <div class="col-md-4">
-                            <div class="mb-2">
-                                <span class="text-muted" style="font-size: 12px; font-weight: 500; text-transform: uppercase; letter-spacing: 0.5px;">Device Allowance</span>
-                                <div id="viewDeviceAllowance" style="font-weight: 600; color: #111827; font-size: 16px;">Loading...</div>
-                            </div>
-                        </div>
-                        <div class="col-md-4">
-                            <div class="mb-2">
-                                <span class="text-muted" style="font-size: 12px; font-weight: 500; text-transform: uppercase; letter-spacing: 0.5px;">Purchase Amount</span>
-                                <div id="viewPurchaseAmount" style="font-weight: 600; color: #111827; font-size: 16px;">Loading...</div>
-                            </div>
-                        </div>
-                        <div class="col-md-4">
-                            <div class="mb-2">
-                                <span class="text-muted" style="font-size: 12px; font-weight: 500; text-transform: uppercase; letter-spacing: 0.5px;">Bank Details</span>
-                                <div id="viewUmojaBankName" style="font-weight: 500; color: #111827; font-size: 14px;">Loading...</div>
-                            </div>
-                        </div>
-                        <div class="col-md-12">
-                            <div class="mb-2">
-                                <span class="text-muted" style="font-size: 12px; font-weight: 500; text-transform: uppercase; letter-spacing: 0.5px;">Previous Device Reimbursed</span>
-                                <div id="viewPreviousReimbursedDate" style="font-weight: 500; color: #111827; font-size: 14px;">Loading...</div>
+                        <!-- Organization Details Section -->
+                        <div class="mb-4" style="background: #f8fafc; border-radius: 8px; padding: 1.25rem; border: 1px solid #e2e8f0;">
+                            <h6 style="font-size: 0.875rem; font-weight: 600; color: #4a5568; margin-bottom: 1rem; padding-bottom: 0.5rem; border-bottom: 2px solid #e2e8f0; display: flex; align-items: center;">
+                                <i class="bi bi-building me-2" style="color: #009EDB;"></i>Organization Details
+                            </h6>
+                            <div class="row">
+                                <div class="col-md-6 mb-3">
+                                    <div style="font-size: 12px; color: #6b7280; margin-bottom: 4px; font-weight: 500; text-transform: uppercase; letter-spacing: 0.025em;">Office</div>
+                                    <div id="viewOffice" style="font-size: 14px; color: #1f2937; font-weight: 500;">Loading...</div>
+                                </div>
+                                <div class="col-md-6 mb-3">
+                                    <div style="font-size: 12px; color: #6b7280; margin-bottom: 4px; font-weight: 500; text-transform: uppercase; letter-spacing: 0.025em;">Organization</div>
+                                    <div id="viewOrganization" style="font-size: 14px; color: #1f2937; font-weight: 500;">Loading...</div>
+                                </div>
+                                <div class="col-md-6 mb-3">
+                                    <div style="font-size: 12px; color: #6b7280; margin-bottom: 4px; font-weight: 500; text-transform: uppercase; letter-spacing: 0.025em;">Mobile Service</div>
+                                    <div id="viewMobileService" style="font-size: 14px; color: #1f2937; font-weight: 500;">Loading...</div>
+                                </div>
+                                <div class="col-md-6 mb-3">
+                                    <div style="font-size: 12px; color: #6b7280; margin-bottom: 4px; font-weight: 500; text-transform: uppercase; letter-spacing: 0.025em;">Class of Service</div>
+                                    <div id="viewClassOfService" style="font-size: 14px; color: #1f2937; font-weight: 500;">Loading...</div>
+                                </div>
+                                <div class="col-md-12 mb-3">
+                                    <div style="font-size: 12px; color: #6b7280; margin-bottom: 4px; font-weight: 500; text-transform: uppercase; letter-spacing: 0.025em;">Supervisor</div>
+                                    <div id="viewSupervisor" style="font-size: 14px; color: #1f2937; font-weight: 500;">Loading...</div>
+                                </div>
                             </div>
                         </div>
                     </div>
-                </div>
 
-                <!-- Purchase Receipt -->
-                <div id="receiptSection" class="mb-4" style="background: #f0fdf4; border-radius: 16px; padding: 24px; border: 1px solid #bbf7d0; display: none;">
-                    <div class="d-flex align-items-center mb-3">
-                        <i class="bi bi-file-earmark-pdf me-3" style="font-size: 20px; color: #059669;"></i>
-                        <h6 class="mb-0" style="font-weight: 600; color: #14532d;">Purchase Receipt</h6>
-                    </div>
-                    <a id="receiptLink" href="#" target="_blank" class="btn btn-outline-success" style="border-radius: 8px;">
-                        <i class="bi bi-download me-2"></i>View Purchase Receipt
-                    </a>
-                </div>
+                    <!-- Financial Details Tab -->
+                    <div class="tab-pane fade" id="modal-financial">
+                        <div class="mb-4" style="background: #f8fafc; border-radius: 8px; padding: 1.25rem; border: 1px solid #e2e8f0;">
+                            <h6 style="font-size: 0.875rem; font-weight: 600; color: #4a5568; margin-bottom: 1rem; padding-bottom: 0.5rem; border-bottom: 2px solid #e2e8f0; display: flex; align-items: center;">
+                                <i class="bi bi-currency-dollar me-2" style="color: #009EDB;"></i>Financial Information
+                            </h6>
+                            <div class="row">
+                                <div class="col-md-6 mb-3">
+                                    <div style="font-size: 12px; color: #6b7280; margin-bottom: 4px; font-weight: 500; text-transform: uppercase; letter-spacing: 0.025em;">Device Allowance</div>
+                                    <div id="viewDeviceAllowance" style="font-size: 16px; color: #009EDB; font-weight: 600;">Loading...</div>
+                                </div>
+                                <div class="col-md-6 mb-3">
+                                    <div style="font-size: 12px; color: #6b7280; margin-bottom: 4px; font-weight: 500; text-transform: uppercase; letter-spacing: 0.025em;">Purchase Amount</div>
+                                    <div id="viewPurchaseAmount" style="font-size: 16px; color: #009EDB; font-weight: 600;">Loading...</div>
+                                </div>
+                                <div class="col-md-6 mb-3">
+                                    <div style="font-size: 12px; color: #6b7280; margin-bottom: 4px; font-weight: 500; text-transform: uppercase; letter-spacing: 0.025em;">Bank Details</div>
+                                    <div id="viewUmojaBankName" style="font-size: 14px; color: #1f2937; font-weight: 500;">Loading...</div>
+                                </div>
+                                <div class="col-md-6 mb-3">
+                                    <div style="font-size: 12px; color: #6b7280; margin-bottom: 4px; font-weight: 500; text-transform: uppercase; letter-spacing: 0.025em;">Previous Device Reimbursed</div>
+                                    <div id="viewPreviousReimbursedDate" style="font-size: 14px; color: #1f2937; font-weight: 500;">Loading...</div>
+                                </div>
+                            </div>
+                        </div>
 
-                <!-- Workflow Status -->
-                <div class="mb-4" style="background: #f8fafc; border-radius: 16px; padding: 24px; border: 1px solid #e2e8f0;">
-                    <div class="d-flex align-items-center mb-3">
-                        <i class="bi bi-diagram-3 me-3" style="font-size: 20px; color: #6366f1;"></i>
-                        <h6 class="mb-0" style="font-weight: 600; color: #111827;">Approval Workflow</h6>
+                        <!-- Purchase Receipt Section -->
+                        <div id="receiptSection" class="mb-4" style="background: #f0fdf4; border-radius: 8px; padding: 1.25rem; border: 1px solid #bbf7d0; display: none;">
+                            <h6 style="font-size: 0.875rem; font-weight: 600; color: #14532d; margin-bottom: 1rem; display: flex; align-items: center;">
+                                <i class="bi bi-file-earmark-pdf me-2" style="color: #059669;"></i>Purchase Receipt
+                            </h6>
+                            <a id="receiptLink" href="#" target="_blank" class="btn btn-outline-success btn-sm" style="border-radius: 6px;">
+                                <i class="bi bi-download me-2"></i>View Purchase Receipt
+                            </a>
+                        </div>
                     </div>
-                    <div class="row g-3">
-                        <div class="col-md-12">
-                            <div class="d-flex align-items-center justify-content-between mb-3">
+
+                    <!-- Supervisor Approval Tab -->
+                    <div class="tab-pane fade" id="modal-supervisor">
+                        <div id="supervisorContent">
+                            <div class="text-center py-5">
+                                <div class="mb-3">
+                                    <i class="bi bi-hourglass-split" style="font-size: 3rem; color: #cbd5e1;"></i>
+                                </div>
+                                <h5 class="text-muted mb-2">Pending Supervisor Approval</h5>
+                                <p class="text-muted" style="font-size: 0.875rem;">
+                                    The supervisor has not yet reviewed and approved this request.
+                                </p>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Budget Officer Tab -->
+                    <div class="tab-pane fade" id="modal-budget">
+                        <div id="budgetContent">
+                            <div class="text-center py-5">
+                                <div class="mb-3">
+                                    <i class="bi bi-hourglass-split" style="font-size: 3rem; color: #cbd5e1;"></i>
+                                </div>
+                                <h5 class="text-muted mb-2">Pending Budget Officer Approval</h5>
+                                <p class="text-muted" style="font-size: 0.875rem;">
+                                    The budget officer has not yet reviewed and approved this request.
+                                </p>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Claims Processing Tab -->
+                    <div class="tab-pane fade" id="modal-claims">
+                        <div id="claimsContent">
+                            <div class="text-center py-5">
+                                <div class="mb-3">
+                                    <i class="bi bi-hourglass-split" style="font-size: 3rem; color: #cbd5e1;"></i>
+                                </div>
+                                <h5 class="text-muted mb-2">Pending Claims Processing</h5>
+                                <p class="text-muted" style="font-size: 0.875rem;">
+                                    The claims unit has not yet processed this request.
+                                </p>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Workflow History Tab -->
+                    <div class="tab-pane fade" id="modal-workflow">
+                        <div class="mb-4" style="background: #f8fafc; border-radius: 8px; padding: 1.25rem; border: 1px solid #e2e8f0;">
+                            <h6 style="font-size: 0.875rem; font-weight: 600; color: #4a5568; margin-bottom: 1rem; padding-bottom: 0.5rem; border-bottom: 2px solid #e2e8f0; display: flex; align-items: center;">
+                                <i class="bi bi-diagram-3 me-2" style="color: #009EDB;"></i>Approval Workflow
+                            </h6>
+                            <div class="d-flex align-items-center justify-content-between mb-3" style="overflow-x: auto;">
                                 <!-- Step 1: Submitted -->
-                                <div class="d-flex flex-column align-items-center" style="flex: 1;">
+                                <div class="d-flex flex-column align-items-center" style="flex: 1; min-width: 100px;">
                                     <div id="step-submitted" class="d-flex align-items-center justify-content-center" style="width: 40px; height: 40px; background: #e5e7eb; border-radius: 50%; margin-bottom: 8px;">
                                         <i class="bi bi-circle text-gray-400" style="font-size: 18px;"></i>
                                     </div>
-                                    <small class="text-center" style="font-weight: 500; color: #9ca3af;">Submitted</small>
+                                    <small class="text-center" style="font-weight: 500; color: #9ca3af; font-size: 11px;">Submitted</small>
                                 </div>
-                                <div id="line-1" style="flex: 1; height: 2px; background: #e5e7eb; margin: 0 16px;"></div>
-                                
+                                <div id="line-1" style="flex: 1; height: 2px; background: #e5e7eb; margin: 0 8px;"></div>
+
                                 <!-- Step 2: Supervisor -->
-                                <div class="d-flex flex-column align-items-center" style="flex: 1;">
+                                <div class="d-flex flex-column align-items-center" style="flex: 1; min-width: 100px;">
                                     <div id="step-supervisor" class="d-flex align-items-center justify-content-center" style="width: 40px; height: 40px; background: #e5e7eb; border-radius: 50%; margin-bottom: 8px;">
                                         <i class="bi bi-circle text-gray-400" style="font-size: 18px;"></i>
                                     </div>
-                                    <small class="text-center" style="font-weight: 500; color: #9ca3af;">Supervisor</small>
+                                    <small class="text-center" style="font-weight: 500; color: #9ca3af; font-size: 11px;">Supervisor</small>
                                 </div>
-                                <div id="line-2" style="flex: 1; height: 2px; background: #e5e7eb; margin: 0 16px;"></div>
-                                
-                                <!-- Step 3: Budget Officer -->
-                                <div class="d-flex flex-column align-items-center" style="flex: 1;">
+                                <div id="line-2" style="flex: 1; height: 2px; background: #e5e7eb; margin: 0 8px;"></div>
+
+                                <!-- Step 3: Budget -->
+                                <div class="d-flex flex-column align-items-center" style="flex: 1; min-width: 100px;">
                                     <div id="step-budget" class="d-flex align-items-center justify-content-center" style="width: 40px; height: 40px; background: #e5e7eb; border-radius: 50%; margin-bottom: 8px;">
                                         <i class="bi bi-circle text-gray-400" style="font-size: 18px;"></i>
                                     </div>
-                                    <small class="text-center" style="font-weight: 500; color: #9ca3af;">Budget Officer</small>
+                                    <small class="text-center" style="font-weight: 500; color: #9ca3af; font-size: 11px;">Budget</small>
                                 </div>
-                                <div id="line-3" style="flex: 1; height: 2px; background: #e5e7eb; margin: 0 16px;"></div>
-                                
-                                <!-- Step 4: Staff Claims -->
-                                <div class="d-flex flex-column align-items-center" style="flex: 1;">
+                                <div id="line-3" style="flex: 1; height: 2px; background: #e5e7eb; margin: 0 8px;"></div>
+
+                                <!-- Step 4: Claims -->
+                                <div class="d-flex flex-column align-items-center" style="flex: 1; min-width: 100px;">
                                     <div id="step-claims" class="d-flex align-items-center justify-content-center" style="width: 40px; height: 40px; background: #e5e7eb; border-radius: 50%; margin-bottom: 8px;">
                                         <i class="bi bi-circle text-gray-400" style="font-size: 18px;"></i>
                                     </div>
-                                    <small class="text-center" style="font-weight: 500; color: #9ca3af;">Staff Claims</small>
+                                    <small class="text-center" style="font-weight: 500; color: #9ca3af; font-size: 11px;">Claims</small>
                                 </div>
-                                <div id="line-4" style="flex: 1; height: 2px; background: #e5e7eb; margin: 0 16px;"></div>
-                                
+                                <div id="line-4" style="flex: 1; height: 2px; background: #e5e7eb; margin: 0 8px;"></div>
+
                                 <!-- Step 5: Payment -->
-                                <div class="d-flex flex-column align-items-center" style="flex: 1;">
+                                <div class="d-flex flex-column align-items-center" style="flex: 1; min-width: 100px;">
                                     <div id="step-payment" class="d-flex align-items-center justify-content-center" style="width: 40px; height: 40px; background: #e5e7eb; border-radius: 50%; margin-bottom: 8px;">
                                         <i class="bi bi-circle text-gray-400" style="font-size: 18px;"></i>
                                     </div>
-                                    <small class="text-center" style="font-weight: 500; color: #9ca3af;">Payment</small>
+                                    <small class="text-center" style="font-weight: 500; color: #9ca3af; font-size: 11px;">Payment</small>
                                 </div>
                             </div>
                         </div>
                     </div>
-                </div>
 
-                <!-- Comments & Remarks -->
-                <div class="mb-4" style="background: #fff7ed; border-radius: 16px; padding: 24px; border: 1px solid #fed7aa;">
-                    <div class="d-flex align-items-center mb-3">
-                        <i class="bi bi-chat-square-text me-3" style="font-size: 20px; color: #ea580c;"></i>
-                        <h6 class="mb-0" style="font-weight: 600; color: #9a3412;">Comments & Remarks</h6>
-                    </div>
-                    <div id="commentsContainer">
-                        <p class="text-muted text-center py-3">Loading comments...</p>
+                    <!-- Remarks Tab -->
+                    <div class="tab-pane fade" id="modal-remarks">
+                        <div class="mb-4" style="background: #f8fafc; border-radius: 8px; padding: 1.25rem; border: 1px solid #e2e8f0;">
+                            <h6 style="font-size: 0.875rem; font-weight: 600; color: #4a5568; margin-bottom: 1rem; padding-bottom: 0.5rem; border-bottom: 2px solid #e2e8f0; display: flex; align-items: center;">
+                                <i class="bi bi-chat-square-text me-2" style="color: #009EDB;"></i>Comments & Remarks
+                            </h6>
+                            <div id="commentsContainer">
+                                <p class="text-muted text-center py-3">Loading comments...</p>
+                            </div>
+                        </div>
                     </div>
                 </div>
-
             </div>
             <div class="modal-footer" style="border: none; padding: 24px 32px 32px 32px;">
                 <button type="button" class="btn btn-secondary" data-bs-dismiss="modal" style="border-radius: 12px; padding: 12px 24px; font-weight: 500;">Close</button>
@@ -1200,7 +1413,7 @@
 
     function approveRequest(requestId) {
         // Fetch request details first
-        fetch(`/Supervisor/RefundRequests?handler=RequestDetails&requestId=${requestId}`)
+        fetch(`/Modules/RefundManagement/Approvals/Supervisor?handler=RequestDetails&requestId=${requestId}`)
             .then(response => response.json())
             .then(data => {
                 currentRequestData = data;
@@ -1268,7 +1481,7 @@
 
     function viewRequest(requestId) {
         // Fetch request details and show modal
-        fetch(`/Supervisor/RefundRequests?handler=RequestDetails&requestId=${requestId}`)
+        fetch(`/Modules/RefundManagement/Approvals/Supervisor?handler=RequestDetails&requestId=${requestId}`)
             .then(response => response.json())
             .then(data => {
                 populateViewDetailsModal(data);
@@ -1283,6 +1496,7 @@
     function populateViewDetailsModal(data) {
         // Populate request overview
         document.getElementById('viewRequestId').textContent = `#${data.id}`;
+        document.getElementById('viewRequestIdValue').textContent = `#${data.id}`;
         document.getElementById('viewStaffName').textContent = data.mobileNumberAssignedTo || '-';
         document.getElementById('viewMobileNumber').textContent = data.primaryMobileNumber || '-';
         document.getElementById('viewIndexNo').textContent = data.indexNo || '-';
@@ -1293,7 +1507,7 @@
         // Populate status
         const statusBadge = document.getElementById('viewStatus');
         statusBadge.textContent = getStatusText(data.status);
-        statusBadge.className = `badge ${getStatusClass(data.status)}`;
+        statusBadge.className = `status-badge ${getStatusClass(data.status)}`;
         
         // Populate mobile service details
         document.getElementById('viewMobileService').textContent = data.mobileService || '-';
@@ -1323,6 +1537,210 @@
             receiptSection.style.display = 'block';
         } else {
             receiptSection.style.display = 'none';
+        }
+
+        // Populate approval tabs
+        populateSupervisorApproval(data);
+        populateBudgetOfficerApproval(data);
+        populateClaimsProcessing(data);
+    }
+
+    function populateSupervisorApproval(data) {
+        const content = document.getElementById('supervisorContent');
+        if (data.supervisorName || data.supervisorRemarks) {
+            content.innerHTML = `
+                <div class="mb-4" style="background: #f8fafc; border-radius: 8px; padding: 1.25rem; border: 1px solid #e2e8f0;">
+                    <h6 style="font-size: 0.875rem; font-weight: 600; color: #4a5568; margin-bottom: 1rem; padding-bottom: 0.5rem; border-bottom: 2px solid #e2e8f0; display: flex; align-items: center;">
+                        <i class="bi bi-person-check me-2" style="color: #009EDB;"></i>Supervisor Information
+                    </h6>
+                    <div class="row">
+                        ${data.supervisorName ? `
+                            <div class="col-md-6 mb-3">
+                                <div style="font-size: 12px; color: #6b7280; margin-bottom: 4px; font-weight: 500; text-transform: uppercase; letter-spacing: 0.025em;">Supervisor Name</div>
+                                <div style="font-size: 14px; color: #1f2937; font-weight: 500;">${data.supervisorName}</div>
+                            </div>
+                        ` : ''}
+                        ${data.supervisorEmail ? `
+                            <div class="col-md-6 mb-3">
+                                <div style="font-size: 12px; color: #6b7280; margin-bottom: 4px; font-weight: 500; text-transform: uppercase; letter-spacing: 0.025em;">Supervisor Email</div>
+                                <div style="font-size: 14px; color: #1f2937; font-weight: 500;">${data.supervisorEmail}</div>
+                            </div>
+                        ` : ''}
+                        ${data.supervisorRemarks ? `
+                            <div class="col-12 mb-3">
+                                <div style="font-size: 12px; color: #6b7280; margin-bottom: 4px; font-weight: 500; text-transform: uppercase; letter-spacing: 0.025em;">Supervisor Remarks</div>
+                                <div style="font-size: 14px; color: #1f2937; line-height: 1.5; background: white; padding: 12px; border-radius: 6px;">${data.supervisorRemarks}</div>
+                            </div>
+                        ` : ''}
+                        ${data.supervisorNotes ? `
+                            <div class="col-12 mb-3">
+                                <div style="font-size: 12px; color: #6b7280; margin-bottom: 4px; font-weight: 500; text-transform: uppercase; letter-spacing: 0.025em;">Supervisor Notes</div>
+                                <div style="font-size: 14px; color: #1f2937; line-height: 1.5; background: white; padding: 12px; border-radius: 6px;">${data.supervisorNotes}</div>
+                            </div>
+                        ` : ''}
+                    </div>
+                </div>
+            `;
+        }
+    }
+
+    function populateBudgetOfficerApproval(data) {
+        const content = document.getElementById('budgetContent');
+        if (data.budgetOfficerName || data.budgetOfficerRemarks || data.costObject) {
+            content.innerHTML = `
+                ${(data.budgetOfficerName || data.budgetOfficerEmail) ? `
+                    <div class="mb-4" style="background: #f8fafc; border-radius: 8px; padding: 1.25rem; border: 1px solid #e2e8f0;">
+                        <h6 style="font-size: 0.875rem; font-weight: 600; color: #4a5568; margin-bottom: 1rem; padding-bottom: 0.5rem; border-bottom: 2px solid #e2e8f0; display: flex; align-items: center;">
+                            <i class="bi bi-person-check me-2" style="color: #009EDB;"></i>Budget Officer Information
+                        </h6>
+                        <div class="row">
+                            ${data.budgetOfficerName ? `
+                                <div class="col-md-6 mb-3">
+                                    <div style="font-size: 12px; color: #6b7280; margin-bottom: 4px; font-weight: 500; text-transform: uppercase; letter-spacing: 0.025em;">Budget Officer Name</div>
+                                    <div style="font-size: 14px; color: #1f2937; font-weight: 500;">${data.budgetOfficerName}</div>
+                                </div>
+                            ` : ''}
+                            ${data.budgetOfficerEmail ? `
+                                <div class="col-md-6 mb-3">
+                                    <div style="font-size: 12px; color: #6b7280; margin-bottom: 4px; font-weight: 500; text-transform: uppercase; letter-spacing: 0.025em;">Budget Officer Email</div>
+                                    <div style="font-size: 14px; color: #1f2937; font-weight: 500;">${data.budgetOfficerEmail}</div>
+                                </div>
+                            ` : ''}
+                            ${data.budgetOfficerApprovalDate ? `
+                                <div class="col-md-6 mb-3">
+                                    <div style="font-size: 12px; color: #6b7280; margin-bottom: 4px; font-weight: 500; text-transform: uppercase; letter-spacing: 0.025em;">Approval Date</div>
+                                    <div style="font-size: 14px; color: #1f2937; font-weight: 500;">${new Date(data.budgetOfficerApprovalDate).toLocaleDateString('en-US', { year: 'numeric', month: 'short', day: 'numeric' })}</div>
+                                </div>
+                            ` : ''}
+                        </div>
+                    </div>
+                ` : ''}
+                ${(data.costObject || data.costCenter || data.fundCommitment) ? `
+                    <div class="mb-4" style="background: #f8fafc; border-radius: 8px; padding: 1.25rem; border: 1px solid #e2e8f0;">
+                        <h6 style="font-size: 0.875rem; font-weight: 600; color: #4a5568; margin-bottom: 1rem; padding-bottom: 0.5rem; border-bottom: 2px solid #e2e8f0; display: flex; align-items: center;">
+                            <i class="bi bi-calculator me-2" style="color: #009EDB;"></i>Cost Accounting
+                        </h6>
+                        <div class="row">
+                            ${data.costObject ? `
+                                <div class="col-md-4 mb-3">
+                                    <div style="font-size: 12px; color: #6b7280; margin-bottom: 4px; font-weight: 500; text-transform: uppercase; letter-spacing: 0.025em;">Cost Object</div>
+                                    <div style="font-size: 14px; color: #1f2937; font-weight: 500;">${data.costObject}</div>
+                                </div>
+                            ` : ''}
+                            ${data.costCenter ? `
+                                <div class="col-md-4 mb-3">
+                                    <div style="font-size: 12px; color: #6b7280; margin-bottom: 4px; font-weight: 500; text-transform: uppercase; letter-spacing: 0.025em;">Cost Center</div>
+                                    <div style="font-size: 14px; color: #1f2937; font-weight: 500;">${data.costCenter}</div>
+                                </div>
+                            ` : ''}
+                            ${data.fundCommitment ? `
+                                <div class="col-md-4 mb-3">
+                                    <div style="font-size: 12px; color: #6b7280; margin-bottom: 4px; font-weight: 500; text-transform: uppercase; letter-spacing: 0.025em;">Fund Commitment</div>
+                                    <div style="font-size: 14px; color: #1f2937; font-weight: 500;">${data.fundCommitment}</div>
+                                </div>
+                            ` : ''}
+                        </div>
+                    </div>
+                ` : ''}
+                ${(data.budgetOfficerRemarks || data.budgetOfficerNotes) ? `
+                    <div class="mb-4" style="background: #f8fafc; border-radius: 8px; padding: 1.25rem; border: 1px solid #e2e8f0;">
+                        <h6 style="font-size: 0.875rem; font-weight: 600; color: #4a5568; margin-bottom: 1rem; padding-bottom: 0.5rem; border-bottom: 2px solid #e2e8f0; display: flex; align-items: center;">
+                            <i class="bi bi-chat-square-text me-2" style="color: #009EDB;"></i>Remarks & Notes
+                        </h6>
+                        <div class="row">
+                            ${data.budgetOfficerRemarks ? `
+                                <div class="col-12 mb-3">
+                                    <div style="font-size: 12px; color: #6b7280; margin-bottom: 4px; font-weight: 500; text-transform: uppercase; letter-spacing: 0.025em;">Budget Officer Remarks</div>
+                                    <div style="font-size: 14px; color: #1f2937; line-height: 1.5; background: white; padding: 12px; border-radius: 6px;">${data.budgetOfficerRemarks}</div>
+                                </div>
+                            ` : ''}
+                            ${data.budgetOfficerNotes ? `
+                                <div class="col-12 mb-3">
+                                    <div style="font-size: 12px; color: #6b7280; margin-bottom: 4px; font-weight: 500; text-transform: uppercase; letter-spacing: 0.025em;">Budget Officer Notes</div>
+                                    <div style="font-size: 14px; color: #1f2937; line-height: 1.5; background: white; padding: 12px; border-radius: 6px;">${data.budgetOfficerNotes}</div>
+                                </div>
+                            ` : ''}
+                        </div>
+                    </div>
+                ` : ''}
+            `;
+        }
+    }
+
+    function populateClaimsProcessing(data) {
+        const content = document.getElementById('claimsContent');
+        if (data.staffClaimsOfficerName || data.staffClaimsRemarks || data.umojaPaymentDocumentId) {
+            content.innerHTML = `
+                ${(data.staffClaimsOfficerName || data.staffClaimsOfficerEmail) ? `
+                    <div class="mb-4" style="background: #f8fafc; border-radius: 8px; padding: 1.25rem; border: 1px solid #e2e8f0;">
+                        <h6 style="font-size: 0.875rem; font-weight: 600; color: #4a5568; margin-bottom: 1rem; padding-bottom: 0.5rem; border-bottom: 2px solid #e2e8f0; display: flex; align-items: center;">
+                            <i class="bi bi-person-check me-2" style="color: #009EDB;"></i>Claims Officer Information
+                        </h6>
+                        <div class="row">
+                            ${data.staffClaimsOfficerName ? `
+                                <div class="col-md-6 mb-3">
+                                    <div style="font-size: 12px; color: #6b7280; margin-bottom: 4px; font-weight: 500; text-transform: uppercase; letter-spacing: 0.025em;">Claims Officer Name</div>
+                                    <div style="font-size: 14px; color: #1f2937; font-weight: 500;">${data.staffClaimsOfficerName}</div>
+                                </div>
+                            ` : ''}
+                            ${data.staffClaimsOfficerEmail ? `
+                                <div class="col-md-6 mb-3">
+                                    <div style="font-size: 12px; color: #6b7280; margin-bottom: 4px; font-weight: 500; text-transform: uppercase; letter-spacing: 0.025em;">Claims Officer Email</div>
+                                    <div style="font-size: 14px; color: #1f2937; font-weight: 500;">${data.staffClaimsOfficerEmail}</div>
+                                </div>
+                            ` : ''}
+                            ${data.staffClaimsApprovalDate ? `
+                                <div class="col-md-6 mb-3">
+                                    <div style="font-size: 12px; color: #6b7280; margin-bottom: 4px; font-weight: 500; text-transform: uppercase; letter-spacing: 0.025em;">Processing Date</div>
+                                    <div style="font-size: 14px; color: #1f2937; font-weight: 500;">${new Date(data.staffClaimsApprovalDate).toLocaleDateString('en-US', { year: 'numeric', month: 'short', day: 'numeric' })}</div>
+                                </div>
+                            ` : ''}
+                        </div>
+                    </div>
+                ` : ''}
+                ${(data.umojaPaymentDocumentId || data.refundUsdAmount) ? `
+                    <div class="mb-4" style="background: #f8fafc; border-radius: 8px; padding: 1.25rem; border: 1px solid #e2e8f0;">
+                        <h6 style="font-size: 0.875rem; font-weight: 600; color: #4a5568; margin-bottom: 1rem; padding-bottom: 0.5rem; border-bottom: 2px solid #e2e8f0; display: flex; align-items: center;">
+                            <i class="bi bi-receipt me-2" style="color: #009EDB;"></i>Payment Details
+                        </h6>
+                        <div class="row">
+                            ${data.umojaPaymentDocumentId ? `
+                                <div class="col-md-6 mb-3">
+                                    <div style="font-size: 12px; color: #6b7280; margin-bottom: 4px; font-weight: 500; text-transform: uppercase; letter-spacing: 0.025em;">Umoja Payment Document ID</div>
+                                    <div style="font-size: 14px; color: #1f2937; font-weight: 500;">${data.umojaPaymentDocumentId}</div>
+                                </div>
+                            ` : ''}
+                            ${data.refundUsdAmount ? `
+                                <div class="col-md-6 mb-3">
+                                    <div style="font-size: 12px; color: #6b7280; margin-bottom: 4px; font-weight: 500; text-transform: uppercase; letter-spacing: 0.025em;">Refund Amount (USD)</div>
+                                    <div style="font-size: 14px; color: #1f2937; font-weight: 500;">$${data.refundUsdAmount.toFixed(2)}</div>
+                                </div>
+                            ` : ''}
+                        </div>
+                    </div>
+                ` : ''}
+                ${(data.staffClaimsRemarks || data.staffClaimsNotes) ? `
+                    <div class="mb-4" style="background: #f8fafc; border-radius: 8px; padding: 1.25rem; border: 1px solid #e2e8f0;">
+                        <h6 style="font-size: 0.875rem; font-weight: 600; color: #4a5568; margin-bottom: 1rem; padding-bottom: 0.5rem; border-bottom: 2px solid #e2e8f0; display: flex; align-items: center;">
+                            <i class="bi bi-chat-square-text me-2" style="color: #009EDB;"></i>Remarks & Notes
+                        </h6>
+                        <div class="row">
+                            ${data.staffClaimsRemarks ? `
+                                <div class="col-12 mb-3">
+                                    <div style="font-size: 12px; color: #6b7280; margin-bottom: 4px; font-weight: 500; text-transform: uppercase; letter-spacing: 0.025em;">Claims Unit Remarks</div>
+                                    <div style="font-size: 14px; color: #1f2937; line-height: 1.5; background: white; padding: 12px; border-radius: 6px;">${data.staffClaimsRemarks}</div>
+                                </div>
+                            ` : ''}
+                            ${data.staffClaimsNotes ? `
+                                <div class="col-12 mb-3">
+                                    <div style="font-size: 12px; color: #6b7280; margin-bottom: 4px; font-weight: 500; text-transform: uppercase; letter-spacing: 0.025em;">Claims Unit Notes</div>
+                                    <div style="font-size: 14px; color: #1f2937; line-height: 1.5; background: white; padding: 12px; border-radius: 6px;">${data.staffClaimsNotes}</div>
+                                </div>
+                            ` : ''}
+                        </div>
+                    </div>
+                ` : ''}
+            `;
         }
     }
 

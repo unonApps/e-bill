@@ -5,86 +5,134 @@
 }
 
 <style>
-    .minimal-card {
-        background: #ffffff;
-        border: none;
-        border-radius: 12px;
-        box-shadow: 0 2px 12px rgba(0, 0, 0, 0.04);
-        transition: all 0.3s ease;
+    /* Statistics Cards */
+    .stats-container {
+        display: grid;
+        grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+        gap: 1.5rem;
+        margin-bottom: 2rem;
     }
-    
-    .minimal-card:hover {
-        box-shadow: 0 4px 20px rgba(0, 0, 0, 0.08);
+
+    .stat-card {
+        background: white;
+        border-radius: 12px;
+        padding: 1rem 1.25rem;
+        box-shadow: 0 2px 10px rgba(0, 0, 0, 0.06);
+        cursor: pointer;
+        transition: all 0.3s;
+        border: 2px solid transparent;
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        gap: 1rem;
+    }
+
+    .stat-card:hover {
         transform: translateY(-2px);
+        box-shadow: 0 6px 20px rgba(0, 0, 0, 0.12);
     }
-    
+
+    .stat-card.active {
+        border-color: #009EDB;
+        background: #f0f9ff;
+    }
+
+    .stat-card-left {
+        display: flex;
+        align-items: center;
+        gap: 1rem;
+        flex: 1;
+    }
+
     .stat-icon {
-        width: 48px;
-        height: 48px;
-        border-radius: 12px;
+        width: 40px;
+        height: 40px;
+        border-radius: 10px;
         display: flex;
         align-items: center;
         justify-content: center;
         font-size: 20px;
-        color: white;
+        flex-shrink: 0;
     }
-    
-    .stat-pending { background: linear-gradient(135deg, #f59e0b, #f97316); }
-    .stat-processed { background: linear-gradient(135deg, #10b981, #059669); }
-    .stat-rejected { background: linear-gradient(135deg, #ef4444, #dc2626); }
-    
+
+    .stat-icon.stat-pending { background: #fef3c7; color: #f59e0b; }
+    .stat-icon.stat-processed { background: #d1fae5; color: #10b981; }
+    .stat-icon.stat-rejected { background: #fee2e2; color: #ef4444; }
+
+    .stat-label {
+        color: #64748b;
+        font-size: 14px;
+        font-weight: 500;
+        margin: 0;
+    }
+
+    .stat-value {
+        font-size: 28px;
+        font-weight: 700;
+        color: #1e293b;
+        margin: 0;
+        flex-shrink: 0;
+    }
+
     .minimal-table {
         background: white;
-        border-radius: 12px;
-        overflow: hidden;
+        border-radius: 16px;
+        overflow: visible !important;
         box-shadow: 0 2px 12px rgba(0, 0, 0, 0.04);
         border: none;
     }
-    
+
     .minimal-table thead th {
         background: #f8fafc;
         border: none;
-        padding: 20px 16px;
+        border-bottom: 2px solid #e5e7eb;
+        padding: 16px;
         font-weight: 600;
-        font-size: 14px;
+        font-size: 13px;
         color: #475569;
         text-transform: uppercase;
         letter-spacing: 0.5px;
     }
-    
+
     .minimal-table tbody td {
         border: none;
-        padding: 20px 16px;
+        padding: 16px;
         border-bottom: 1px solid #f1f5f9;
         vertical-align: middle;
     }
-    
+
+    .minimal-table tbody,
+    .minimal-table tbody tr,
+    .minimal-table tbody td {
+        overflow: visible !important;
+    }
+
     .minimal-table tbody tr:last-child td {
         border-bottom: none;
     }
-    
+
     .minimal-table tbody tr:hover {
         background: #f8fafc;
     }
-    
+
     .request-id {
         font-weight: 600;
         color: #1e293b;
         font-size: 16px;
     }
-    
+
     .Staff-name {
         font-weight: 600;
         color: #1e293b;
         margin-bottom: 4px;
     }
-    
+
     .Staff-details {
         color: #64748b;
         font-size: 13px;
         line-height: 1.4;
     }
-    
+
     .priority-badge {
         padding: 6px 12px;
         border-radius: 20px;
@@ -93,36 +141,86 @@
         text-transform: uppercase;
         letter-spacing: 0.5px;
     }
-    
+
     .priority-high { background: #fef2f2; color: #dc2626; }
     .priority-medium { background: #fffbeb; color: #d97706; }
     .priority-low { background: #f0fdf4; color: #16a34a; }
-    
+
     .status-badge {
-        padding: 8px 16px;
+        padding: 0.5rem 1rem;
         border-radius: 20px;
-        font-size: 12px;
+        font-size: 11px;
         font-weight: 600;
         display: inline-flex;
         align-items: center;
-        gap: 6px;
+        gap: 0.5rem;
+        text-transform: uppercase;
+        letter-spacing: 0.8px;
+        white-space: nowrap;
+        box-shadow: 0 2px 8px rgba(0, 0, 0, 0.08);
+        border: 1.5px solid;
+        transition: all 0.2s ease;
+        background-color: transparent;
     }
-    
+
     .status-pending {
-        background: linear-gradient(135deg, #f59e0b, #f97316);
-        color: white;
+        color: #d97706;
+        border-color: #f59e0b;
     }
-    
+
+    .status-pending:hover {
+        box-shadow: 0 4px 12px rgba(217, 119, 6, 0.2);
+        transform: translateY(-1px);
+    }
+
     .status-approved {
-        background: linear-gradient(135deg, #10b981, #059669);
-        color: white;
+        color: #059669;
+        border-color: #10b981;
     }
-    
+
+    .status-approved:hover {
+        box-shadow: 0 4px 12px rgba(5, 150, 105, 0.2);
+        transform: translateY(-1px);
+    }
+
     .status-rejected {
-        background: linear-gradient(135deg, #ef4444, #dc2626);
-        color: white;
+        color: #dc2626;
+        border-color: #ef4444;
     }
-    
+
+    .status-rejected:hover {
+        box-shadow: 0 4px 12px rgba(220, 38, 38, 0.2);
+        transform: translateY(-1px);
+    }
+
+    /* Fix dropdown overflow issues */
+    .table-responsive {
+        overflow: visible !important;
+    }
+
+    .dropdown {
+        position: static !important;
+    }
+
+    .dropdown-menu {
+        position: absolute !important;
+        z-index: 1050 !important;
+        box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15) !important;
+        border: 1px solid #e5e7eb;
+        border-radius: 8px;
+        margin-top: 0.25rem;
+    }
+
+    .dropdown-item {
+        padding: 10px 16px;
+        font-size: 14px;
+        transition: all 0.2s;
+    }
+
+    .dropdown-item:hover {
+        background-color: #f8fafc;
+    }
+
     .action-btn {
         padding: 8px 16px;
         border-radius: 8px;
@@ -136,45 +234,45 @@
         justify-content: center;
         min-width: 100px;
     }
-    
+
     .action-btn:hover {
         transform: translateY(-1px);
         box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
     }
-    
+
     .btn-approve {
-        background: #dcfce7;
-        border-color: #16a34a;
-        color: #15803d;
+        background-color: #72BF44;
+        border-color: #72BF44;
+        color: white;
     }
-    
+
     .btn-approve:hover {
-        background: #16a34a;
+        background-color: #5da035;
         color: white;
     }
-    
+
     .btn-view {
-        background: #f0f9ff;
-        border-color: #0ea5e9;
-        color: #0c4a6e;
+        background-color: #009EDB;
+        border-color: #009EDB;
+        color: white;
     }
-    
+
     .btn-view:hover {
-        background: #0ea5e9;
+        background-color: #007bb5;
         color: white;
     }
-    
+
     .btn-reject {
-        background: #fef2f2;
-        border-color: #ef4444;
-        color: #dc2626;
-    }
-    
-    .btn-reject:hover {
-        background: #ef4444;
+        background-color: #EB1C24;
+        border-color: #EB1C24;
         color: white;
     }
-    
+
+    .btn-reject:hover {
+        background-color: #c41019;
+        color: white;
+    }
+
     .amount-details {
         background: #f8fafc;
         border: 1px solid #e2e8f0;
@@ -184,18 +282,18 @@
         color: #475569;
         font-weight: 500;
     }
-    
+
     .page-header {
         margin-bottom: 32px;
     }
-    
+
     .page-title {
         font-size: 28px;
         font-weight: 700;
         color: #1e293b;
         margin-bottom: 8px;
     }
-    
+
     .page-subtitle {
         color: #64748b;
         font-size: 16px;
@@ -413,6 +511,13 @@
 </style>
 
 <div class="container-fluid px-4">
+    <!-- Back Button -->
+    <div class="mb-3">
+        <a href="/Modules/RefundManagement/Approvals" class="btn btn-outline-secondary btn-sm">
+            <i class="bi bi-arrow-left me-2"></i>Back to Overview
+        </a>
+    </div>
+
     <!-- Page Header -->
     <div class="page-header">
         <div class="d-flex justify-content-between align-items-start">
@@ -444,45 +549,33 @@
     }
 
     <!-- Statistics Cards -->
-    <div class="row g-4 mb-5">
-        <div class="col-md-4">
-            <div class="minimal-card p-4">
-                <div class="d-flex align-items-center">
-                    <div class="stat-icon stat-pending me-4">
-                        <i class="bi bi-clock-history"></i>
-                    </div>
-                    <div>
-                        <h3 class="mb-1 fw-bold text-dark">@Model.PendingRequests.Count(r => r.Status == TAB.Web.Models.RefundRequestStatus.PendingStaffClaimsUnit)</h3>
-                        <p class="mb-0 text-muted">For Review</p>
-                    </div>
+    <div class="stats-container">
+        <div class="stat-card">
+            <div class="stat-card-left">
+                <div class="stat-icon stat-pending">
+                    <i class="bi bi-clock-history"></i>
                 </div>
+                <p class="stat-label">For Review</p>
             </div>
+            <h3 class="stat-value">@Model.PendingRequests.Count(r => r.Status == TAB.Web.Models.RefundRequestStatus.PendingStaffClaimsUnit)</h3>
         </div>
-        <div class="col-md-4">
-            <div class="minimal-card p-4">
-                <div class="d-flex align-items-center">
-                    <div class="stat-icon stat-processed me-4">
-                        <i class="bi bi-check-circle"></i>
-                    </div>
-                    <div>
-                        <h3 class="mb-1 fw-bold text-dark">@Model.PendingRequests.Count(r => r.Status == TAB.Web.Models.RefundRequestStatus.PendingPaymentApproval)</h3>
-                        <p class="mb-0 text-muted">Approved & Forwarded</p>
-                    </div>
+        <div class="stat-card">
+            <div class="stat-card-left">
+                <div class="stat-icon stat-processed">
+                    <i class="bi bi-check-circle"></i>
                 </div>
+                <p class="stat-label">Approved & Forwarded</p>
             </div>
+            <h3 class="stat-value">@Model.PendingRequests.Count(r => r.Status == TAB.Web.Models.RefundRequestStatus.PendingPaymentApproval)</h3>
         </div>
-        <div class="col-md-4">
-            <div class="minimal-card p-4">
-                <div class="d-flex align-items-center">
-                    <div class="stat-icon stat-rejected me-4">
-                        <i class="bi bi-x-circle"></i>
-                    </div>
-                    <div>
-                        <h3 class="mb-1 fw-bold text-dark">@Model.PendingRequests.Count(r => r.Status == TAB.Web.Models.RefundRequestStatus.Cancelled)</h3>
-                        <p class="mb-0 text-muted">Rejected</p>
-                    </div>
+        <div class="stat-card">
+            <div class="stat-card-left">
+                <div class="stat-icon stat-rejected">
+                    <i class="bi bi-x-circle"></i>
                 </div>
+                <p class="stat-label">Rejected</p>
             </div>
+            <h3 class="stat-value">@Model.PendingRequests.Count(r => r.Status == TAB.Web.Models.RefundRequestStatus.Cancelled)</h3>
         </div>
     </div>
 
@@ -518,75 +611,98 @@
             @if (pendingRequests.Any())
             {
                 <div class="table-responsive">
-                    <table class="table minimal-table">
+                    <table class="table minimal-table align-middle">
                         <thead>
                             <tr>
-                                <th>Request</th>
-                                <th>Staff</th>
-                                <th>Amount Details</th>
-                                <th>Priority</th>
-                                <th>Actions</th>
+                                <th>Request ID</th>
+                                <th>Staff Name</th>
+                                <th>Organization</th>
+                                <th>Mobile Number</th>
+                                <th>Mobile Service</th>
+                                <th>Class of Service</th>
+                                <th>Purchase Amount</th>
+                                <th>Device Allowance</th>
+                                <th>Request Date</th>
+                                <th>Status</th>
+                                <th class="text-center">Actions</th>
                             </tr>
                         </thead>
                         <tbody>
                             @foreach (var request in pendingRequests)
                             {
-                                <tr>
+                                <tr data-request-id="@request.Id">
                                     <td>
-                                        <div class="d-flex align-items-center">
-                                            <i class="bi bi-credit-card text-primary me-3 fs-5"></i>
-                                            <div>
-                                                <div class="request-id">#@request.Id</div>
-                                                <span class="status-badge @Model.GetStatusClass(request.Status)">
-                                                    <i class="bi bi-clock-history"></i>
-                                                    @Model.GetStatusText(request.Status)
-                                                </span>
-                                            </div>
-                                        </div>
+                                        <strong style="color: #1e293b; font-size: 15px;">#@request.Id</strong>
                                     </td>
                                     <td>
-                                        <div class="Staff-name">@request.MobileNumberAssignedTo</div>
-                                        <div class="Staff-details">
-                                            <div><i class="bi bi-telephone me-1"></i>@request.PrimaryMobileNumber</div>
-                                            <div><i class="bi bi-building me-1"></i>@request.Organization</div>
-                                            <div><i class="bi bi-person-badge me-1"></i>@request.Supervisor</div>
-                                        </div>
+                                        <div style="color: #1e293b; font-weight: 600;">@request.MobileNumberAssignedTo</div>
+                                        <div style="color: #64748b; font-size: 13px;">@request.IndexNo</div>
                                     </td>
                                     <td>
-                                        <div class="amount-details mb-2">
+                                        <div style="color: #1e293b;">@request.Organization</div>
+                                        <div style="color: #64748b; font-size: 13px;">@(request.Office ?? "N/A")</div>
+                                    </td>
+                                    <td>
+                                        <div style="color: #1e293b; font-family: monospace;">@request.PrimaryMobileNumber</div>
+                                    </td>
+                                    <td>
+                                        <span style="color: #1e293b;">@(request.MobileService ?? "N/A")</span>
+                                    </td>
+                                    <td>
+                                        <span style="color: #1e293b;">@(request.ClassOfService ?? "N/A")</span>
+                                    </td>
+                                    <td>
+                                        <div style="color: #1e293b; font-weight: 600; font-size: 15px;">
                                             @request.DevicePurchaseCurrency @request.DevicePurchaseAmount.ToString("N2")
                                         </div>
-                                        <div class="small text-muted">
-                                            <div><strong>Cost Object:</strong> @(request.CostObject ?? "N/A")</div>
-                                            <div><strong>Cost Center:</strong> @(request.CostCenter ?? "N/A")</div>
-                                            <div><strong>Fund Commitment:</strong> @(request.FundCommitment ?? "N/A")</div>
+                                    </td>
+                                    <td>
+                                        <div style="color: #1e293b; font-weight: 500;">
+                                            $@request.DeviceAllowance.ToString("N2")
                                         </div>
                                     </td>
                                     <td>
-                                        @{
-                                            var daysDiff = (DateTime.Now - request.RequestDate).Days;
-                                            var priorityClass = daysDiff > 7 ? "priority-high" : (daysDiff > 3 ? "priority-medium" : "priority-low");
-                                            var priority = daysDiff > 7 ? "High" : (daysDiff > 3 ? "Medium" : "Low");
-                                        }
-                                        <span class="priority-badge @priorityClass">
-                                            @priority
-                                        </span>
-                                        <div class="request-date mt-1">@request.RequestDate.ToString("MMM dd, yyyy")</div>
+                                        <div style="color: #1e293b;">@request.RequestDate.ToString("MMM dd, yyyy")</div>
+                                        <div style="color: #64748b; font-size: 12px;">@request.RequestDate.ToString("HH:mm")</div>
                                     </td>
                                     <td>
-                                        <div class="d-flex flex-column gap-2">
-                                            <button type="button" class="action-btn btn-view" onclick="viewRequest(@request.Id)">
-                                                <i class="bi bi-eye"></i>
-                                                View Details
+                                        <span class="status-badge status-pending">
+                                            <i class="bi bi-clock-history"></i>
+                                            PENDING
+                                        </span>
+                                    </td>
+                                    <td class="text-center">
+                                        <div class="dropdown">
+                                            <button class="btn btn-sm dropdown-toggle" type="button"
+                                                    style="background-color: #009EDB; color: white; border: none; padding: 8px 16px; border-radius: 6px; font-size: 13px; font-weight: 500;"
+                                                    data-bs-toggle="dropdown"
+                                                    data-bs-auto-close="true"
+                                                    data-bs-boundary="viewport"
+                                                    aria-expanded="false">
+                                                <i class="bi bi-three-dots-vertical"></i>
+                                                Actions
                                             </button>
-                                            <button type="button" class="action-btn btn-approve" onclick="approveRequest(@request.Id)">
-                                                <i class="bi bi-check-lg"></i>
-                                                Approve
-                                            </button>
-                                            <button type="button" class="action-btn btn-reject" onclick="rejectRequest(@request.Id)">
-                                                <i class="bi bi-x-lg"></i>
-                                                Reject
-                                            </button>
+                                            <ul class="dropdown-menu dropdown-menu-end">
+                                                <li>
+                                                    <a class="dropdown-item" href="#" onclick="viewRequest(@request.Id); return false;">
+                                                        <i class="bi bi-eye me-2" style="color: #009EDB;"></i>
+                                                        View Details
+                                                    </a>
+                                                </li>
+                                                <li><hr class="dropdown-divider"></li>
+                                                <li>
+                                                    <a class="dropdown-item" href="#" onclick="approveRequest(@request.Id); return false;">
+                                                        <i class="bi bi-check-circle me-2" style="color: #72BF44;"></i>
+                                                        Approve & Process
+                                                    </a>
+                                                </li>
+                                                <li>
+                                                    <a class="dropdown-item" href="#" onclick="rejectRequest(@request.Id); return false;">
+                                                        <i class="bi bi-x-circle me-2" style="color: #EB1C24;"></i>
+                                                        Reject Request
+                                                    </a>
+                                                </li>
+                                            </ul>
                                         </div>
                                     </td>
                                 </tr>
@@ -613,39 +729,86 @@
             @if (processedRequests.Any())
             {
                 <div class="table-responsive">
-                    <table class="table minimal-table">
+                    <table class="table minimal-table align-middle">
                         <thead>
                             <tr>
-                                <th>Request</th>
-                                <th>Staff</th>
-                                <th>Amount</th>
+                                <th>Request ID</th>
+                                <th>Staff Name</th>
+                                <th>Organization</th>
+                                <th>Mobile Number</th>
+                                <th>Mobile Service</th>
+                                <th>Class of Service</th>
+                                <th>Purchase Amount</th>
+                                <th>Device Allowance</th>
                                 <th>Approval Date</th>
                                 <th>Status</th>
+                                <th class="text-center">Actions</th>
                             </tr>
                         </thead>
                         <tbody>
                             @foreach (var request in processedRequests)
                             {
-                                <tr>
+                                <tr data-request-id="@request.Id">
                                     <td>
-                                        <div class="d-flex align-items-center">
-                                            <i class="bi bi-credit-card text-success me-3 fs-5"></i>
-                                            <span class="request-id">#@request.Id</span>
+                                        <strong style="color: #1e293b; font-size: 15px;">#@request.Id</strong>
+                                    </td>
+                                    <td>
+                                        <div style="color: #1e293b; font-weight: 600;">@request.MobileNumberAssignedTo</div>
+                                        <div style="color: #64748b; font-size: 13px;">@request.IndexNo</div>
+                                    </td>
+                                    <td>
+                                        <div style="color: #1e293b;">@request.Organization</div>
+                                        <div style="color: #64748b; font-size: 13px;">@(request.Office ?? "N/A")</div>
+                                    </td>
+                                    <td>
+                                        <div style="color: #1e293b; font-family: monospace;">@request.PrimaryMobileNumber</div>
+                                    </td>
+                                    <td>
+                                        <span style="color: #1e293b;">@(request.MobileService ?? "N/A")</span>
+                                    </td>
+                                    <td>
+                                        <span style="color: #1e293b;">@(request.ClassOfService ?? "N/A")</span>
+                                    </td>
+                                    <td>
+                                        <div style="color: #1e293b; font-weight: 600; font-size: 15px;">
+                                            @request.DevicePurchaseCurrency @request.DevicePurchaseAmount.ToString("N2")
                                         </div>
                                     </td>
                                     <td>
-                                        <div class="Staff-name">@request.MobileNumberAssignedTo</div>
-                                        <div class="Staff-details">@request.PrimaryMobileNumber</div>
-                                    </td>
-                                    <td>@request.DevicePurchaseCurrency @request.DevicePurchaseAmount.ToString("N2")</td>
-                                    <td>
-                                        <span class="text-muted">@request.StaffClaimsApprovalDate?.ToString("MMM dd, yyyy HH:mm")</span>
+                                        <div style="color: #1e293b; font-weight: 500;">
+                                            $@request.DeviceAllowance.ToString("N2")
+                                        </div>
                                     </td>
                                     <td>
-                                        <span class="status-badge @Model.GetStatusClass(request.Status)">
+                                        <div style="color: #1e293b;">@request.StaffClaimsApprovalDate?.ToString("MMM dd, yyyy")</div>
+                                        <div style="color: #64748b; font-size: 12px;">@request.StaffClaimsApprovalDate?.ToString("HH:mm")</div>
+                                    </td>
+                                    <td>
+                                        <span class="status-badge status-approved">
                                             <i class="bi bi-check-circle"></i>
-                                            @Model.GetStatusText(request.Status)
+                                            APPROVED
                                         </span>
+                                    </td>
+                                    <td class="text-center">
+                                        <div class="dropdown">
+                                            <button class="btn btn-sm dropdown-toggle" type="button"
+                                                    style="background-color: #009EDB; color: white; border: none; padding: 8px 16px; border-radius: 6px; font-size: 13px; font-weight: 500;"
+                                                    data-bs-toggle="dropdown"
+                                                    data-bs-auto-close="true"
+                                                    data-bs-boundary="viewport"
+                                                    aria-expanded="false">
+                                                <i class="bi bi-three-dots-vertical"></i>
+                                                Actions
+                                            </button>
+                                            <ul class="dropdown-menu dropdown-menu-end">
+                                                <li>
+                                                    <a class="dropdown-item" href="#" onclick="viewRequest(@request.Id); return false;">
+                                                        <i class="bi bi-eye me-2" style="color: #009EDB;"></i>
+                                                        View Details
+                                                    </a>
+                                                </li>
+                                            </ul>
+                                        </div>
                                     </td>
                                 </tr>
                             }
@@ -671,36 +834,86 @@
             @if (rejectedRequests.Any())
             {
                 <div class="table-responsive">
-                    <table class="table minimal-table">
+                    <table class="table minimal-table align-middle">
                         <thead>
                             <tr>
-                                <th>Request</th>
-                                <th>Staff</th>
-                                <th>Amount</th>
+                                <th>Request ID</th>
+                                <th>Staff Name</th>
+                                <th>Organization</th>
+                                <th>Mobile Number</th>
+                                <th>Mobile Service</th>
+                                <th>Class of Service</th>
+                                <th>Purchase Amount</th>
+                                <th>Device Allowance</th>
                                 <th>Rejection Date</th>
-                                <th>Reason</th>
+                                <th>Status</th>
+                                <th class="text-center">Actions</th>
                             </tr>
                         </thead>
                         <tbody>
                             @foreach (var request in rejectedRequests)
                             {
-                                <tr>
+                                <tr data-request-id="@request.Id">
                                     <td>
-                                        <div class="d-flex align-items-center">
-                                            <i class="bi bi-credit-card text-danger me-3 fs-5"></i>
-                                            <span class="request-id">#@request.Id</span>
+                                        <strong style="color: #1e293b; font-size: 15px;">#@request.Id</strong>
+                                    </td>
+                                    <td>
+                                        <div style="color: #1e293b; font-weight: 600;">@request.MobileNumberAssignedTo</div>
+                                        <div style="color: #64748b; font-size: 13px;">@request.IndexNo</div>
+                                    </td>
+                                    <td>
+                                        <div style="color: #1e293b;">@request.Organization</div>
+                                        <div style="color: #64748b; font-size: 13px;">@(request.Office ?? "N/A")</div>
+                                    </td>
+                                    <td>
+                                        <div style="color: #1e293b; font-family: monospace;">@request.PrimaryMobileNumber</div>
+                                    </td>
+                                    <td>
+                                        <span style="color: #1e293b;">@(request.MobileService ?? "N/A")</span>
+                                    </td>
+                                    <td>
+                                        <span style="color: #1e293b;">@(request.ClassOfService ?? "N/A")</span>
+                                    </td>
+                                    <td>
+                                        <div style="color: #1e293b; font-weight: 600; font-size: 15px;">
+                                            @request.DevicePurchaseCurrency @request.DevicePurchaseAmount.ToString("N2")
                                         </div>
                                     </td>
                                     <td>
-                                        <div class="Staff-name">@request.MobileNumberAssignedTo</div>
-                                        <div class="Staff-details">@request.PrimaryMobileNumber</div>
-                                    </td>
-                                    <td>@request.DevicePurchaseCurrency @request.DevicePurchaseAmount.ToString("N2")</td>
-                                    <td>
-                                        <span class="text-muted">@request.CancellationDate?.ToString("MMM dd, yyyy HH:mm")</span>
+                                        <div style="color: #1e293b; font-weight: 500;">
+                                            $@request.DeviceAllowance.ToString("N2")
+                                        </div>
                                     </td>
                                     <td>
-                                        <span class="text-muted small">@(request.CancellationReason ?? "No reason provided")</span>
+                                        <div style="color: #1e293b;">@request.CancellationDate?.ToString("MMM dd, yyyy")</div>
+                                        <div style="color: #64748b; font-size: 12px;">@request.CancellationDate?.ToString("HH:mm")</div>
+                                    </td>
+                                    <td>
+                                        <span class="status-badge status-rejected">
+                                            <i class="bi bi-x-circle"></i>
+                                            REJECTED
+                                        </span>
+                                    </td>
+                                    <td class="text-center">
+                                        <div class="dropdown">
+                                            <button class="btn btn-sm dropdown-toggle" type="button"
+                                                    style="background-color: #009EDB; color: white; border: none; padding: 8px 16px; border-radius: 6px; font-size: 13px; font-weight: 500;"
+                                                    data-bs-toggle="dropdown"
+                                                    data-bs-auto-close="true"
+                                                    data-bs-boundary="viewport"
+                                                    aria-expanded="false">
+                                                <i class="bi bi-three-dots-vertical"></i>
+                                                Actions
+                                            </button>
+                                            <ul class="dropdown-menu dropdown-menu-end">
+                                                <li>
+                                                    <a class="dropdown-item" href="#" onclick="viewRequest(@request.Id); return false;">
+                                                        <i class="bi bi-eye me-2" style="color: #009EDB;"></i>
+                                                        View Details
+                                                    </a>
+                                                </li>
+                                            </ul>
+                                        </div>
                                     </td>
                                 </tr>
                             }

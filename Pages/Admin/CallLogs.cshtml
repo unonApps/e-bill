@@ -527,179 +527,184 @@
     }
 </style>
 
-<!-- Statistics Cards -->
-<div class="stats-grid mb-4">
-    <div class="stat-card">
-        <div class="stat-content">
-            <div class="stat-icon stat-icon-primary">
-                <i class="bi bi-telephone"></i>
-            </div>
-            <div class="stat-details">
-                <div class="stat-number">@Model.TotalLogs</div>
-                <div class="stat-label">Total Call Logs</div>
-            </div>
-        </div>
-    </div>
-
-    <div class="stat-card">
-        <div class="stat-content">
-            <div class="stat-icon stat-icon-success">
-                <i class="bi bi-link-45deg"></i>
-            </div>
-            <div class="stat-details">
-                <div class="stat-number">@Model.LinkedLogs</div>
-                <div class="stat-label">Linked to Users</div>
-            </div>
-        </div>
-    </div>
-
-    <div class="stat-card">
-        <div class="stat-content">
-            <div class="stat-icon stat-icon-warning">
-                <i class="bi bi-exclamation-triangle"></i>
-            </div>
-            <div class="stat-details">
-                <div class="stat-number">@Model.UnlinkedLogs</div>
-                <div class="stat-label">Not Linked</div>
-            </div>
-        </div>
-    </div>
-
-    <div class="stat-card">
-        <div class="stat-content">
-            <div class="stat-icon stat-icon-info">
-                <i class="bi bi-currency-dollar"></i>
-            </div>
-            <div class="stat-details">
-                <div class="stat-number" style="font-size: 1.35rem;">
-                    <div class="mb-1">$@Model.TotalAmountUSD.ToString("N2")</div>
-                    <div style="font-size: 1.15rem; color: #6b7280;">KSh @Model.TotalAmountKSH.ToString("N2")</div>
-                </div>
-                <div class="stat-label">Total Amount</div>
-            </div>
-        </div>
-    </div>
-</div>
-
 <!-- Filter Section (Collapsible) -->
-<div class="mb-3">
-    <button class="btn btn-outline-primary" type="button" data-bs-toggle="collapse" data-bs-target="#filterCollapse" aria-expanded="false" aria-controls="filterCollapse">
-        <i class="bi bi-funnel"></i> Show Filters
-    </button>
-</div>
-<div class="collapse" id="filterCollapse">
-<div class="filter-section">
-    <div class="filter-header">
-        <h2 class="filter-title">
-            <i class="bi bi-funnel"></i>
-            Filters
-        </h2>
-        <div class="filter-actions">
-            <span class="filter-count">@Model.CallLogs.Count results</span>
+<div class="card border-0 shadow-sm mb-4" style="border-radius: 20px;">
+    <div class="card-header bg-white border-0 p-3" style="cursor: pointer; border-radius: 20px 20px 0 0;" data-bs-toggle="collapse" data-bs-target="#filterCollapse">
+        <div class="d-flex justify-content-between align-items-center">
+            <h6 class="mb-0 fw-bold">
+                <i class="bi bi-funnel me-2"></i>Filters
+            </h6>
+            <div class="d-flex align-items-center gap-3">
+                <span class="badge bg-light text-dark" style="font-weight: 500;">
+                    @Model.CallLogs.Count results
+                </span>
+                <i class="bi bi-chevron-down"></i>
+            </div>
         </div>
     </div>
+    <div class="collapse" id="filterCollapse">
+        <div class="card-body p-4">
+            <form method="get" class="filter-form" id="filterForm">
+                <div class="row g-3">
+                    <div class="col-md-3">
+                        <label class="form-label text-muted small" for="searchFilter">Search</label>
+                        <input type="text" name="SearchTerm" id="searchFilter"
+                               class="form-control border-0 bg-light"
+                               style="border-radius: 12px;"
+                               placeholder="Extension, Staff Name, Index No..." value="@Model.SearchTerm" />
+                    </div>
 
-    <form method="get" class="filter-form" id="filterForm">
-        <div class="filter-grid">
-            <div class="filter-group">
-                <label class="filter-label" for="searchFilter">
-                    <i class="bi bi-search"></i> Search
-                </label>
-                <input type="text" name="SearchTerm" id="searchFilter" class="filter-input filter-search-input"
-                       placeholder="Account, Phone, Invoice..." value="@Model.SearchTerm" />
-            </div>
+                    <div class="col-md-2">
+                        <label class="form-label text-muted small" for="linkFilter">Link Status</label>
+                        <select name="FilterType" id="linkFilter"
+                                class="form-select border-0 bg-light"
+                                style="border-radius: 12px;">
+                            <option value="all" selected="@(Model.FilterType == "all")">All Logs</option>
+                            <option value="linked" selected="@(Model.FilterType == "linked")">Linked to User</option>
+                            <option value="unlinked" selected="@(Model.FilterType == "unlinked")">Not Linked</option>
+                        </select>
+                    </div>
 
-            <div class="filter-group">
-                <label class="filter-label" for="linkFilter">
-                    <i class="bi bi-link-45deg"></i> Link Status
-                </label>
-                <select name="FilterType" id="linkFilter" class="filter-select filter-auto-submit">
-                    <option value="all" selected="@(Model.FilterType == "all")">All Logs</option>
-                    <option value="linked" selected="@(Model.FilterType == "linked")">Linked to User</option>
-                    <option value="unlinked" selected="@(Model.FilterType == "unlinked")">Not Linked</option>
-                </select>
-            </div>
+                    <div class="col-md-2">
+                        <label class="form-label text-muted small" for="startDateFilter">Start Date</label>
+                        <input type="date" name="StartDate" id="startDateFilter"
+                               class="form-control border-0 bg-light"
+                               style="border-radius: 12px;"
+                               value="@(Model.StartDate?.ToString("yyyy-MM-dd"))" />
+                    </div>
 
-            <div class="filter-group">
-                <label class="filter-label" for="startDateFilter">
-                    <i class="bi bi-calendar-event"></i> Start Date
-                </label>
-                <input type="date" name="StartDate" id="startDateFilter" class="filter-input filter-auto-submit"
-                       value="@(Model.StartDate?.ToString("yyyy-MM-dd"))" />
-            </div>
+                    <div class="col-md-2">
+                        <label class="form-label text-muted small" for="endDateFilter">End Date</label>
+                        <input type="date" name="EndDate" id="endDateFilter"
+                               class="form-control border-0 bg-light"
+                               style="border-radius: 12px;"
+                               value="@(Model.EndDate?.ToString("yyyy-MM-dd"))" />
+                    </div>
 
-            <div class="filter-group">
-                <label class="filter-label" for="endDateFilter">
-                    <i class="bi bi-calendar-check"></i> End Date
-                </label>
-                <input type="date" name="EndDate" id="endDateFilter" class="filter-input filter-auto-submit"
-                       value="@(Model.EndDate?.ToString("yyyy-MM-dd"))" />
-            </div>
+                    <div class="col-md-3">
+                        <label class="form-label text-muted small" for="importBatchFilter">Import Batch</label>
+                        <select name="ImportAuditId" id="importBatchFilter"
+                                class="form-select border-0 bg-light"
+                                style="border-radius: 12px;">
+                            <option value="">All Imports</option>
+                            @foreach (var import in Model.RecentImports)
+                            {
+                                var importLabel = $"{import.ImportType} - {import.ImportDate:MMM dd, yyyy HH:mm} ({import.SuccessCount}/{import.TotalRecords})";
+                                <option value="@import.Id" selected="@(Model.ImportAuditId == import.Id)">@importLabel</option>
+                            }
+                        </select>
+                    </div>
 
-            <div class="filter-group">
-                <label class="filter-label" for="importBatchFilter">
-                    <i class="bi bi-file-earmark-arrow-up"></i> Import Batch
-                </label>
-                <select name="ImportAuditId" id="importBatchFilter" class="filter-select filter-auto-submit">
-                    <option value="">All Imports</option>
-                    @foreach (var import in Model.RecentImports)
-                    {
-                        var importLabel = $"{import.ImportType} - {import.ImportDate:MMM dd, yyyy HH:mm} ({import.SuccessCount}/{import.TotalRecords})";
-                        <option value="@import.Id" selected="@(Model.ImportAuditId == import.Id)">@importLabel</option>
-                    }
-                </select>
-            </div>
-
-            <div class="filter-group align-self-end">
-                <a href="/Admin/CallLogs" class="btn-clear-filters">
-                    <i class="bi bi-x-circle"></i> Clear All
-                </a>
-            </div>
+                    <div class="col-md-12">
+                        <div class="d-flex gap-2 justify-content-end mt-2">
+                            <button type="submit" class="btn btn-primary" style="border-radius: 12px; padding: 0.5rem 1.5rem;">
+                                <i class="bi bi-funnel-fill me-2"></i>Filter
+                            </button>
+                            <a href="/Admin/CallLogs" class="btn btn-outline-secondary" style="border-radius: 12px; padding: 0.5rem 1.5rem;">
+                                <i class="bi bi-x-circle me-2"></i>Clear
+                            </a>
+                        </div>
+                    </div>
+                </div>
+            </form>
         </div>
-    </form>
-</div>
+    </div>
 </div>
 
 <script>
     // Auto-submit functionality
-    document.addEventListener('DOMContentLoaded', function() {
-        // Auto-submit for select elements and date inputs
-        const autoSubmitElements = document.querySelectorAll('.filter-auto-submit');
-        autoSubmitElements.forEach(element => {
-            element.addEventListener('change', function() {
-                document.getElementById('filterForm').submit();
-            });
-        });
+    // Global variables for primary line confirmation
+    var pendingPrimaryAction = null; // 'registerExtension'
+    var extensionRegisterFormSubmitting = false;
 
-        // Debounced auto-submit for search input
-        let searchTimeout;
-        const searchInput = document.querySelector('.filter-search-input');
-        if (searchInput) {
-            searchInput.addEventListener('input', function() {
-                clearTimeout(searchTimeout);
-                searchTimeout = setTimeout(() => {
-                    document.getElementById('filterForm').submit();
-                }, 500); // 500ms delay
+    document.addEventListener('DOMContentLoaded', function() {
+        // Primary Confirmation Modal - Enable/Disable confirm button
+        const confirmPrimaryCheckbox = document.getElementById('confirmPrimaryCheckbox');
+        const confirmPrimaryButton = document.getElementById('confirmPrimaryButton');
+
+        if (confirmPrimaryCheckbox && confirmPrimaryButton) {
+            confirmPrimaryCheckbox.addEventListener('change', function() {
+                confirmPrimaryButton.disabled = !this.checked;
+            });
+
+            // Primary Confirmation Modal - Handle confirmation
+            confirmPrimaryButton.addEventListener('click', function() {
+                // Hide the confirmation modal
+                var modal = bootstrap.Modal.getInstance(document.getElementById('primaryLineConfirmModal'));
+                modal.hide();
+
+                // Submit the register extension form
+                if (pendingPrimaryAction === 'registerExtension') {
+                    extensionRegisterFormSubmitting = true;
+                    document.getElementById('confirmRegisterButton').click();
+                }
             });
         }
 
-        // Update button text when filters are shown/hidden
-        const filterToggle = document.querySelector('[data-bs-target="#filterCollapse"]');
-        const filterCollapse = document.getElementById('filterCollapse');
-        if (filterToggle && filterCollapse) {
-            filterCollapse.addEventListener('show.bs.collapse', function () {
-                filterToggle.innerHTML = '<i class="bi bi-funnel-fill"></i> Hide Filters';
+        // Reset modal state when closed
+        const primaryModal = document.getElementById('primaryLineConfirmModal');
+        if (primaryModal) {
+            primaryModal.addEventListener('hidden.bs.modal', function() {
+                if (confirmPrimaryCheckbox) confirmPrimaryCheckbox.checked = false;
+                if (confirmPrimaryButton) confirmPrimaryButton.disabled = true;
+                if (!extensionRegisterFormSubmitting) {
+                    pendingPrimaryAction = null;
+                }
             });
+        }
+
+        // Sync LineType with IsPrimary for Register Extension modal
+        const extensionLineType = document.getElementById('extensionLineTypeSelect');
+        const extensionIsPrimary = document.getElementById('extensionPrimaryCheckbox');
+
+        if (extensionLineType && extensionIsPrimary) {
+            // When LineType changes
+            extensionLineType.addEventListener('change', function() {
+                if (this.value === '1') { // Primary
+                    extensionIsPrimary.checked = true;
+                    extensionIsPrimary.disabled = true;
+                } else { // Secondary, Reserved, or Data
+                    extensionIsPrimary.checked = false;
+                    extensionIsPrimary.disabled = true;
+                }
+            });
+
+            // Set initial state
+            extensionIsPrimary.disabled = true;
+            if (extensionLineType.value === '1') {
+                extensionIsPrimary.checked = true;
+            } else {
+                extensionIsPrimary.checked = false;
+            }
+        }
+
+        // Update chevron icon when filters are shown/hidden
+        const filterCollapse = document.getElementById('filterCollapse');
+        if (filterCollapse) {
+            const chevronIcon = document.querySelector('[data-bs-target="#filterCollapse"] .bi-chevron-down');
+
+            filterCollapse.addEventListener('show.bs.collapse', function () {
+                if (chevronIcon) {
+                    chevronIcon.classList.remove('bi-chevron-down');
+                    chevronIcon.classList.add('bi-chevron-up');
+                }
+            });
+
             filterCollapse.addEventListener('hide.bs.collapse', function () {
-                filterToggle.innerHTML = '<i class="bi bi-funnel"></i> Show Filters';
+                if (chevronIcon) {
+                    chevronIcon.classList.remove('bi-chevron-up');
+                    chevronIcon.classList.add('bi-chevron-down');
+                }
             });
 
             // Check if any filters are active and show the filter section
             const hasActiveFilters = @Html.Raw((!string.IsNullOrEmpty(Model.SearchTerm) || Model.FilterType != "all" || Model.StartDate.HasValue || Model.EndDate.HasValue || Model.ImportAuditId.HasValue).ToString().ToLower());
             if (hasActiveFilters) {
                 filterCollapse.classList.add('show');
-                filterToggle.innerHTML = '<i class="bi bi-funnel-fill"></i> Hide Filters';
-                filterToggle.setAttribute('aria-expanded', 'true');
+                if (chevronIcon) {
+                    chevronIcon.classList.remove('bi-chevron-down');
+                    chevronIcon.classList.add('bi-chevron-up');
+                }
             }
         }
     });
@@ -722,181 +727,6 @@
 }
 
 <!-- Recent Imports Section - Timeline Style (Collapsible) -->
-@if (Model.RecentImports.Any())
-{
-    <div class="mb-4">
-        <div class="card border-0 shadow-sm" style="border-radius: 12px; overflow: hidden;">
-            <div class="card-header bg-white border-0 py-3" style="cursor: pointer;" data-bs-toggle="collapse" data-bs-target="#recentImportsCollapse" aria-expanded="false">
-                <div class="d-flex align-items-center">
-                    <div class="bg-primary bg-opacity-10 rounded-circle p-2 me-3">
-                        <i class="bi bi-clock-history text-primary fs-5"></i>
-                    </div>
-                    <div class="flex-grow-1">
-                        <h5 class="mb-0 fw-bold">Recent Import Activity</h5>
-                        <p class="text-muted mb-0 small">
-                            @Model.RecentImports.Count() import(s) - Click to @(Model.SelectedImportAudit != null ? "expand" : "toggle")
-                        </p>
-                    </div>
-                    @if (Model.SelectedImportAudit != null)
-                    {
-                        <span class="badge bg-primary me-3">
-                            <i class="bi bi-funnel-fill me-1"></i>Filtering: Import #@Model.SelectedImportAudit.Id
-                        </span>
-                    }
-                    <div class="collapse-indicator">
-                        <i class="bi bi-chevron-down fs-5 text-muted transition-transform" id="recentImportsChevron"></i>
-                    </div>
-                </div>
-            </div>
-
-            <div class="collapse @(Model.SelectedImportAudit != null ? "show" : "")" id="recentImportsCollapse">
-                <div class="card-body pt-0">
-                    <div class="import-timeline">
-            @foreach (var import in Model.RecentImports)
-            {
-                var successRate = import.TotalRecords > 0 ? (import.SuccessCount * 100.0 / import.TotalRecords) : 0;
-                var isActive = Model.ImportAuditId == import.Id;
-                var importIcon = import.ImportType switch
-                {
-                    "PSTN" => "bi-diagram-3",
-                    "PrivateWire" => "bi-ethernet",
-                    "Safaricom" => "bi-sim",
-                    "Airtel" => "bi-sim-fill",
-                    _ => "bi-file-earmark-arrow-up"
-                };
-                var importColor = import.ImportType switch
-                {
-                    "PSTN" => "info",
-                    "PrivateWire" => "warning",
-                    "Safaricom" => "success",
-                    "Airtel" => "danger",
-                    _ => "secondary"
-                };
-
-                <div class="import-card @(isActive ? "active" : "") mb-3" style="position: relative; padding-left: 45px;">
-                    <!-- Timeline Dot -->
-                    <div class="timeline-dot bg-@importColor" style="position: absolute; left: 10px; top: 20px; width: 12px; height: 12px; border-radius: 50%; z-index: 2;"></div>
-                    @if (!import.Equals(Model.RecentImports.Last()))
-                    {
-                        <div class="timeline-line" style="position: absolute; left: 15px; top: 32px; width: 2px; height: calc(100% + 12px); background: #e5e7eb;"></div>
-                    }
-
-                    <div class="card border-0 @(isActive ? "border-primary border-2" : "") shadow-sm hover-shadow" style="transition: all 0.3s;">
-                        <div class="card-body p-3">
-                            <div class="row align-items-center">
-                                <div class="col-md-6">
-                                    <div class="d-flex align-items-start">
-                                        <div class="bg-@importColor bg-opacity-10 rounded-circle p-2 me-3">
-                                            <i class="@importIcon text-@importColor fs-5"></i>
-                                        </div>
-                                        <div class="flex-grow-1">
-                                            <div class="d-flex align-items-center mb-1">
-                                                <h6 class="mb-0 fw-semibold">@import.ImportType Import</h6>
-                                                <span class="badge bg-@importColor bg-opacity-10 text-@importColor ms-2">ID: @import.Id</span>
-                                                @if (import.TotalRecords == 0)
-                                                {
-                                                    <span class="badge bg-secondary ms-2" title="This import has no records">
-                                                        <i class="bi bi-inbox me-1"></i>Empty
-                                                    </span>
-                                                }
-                                            </div>
-                                            <p class="text-muted small mb-1">
-                                                <i class="bi bi-calendar2 me-1"></i>@import.ImportDate.ToString("MMM dd, yyyy")
-                                                <span class="ms-2"><i class="bi bi-clock me-1"></i>@import.ImportDate.ToString("HH:mm")</span>
-                                            </p>
-                                            <p class="text-truncate small mb-0" title="@import.FileName">
-                                                <i class="bi bi-file-earmark-text me-1"></i>@import.FileName
-                                            </p>
-                                        </div>
-                                    </div>
-                                </div>
-
-                                <div class="col-md-4">
-                                    <div class="d-flex justify-content-around text-center">
-                                        <div>
-                                            <div class="fs-5 fw-bold text-primary">@import.TotalRecords</div>
-                                            <div class="text-muted small">Total</div>
-                                        </div>
-                                        <div>
-                                            <div class="fs-5 fw-bold text-success">@import.SuccessCount</div>
-                                            <div class="text-muted small">Success</div>
-                                        </div>
-                                        @if (import.ErrorCount > 0)
-                                        {
-                                            <div>
-                                                <div class="fs-5 fw-bold text-danger">@import.ErrorCount</div>
-                                                <div class="text-muted small">Failed</div>
-                                            </div>
-                                        }
-                                    </div>
-
-                                    <!-- Success Rate Progress Bar -->
-                                    <div class="mt-2">
-                                        <div class="d-flex justify-content-between small mb-1">
-                                            <span class="text-muted">Success Rate</span>
-                                            <span class="fw-semibold @(successRate >= 90 ? "text-success" : successRate >= 70 ? "text-warning" : "text-danger")">
-                                                @successRate.ToString("F1")%
-                                            </span>
-                                        </div>
-                                        <div class="progress" style="height: 6px;">
-                                            <div class="progress-bar @(successRate >= 90 ? "bg-success" : successRate >= 70 ? "bg-warning" : "bg-danger")"
-                                                 role="progressbar"
-                                                 style="width: @successRate%"
-                                                 aria-valuenow="@successRate"
-                                                 aria-valuemin="0"
-                                                 aria-valuemax="100">
-                                            </div>
-                                        </div>
-                                    </div>
-                                </div>
-
-                                <div class="col-md-2 text-end">
-                                    <div class="btn-group-vertical" role="group">
-                                        @if (!isActive)
-                                        {
-                                            <a href="?ImportAuditId=@import.Id" class="btn btn-outline-primary btn-sm" title="View Import">
-                                                <i class="bi bi-funnel me-1"></i>Filter
-                                            </a>
-                                        }
-                                        else
-                                        {
-                                            <a href="/Admin/CallLogs" class="btn btn-primary btn-sm" title="Clear Filter">
-                                                <i class="bi bi-x-circle me-1"></i>Clear
-                                            </a>
-                                        }
-                                        <button type="button" class="btn btn-outline-secondary btn-sm" title="View Details">
-                                            <i class="bi bi-info-circle me-1"></i>Info
-                                        </button>
-                                        <button type="button" class="btn btn-outline-danger btn-sm"
-                                                onclick="deleteImportBatch(@import.Id, '@import.ImportType', @import.TotalRecords)"
-                                                title="@(import.TotalRecords == 0 ? "Remove Empty Import Batch" : "Delete Import Batch")">
-                                            <i class="bi bi-trash me-1"></i>@(import.TotalRecords == 0 ? "Remove" : "Delete")
-                                        </button>
-                                    </div>
-                                </div>
-                            </div>
-                        </div>
-                    </div>
-                </div>
-            }
-                    </div>
-
-                    <!-- View All Link -->
-                    <div class="text-center pt-3 border-top mt-3">
-                        <a href="/Admin/ImportAudits" class="btn btn-outline-primary btn-sm">
-                            <i class="bi bi-list-ul me-1"></i>View All Import History
-                        </a>
-                        <small class="text-muted d-block mt-2">
-                            Showing most recent @Model.RecentImports.Count() imports
-                        </small>
-                    </div>
-                </div>
-            </div>
-        </div>
-    </div>
-}
-
-
 <div class="row">
     <div class="col-md-12">
         @if (Model.ImportAuditId.HasValue && Model.SelectedImportAudit != null)
@@ -2237,11 +2067,26 @@
                             <textarea class="form-control" id="extensionNotesInput" rows="3" placeholder="Additional information about this phone line..."></textarea>
                         </div>
 
+                        <div class="mb-3">
+                            <label class="form-label fw-semibold">
+                                <i class="bi bi-tag me-1"></i>Line Type
+                            </label>
+                            <select class="form-select" id="extensionLineTypeSelect">
+                                <option value="1">Primary</option>
+                                <option value="2" selected>Secondary</option>
+                                <option value="3">Reserved</option>
+                                <option value="4">Data</option>
+                            </select>
+                        </div>
+
                         <div class="form-check">
                             <input class="form-check-input" type="checkbox" id="extensionPrimaryCheckbox">
                             <label class="form-check-label" for="extensionPrimaryCheckbox">
                                 Set as Primary Phone
                             </label>
+                            <div class="form-text">
+                                <i class="bi bi-info-circle"></i> Automatically controlled by Line Type selection
+                            </div>
                         </div>
                     </div>
                 </div>
@@ -2250,6 +2095,58 @@
                 <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancel</button>
                 <button type="button" class="btn btn-primary" id="confirmRegisterButton">
                     <i class="bi bi-telephone-plus me-1"></i>Register Extension
+                </button>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Primary Line Confirmation Modal -->
+<div class="modal fade" id="primaryLineConfirmModal" tabindex="-1" data-bs-backdrop="static">
+    <div class="modal-dialog modal-dialog-centered">
+        <div class="modal-content" style="border-radius: 12px; border: none; overflow: hidden;">
+            <div class="modal-header" style="background: linear-gradient(135deg, #10b981, #059669); border: none; padding: 1.5rem;">
+                <h5 class="modal-title text-white d-flex align-items-center">
+                    <i class="bi bi-star-fill me-2"></i>
+                    Set as Primary Line
+                </h5>
+                <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal"></button>
+            </div>
+            <div class="modal-body" style="padding: 2rem;">
+                <div class="text-center mb-4">
+                    <div class="d-inline-flex align-items-center justify-content-center rounded-circle"
+                         style="width: 64px; height: 64px; background-color: #d1fae5;">
+                        <i class="bi bi-star text-success" style="font-size: 28px;"></i>
+                    </div>
+                </div>
+
+                <h6 class="text-center mb-4">You are about to set this line as the Primary line</h6>
+
+                <div class="alert d-flex align-items-start"
+                     style="background-color: #fef3c7; border: 1px solid #fcd34d; color: #92400e;">
+                    <i class="bi bi-info-circle-fill me-2 mt-1" style="color: #f59e0b;"></i>
+                    <div>
+                        <strong>Important:</strong> Setting this as the primary line will automatically change any existing primary line for this user to secondary.
+                    </div>
+                </div>
+
+                <div class="border rounded p-3 mt-3" style="background-color: #f9fafb; border-color: #e5e7eb !important;">
+                    <div class="form-check">
+                        <input class="form-check-input" type="checkbox" id="confirmPrimaryCheckbox" style="border-width: 2px;">
+                        <label class="form-check-label fw-medium" for="confirmPrimaryCheckbox">
+                            I understand this will set this line as the primary line
+                        </label>
+                    </div>
+                </div>
+            </div>
+            <div class="modal-footer" style="background-color: #f8f9fa; border: none; padding: 1.5rem;">
+                <button type="button" class="btn btn-light px-4" data-bs-dismiss="modal"
+                        style="border-radius: 8px; font-weight: 500;">
+                    Cancel
+                </button>
+                <button type="button" class="btn btn-success px-4" id="confirmPrimaryButton" disabled
+                        style="background: linear-gradient(135deg, #10b981, #059669); border: none; border-radius: 8px; font-weight: 500;">
+                    <i class="bi bi-check-circle me-2"></i>Confirm Primary Line
                 </button>
             </div>
         </div>
@@ -3759,7 +3656,9 @@ Note:
             // Update modal info
             document.getElementById('registerExtensionInfo').textContent = `Extension: ${extension}`;
             document.getElementById('extensionNumberInput').value = extension;
+            document.getElementById('extensionLineTypeSelect').value = '2'; // Default to Secondary
             document.getElementById('extensionPrimaryCheckbox').checked = false;
+            document.getElementById('extensionPrimaryCheckbox').disabled = true; // Controlled by LineType
             document.getElementById('extensionClassOfServiceSelect').value = '';
             document.getElementById('extensionLocationInput').value = '';
             document.getElementById('extensionNotesInput').value = '';
@@ -4086,6 +3985,15 @@ Note:
                 confirmRegisterButton.addEventListener('click', async function() {
                     if (!currentRegisteringRecord) return;
 
+                    // Check if LineType is Primary and show confirmation if needed
+                    const lineType = document.getElementById('extensionLineTypeSelect').value;
+                    if (lineType === '1' && !extensionRegisterFormSubmitting) {
+                        pendingPrimaryAction = 'registerExtension';
+                        const modal = new bootstrap.Modal(document.getElementById('primaryLineConfirmModal'));
+                        modal.show();
+                        return; // Stop here, will continue after confirmation
+                    }
+
                     this.disabled = true;
                     this.innerHTML = '<span class="spinner-border spinner-border-sm me-2"></span>Registering...';
 
@@ -4097,6 +4005,7 @@ Note:
                         formData.append('userId', currentRegisteringRecord.userId);
                         formData.append('phoneType', document.getElementById('extensionTypeSelect').value);
                         formData.append('isPrimary', document.getElementById('extensionPrimaryCheckbox').checked);
+                        formData.append('lineType', document.getElementById('extensionLineTypeSelect').value);
                         formData.append('classOfService', document.getElementById('extensionClassOfServiceSelect').value);
                         formData.append('location', document.getElementById('extensionLocationInput').value);
                         formData.append('notes', document.getElementById('extensionNotesInput').value);

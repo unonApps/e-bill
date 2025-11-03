@@ -28,6 +28,10 @@ namespace TAB.Web.Models
         [Display(Name = "Primary Phone")]
         public bool IsPrimary { get; set; } = false;
 
+        [Required]
+        [Display(Name = "Line Type")]
+        public LineType LineType { get; set; } = LineType.Secondary;
+
         [Display(Name = "Active")]
         public bool IsActive { get; set; } = true;
 
@@ -101,6 +105,26 @@ namespace TAB.Web.Models
             PhoneStatus.Deactivated => "danger",
             _ => "secondary"
         };
+
+        [NotMapped]
+        public string LineTypeBadgeColor => LineType switch
+        {
+            LineType.Primary => "success",
+            LineType.Secondary => "info",
+            LineType.Reserved => "warning",
+            LineType.Data => "primary",
+            _ => "secondary"
+        };
+
+        [NotMapped]
+        public string LineTypeDisplay => LineType switch
+        {
+            LineType.Primary => "Primary",
+            LineType.Secondary => "Secondary",
+            LineType.Reserved => "Reserved",
+            LineType.Data => "Data",
+            _ => "Unknown"
+        };
     }
 
     public enum PhoneStatus
@@ -113,6 +137,21 @@ namespace TAB.Web.Models
 
         [Display(Name = "Deactivated")]
         Deactivated = 3
+    }
+
+    public enum LineType
+    {
+        [Display(Name = "Primary")]
+        Primary = 1,
+
+        [Display(Name = "Secondary")]
+        Secondary = 2,
+
+        [Display(Name = "Reserved")]
+        Reserved = 3,
+
+        [Display(Name = "Data")]
+        Data = 4
     }
 
     // Enum for phone types (optional, for stronger typing)

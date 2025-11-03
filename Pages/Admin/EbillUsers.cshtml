@@ -128,13 +128,13 @@
     
     /* Search Input Styling */
     #searchUsers::placeholder {
-        color: rgba(255, 255, 255, 0.6);
+        color: #9ca3af;
     }
-    
+
     #searchUsers:focus {
-        background-color: rgba(255, 255, 255, 0.2) !important;
         outline: none;
-        box-shadow: 0 0 0 3px rgba(255, 255, 255, 0.2);
+        border-color: #009EDB !important;
+        box-shadow: 0 0 0 3px rgba(0, 158, 219, 0.1) !important;
     }
     
     /* Gradient Background */
@@ -573,155 +573,163 @@
 </div>
 
 <!-- Filter Section (Collapsible) -->
-<div class="mb-3">
-    <button class="btn btn-outline-primary" type="button" data-bs-toggle="collapse" data-bs-target="#filterCollapse" aria-expanded="false" aria-controls="filterCollapse">
-        <i class="bi bi-funnel"></i> Show Filters
-    </button>
-</div>
-<div class="collapse" id="filterCollapse">
-<div class="filter-section">
-    <div class="filter-header">
-        <h2 class="filter-title">
-            <i class="bi bi-funnel"></i>
-            Filters
-        </h2>
-        <div class="filter-actions">
-            <span class="filter-count">
-                Showing @((Model.PageNumber - 1) * Model.PageSize + 1) - @Math.Min(Model.PageNumber * Model.PageSize, Model.TotalCount)
-                of @Model.TotalCount results
-            </span>
+<div class="card border-0 shadow-sm mb-4" style="border-radius: 20px;">
+    <div class="card-header bg-white border-0 p-3" style="cursor: pointer; border-radius: 20px 20px 0 0;" data-bs-toggle="collapse" data-bs-target="#filterCollapse">
+        <div class="d-flex justify-content-between align-items-center">
+            <h6 class="mb-0 fw-bold">
+                <i class="bi bi-funnel me-2"></i>Filters
+            </h6>
+            <div class="d-flex align-items-center gap-3">
+                <span class="badge bg-light text-dark" style="font-weight: 500;">
+                    Showing @((Model.PageNumber - 1) * Model.PageSize + 1) - @Math.Min(Model.PageNumber * Model.PageSize, Model.TotalCount) of @Model.TotalCount results
+                </span>
+                <i class="bi bi-chevron-down"></i>
+            </div>
         </div>
     </div>
-    
-    <form method="get" class="filter-form" id="filterForm">
-        <!-- Preserve page size when filtering -->
-        <input type="hidden" name="PageSize" value="@Model.PageSize" />
-        <div class="filter-grid">
-            <div class="filter-group">
-                <label class="filter-label" for="searchFilter">
-                    <i class="bi bi-search"></i> Search
-                </label>
-                <input type="text" name="SearchTerm" id="searchFilter" class="filter-input filter-search-input" 
-                       placeholder="Name, Index, Email..." value="@Model.SearchTerm" />
-            </div>
-            <div class="filter-group">
-                <label class="filter-label" for="orgFilter">
-                    <i class="bi bi-building"></i> Organization
-                </label>
-                <select name="SelectedOrganization" id="orgFilter" class="filter-select filter-auto-submit">
-                    <option value="">All Organizations</option>
-                    @foreach (var item in Model.OrganizationList)
-                    {
-                        <option value="@item.Value" selected="@(Model.SelectedOrganization == item.Value)">@item.Text</option>
-                    }
-                </select>
-            </div>
+    <div class="collapse" id="filterCollapse">
+        <div class="card-body p-4">
+            <form method="get" class="filter-form" id="filterForm">
+                <!-- Preserve page size when filtering -->
+                <input type="hidden" name="PageSize" value="@Model.PageSize" />
+                <div class="row g-3">
+                    <div class="col-md-3">
+                        <label class="form-label text-muted small" for="searchFilter">Search</label>
+                        <input type="text" name="SearchTerm" id="searchFilter"
+                               class="form-control border-0 bg-light filter-search-input"
+                               style="border-radius: 12px;"
+                               placeholder="Name, Index, Email..." value="@Model.SearchTerm" />
+                    </div>
+                    <div class="col-md-2">
+                        <label class="form-label text-muted small" for="orgFilter">Organization</label>
+                        <select name="SelectedOrganization" id="orgFilter"
+                                class="form-select border-0 bg-light"
+                                style="border-radius: 12px;">
+                            <option value="">All Organizations</option>
+                            @foreach (var item in Model.OrganizationList)
+                            {
+                                <option value="@item.Value" selected="@(Model.SelectedOrganization == item.Value)">@item.Text</option>
+                            }
+                        </select>
+                    </div>
 
-            <div class="filter-group">
-                <label class="filter-label" for="officeFilter">
-                    <i class="bi bi-geo-alt"></i> Office
-                </label>
-                <select name="SelectedOffice" id="officeFilter" class="filter-select">
-                    <option value="">All Offices</option>
-                    @foreach (var office in Model.OfficeList)
-                    {
-                        <option value="@office.Value" selected="@(office.Value == Model.SelectedOffice)">@office.Text</option>
-                    }
-                </select>
-            </div>
+                    <div class="col-md-2">
+                        <label class="form-label text-muted small" for="officeFilter">Office</label>
+                        <select name="SelectedOffice" id="officeFilter"
+                                class="form-select border-0 bg-light"
+                                style="border-radius: 12px;">
+                            <option value="">All Offices</option>
+                            @foreach (var office in Model.OfficeList)
+                            {
+                                <option value="@office.Value" selected="@(office.Value == Model.SelectedOffice)">@office.Text</option>
+                            }
+                        </select>
+                    </div>
 
-            <div class="filter-group">
-                <label class="filter-label" for="subOfficeFilter">
-                    <i class="bi bi-diagram-2"></i> Sub Office
-                </label>
-                <select name="SelectedSubOffice" id="subOfficeFilter" class="filter-select filter-auto-submit">
-                    <option value="">All Sub Offices</option>
-                    @if (!string.IsNullOrWhiteSpace(Model.SelectedOffice))
-                    {
-                        @foreach (var subOffice in Model.SubOfficeList)
-                        {
-                            <option value="@subOffice.Value" selected="@(subOffice.Value == Model.SelectedSubOffice)">@subOffice.Text</option>
-                        }
-                    }
-                </select>
-            </div>
+                    <div class="col-md-2">
+                        <label class="form-label text-muted small" for="subOfficeFilter">Sub Office</label>
+                        <select name="SelectedSubOffice" id="subOfficeFilter"
+                                class="form-select border-0 bg-light"
+                                style="border-radius: 12px;">
+                            <option value="">All Sub Offices</option>
+                            @if (!string.IsNullOrWhiteSpace(Model.SelectedOffice))
+                            {
+                                @foreach (var subOffice in Model.SubOfficeList)
+                                {
+                                    <option value="@subOffice.Value" selected="@(subOffice.Value == Model.SelectedSubOffice)">@subOffice.Text</option>
+                                }
+                            }
+                        </select>
+                    </div>
 
-            <div class="filter-group">
-                <label class="filter-label" for="statusFilter">
-                    <i class="bi bi-toggle-on"></i> Status
-                </label>
-                <select name="IsActive" id="statusFilter" class="filter-select filter-auto-submit">
-                    <option value="">All Status</option>
-                    <option value="true" selected="@(Model.IsActive == true)">Active</option>
-                    <option value="false" selected="@(Model.IsActive == false)">Inactive</option>
-                </select>
-            </div>
+                    <div class="col-md-2">
+                        <label class="form-label text-muted small" for="statusFilter">Status</label>
+                        <select name="IsActive" id="statusFilter"
+                                class="form-select border-0 bg-light"
+                                style="border-radius: 12px;">
+                            <option value="">All Status</option>
+                            <option value="true" selected="@(Model.IsActive == true)">Active</option>
+                            <option value="false" selected="@(Model.IsActive == false)">Inactive</option>
+                        </select>
+                    </div>
 
-            <div class="filter-group align-self-end">
-                <a href="/Admin/EbillUsers" class="btn-clear-filters">
-                    <i class="bi bi-x-circle"></i> Clear All
-                </a>
-            </div>
+                    <div class="col-md-1 d-flex align-items-end gap-2">
+                        <button type="submit" class="btn btn-primary btn-sm" style="border-radius: 12px;">
+                            <i class="bi bi-funnel-fill me-1"></i>Filter
+                        </button>
+                        <a href="/Admin/EbillUsers" class="btn btn-outline-secondary btn-sm" style="border-radius: 12px;">
+                            <i class="bi bi-x-circle"></i>
+                        </a>
+                    </div>
+                </div>
+            </form>
         </div>
-    </form>
-</div>
+    </div>
 </div>
 
 <script>
-    // Auto-submit functionality
+    // Filter functionality
     document.addEventListener('DOMContentLoaded', function() {
-        // Handle office change to load suboffices and submit
+        // Handle office change to load suboffices dynamically via AJAX
         const officeFilter = document.getElementById('officeFilter');
         const subOfficeFilter = document.getElementById('subOfficeFilter');
 
         if (officeFilter) {
             officeFilter.addEventListener('change', function() {
+                const officeId = this.value;
+
                 // Clear suboffice selection when office changes
                 if (subOfficeFilter) {
+                    subOfficeFilter.innerHTML = '<option value="">All Sub Offices</option>';
                     subOfficeFilter.value = '';
                 }
-                // Submit form to reload with new office and get suboffices
-                document.getElementById('filterForm').submit();
-            });
-        }
 
-        // Auto-submit for select elements
-        const autoSubmitElements = document.querySelectorAll('.filter-auto-submit');
-        autoSubmitElements.forEach(element => {
-            element.addEventListener('change', function() {
-                document.getElementById('filterForm').submit();
-            });
-        });
-        
-        // Debounced auto-submit for search input
-        let searchTimeout;
-        const searchInput = document.querySelector('.filter-search-input');
-        if (searchInput) {
-            searchInput.addEventListener('input', function() {
-                clearTimeout(searchTimeout);
-                searchTimeout = setTimeout(() => {
-                    document.getElementById('filterForm').submit();
-                }, 500); // 500ms delay
+                // Load sub-offices if an office is selected
+                if (officeId) {
+                    fetch(`/Admin/EbillUsers?handler=SubOffices&officeId=${officeId}`)
+                        .then(response => response.json())
+                        .then(data => {
+                            data.forEach(subOffice => {
+                                const option = document.createElement('option');
+                                option.value = subOffice.value;
+                                option.text = subOffice.text;
+                                subOfficeFilter.appendChild(option);
+                            });
+                        })
+                        .catch(error => {
+                            console.error('Error loading sub-offices:', error);
+                        });
+                }
             });
         }
         
-        // Update button text when filters are shown/hidden
-        const filterToggle = document.querySelector('[data-bs-target="#filterCollapse"]');
+        // Update chevron icon when filters are shown/hidden
         const filterCollapse = document.getElementById('filterCollapse');
-        if (filterToggle && filterCollapse) {
+        if (filterCollapse) {
+            const chevronIcon = document.querySelector('[data-bs-toggle="collapse"][data-bs-target="#filterCollapse"] .bi-chevron-down');
+
             filterCollapse.addEventListener('show.bs.collapse', function () {
-                filterToggle.innerHTML = '<i class="bi bi-funnel-fill"></i> Hide Filters';
+                if (chevronIcon) {
+                    chevronIcon.classList.remove('bi-chevron-down');
+                    chevronIcon.classList.add('bi-chevron-up');
+                }
             });
+
             filterCollapse.addEventListener('hide.bs.collapse', function () {
-                filterToggle.innerHTML = '<i class="bi bi-funnel"></i> Show Filters';
+                if (chevronIcon) {
+                    chevronIcon.classList.remove('bi-chevron-up');
+                    chevronIcon.classList.add('bi-chevron-down');
+                }
             });
-            
+
             // Check if any filters are active and show the filter section
             const hasActiveFilters = @Html.Raw((!string.IsNullOrEmpty(Model.SearchTerm) || !string.IsNullOrEmpty(Model.SelectedOrganization) || !string.IsNullOrEmpty(Model.SelectedOffice) || !string.IsNullOrEmpty(Model.SelectedSubOffice) || Model.IsActive.HasValue).ToString().ToLower());
             if (hasActiveFilters) {
                 filterCollapse.classList.add('show');
-                filterToggle.innerHTML = '<i class="bi bi-funnel-fill"></i> Hide Filters';
-                filterToggle.setAttribute('aria-expanded', 'true');
+                if (chevronIcon) {
+                    chevronIcon.classList.remove('bi-chevron-down');
+                    chevronIcon.classList.add('bi-chevron-up');
+                }
             }
         }
     });
@@ -819,7 +827,7 @@
                                 <i class="bi bi-search text-muted"></i>
                             </span>
                             <input type="text" class="form-control bg-white border-1 text-dark"
-                                   id="searchUsers" placeholder="Search users..."
+                                   id="searchUsers" placeholder="Type to search by name, index, or email..."
                                    style="border-radius: 0 8px 8px 0;">
                         </div>
                     </div>
@@ -855,7 +863,11 @@
                             <tbody>
                                 @foreach (var user in Model.EbillUsers)
                                 {
-                                    <tr data-user-id="@user.Id" class="user-row">
+                                    <tr data-user-id="@user.Id"
+                                        data-user-name="@user.FullName"
+                                        data-user-index="@user.IndexNumber"
+                                        data-user-email="@user.Email"
+                                        class="user-row">
                                         <td class="align-middle px-3 py-3 text-center">
                                             <input type="checkbox" class="form-check-input user-checkbox"
                                                    data-user-id="@user.Id"
@@ -2558,24 +2570,46 @@ Note:
             }
         });
 
-        // Search functionality
-        document.getElementById('searchUsers').addEventListener('keyup', function() {
-            const searchTerm = this.value.toLowerCase();
-            const rows = document.querySelectorAll('#usersTable tbody tr');
+        // Search functionality - Search only Name, Index, and Email
+        document.addEventListener('DOMContentLoaded', function() {
+            const searchInput = document.getElementById('searchUsers');
+            if (searchInput) {
+                console.log('Search input found, attaching event listener');
+                searchInput.addEventListener('keyup', function() {
+                    const searchTerm = this.value.toLowerCase().trim();
+                    const rows = document.querySelectorAll('#usersTable tbody tr');
+                    console.log('Searching for:', searchTerm, 'Found rows:', rows.length);
 
-            rows.forEach(row => {
-                const text = row.textContent.toLowerCase();
-                row.style.display = text.includes(searchTerm) ? '' : 'none';
-            });
-        });
-        
-        // Add animation to status badges
-        document.querySelectorAll('.badge').forEach(badge => {
-            badge.addEventListener('mouseenter', function() {
-                this.style.transform = 'translateY(-2px) scale(1.05)';
-            });
-            badge.addEventListener('mouseleave', function() {
-                this.style.transform = 'translateY(0) scale(1)';
+                    let visibleCount = 0;
+                    rows.forEach(row => {
+                        // Get the searchable fields from data attributes
+                        const userName = (row.getAttribute('data-user-name') || '').toLowerCase();
+                        const userIndex = (row.getAttribute('data-user-index') || '').toLowerCase();
+                        const userEmail = (row.getAttribute('data-user-email') || '').toLowerCase();
+
+                        // Check if search term matches any of the three fields
+                        const matches = searchTerm === '' ||
+                                       userName.includes(searchTerm) ||
+                                       userIndex.includes(searchTerm) ||
+                                       userEmail.includes(searchTerm);
+
+                        row.style.display = matches ? '' : 'none';
+                        if (matches) visibleCount++;
+                    });
+                    console.log('Visible rows:', visibleCount);
+                });
+            } else {
+                console.error('Search input not found!');
+            }
+
+            // Add animation to status badges
+            document.querySelectorAll('.badge').forEach(badge => {
+                badge.addEventListener('mouseenter', function() {
+                    this.style.transform = 'translateY(-2px) scale(1.05)';
+                });
+                badge.addEventListener('mouseleave', function() {
+                    this.style.transform = 'translateY(0) scale(1)';
+                });
             });
         });
     </script>

@@ -21,6 +21,7 @@ namespace TAB.Web.Pages.Admin
         private readonly UserManager<ApplicationUser> _userManager;
         private readonly RoleManager<IdentityRole> _roleManager;
         private readonly IEmailService _emailService;
+        private readonly IEnhancedEmailService _enhancedEmailService;
         private readonly ILogger<UserManagementModel> _logger;
         private readonly IWebHostEnvironment _environment;
         private readonly ApplicationDbContext _context;
@@ -29,6 +30,7 @@ namespace TAB.Web.Pages.Admin
             UserManager<ApplicationUser> userManager,
             RoleManager<IdentityRole> roleManager,
             IEmailService emailService,
+            IEnhancedEmailService enhancedEmailService,
             ILogger<UserManagementModel> logger,
             IWebHostEnvironment environment,
             ApplicationDbContext context)
@@ -36,6 +38,7 @@ namespace TAB.Web.Pages.Admin
             _userManager = userManager;
             _roleManager = roleManager;
             _emailService = emailService;
+            _enhancedEmailService = enhancedEmailService;
             _logger = logger;
             _environment = environment;
             _context = context;
@@ -268,42 +271,27 @@ namespace TAB.Web.Pages.Admin
                 
                 try
                 {
-                    // Check if we have custom email settings in TempData
-                    if (TempData != null && TempData.ContainsKey("SmtpServer"))
+                    // Send welcome email using template
+                    var baseUrl = $"{Request.Scheme}://{Request.Host}";
+                    var loginUrl = $"{baseUrl}/Identity/Account/Login";
+                    var emailData = new Dictionary<string, string>
                     {
-                        // Create custom email settings
-                        var customSettings = new EmailSettings
-                        {
-                            SmtpServer = TempData["SmtpServer"]?.ToString() ?? string.Empty,
-                            SmtpPort = TempData.ContainsKey("SmtpPort") ? Convert.ToInt32(TempData["SmtpPort"]) : 587,
-                            FromEmail = TempData["FromEmail"]?.ToString() ?? string.Empty,
-                            FromName = TempData["FromName"]?.ToString() ?? string.Empty,
-                            Username = TempData["Username"]?.ToString() ?? string.Empty,
-                            Password = TempData["Password"]?.ToString() ?? string.Empty,
-                            EnableSsl = TempData.ContainsKey("EnableSsl") ? Convert.ToBoolean(TempData["EnableSsl"]) : true
-                        };
-                        
-                        // Keep the values for the next request
-                        TempData.Keep();
-                        
-                        // Create a custom email service
-                        var options = Microsoft.Extensions.Options.Options.Create(customSettings);
-                        var environment = HttpContext.RequestServices.GetRequiredService<IWebHostEnvironment>();
-                        var emailServiceLogger = HttpContext.RequestServices.GetRequiredService<ILogger<EmailService>>();
-                        
-                        var customEmailService = new EmailService(options, environment, emailServiceLogger);
-                        
-                        // Send the welcome email with the custom service
-                        string fullName = $"{user.FirstName} {user.LastName}";
-                        await customEmailService.SendWelcomeEmailAsync(user.Email, fullName, initialPassword);
-                    }
-                    else
-                    {
-                        // Use the default email service
-                        string fullName = $"{user.FirstName} {user.LastName}";
-                        await _emailService.SendWelcomeEmailAsync(user.Email, fullName, initialPassword);
-                    }
-                    
+                        { "FirstName", user.FirstName },
+                        { "LastName", user.LastName },
+                        { "Email", user.Email ?? string.Empty },
+                        { "InitialPassword", initialPassword },
+                        { "Role", Input.Role },
+                        { "BaseUrl", baseUrl },
+                        { "LoginUrl", loginUrl }
+                    };
+
+                    await _enhancedEmailService.SendTemplatedEmailAsync(
+                        to: user.Email ?? string.Empty,
+                        templateCode: "USER_ACCOUNT_CREATED",
+                        data: emailData,
+                        createdBy: User.Identity?.Name
+                    );
+
                     StatusMessage = $"Successfully created user {Input.Email} with role {Input.Role}. A welcome email with login instructions has been sent.";
                 }
                 catch (Exception ex)
@@ -457,10 +445,27 @@ namespace TAB.Web.Pages.Admin
                 {
                     try
                     {
-                        // Send email with new password
-                        string fullName = $"{user.FirstName} {user.LastName}";
-                        await _emailService.SendWelcomeEmailAsync(user.Email ?? string.Empty, fullName, newPassword);
-                        
+                        // Send password reset email using template
+                        var baseUrl = $"{Request.Scheme}://{Request.Host}";
+                        var loginUrl = $"{baseUrl}/Identity/Account/Login";
+                        var emailData = new Dictionary<string, string>
+                        {
+                            { "FirstName", user.FirstName },
+                            { "LastName", user.LastName },
+                            { "Email", user.Email ?? string.Empty },
+                            { "NewPassword", newPassword },
+                            { "ResetDate", DateTime.Now.ToString("MMMM dd, yyyy 'at' hh:mm tt") },
+                            { "BaseUrl", baseUrl },
+                            { "LoginUrl", loginUrl }
+                        };
+
+                        await _enhancedEmailService.SendTemplatedEmailAsync(
+                            to: user.Email ?? string.Empty,
+                            templateCode: "USER_PASSWORD_RESET",
+                            data: emailData,
+                            createdBy: User.Identity?.Name
+                        );
+
                         StatusMessage = $"User {user.Email} updated successfully. Password has been reset and notification email sent.";
                     }
                     catch (Exception ex)
@@ -549,41 +554,26 @@ namespace TAB.Web.Pages.Admin
 
                 try
                 {
-                    // Check if we have custom email settings in TempData
-                    if (TempData != null && TempData.ContainsKey("SmtpServer"))
+                    // Send password reset email using template
+                    var baseUrl = $"{Request.Scheme}://{Request.Host}";
+                    var loginUrl = $"{baseUrl}/Identity/Account/Login";
+                    var emailData = new Dictionary<string, string>
                     {
-                        // Create custom email settings
-                        var customSettings = new EmailSettings
-                        {
-                            SmtpServer = TempData["SmtpServer"]?.ToString() ?? string.Empty,
-                            SmtpPort = TempData.ContainsKey("SmtpPort") ? Convert.ToInt32(TempData["SmtpPort"]) : 587,
-                            FromEmail = TempData["FromEmail"]?.ToString() ?? string.Empty,
-                            FromName = TempData["FromName"]?.ToString() ?? string.Empty,
-                            Username = TempData["Username"]?.ToString() ?? string.Empty,
-                            Password = TempData["Password"]?.ToString() ?? string.Empty,
-                            EnableSsl = TempData.ContainsKey("EnableSsl") ? Convert.ToBoolean(TempData["EnableSsl"]) : true
-                        };
+                        { "FirstName", user.FirstName },
+                        { "LastName", user.LastName },
+                        { "Email", user.Email ?? string.Empty },
+                        { "NewPassword", newPassword },
+                        { "ResetDate", DateTime.Now.ToString("MMMM dd, yyyy 'at' hh:mm tt") },
+                        { "BaseUrl", baseUrl },
+                        { "LoginUrl", loginUrl }
+                    };
 
-                        // Keep the values for the next request
-                        TempData.Keep();
-
-                        // Create a custom email service
-                        var options = Microsoft.Extensions.Options.Options.Create(customSettings);
-                        var environment = HttpContext.RequestServices.GetRequiredService<IWebHostEnvironment>();
-                        var emailServiceLogger = HttpContext.RequestServices.GetRequiredService<ILogger<EmailService>>();
-
-                        var customEmailService = new EmailService(options, environment, emailServiceLogger);
-
-                        // Send the reset email with the custom service
-                        string fullName = $"{user.FirstName} {user.LastName}";
-                        await customEmailService.SendWelcomeEmailAsync(user.Email ?? string.Empty, fullName, newPassword);
-                    }
-                    else
-                    {
-                        // Use the default email service
-                        string fullName = $"{user.FirstName} {user.LastName}";
-                        await _emailService.SendWelcomeEmailAsync(user.Email ?? string.Empty, fullName, newPassword);
-                    }
+                    await _enhancedEmailService.SendTemplatedEmailAsync(
+                        to: user.Email ?? string.Empty,
+                        templateCode: "USER_PASSWORD_RESET",
+                        data: emailData,
+                        createdBy: User.Identity?.Name
+                    );
 
                     emailSent = true;
                 }

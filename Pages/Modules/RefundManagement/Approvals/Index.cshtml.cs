@@ -17,113 +17,85 @@ namespace TAB.Web.Pages.Modules.RefundManagement.Approvals
             _context = context;
         }
 
-        public int SupervisorPendingCount { get; set; }
-        public int BudgetPendingCount { get; set; }
-        public int ClaimsPendingCount { get; set; }
-        public int PaymentPendingCount { get; set; }
         public List<RefundRequest> RefundRequests { get; set; } = new();
+
+        // Statistics
+        public int TotalRequests { get; set; }
+        public int PendingSupervisorCount { get; set; }
+        public int PendingBudgetCount { get; set; }
+        public int PendingClaimsCount { get; set; }
+        public int PendingPaymentCount { get; set; }
+        public int CompletedCount { get; set; }
+        public int CancelledCount { get; set; }
+
+        // User role flags
+        public bool IsSupervisor { get; set; }
+        public bool IsBudgetOfficer { get; set; }
+        public bool IsClaimsUnit { get; set; }
+        public bool IsPaymentApprover { get; set; }
+        public bool IsAdmin { get; set; }
 
         public async Task<IActionResult> OnGetAsync()
         {
             var userName = User.Identity?.Name;
-            var supervisorName = $"{User.FindFirst("FirstName")?.Value} {User.FindFirst("LastName")?.Value}";
-            var isAdmin = User.IsInRole("Admin");
+            IsAdmin = User.IsInRole("Admin");
+            IsSupervisor = User.IsInRole("Supervisor");
+            IsBudgetOfficer = User.IsInRole("Budget Officer") || User.IsInRole("BudgetOfficer");
+            IsClaimsUnit = User.IsInRole("Claims Unit Approver");
+            IsPaymentApprover = User.IsInRole("ICTS") || User.IsInRole("Payment Approver");
 
-            // Get refund requests - all for admin, filtered for others
-            if (isAdmin)
+            // Load refund requests based on role
+            // Exclude completed and cancelled requests since this is an approval page
+            if (IsAdmin)
             {
+                // Admin sees all pending requests (not completed or cancelled)
                 RefundRequests = await _context.RefundRequests
+                    .Where(r => r.Status != RefundRequestStatus.Completed && r.Status != RefundRequestStatus.Cancelled)
                     .OrderByDescending(r => r.RequestDate)
                     .ToListAsync();
             }
             else
             {
-                RefundRequests = await _context.RefundRequests
-                    .Where(r => r.SupervisorName == supervisorName)
+                // Non-admin users see requests relevant to their role (excluding completed/cancelled)
+                var query = _context.RefundRequests
+                    .Where(r => r.Status != RefundRequestStatus.Completed && r.Status != RefundRequestStatus.Cancelled);
+
+                if (IsSupervisor)
+                {
+                    // Supervisors see requests assigned to them
+                    query = query.Where(r => r.SupervisorEmail == userName);
+                }
+                else if (IsBudgetOfficer)
+                {
+                    // Budget officers see requests pending budget approval
+                    query = query.Where(r => r.Status == RefundRequestStatus.PendingBudgetOfficer);
+                }
+                else if (IsClaimsUnit)
+                {
+                    // Claims unit sees requests pending claims approval
+                    query = query.Where(r => r.Status == RefundRequestStatus.PendingStaffClaimsUnit);
+                }
+                else if (IsPaymentApprover)
+                {
+                    // Payment approvers see requests pending payment approval
+                    query = query.Where(r => r.Status == RefundRequestStatus.PendingPaymentApproval);
+                }
+
+                RefundRequests = await query
                     .OrderByDescending(r => r.RequestDate)
                     .ToListAsync();
             }
 
-            SupervisorPendingCount = RefundRequests.Count(r => r.Status == RefundRequestStatus.PendingSupervisor);
-
-            // Count pending budget officer approvals
-            if (User.IsInRole("Budget Officer") || User.IsInRole("BudgetOfficer") || User.IsInRole("Admin"))
-            {
-                BudgetPendingCount = await _context.RefundRequests
-                    .Where(r => r.Status == RefundRequestStatus.PendingBudgetOfficer)
-                    .CountAsync();
-            }
-
-            // Count pending claims unit approvals
-            if (User.IsInRole("Claims Unit Approver") || User.IsInRole("Admin"))
-            {
-                ClaimsPendingCount = await _context.RefundRequests
-                    .Where(r => r.Status == RefundRequestStatus.PendingStaffClaimsUnit)
-                    .CountAsync();
-            }
-
-            // Count pending payment approvals
-            if (User.IsInRole("ICTS") || User.IsInRole("Payment Approver") || User.IsInRole("Admin"))
-            {
-                PaymentPendingCount = await _context.RefundRequests
-                    .Where(r => r.Status == RefundRequestStatus.PendingPaymentApproval)
-                    .CountAsync();
-            }
-
-            // Pass data to ViewData for partial views
-            ViewData["RefundRequests"] = RefundRequests;
-            ViewData["Context"] = new { _context = _context };
+            // Calculate statistics
+            TotalRequests = RefundRequests.Count;
+            PendingSupervisorCount = RefundRequests.Count(r => r.Status == RefundRequestStatus.PendingSupervisor);
+            PendingBudgetCount = RefundRequests.Count(r => r.Status == RefundRequestStatus.PendingBudgetOfficer);
+            PendingClaimsCount = RefundRequests.Count(r => r.Status == RefundRequestStatus.PendingStaffClaimsUnit);
+            PendingPaymentCount = RefundRequests.Count(r => r.Status == RefundRequestStatus.PendingPaymentApproval);
+            CompletedCount = RefundRequests.Count(r => r.Status == RefundRequestStatus.Completed);
+            CancelledCount = RefundRequests.Count(r => r.Status == RefundRequestStatus.Cancelled);
 
             return Page();
-        }
-
-        // Supervisor Handlers
-        public async Task<IActionResult> OnPostApproveSupervisorAsync(int requestId, string supervisorNotes, string? supervisorRemarks)
-        {
-            var request = await _context.RefundRequests.FindAsync(requestId);
-            if (request == null || request.Status != RefundRequestStatus.PendingSupervisor)
-            {
-                TempData["Error"] = "Request not found or already processed.";
-                return RedirectToPage();
-            }
-
-            var userName = $"{User.FindFirst("FirstName")?.Value} {User.FindFirst("LastName")?.Value}";
-            var userEmail = User.Identity?.Name;
-
-            request.Status = RefundRequestStatus.PendingBudgetOfficer;
-            request.SupervisorApprovalDate = DateTime.UtcNow;
-            request.SupervisorNotes = supervisorNotes;
-            request.SupervisorRemarks = supervisorRemarks;
-            request.SupervisorName = userName;
-            request.SupervisorEmail = userEmail;
-
-            await _context.SaveChangesAsync();
-
-            TempData["Success"] = $"Refund request for {request.MobileNumberAssignedTo} has been approved and forwarded to Budget Officer.";
-            return RedirectToPage();
-        }
-
-        public async Task<IActionResult> OnPostRejectSupervisorAsync(int requestId, string rejectionReason)
-        {
-            var request = await _context.RefundRequests.FindAsync(requestId);
-            if (request == null || request.Status != RefundRequestStatus.PendingSupervisor)
-            {
-                TempData["Error"] = "Request not found or already processed.";
-                return RedirectToPage();
-            }
-
-            var userName = $"{User.FindFirst("FirstName")?.Value} {User.FindFirst("LastName")?.Value}";
-
-            request.Status = RefundRequestStatus.Cancelled;
-            request.CancellationDate = DateTime.UtcNow;
-            request.CancellationReason = $"Rejected by Supervisor: {rejectionReason}";
-            request.CancelledBy = userName;
-            request.SupervisorNotes = $"REJECTED: {rejectionReason}";
-
-            await _context.SaveChangesAsync();
-
-            TempData["Warning"] = $"Refund request for {request.MobileNumberAssignedTo} has been rejected.";
-            return RedirectToPage();
         }
 
         // Budget Officer Handlers

@@ -39,4 +39,46 @@ namespace TAB.Web.Models.Enums
         Reject,
         Revert
     }
+
+    public enum RecoveryType
+    {
+        StaffNonVerification,
+        SupervisorNonApproval,
+        SupervisorPartialApproval,
+        SupervisorRejection,
+        SupervisorRevertFailure,
+        ManualOverride
+    }
+
+    public enum RecoveryAction
+    {
+        Personal,
+        Official,
+        ClassOfService
+    }
+
+    public enum DeadlineType
+    {
+        InitialVerification,
+        SupervisorApproval,
+        ReVerification,
+        FinalDeadline
+    }
+
+    public enum DeadlineStatus
+    {
+        Pending,
+        Met,
+        Missed,
+        Extended,
+        Cancelled
+    }
+
+    public enum RecoveryStatus
+    {
+        NotProcessed,
+        PendingApproval,
+        Processed,
+        ManuallyOverridden
+    }
 }

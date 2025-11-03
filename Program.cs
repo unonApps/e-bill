@@ -26,11 +26,18 @@ builder.Services.AddDbContext<ApplicationDbContext>(options =>
 builder.Services.Configure<EmailSettings>(builder.Configuration.GetSection("EmailSettings"));
 builder.Services.AddTransient<IEmailService, EmailService>();
 
+// Register Enhanced Email Services
+builder.Services.AddScoped<IEmailTemplateService, EmailTemplateService>();
+builder.Services.AddScoped<IEnhancedEmailService, EnhancedEmailService>();
+
 // Add History Service
 builder.Services.AddScoped<ISimRequestHistoryService, SimRequestHistoryService>();
 
 // Register UserPhone Service for managing multiple phones per user
 builder.Services.AddScoped<IUserPhoneService, UserPhoneService>();
+
+// Register UserPhoneHistory Service for tracking phone line changes
+builder.Services.AddScoped<IUserPhoneHistoryService, UserPhoneHistoryService>();
 
 // Register Audit Log Service for audit trail logging
 builder.Services.AddScoped<IAuditLogService, AuditLogService>();
@@ -55,6 +62,17 @@ builder.Services.AddScoped<IDocumentManagementService, DocumentManagementService
 
 // Register Notification Service for in-app notifications
 builder.Services.AddScoped<INotificationService, NotificationService>();
+
+// Register Call Log Recovery and Reporting Services
+builder.Services.AddScoped<ICallLogRecoveryService, CallLogRecoveryService>();
+builder.Services.AddScoped<IDeadlineManagementService, DeadlineManagementService>();
+builder.Services.AddScoped<ICallLogReportingService, CallLogReportingService>();
+
+// Register Currency Conversion Service for multi-currency dashboard
+builder.Services.AddScoped<ICurrencyConversionService, CurrencyConversionService>();
+
+// Register Recovery Automation Background Service
+builder.Services.AddHostedService<RecoveryAutomationJob>();
 
 // Add Azure AD Authentication
 builder.Services.AddAuthentication(OpenIdConnectDefaults.AuthenticationScheme)
@@ -386,6 +404,39 @@ using (var scope = app.Services.CreateScope())
                         approver.Email, string.Join(", ", result.Errors.Select(e => e.Description)));
                 }
             }
+        }
+
+        // Initialize RecoveryConfiguration if not exists
+        var existingConfig = await dbContext.RecoveryConfigurations
+            .FirstOrDefaultAsync(rc => rc.RuleName == "SystemConfiguration");
+
+        if (existingConfig == null)
+        {
+            var defaultConfig = new RecoveryConfiguration
+            {
+                RuleName = "SystemConfiguration",
+                RuleType = "System",
+                IsEnabled = true,
+                JobIntervalMinutes = 60,  // Run every hour by default
+                ReminderDaysBefore = 2,
+                AutomationEnabled = true,
+                NotificationEnabled = true,
+                DefaultApprovalDays = 5,
+                DefaultRevertDays = 3,
+                MaxRevertsAllowed = 2,
+                EnableEmailNotifications = false,
+                AdminNotificationEmail = "admin@example.com",
+                CreatedDate = DateTime.UtcNow,
+                CreatedBy = "System"
+            };
+
+            dbContext.RecoveryConfigurations.Add(defaultConfig);
+            await dbContext.SaveChangesAsync();
+            logger.LogInformation("Created default RecoveryConfiguration (SystemConfiguration)");
+        }
+        else
+        {
+            logger.LogInformation("RecoveryConfiguration (SystemConfiguration) already exists");
         }
     }
     catch (Exception ex)

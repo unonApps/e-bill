@@ -19,6 +19,7 @@ namespace TAB.Web.Pages.Modules.RefundManagement.Requests
         private readonly ILogger<CreateModel> _logger;
         private readonly INotificationService _notificationService;
         private readonly IAuditLogService _auditLogService;
+        private readonly IEnhancedEmailService _emailService;
 
         public CreateModel(
             ApplicationDbContext context,
@@ -26,7 +27,8 @@ namespace TAB.Web.Pages.Modules.RefundManagement.Requests
             IWebHostEnvironment environment,
             ILogger<CreateModel> logger,
             INotificationService notificationService,
-            IAuditLogService auditLogService)
+            IAuditLogService auditLogService,
+            IEnhancedEmailService emailService)
         {
             _context = context;
             _userManager = userManager;
@@ -34,6 +36,7 @@ namespace TAB.Web.Pages.Modules.RefundManagement.Requests
             _logger = logger;
             _notificationService = notificationService;
             _auditLogService = auditLogService;
+            _emailService = emailService;
         }
 
         [BindProperty]
@@ -74,7 +77,7 @@ namespace TAB.Web.Pages.Modules.RefundManagement.Requests
                 _logger.LogInformation("  DevicePurchaseAmount: {Value}", RefundRequest.DevicePurchaseAmount);
                 _logger.LogInformation("  Supervisor: '{Value}'", RefundRequest.Supervisor ?? "null");
             }
-            // Handle file upload
+            // Handle file upload - Store in database
             if (receiptFile != null && receiptFile.Length > 0)
             {
                 if (receiptFile.ContentType != "application/pdf")
@@ -87,19 +90,22 @@ namespace TAB.Web.Pages.Modules.RefundManagement.Requests
                 }
                 else
                 {
-                    // Save the file
-                    var uploadsFolder = Path.Combine(_environment.WebRootPath, "uploads", "receipts");
-                    Directory.CreateDirectory(uploadsFolder);
-                    
-                    var fileName = $"{Guid.NewGuid()}_{receiptFile.FileName}";
-                    var filePath = Path.Combine(uploadsFolder, fileName);
-                    
-                    using (var stream = new FileStream(filePath, FileMode.Create))
+                    // Save the file to database as binary data
+                    using (var memoryStream = new MemoryStream())
                     {
-                        await receiptFile.CopyToAsync(stream);
+                        await receiptFile.CopyToAsync(memoryStream);
+                        RefundRequest.PurchaseReceiptData = memoryStream.ToArray();
                     }
-                    
-                    RefundRequest.PurchaseReceiptPath = $"/uploads/receipts/{fileName}";
+
+                    RefundRequest.PurchaseReceiptFileName = receiptFile.FileName;
+                    RefundRequest.PurchaseReceiptContentType = receiptFile.ContentType;
+                    RefundRequest.PurchaseReceiptUploadDate = DateTime.UtcNow;
+
+                    // Set a marker in PurchaseReceiptPath to indicate file is stored in database
+                    RefundRequest.PurchaseReceiptPath = $"database:{receiptFile.FileName}";
+
+                    _logger.LogInformation("Receipt file '{FileName}' ({Size} bytes) saved to database for refund request",
+                        receiptFile.FileName, RefundRequest.PurchaseReceiptData.Length);
                 }
             }
             else if (action == "submit")
@@ -209,6 +215,23 @@ namespace TAB.Web.Pages.Modules.RefundManagement.Requests
                             currentUser.Id,
                             HttpContext.Connection.RemoteIpAddress?.ToString()
                         );
+
+                        // Send email notifications
+                        try
+                        {
+                            // 1. Send confirmation email to requester
+                            await SendSubmittedConfirmationEmailAsync(RefundRequest, currentUser);
+
+                            // 2. Send notification to supervisor
+                            await SendSupervisorNotificationEmailAsync(RefundRequest, supervisorUser);
+
+                            _logger.LogInformation("Email notifications sent successfully for refund request {RequestId}", RefundRequest.Id);
+                        }
+                        catch (Exception emailEx)
+                        {
+                            // Log error but don't fail the request
+                            _logger.LogError(emailEx, "Failed to send email notifications for refund request {RequestId}", RefundRequest.Id);
+                        }
                     }
                 }
 
@@ -238,9 +261,9 @@ namespace TAB.Web.Pages.Modules.RefundManagement.Requests
                     return new JsonResult(new { success = false, message = "Class of Service not found" });
                 }
 
-                return new JsonResult(new 
-                { 
-                    success = true, 
+                return new JsonResult(new
+                {
+                    success = true,
                     handsetAllowance = classOfService.HandsetAllowance ?? "0",
                     airtimeAllowance = classOfService.AirtimeAllowance ?? "",
                     dataAllowance = classOfService.DataAllowance ?? "",
@@ -250,6 +273,25 @@ namespace TAB.Web.Pages.Modules.RefundManagement.Requests
             catch (Exception)
             {
                 return new JsonResult(new { success = false, message = "Error retrieving allowance information" });
+            }
+        }
+
+        public async Task<IActionResult> OnGetOfficesByOrganizationAsync(int organizationId)
+        {
+            try
+            {
+                var offices = await _context.Offices
+                    .Where(o => o.OrganizationId == organizationId)
+                    .OrderBy(o => o.Name)
+                    .Select(o => new { id = o.Id, name = o.Name })
+                    .ToListAsync();
+
+                return new JsonResult(new { success = true, offices = offices });
+            }
+            catch (Exception ex)
+            {
+                _logger.LogError(ex, "Error retrieving offices for organization {OrganizationId}", organizationId);
+                return new JsonResult(new { success = false, message = "Error retrieving offices" });
             }
         }
 
@@ -336,6 +378,62 @@ namespace TAB.Web.Pages.Modules.RefundManagement.Requests
                 .OrderBy(c => c.Class)
                 .ThenBy(c => c.Service)
                 .ToListAsync();
+        }
+
+        private async Task SendSubmittedConfirmationEmailAsync(RefundRequest request, ApplicationUser requester)
+        {
+            var placeholders = new Dictionary<string, string>
+            {
+                { "RequestId", request.Id.ToString() },
+                { "RequestDate", request.RequestDate.ToString("MMMM dd, yyyy") },
+                { "RequesterName", request.MobileNumberAssignedTo ?? $"{requester.FirstName} {requester.LastName}" },
+                { "PrimaryMobileNumber", request.PrimaryMobileNumber ?? "N/A" },
+                { "DevicePurchaseAmount", request.DevicePurchaseAmount.ToString("N2") },
+                { "DevicePurchaseCurrency", request.DevicePurchaseCurrency ?? "USD" },
+                { "DeviceAllowance", request.DeviceAllowance.ToString("N2") },
+                { "SupervisorName", request.SupervisorName ?? "Supervisor" },
+                { "ViewRequestLink", $"{Request.Scheme}://{Request.Host}/Modules/RefundManagement/Requests/Index" },
+                { "Year", DateTime.Now.Year.ToString() }
+            };
+
+            await _emailService.SendTemplatedEmailAsync(
+                to: requester.Email ?? "",
+                templateCode: "REFUND_REQUEST_SUBMITTED",
+                data: placeholders
+            );
+
+            _logger.LogInformation("Sent submission confirmation email to {Email} for refund request {RequestId}",
+                requester.Email, request.Id);
+        }
+
+        private async Task SendSupervisorNotificationEmailAsync(RefundRequest request, ApplicationUser supervisor)
+        {
+            var placeholders = new Dictionary<string, string>
+            {
+                { "RequestId", request.Id.ToString() },
+                { "RequestDate", request.RequestDate.ToString("MMMM dd, yyyy") },
+                { "RequesterName", request.MobileNumberAssignedTo ?? "Staff Member" },
+                { "IndexNo", request.IndexNo ?? "N/A" },
+                { "Organization", request.Organization ?? "N/A" },
+                { "Office", request.Office ?? "N/A" },
+                { "PrimaryMobileNumber", request.PrimaryMobileNumber ?? "N/A" },
+                { "ClassOfService", request.ClassOfService ?? "N/A" },
+                { "DeviceAllowance", request.DeviceAllowance.ToString("N2") },
+                { "DevicePurchaseAmount", request.DevicePurchaseAmount.ToString("N2") },
+                { "DevicePurchaseCurrency", request.DevicePurchaseCurrency ?? "USD" },
+                { "SupervisorName", request.SupervisorName ?? $"{supervisor.FirstName} {supervisor.LastName}" },
+                { "ApprovalLink", $"{Request.Scheme}://{Request.Host}/Modules/RefundManagement/Approvals/Supervisor" },
+                { "Year", DateTime.Now.Year.ToString() }
+            };
+
+            await _emailService.SendTemplatedEmailAsync(
+                to: supervisor.Email ?? request.SupervisorEmail ?? "",
+                templateCode: "REFUND_SUPERVISOR_NOTIFICATION",
+                data: placeholders
+            );
+
+            _logger.LogInformation("Sent supervisor notification email to {Email} for refund request {RequestId}",
+                supervisor.Email, request.Id);
         }
     }
 } 

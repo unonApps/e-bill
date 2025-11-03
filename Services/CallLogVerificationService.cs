@@ -11,17 +11,20 @@ namespace TAB.Web.Services
         private readonly ILogger<CallLogVerificationService> _logger;
         private readonly IAuditLogService _auditLogService;
         private readonly INotificationService _notificationService;
+        private readonly IClassOfServiceCalculationService _classOfServiceCalculation;
 
         public CallLogVerificationService(
             ApplicationDbContext context,
             ILogger<CallLogVerificationService> logger,
             IAuditLogService auditLogService,
-            INotificationService notificationService)
+            INotificationService notificationService,
+            IClassOfServiceCalculationService classOfServiceCalculation)
         {
             _context = context;
             _logger = logger;
             _auditLogService = auditLogService;
             _notificationService = notificationService;
+            _classOfServiceCalculation = classOfServiceCalculation;
         }
 
         // ===================================================================
@@ -61,18 +64,37 @@ namespace TAB.Web.Services
                     throw new InvalidOperationException("Cannot verify a call that has been assigned to another user and is awaiting acceptance. The assignment must be accepted or rejected first.");
                 }
 
+                // Check if verification deadline has expired
+                if (callRecord.VerificationPeriod.HasValue && callRecord.VerificationPeriod.Value < DateTime.UtcNow)
+                {
+                    throw new InvalidOperationException($"Verification deadline ({callRecord.VerificationPeriod.Value:MMM dd, yyyy HH:mm}) has expired. This call will be automatically recovered as Personal.");
+                }
+
                 // Check if already verified
                 var existingVerification = await _context.CallLogVerifications
                     .FirstOrDefaultAsync(v => v.CallRecordId == callRecordId);
 
+                // Allow changes if submitted but not yet approved by supervisor
+                // Only block if supervisor has approved or partially approved
                 if (existingVerification != null && existingVerification.SubmittedToSupervisor)
-                    throw new InvalidOperationException("Cannot modify a verification that has been submitted to supervisor");
+                {
+                    var approvalStatus = existingVerification.ApprovalStatus;
+                    if (approvalStatus == "Approved" || approvalStatus == "PartiallyApproved")
+                    {
+                        throw new InvalidOperationException("Cannot modify a verification that has been approved by supervisor");
+                    }
+                    // If status is Pending, Rejected, or Reverted, allow changes
+                }
 
-                // Get the verifying user's class of service to check allowance
-                // Use the person who is verifying (could be assigned user or responsible user)
-                var userPhone = await _context.UserPhones
-                    .Include(up => up.ClassOfService)
-                    .FirstOrDefaultAsync(up => up.IndexNumber == indexNumber && up.IsActive);
+                // Get the SPECIFIC phone that made this call to check its allowance
+                // This ensures overage is tracked per phone, not per person
+                UserPhone? userPhone = null;
+                if (callRecord.UserPhoneId.HasValue)
+                {
+                    userPhone = await _context.UserPhones
+                        .Include(up => up.ClassOfService)
+                        .FirstOrDefaultAsync(up => up.Id == callRecord.UserPhoneId.Value && up.IsActive);
+                }
 
                 decimal allowanceAmount = 0;
                 int? classOfServiceId = null;
@@ -86,10 +108,13 @@ namespace TAB.Web.Services
                     var allowanceLimit = userPhone.ClassOfService.AirtimeAllowanceAmount;
                     allowanceAmount = allowanceLimit ?? 0;
 
-                    // Check if this call puts user over allowance (only if limit is set)
-                    if (allowanceLimit.HasValue && allowanceLimit.Value > 0)
+                    // Check if this call puts THIS SPECIFIC PHONE over its allowance (only if limit is set)
+                    if (allowanceLimit.HasValue && allowanceLimit.Value > 0 && callRecord.UserPhoneId.HasValue)
                     {
-                        var monthlyUsage = await GetMonthlyUsageAsync(indexNumber, callRecord.CallMonth, callRecord.CallYear);
+                        var monthlyUsage = await _classOfServiceCalculation.GetPhoneMonthlyUsageAsync(
+                            callRecord.UserPhoneId.Value,
+                            callRecord.CallMonth,
+                            callRecord.CallYear);
                         isOverage = (monthlyUsage + callRecord.CallCostUSD) > allowanceLimit.Value;
                     }
                 }
@@ -122,6 +147,24 @@ namespace TAB.Web.Services
                     existingVerification.JustificationText = justification;
                     existingVerification.IsOverage = isOverage;
                     existingVerification.ModifiedDate = DateTime.UtcNow;
+
+                    // If this was previously submitted but not approved, clear the submission
+                    // so staff can resubmit with the new changes
+                    if (existingVerification.SubmittedToSupervisor)
+                    {
+                        var currentStatus = existingVerification.ApprovalStatus;
+                        if (currentStatus != "Approved" && currentStatus != "PartiallyApproved")
+                        {
+                            existingVerification.SubmittedToSupervisor = false;
+                            existingVerification.SubmittedDate = null;
+                            existingVerification.ApprovalStatus = "Pending";
+
+                            _logger.LogInformation(
+                                "Verification {Id} was modified after submission. Clearing submission status - staff must resubmit.",
+                                existingVerification.Id);
+                        }
+                    }
+
                     _context.CallLogVerifications.Update(existingVerification);
                 }
                 else
@@ -575,6 +618,22 @@ namespace TAB.Web.Services
                 if (!verifications.Any())
                     return 0;
 
+                // Check if any verifications are already submitted and still pending approval
+                var alreadySubmitted = verifications
+                    .Where(v => v.SubmittedToSupervisor &&
+                               (v.ApprovalStatus == "Pending" ||
+                                v.ApprovalStatus == "Approved" ||
+                                v.ApprovalStatus == "PartiallyApproved"))
+                    .ToList();
+
+                if (alreadySubmitted.Any())
+                {
+                    var submittedIds = string.Join(", ", alreadySubmitted.Select(v => v.Id));
+                    throw new InvalidOperationException(
+                        $"The following verifications have already been submitted and cannot be resubmitted: {submittedIds}. " +
+                        "Only verifications that have been rejected, reverted, or modified can be resubmitted.");
+                }
+
                 // Get supervisor from user record
                 var user = await _context.EbillUsers
                     .FirstOrDefaultAsync(u => u.IndexNumber == indexNumber);
@@ -849,6 +908,22 @@ namespace TAB.Web.Services
                 if (verification == null)
                     return false;
 
+                // Load recovery configuration for revert limits and deadline settings
+                var config = await _context.RecoveryConfigurations
+                    .FirstOrDefaultAsync(rc => rc.RuleName == "SystemConfiguration");
+
+                var maxReverts = config?.MaxRevertsAllowed ?? 2;
+                var revertDays = config?.DefaultRevertDays ?? 3;
+
+                // Check revert limit for the call record
+                if (verification.CallRecord != null && verification.CallRecord.RevertCount >= maxReverts)
+                {
+                    _logger.LogWarning("Cannot revert verification {Id} - maximum reverts ({MaxReverts}) reached for CallRecord {CallRecordId}",
+                        verificationId, maxReverts, verification.CallRecord.Id);
+                    throw new InvalidOperationException(
+                        $"Maximum reverts ({maxReverts}) reached. Staff must verify before the original approval deadline: {verification.CallRecord.ApprovalPeriod:MMM dd, yyyy HH:mm}");
+                }
+
                 verification.ApprovalStatus = "Reverted";
                 verification.SupervisorApprovalStatus = "Reverted";
                 verification.SupervisorApprovedBy = supervisorIndexNumber;
@@ -860,15 +935,39 @@ namespace TAB.Web.Services
                 // Explicitly mark CallLogVerification as modified to ensure EF tracks all changes
                 _context.Entry(verification).State = Microsoft.EntityFrameworkCore.EntityState.Modified;
 
-                // Update call record
+                // Update call record with revert tracking and deadline reset
                 if (verification.CallRecord != null)
                 {
-                    verification.CallRecord.SupervisorApprovalStatus = "Reverted";
-                    verification.CallRecord.SupervisorApprovedBy = supervisorIndexNumber;
-                    verification.CallRecord.SupervisorApprovedDate = DateTime.UtcNow;
+                    var callRecord = verification.CallRecord;
+
+                    // Update approval status
+                    callRecord.SupervisorApprovalStatus = "Reverted";
+                    callRecord.SupervisorApprovedBy = supervisorIndexNumber;
+                    callRecord.SupervisorApprovedDate = DateTime.UtcNow;
+
+                    // Track revert
+                    callRecord.RevertCount++;
+                    callRecord.LastRevertDate = DateTime.UtcNow;
+                    callRecord.RevertReason = reason;
+
+                    // Reset verification period for re-verification (staff gets revertDays to fix)
+                    callRecord.VerificationPeriod = DateTime.UtcNow.AddDays(revertDays);
+
+                    // IMPORTANT: Keep ApprovalPeriod unchanged - original deadline still applies
+                    // This ensures the process doesn't drag on indefinitely
+
+                    // Reset verification status so staff can re-verify
+                    callRecord.IsVerified = false;
+                    callRecord.VerificationDate = null;
+
+                    _logger.LogInformation(
+                        "CallRecord {CallRecordId} reverted (count: {RevertCount}/{MaxReverts}). " +
+                        "New verification deadline: {VerificationPeriod}, Original approval deadline unchanged: {ApprovalPeriod}",
+                        callRecord.Id, callRecord.RevertCount, maxReverts,
+                        callRecord.VerificationPeriod, callRecord.ApprovalPeriod);
 
                     // Explicitly mark CallRecord as modified to ensure EF tracks the changes
-                    _context.Entry(verification.CallRecord).State = Microsoft.EntityFrameworkCore.EntityState.Modified;
+                    _context.Entry(callRecord).State = Microsoft.EntityFrameworkCore.EntityState.Modified;
                 }
 
                 await _context.SaveChangesAsync();
