@@ -1,0 +1,101 @@
+@using TAB.Web.Pages.Staff
+@model (StaffRecoveryDetail Detail, string GroupId)
+
+@{
+    var detail = Model.Detail;
+    var groupId = Model.GroupId;
+
+    // Categorize by RecoveryType for badge styling
+    var badgeClass = detail.RecoveryType switch
+    {
+        "StaffNonVerification" => "bg-danger text-white",
+        "SupervisorNonApproval" => "bg-warning text-dark",
+        "SupervisorRevertFailure" => "bg-danger text-white",
+        "SupervisorRejection" => "bg-secondary text-white",
+        "SupervisorPartialApproval" => "bg-info text-white",
+        "ManualOverride" => "bg-primary text-white",
+        _ => "bg-secondary text-white"
+    };
+
+    // Short category label for the badge
+    var categoryLabel = detail.RecoveryType switch
+    {
+        "StaffNonVerification" => "You Missed Deadline",
+        "SupervisorNonApproval" => "Supervisor Missed Deadline",
+        "SupervisorRevertFailure" => "Didn't Re-verify",
+        "SupervisorRejection" => "Rejected",
+        "SupervisorPartialApproval" => "Reviewed",
+        "ManualOverride" => "Manual Override",
+        _ => "Unknown"
+    };
+}
+
+@* Detail Data Row (Level 2) - Hidden by default *@
+<tr class="detail-row" data-group="@groupId" style="display: none;">
+    <td></td>
+    <td class="px-2">
+        <div>@detail.CallDate.ToString("MMM dd, yyyy")</div>
+        <small class="text-muted">@detail.CallDate.ToString("hh:mm tt")</small>
+    </td>
+    <td class="px-2">
+        <span class="badge bg-primary bg-opacity-10 text-primary">
+            @(new DateTime(detail.CallYear, detail.CallMonth, 1).ToString("MMM"))
+        </span>
+    </td>
+    <td class="px-2">
+        <span class="badge bg-secondary bg-opacity-10 text-secondary">
+            @detail.CallYear
+        </span>
+    </td>
+    <td class="px-2"><code style="color: #009EDB;">@detail.CallNumber</code></td>
+    <td class="px-2">@detail.CallDestination</td>
+    <td class="px-2">@TimeSpan.FromSeconds(detail.CallDuration).ToString(@"hh\:mm\:ss")</td>
+    <td class="px-2 text-end">@detail.CallCost.ToString("N2")</td>
+    <td class="px-2">
+        <span class="badge bg-@(detail.Currency == "USD" ? "success" : "secondary") bg-opacity-10 text-@(detail.Currency == "USD" ? "success" : "secondary")">
+            @detail.Currency
+        </span>
+    </td>
+    <td class="px-2 text-end">
+        <strong class="text-danger">@detail.RecoveryAmount.ToString("N2")</strong>
+    </td>
+    <td class="px-2">
+        @if (detail.RecoveryDate.HasValue)
+        {
+            <div>@detail.RecoveryDate.Value.ToString("MMM dd, yyyy")</div>
+            <small class="text-muted">@detail.RecoveryDate.Value.ToString("hh:mm tt")</small>
+        }
+    </td>
+    <td class="px-2">
+        <div class="d-flex flex-column gap-1">
+            <span class="badge @badgeClass" style="font-size: 0.75rem;">
+                <i class="bi bi-@(detail.RecoveryType switch {
+                    "StaffNonVerification" => "exclamation-triangle-fill",
+                    "SupervisorNonApproval" => "hourglass-split",
+                    "SupervisorRevertFailure" => "arrow-counterclockwise",
+                    "SupervisorRejection" => "x-circle-fill",
+                    "SupervisorPartialApproval" => "check-circle-fill",
+                    "ManualOverride" => "gear-fill",
+                    _ => "question-circle"
+                }) me-1"></i>
+                @categoryLabel
+            </span>
+            @if (!string.IsNullOrEmpty(detail.RecoveryReason))
+            {
+                <small class="text-muted" style="font-size: 0.75rem;" title="@detail.RecoveryReason">
+                    @(detail.RecoveryReason.Length > 60 ? detail.RecoveryReason.Substring(0, 60) + "..." : detail.RecoveryReason)
+                </small>
+            }
+        </div>
+    </td>
+    <td class="px-2">
+        @if (detail.FinalAssignment == "Personal")
+        {
+            <span class="badge bg-danger bg-opacity-10 text-danger">Personal</span>
+        }
+        else if (detail.FinalAssignment == "ClassOfService")
+        {
+            <span class="badge bg-warning bg-opacity-10 text-warning">Over Limit</span>
+        }
+    </td>
+</tr>

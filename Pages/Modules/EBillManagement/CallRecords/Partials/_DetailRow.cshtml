@@ -1,0 +1,302 @@
+@using TAB.Web.Models
+@model (CallRecord Call, string GroupId, string UserIndexNumber, HashSet<int> SubmittedCallIds, Dictionary<int, string> VerificationStatuses)
+
+@{
+    var call = Model.Call;
+    var groupId = Model.GroupId;
+
+    // Determine row class based on assignment
+    var rowClass = "";
+    if (call.PaymentAssignmentId.HasValue)
+    {
+        if (call.PayingIndexNumber == Model.UserIndexNumber)
+        {
+            rowClass = "row-assigned-to-you";
+        }
+        else if (call.ResponsibleIndexNumber == Model.UserIndexNumber)
+        {
+            rowClass = "row-assigned-out";
+        }
+    }
+    else
+    {
+        rowClass = "row-your-call";
+    }
+
+    // Check if call has been submitted to supervisor
+    var isSubmitted = Model.SubmittedCallIds.Contains(call.Id);
+
+    // Check if verification deadline has passed
+    var isExpired = call.VerificationPeriod.HasValue && call.VerificationPeriod.Value < DateTime.UtcNow;
+
+    // Check if supervisor has approved the call
+    var callApprovalStatus = isSubmitted && Model.VerificationStatuses.ContainsKey(call.Id)
+        ? Model.VerificationStatuses[call.Id]
+        : "";
+    var isSupervisorApproved = callApprovalStatus == "Approved" || callApprovalStatus == "PartiallyApproved";
+
+    // Lock if:
+    // 1. Deadline has expired, OR
+    // 2. Assigned out and pending acceptance, OR
+    // 3. Submitted AND supervisor has approved/partially approved
+    var isLocked = isExpired ||
+                  (call.AssignmentStatus == "Pending" &&
+                   call.ResponsibleIndexNumber == Model.UserIndexNumber &&
+                   call.PayingIndexNumber != Model.UserIndexNumber) ||
+                  (isSubmitted && isSupervisorApproved);
+}
+
+@* Detail Data Row (Level 2) - Hidden by default *@
+<tr class="@rowClass call-detail-row" data-group="@groupId" style="display: none;">
+    <td class="text-center">
+        <input type="checkbox" class="call-checkbox" value="@call.Id"
+               data-verified="@call.IsVerified.ToString().ToLower()"
+               data-locked="@isLocked.ToString().ToLower()"
+               data-submitted="@isSubmitted.ToString().ToLower()"
+               data-approval-status="@callApprovalStatus"
+               data-expired="@isExpired.ToString().ToLower()"
+               data-group="@groupId"
+               onchange="updateQuickVerifyButtons();"
+               @(isLocked ? "disabled" : "") />
+    </td>
+    <td class="px-2"></td>
+    <td class="px-2"><strong>@call.CallNumber</strong></td>
+    <td class="px-2">
+        @* Display assignment status based on stored AssignmentStatus field *@
+        <div class="d-flex flex-column gap-1">
+            @if (call.AssignmentStatus == "Pending" && call.PayingIndexNumber == Model.UserIndexNumber)
+            {
+                @* Call assigned to me, awaiting my acceptance *@
+                <span class="badge bg-warning bg-opacity-10 text-warning" data-bs-toggle="tooltip" title="From: @(call.ResponsibleUser?.FirstName ?? "") @(call.ResponsibleUser?.LastName ?? "")">
+                    <i class="bi bi-bell-fill me-1"></i>Needs Acceptance
+                </span>
+            }
+            else if (call.AssignmentStatus == "Accepted" && call.PayingIndexNumber == Model.UserIndexNumber)
+            {
+                @* Call assigned to me and I accepted it *@
+                <span class="badge bg-warning bg-opacity-10 text-warning" data-bs-toggle="tooltip" title="From: @(call.ResponsibleUser?.FirstName ?? "") @(call.ResponsibleUser?.LastName ?? "")">
+                    <i class="bi bi-arrow-down-circle-fill me-1"></i>Assigned to Me
+                </span>
+            }
+            else if (call.AssignmentStatus == "Pending" && call.ResponsibleIndexNumber == Model.UserIndexNumber)
+            {
+                @* I assigned this call out, awaiting acceptance *@
+                <span class="badge bg-info bg-opacity-10 text-info" data-bs-toggle="tooltip" title="To: @(call.PayingUser?.FirstName ?? "") @(call.PayingUser?.LastName ?? "") - Pending">
+                    <i class="bi bi-arrow-up-circle me-1"></i>Assigned Out
+                </span>
+            }
+            else if (call.AssignmentStatus == "Accepted" && call.ResponsibleIndexNumber == Model.UserIndexNumber)
+            {
+                @* I assigned this call out and it was accepted *@
+                <span class="badge bg-info bg-opacity-10 text-info" data-bs-toggle="tooltip" title="To: @(call.PayingUser?.FirstName ?? "") @(call.PayingUser?.LastName ?? "") - Accepted">
+                    <i class="bi bi-arrow-up-circle-fill me-1"></i>Assigned Out
+                </span>
+            }
+            else
+            {
+                @* Status = "None" or "Rejected" - belongs to original phone owner *@
+                <span class="badge bg-success bg-opacity-10 text-success" data-bs-toggle="tooltip" title="Your phone call">
+                    <i class="bi bi-person-check-fill me-1"></i>My Call
+                </span>
+            }
+        </div>
+    </td>
+    <td class="px-2">@call.GetDurationFormatted()</td>
+    <td class="px-2">KSh @call.CallCostKSHS.ToString("N2")</td>
+    <td class="px-2">$@call.CallCostUSD.ToString("N2")</td>
+    <td class="px-2">
+        <div><strong>@call.CallDestination</strong></div>
+        <small class="text-muted">@call.CallDestinationType</small>
+    </td>
+    <td class="text-center px-2">
+        @* Comprehensive Status Column *@
+        <div class="d-flex flex-column gap-1">
+            @* Verification Status *@
+            @if (call.IsVerified)
+            {
+                <span class="badge bg-success" data-bs-toggle="tooltip" title="Verified as @call.VerificationType">
+                    <i class="bi bi-check-circle-fill me-1"></i>@call.VerificationType
+                </span>
+            }
+            else if (call.VerificationPeriod.HasValue && call.VerificationPeriod.Value < DateTime.UtcNow)
+            {
+                <span class="badge bg-danger" data-bs-toggle="tooltip" title="Verification deadline: @call.VerificationPeriod.Value.ToString("MMM dd, yyyy")">
+                    <i class="bi bi-exclamation-triangle-fill me-1"></i>Expired
+                </span>
+            }
+            else
+            {
+                <span class="badge bg-warning text-dark" data-bs-toggle="tooltip" title="Deadline: @(call.VerificationPeriod.HasValue ? call.VerificationPeriod.Value.ToString("MMM dd, yyyy") : "Not set")">
+                    <i class="bi bi-hourglass-split me-1"></i>Unverified
+                </span>
+            }
+
+            @* Approval Status - only if submitted *@
+            @if (isSubmitted && Model.VerificationStatuses.ContainsKey(call.Id))
+            {
+                var approvalStatus = Model.VerificationStatuses[call.Id];
+                @switch (approvalStatus)
+                {
+                    case "Approved":
+                        <span class="badge bg-success bg-opacity-10 text-success" data-bs-toggle="tooltip" title="Approved by supervisor">
+                            <i class="bi bi-patch-check-fill me-1"></i>Approved
+                        </span>
+                        break;
+                    case "PartiallyApproved":
+                        <span class="badge bg-info bg-opacity-10 text-info" data-bs-toggle="tooltip" title="Partially approved by supervisor">
+                            <i class="bi bi-check-circle me-1"></i>Partial
+                        </span>
+                        break;
+                    case "Rejected":
+                        <span class="badge bg-danger bg-opacity-10 text-danger" data-bs-toggle="tooltip" title="Rejected by supervisor">
+                            <i class="bi bi-x-circle-fill me-1"></i>Rejected
+                        </span>
+                        break;
+                    case "Reverted":
+                        <span class="badge bg-warning bg-opacity-10 text-warning" data-bs-toggle="tooltip" title="Reverted - needs resubmission">
+                            <i class="bi bi-arrow-counterclockwise me-1"></i>Reverted
+                        </span>
+                        break;
+                    default: // "Pending"
+                        <span class="badge bg-primary bg-opacity-10 text-primary" data-bs-toggle="tooltip" title="Submitted, awaiting supervisor review">
+                            <i class="bi bi-send-check me-1"></i>Submitted
+                        </span>
+                        break;
+                }
+            }
+        </div>
+    </td>
+    <td class="text-end">
+        @* Comprehensive Actions Column *@
+        @* Check if call is assigned TO me and pending my acceptance *@
+        @if (call.AssignmentStatus == "Pending" &&
+             call.PayingIndexNumber == Model.UserIndexNumber &&
+             call.ResponsibleIndexNumber != Model.UserIndexNumber)
+        {
+            <div class="btn-group" role="group">
+                <button type="button"
+                        class="btn btn-sm btn-success"
+                        style="border-radius: 8px 0 0 8px;"
+                        onclick="showAcceptModal(@call.Id, '@call.CallNumber', '@call.CallCostUSD.ToString("N2")', '@(call.ResponsibleUser?.FirstName ?? "") @(call.ResponsibleUser?.LastName ?? "")')"
+                        title="Accept this assignment">
+                    <i class="bi bi-check-lg me-1"></i>Accept
+                </button>
+                <button type="button"
+                        class="btn btn-sm btn-danger"
+                        style="border-radius: 0 8px 8px 0;"
+                        onclick="showRejectModal(@call.Id, '@call.CallNumber', '@call.CallCostUSD.ToString("N2")', '@(call.ResponsibleUser?.FirstName ?? "") @(call.ResponsibleUser?.LastName ?? "")')"
+                        title="Reject this assignment">
+                    <i class="bi bi-x-lg me-1"></i>Reject
+                </button>
+            </div>
+        }
+        @* Check if verification deadline has expired *@
+        else if (isExpired && !call.IsVerified)
+        {
+            <div class="d-flex flex-column gap-1 align-items-center">
+                <span class="badge bg-danger" style="font-size: 0.85rem; padding: 0.5rem 0.75rem; border-radius: 8px;">
+                    <i class="bi bi-exclamation-triangle-fill me-1"></i>EXPIRED
+                </span>
+                <small class="text-danger fw-semibold" style="font-size: 0.7rem;">
+                    @call.VerificationPeriod.Value.ToString("MMM dd, yyyy")
+                </small>
+            </div>
+        }
+        @* Check if call is assigned out and pending - cannot verify *@
+        else if (call.AssignmentStatus == "Pending" &&
+                 call.ResponsibleIndexNumber == Model.UserIndexNumber &&
+                 call.PayingIndexNumber != Model.UserIndexNumber)
+        {
+            <button type="button"
+                    class="btn btn-sm btn-secondary"
+                    style="border-radius: 8px;"
+                    disabled
+                    title="Cannot verify - awaiting assignment acceptance">
+                <i class="bi bi-lock me-1"></i>Locked
+            </button>
+        }
+        @* Check if supervisor has approved - locked from changes *@
+        else if (isSubmitted && isSupervisorApproved)
+        {
+            <button type="button"
+                    class="btn btn-sm btn-success"
+                    style="border-radius: 8px; opacity: 0.7;"
+                    disabled
+                    title="Approved by supervisor - cannot be changed">
+                <i class="bi bi-shield-check me-1"></i>Approved
+            </button>
+        }
+        else
+        {
+            <div class="d-flex gap-2 align-items-center">
+                @* Quick Verification Dropdown *@
+                @if (!call.IsVerified)
+                {
+                    <select class="form-select form-select-sm"
+                            style="width: 130px; border-radius: 8px; font-size: 0.875rem;"
+                            onchange="quickVerifyCall(@call.Id, this.value, '@call.CallNumber', '@call.CallCostUSD.ToString("N2")', '@call.CallCostKSHS.ToString("N2")', '@((call.CallDuration / 60.0m).ToString("N2"))', '@call.CallDate.ToString("MMM dd")', this)"
+                            data-call-id="@call.Id"
+                            data-expired="@isExpired.ToString().ToLower()"
+                            data-locked="@isLocked.ToString().ToLower()"
+                            data-deadline="@(call.VerificationPeriod.HasValue ? call.VerificationPeriod.Value.ToString("MMM dd, yyyy") : "")">
+                        <option value="" selected>Mark as...</option>
+                        <option value="Official" style="color: #10b981;">Official</option>
+                        <option value="Personal" style="color: #f59e0b;">Personal</option>
+                    </select>
+                }
+                else
+                {
+                    // Show light blue background if submitted but pending supervisor approval
+                    var bgColor = call.VerificationType == "Official" ? "#d1fae5" : "#fef3c7";
+                    if (isSubmitted && !isSupervisorApproved)
+                    {
+                        bgColor = "#dbeafe"; // Light blue to indicate submitted but editable
+                    }
+                    <select class="form-select form-select-sm"
+                            style="width: 130px; border-radius: 8px; font-size: 0.875rem; background-color: @bgColor; @(isSubmitted && !isSupervisorApproved ? "border: 2px solid #3b82f6;" : "")"
+                            onchange="quickVerifyCall(@call.Id, this.value, '@call.CallNumber', '@call.CallCostUSD.ToString("N2")', '@call.CallCostKSHS.ToString("N2")', '@((call.CallDuration / 60.0m).ToString("N2"))', '@call.CallDate.ToString("MMM dd")', this)"
+                            data-call-id="@call.Id"
+                            data-expired="@isExpired.ToString().ToLower()"
+                            data-locked="@isLocked.ToString().ToLower()"
+                            data-submitted="@isSubmitted.ToString().ToLower()"
+                            data-approved="@isSupervisorApproved.ToString().ToLower()"
+                            data-deadline="@(call.VerificationPeriod.HasValue ? call.VerificationPeriod.Value.ToString("MMM dd, yyyy") : "")"
+                            title="@(isSubmitted && !isSupervisorApproved ? "Submitted but can still be changed before supervisor approval" : "")">
+                        <option value="" disabled>Change to...</option>
+                        @if (call.VerificationType == "Official")
+                        {
+                            <option value="Official" selected style="color: #10b981;">Official</option>
+                            <option value="Personal" style="color: #f59e0b;">Personal</option>
+                        }
+                        else
+                        {
+                            <option value="Official" style="color: #10b981;">Official</option>
+                            <option value="Personal" selected style="color: #f59e0b;">Personal</option>
+                        }
+                    </select>
+                }
+
+                @* Reassign Button - only show if not locked and user is responsible *@
+                @if (call.ResponsibleIndexNumber == Model.UserIndexNumber && !isLocked && !isExpired)
+                {
+                    <button type="button"
+                            class="btn btn-sm btn-outline-primary"
+                            style="border-radius: 8px;"
+                            onclick="openReassignDialog(@call.Id, '@call.CallNumber', '@call.CallDestination', event)"
+                            title="Reassign payment to another user">
+                        <i class="bi bi-arrow-left-right"></i>
+                    </button>
+                }
+
+                @* View Details Button *@
+                <a asp-page="/Modules/EBillManagement/CallRecords/Verify"
+                   asp-route-id="@call.Id"
+                   class="btn btn-sm btn-outline-secondary"
+                   style="border-radius: 8px;"
+                   title="View details">
+                    <i class="bi bi-eye"></i>
+                </a>
+            </div>
+        }
+    </td>
+</tr>

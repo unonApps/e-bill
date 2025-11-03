@@ -39,8 +39,11 @@ namespace TAB.Web.Pages.Staff
         // Summary Data
         public StaffRecoverySummary Summary { get; set; } = new();
 
-        // Recovery Details
+        // Recovery Details (flat list - for backwards compatibility)
         public List<StaffRecoveryDetail> RecoveryDetails { get; set; } = new();
+
+        // Grouped Recovery Data (for 2-level table view)
+        public List<GroupedMonthlyRecovery> GroupedRecoveryData { get; set; } = new();
 
         // Monthly Breakdown
         public List<MonthlyRecovery> MonthlyBreakdown { get; set; } = new();
@@ -72,6 +75,7 @@ namespace TAB.Web.Pages.Staff
 
             await LoadRecoverySummaryAsync();
             await LoadRecoveryDetailsAsync();
+            await LoadGroupedRecoveryDataAsync(); // New: Load grouped data for 2-level view
             await LoadMonthlyBreakdownAsync();
             await LoadRecentVerificationsAsync();
 
@@ -151,6 +155,8 @@ namespace TAB.Web.Pages.Staff
                 {
                     CallId = rl.CallRecordId,
                     CallDate = rl.CallRecord != null ? rl.CallRecord.CallDate : DateTime.MinValue,
+                    CallMonth = rl.CallRecord != null ? rl.CallRecord.CallMonth : 0,
+                    CallYear = rl.CallRecord != null ? rl.CallRecord.CallYear : 0,
                     CallNumber = rl.CallRecord != null ? rl.CallRecord.CallNumber : "",
                     CallDestination = rl.CallRecord != null ? rl.CallRecord.CallDestination : "",
                     CallDuration = rl.CallRecord != null ? rl.CallRecord.CallDuration : 0,
@@ -165,6 +171,75 @@ namespace TAB.Web.Pages.Staff
                 })
                 .Take(100)
                 .ToListAsync();
+        }
+
+        private async Task LoadGroupedRecoveryDataAsync()
+        {
+            // Load from RecoveryLogs which has the correct amounts
+            var query = _context.RecoveryLogs
+                .Include(rl => rl.CallRecord)
+                .Where(rl => rl.RecoveredFrom == UserIndexNumber);
+
+            // Apply filters
+            if (StartDate.HasValue)
+                query = query.Where(rl => rl.RecoveryDate >= StartDate.Value);
+            if (EndDate.HasValue)
+                query = query.Where(rl => rl.RecoveryDate <= EndDate.Value);
+            if (!string.IsNullOrEmpty(RecoveryType))
+                query = query.Where(rl => rl.RecoveryType == RecoveryType);
+
+            var allRecoveries = await query
+                .OrderByDescending(rl => rl.RecoveryDate)
+                .ToListAsync();
+
+            // Group by CallMonth and CallYear
+            GroupedRecoveryData = allRecoveries
+                .Where(rl => rl.CallRecord != null)
+                .GroupBy(rl => new { rl.CallRecord!.CallYear, rl.CallRecord.CallMonth })
+                .OrderByDescending(g => g.Key.CallYear)
+                .ThenByDescending(g => g.Key.CallMonth)
+                .Select(g => new GroupedMonthlyRecovery
+                {
+                    Month = g.Key.CallMonth,
+                    Year = g.Key.CallYear,
+                    GroupId = $"{g.Key.CallYear}-{g.Key.CallMonth}",
+                    TotalCalls = g.Count(),
+
+                    // Calculate totals by currency
+                    TotalUSD = g.Where(rl => rl.CallRecord!.CallCurrencyCode == "USD")
+                        .Sum(rl => rl.AmountRecovered),
+                    TotalKES = g.Where(rl => rl.CallRecord!.CallCurrencyCode == "KES")
+                        .Sum(rl => rl.AmountRecovered),
+
+                    // Count by recovery type
+                    StaffNonVerificationCount = g.Count(rl => rl.RecoveryType == "StaffNonVerification"),
+                    SupervisorNonApprovalCount = g.Count(rl => rl.RecoveryType == "SupervisorNonApproval"),
+                    SupervisorRevertFailureCount = g.Count(rl => rl.RecoveryType == "SupervisorRevertFailure"),
+                    SupervisorRejectionCount = g.Count(rl => rl.RecoveryType == "SupervisorRejection"),
+                    SupervisorPartialApprovalCount = g.Count(rl => rl.RecoveryType == "SupervisorPartialApproval"),
+                    ManualOverrideCount = g.Count(rl => rl.RecoveryType == "ManualOverride"),
+
+                    // Individual recovery details for this month
+                    Details = g.Select(rl => new StaffRecoveryDetail
+                    {
+                        CallId = rl.CallRecordId,
+                        CallDate = rl.CallRecord!.CallDate,
+                        CallMonth = rl.CallRecord.CallMonth,
+                        CallYear = rl.CallRecord.CallYear,
+                        CallNumber = rl.CallRecord.CallNumber,
+                        CallDestination = rl.CallRecord.CallDestination,
+                        CallDuration = rl.CallRecord.CallDuration,
+                        CallCost = rl.CallRecord.CallCost,
+                        Currency = rl.CallRecord.CallCurrencyCode ?? "KES",
+                        RecoveryAmount = rl.AmountRecovered,
+                        RecoveryDate = rl.RecoveryDate,
+                        RecoveryReason = rl.RecoveryReason ?? rl.RecoveryType,
+                        RecoveryType = rl.RecoveryType,
+                        FinalAssignment = rl.RecoveryAction,
+                        VerificationPeriod = rl.CallRecord.VerificationPeriod
+                    }).ToList()
+                })
+                .ToList();
         }
 
         private async Task LoadMonthlyBreakdownAsync()
@@ -243,10 +318,11 @@ namespace TAB.Web.Pages.Staff
 
             // Recovery Details
             csv.AppendLine("Recovery Details");
-            csv.AppendLine("Call Date,Call Number,Destination,Duration,Cost,Recovery Amount,Recovery Date,Reason");
+            csv.AppendLine("Call Date,Month,Year,Call Number,Destination,Duration,Cost,Currency,Recovery Amount,Recovery Date,Reason");
             foreach (var detail in RecoveryDetails)
             {
-                csv.AppendLine($"{detail.CallDate:yyyy-MM-dd},{detail.CallNumber},\"{detail.CallDestination}\",{detail.CallDuration},{detail.CallCost},{detail.RecoveryAmount},{detail.RecoveryDate:yyyy-MM-dd},\"{detail.RecoveryReason}\"");
+                var monthName = new DateTime(detail.CallYear, detail.CallMonth, 1).ToString("MMM");
+                csv.AppendLine($"{detail.CallDate:yyyy-MM-dd},{monthName},{detail.CallYear},{detail.CallNumber},\"{detail.CallDestination}\",{detail.CallDuration},{detail.CallCost},{detail.Currency},{detail.RecoveryAmount},{detail.RecoveryDate:yyyy-MM-dd},\"{detail.RecoveryReason}\"");
             }
 
             var bytes = System.Text.Encoding.UTF8.GetBytes(csv.ToString());
@@ -272,6 +348,8 @@ namespace TAB.Web.Pages.Staff
     {
         public int CallId { get; set; }
         public DateTime CallDate { get; set; }
+        public int CallMonth { get; set; }
+        public int CallYear { get; set; }
         public string CallNumber { get; set; } = string.Empty;
         public string CallDestination { get; set; } = string.Empty;
         public int CallDuration { get; set; }
@@ -307,5 +385,30 @@ namespace TAB.Web.Pages.Staff
         public decimal TotalAmount { get; set; }
         public string Status { get; set; } = string.Empty;
         public bool SubmittedToSupervisor { get; set; }
+    }
+
+    public class GroupedMonthlyRecovery
+    {
+        public string GroupId { get; set; } = string.Empty;
+        public int Month { get; set; }
+        public int Year { get; set; }
+        public int TotalCalls { get; set; }
+        public decimal TotalUSD { get; set; }
+        public decimal TotalKES { get; set; }
+
+        // Recovery type counts
+        public int StaffNonVerificationCount { get; set; }
+        public int SupervisorNonApprovalCount { get; set; }
+        public int SupervisorRevertFailureCount { get; set; }
+        public int SupervisorRejectionCount { get; set; }
+        public int SupervisorPartialApprovalCount { get; set; }
+        public int ManualOverrideCount { get; set; }
+
+        // Individual recovery details for this month
+        public List<StaffRecoveryDetail> Details { get; set; } = new();
+
+        // Helper properties
+        public string MonthName => new DateTime(Year, Month, 1).ToString("MMMM yyyy");
+        public string MonthShort => new DateTime(Year, Month, 1).ToString("MMM");
     }
 }

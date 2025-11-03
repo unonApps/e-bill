@@ -15,6 +15,7 @@ namespace TAB.Web.Pages.Modules.EBillManagement.CallRecords
         private readonly ApplicationDbContext _context;
         private readonly UserManager<ApplicationUser> _userManager;
         private readonly ICallLogVerificationService _verificationService;
+        private readonly IClassOfServiceCalculationService _calculationService;
         private readonly IEnhancedEmailService _emailService;
         private readonly ILogger<SupervisorApprovalsModel> _logger;
 
@@ -22,12 +23,14 @@ namespace TAB.Web.Pages.Modules.EBillManagement.CallRecords
             ApplicationDbContext context,
             UserManager<ApplicationUser> userManager,
             ICallLogVerificationService verificationService,
+            IClassOfServiceCalculationService calculationService,
             IEnhancedEmailService emailService,
             ILogger<SupervisorApprovalsModel> logger)
         {
             _context = context;
             _userManager = userManager;
             _verificationService = verificationService;
+            _calculationService = calculationService;
             _emailService = emailService;
             _logger = logger;
         }
@@ -82,6 +85,21 @@ namespace TAB.Web.Pages.Modules.EBillManagement.CallRecords
             // Phone-level overage justifications
             public List<PhoneOverageJustification> PhoneOverageJustifications { get; set; } = new();
             public bool HasPhoneOverageJustifications => PhoneOverageJustifications.Any();
+
+            // Extension-level overage status
+            public Dictionary<string, ExtensionOverageStatus> ExtensionStatuses { get; set; } = new();
+        }
+
+        public class ExtensionOverageStatus
+        {
+            public string PhoneNumber { get; set; } = string.Empty;
+            public int UserPhoneId { get; set; }
+            public decimal AllowanceLimit { get; set; }
+            public decimal CurrentUsage { get; set; }
+            public decimal OverageAmount => Math.Max(0, CurrentUsage - AllowanceLimit);
+            public bool HasOverage => AllowanceLimit > 0 && CurrentUsage > AllowanceLimit;
+            public bool IsUnlimited => AllowanceLimit == 0;
+            public string? ClassOfService { get; set; }
         }
 
         public async Task<IActionResult> OnGetAsync()
@@ -255,6 +273,9 @@ namespace TAB.Web.Pages.Modules.EBillManagement.CallRecords
 
             // Load phone overage justifications for each submission group
             await LoadPhoneOverageJustificationsAsync();
+
+            // Load extension-level overage statuses
+            await LoadExtensionStatusesAsync();
         }
 
         /// <summary>
@@ -298,7 +319,135 @@ namespace TAB.Web.Pages.Modules.EBillManagement.CallRecords
                         && j.ApprovalStatus == "Pending") // Only show pending justifications
                     .ToListAsync();
 
-                submission.PhoneOverageJustifications = justifications;
+                // Validate and clean up obsolete justifications before displaying to supervisor
+                var validJustifications = new List<PhoneOverageJustification>();
+                foreach (var justification in justifications)
+                {
+                    // Recalculate current usage for this phone
+                    var allowanceLimit = await _calculationService.GetPhoneAllowanceLimitAsync(justification.UserPhoneId);
+                    var currentUsage = await _calculationService.GetPhoneMonthlyUsageAsync(
+                        justification.UserPhoneId,
+                        month,
+                        year);
+
+                    var hasOverage = allowanceLimit.HasValue &&
+                                    allowanceLimit.Value > 0 &&
+                                    currentUsage > allowanceLimit.Value;
+
+                    if (!hasOverage)
+                    {
+                        // No longer an overage - delete the obsolete justification
+                        _logger.LogInformation(
+                            "Removing obsolete justification {JustificationId} for UserPhoneId {UserPhoneId} for {Month}/{Year}. " +
+                            "Current usage ({CurrentUsage}) is now within allowance limit ({Limit}).",
+                            justification.Id, justification.UserPhoneId, month, year, currentUsage, allowanceLimit ?? 0);
+
+                        // Delete associated documents first
+                        if (justification.Documents?.Any() == true)
+                        {
+                            foreach (var doc in justification.Documents.ToList())
+                            {
+                                // Delete physical file
+                                var filePath = Path.Combine(Directory.GetCurrentDirectory(), "wwwroot", doc.FilePath.TrimStart('/'));
+                                if (System.IO.File.Exists(filePath))
+                                {
+                                    try
+                                    {
+                                        System.IO.File.Delete(filePath);
+                                    }
+                                    catch (Exception ex)
+                                    {
+                                        _logger.LogWarning(ex, "Failed to delete document file: {FilePath}", filePath);
+                                    }
+                                }
+                                _context.PhoneOverageDocuments.Remove(doc);
+                            }
+                        }
+
+                        // Delete justification record
+                        _context.PhoneOverageJustifications.Remove(justification);
+                        _logger.LogInformation("Successfully removed obsolete justification {JustificationId}", justification.Id);
+                    }
+                    else
+                    {
+                        // Still valid - update amounts if they've changed
+                        var currentOverageAmount = currentUsage - allowanceLimit.Value;
+                        if (Math.Abs(justification.TotalUsage - currentUsage) > 0.01m ||
+                            Math.Abs(justification.OverageAmount - currentOverageAmount) > 0.01m)
+                        {
+                            _logger.LogInformation(
+                                "Updating justification {JustificationId} amounts. " +
+                                "Old: Usage={OldUsage}, Overage={OldOverage}. New: Usage={NewUsage}, Overage={NewOverage}",
+                                justification.Id, justification.TotalUsage, justification.OverageAmount,
+                                currentUsage, currentOverageAmount);
+
+                            justification.TotalUsage = currentUsage;
+                            justification.OverageAmount = currentOverageAmount;
+                            justification.AllowanceLimit = allowanceLimit.Value;
+                        }
+
+                        validJustifications.Add(justification);
+                    }
+                }
+
+                // Save all changes
+                await _context.SaveChangesAsync();
+
+                submission.PhoneOverageJustifications = validJustifications;
+            }
+        }
+
+        /// <summary>
+        /// Loads extension-level overage status for each phone in pending submissions
+        /// </summary>
+        private async Task LoadExtensionStatusesAsync()
+        {
+            foreach (var submission in PendingSubmissions)
+            {
+                // Get call records for this submission
+                var callRecords = submission.Verifications
+                    .Where(v => v.CallRecord != null)
+                    .Select(v => v.CallRecord!)
+                    .ToList();
+
+                if (!callRecords.Any())
+                    continue;
+
+                // Get month and year
+                var month = callRecords.First().CallMonth;
+                var year = callRecords.First().CallYear;
+
+                // Group by extension/phone
+                var phoneGroups = callRecords
+                    .Where(c => c.UserPhoneId.HasValue && c.UserPhone != null)
+                    .GroupBy(c => c.UserPhone!.PhoneNumber)
+                    .ToList();
+
+                foreach (var phoneGroup in phoneGroups)
+                {
+                    var phoneNumber = phoneGroup.Key;
+                    var firstCall = phoneGroup.First();
+                    var userPhoneId = firstCall.UserPhoneId!.Value;
+                    var userPhone = firstCall.UserPhone!;
+
+                    // Get allowance limit and current usage
+                    var allowanceLimit = await _calculationService.GetPhoneAllowanceLimitAsync(userPhoneId);
+                    var currentUsage = await _calculationService.GetPhoneMonthlyUsageAsync(
+                        userPhoneId,
+                        month,
+                        year);
+
+                    var status = new ExtensionOverageStatus
+                    {
+                        PhoneNumber = phoneNumber,
+                        UserPhoneId = userPhoneId,
+                        AllowanceLimit = allowanceLimit ?? 0,
+                        CurrentUsage = currentUsage,
+                        ClassOfService = userPhone.ClassOfService?.Class
+                    };
+
+                    submission.ExtensionStatuses[phoneNumber] = status;
+                }
             }
         }
 

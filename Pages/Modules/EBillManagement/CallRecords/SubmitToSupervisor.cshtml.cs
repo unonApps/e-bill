@@ -548,6 +548,69 @@ namespace TAB.Web.Pages.Modules.EBillManagement.CallRecords
                         j.Month == CallMonth &&
                         j.Year == CallYear);
 
+                // Check if we need to clean up obsolete justification
+                if (existingJustification != null)
+                {
+                    var hasOverage = allowanceLimit.Value > 0 && totalUsage > allowanceLimit.Value;
+
+                    if (!hasOverage)
+                    {
+                        // No longer an overage - delete the obsolete justification
+                        _logger.LogInformation(
+                            "Removing obsolete justification for UserPhoneId {UserPhoneId} for {Month}/{Year}. " +
+                            "Total usage ({TotalUsage}) is now within allowance limit ({Limit}).",
+                            userPhoneId, CallMonth, CallYear, totalUsage, allowanceLimit.Value);
+
+                        // Delete associated documents first
+                        if (existingJustification.Documents?.Any() == true)
+                        {
+                            foreach (var doc in existingJustification.Documents.ToList())
+                            {
+                                // Delete physical file
+                                var filePath = Path.Combine(Directory.GetCurrentDirectory(), "wwwroot", doc.FilePath.TrimStart('/'));
+                                if (System.IO.File.Exists(filePath))
+                                {
+                                    try
+                                    {
+                                        System.IO.File.Delete(filePath);
+                                    }
+                                    catch (Exception ex)
+                                    {
+                                        _logger.LogWarning(ex, "Failed to delete document file: {FilePath}", filePath);
+                                    }
+                                }
+                                _context.PhoneOverageDocuments.Remove(doc);
+                            }
+                        }
+
+                        // Delete justification record
+                        _context.PhoneOverageJustifications.Remove(existingJustification);
+                        await _context.SaveChangesAsync();
+
+                        existingJustification = null;
+                        _logger.LogInformation("Successfully removed obsolete justification for UserPhoneId {UserPhoneId}", userPhoneId);
+                    }
+                    else
+                    {
+                        // Still an overage - update amounts if they've changed
+                        var currentOverageAmount = totalUsage - allowanceLimit.Value;
+                        if (Math.Abs(existingJustification.TotalUsage - totalUsage) > 0.01m ||
+                            Math.Abs(existingJustification.OverageAmount - currentOverageAmount) > 0.01m)
+                        {
+                            _logger.LogInformation(
+                                "Updating justification amounts for UserPhoneId {UserPhoneId}. " +
+                                "Old: Usage={OldUsage}, Overage={OldOverage}. New: Usage={NewUsage}, Overage={NewOverage}",
+                                userPhoneId, existingJustification.TotalUsage, existingJustification.OverageAmount,
+                                totalUsage, currentOverageAmount);
+
+                            existingJustification.TotalUsage = totalUsage;
+                            existingJustification.OverageAmount = currentOverageAmount;
+                            existingJustification.AllowanceLimit = allowanceLimit.Value;
+                            await _context.SaveChangesAsync();
+                        }
+                    }
+                }
+
                 var phoneOverage = new PhoneOverageInfo
                 {
                     UserPhoneId = userPhoneId,

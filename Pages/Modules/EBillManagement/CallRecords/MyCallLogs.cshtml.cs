@@ -141,25 +141,21 @@ namespace TAB.Web.Pages.Modules.EBillManagement.CallRecords
                 .Include(c => c.ResponsibleUser) // For responsible user info
                 .AsQueryable();
 
-            // Get CallLogVerifications for status checking
-            var verificationsData = await _context.CallLogVerifications
-                .Where(v => v.SubmittedToSupervisor)
-                .Select(v => new { v.CallRecordId, v.ApprovalStatus })
-                .ToListAsync();
-
-            // Create lookup dictionaries
-            var verifications = verificationsData.Select(v => v.CallRecordId).ToList();
-            VerificationStatuses = verificationsData.ToDictionary(v => v.CallRecordId, v => v.ApprovalStatus);
+            // Will load verifications AFTER we know which call IDs we need (after pagination)
+            HashSet<int> assignedCallIds = new HashSet<int>();
 
             // Filter by UserIndexNumber only if not admin
             if (!isAdmin && !string.IsNullOrEmpty(UserIndexNumber))
             {
-                // Get payment assignments for this user
-                var assignedCallIds = await _context.Set<CallLogPaymentAssignment>()
+                // Get payment assignments for this user - use subquery instead of loading into memory
+                var assignmentList = await _context.Set<CallLogPaymentAssignment>()
                     .Where(a => a.AssignedTo == UserIndexNumber &&
                            (a.AssignmentStatus == "Pending" || a.AssignmentStatus == "Accepted"))
                     .Select(a => a.CallRecordId)
                     .ToListAsync();
+
+                // Store for later use
+                assignedCallIds = assignmentList.ToHashSet();
 
                 // Apply assignment type filter
                 if (!string.IsNullOrEmpty(FilterAssignmentType))
@@ -240,22 +236,22 @@ namespace TAB.Web.Pages.Modules.EBillManagement.CallRecords
             TotalRecords = await query.CountAsync();
             TotalPages = (int)Math.Ceiling(TotalRecords / (double)PageSize);
 
-            // Apply sorting - Always group by PhoneNumber first, then apply secondary sort
+            // Apply sorting - Group by Year/Month first, then PhoneNumber, then apply secondary sort
             query = SortBy?.ToLower() switch
             {
                 "calldate" => SortDescending
-                    ? query.OrderBy(c => c.UserPhone != null ? c.UserPhone.PhoneNumber : "").ThenByDescending(c => c.CallDate)
-                    : query.OrderBy(c => c.UserPhone != null ? c.UserPhone.PhoneNumber : "").ThenBy(c => c.CallDate),
+                    ? query.OrderByDescending(c => c.CallYear).ThenByDescending(c => c.CallMonth).ThenBy(c => c.UserPhone != null ? c.UserPhone.PhoneNumber : "").ThenByDescending(c => c.CallDate)
+                    : query.OrderBy(c => c.CallYear).ThenBy(c => c.CallMonth).ThenBy(c => c.UserPhone != null ? c.UserPhone.PhoneNumber : "").ThenBy(c => c.CallDate),
                 "cost" => SortDescending
-                    ? query.OrderBy(c => c.UserPhone != null ? c.UserPhone.PhoneNumber : "").ThenByDescending(c => c.CallCostUSD)
-                    : query.OrderBy(c => c.UserPhone != null ? c.UserPhone.PhoneNumber : "").ThenBy(c => c.CallCostUSD),
+                    ? query.OrderByDescending(c => c.CallYear).ThenByDescending(c => c.CallMonth).ThenBy(c => c.UserPhone != null ? c.UserPhone.PhoneNumber : "").ThenByDescending(c => c.CallCostUSD)
+                    : query.OrderBy(c => c.CallYear).ThenBy(c => c.CallMonth).ThenBy(c => c.UserPhone != null ? c.UserPhone.PhoneNumber : "").ThenBy(c => c.CallCostUSD),
                 "duration" => SortDescending
-                    ? query.OrderBy(c => c.UserPhone != null ? c.UserPhone.PhoneNumber : "").ThenByDescending(c => c.CallDuration)
-                    : query.OrderBy(c => c.UserPhone != null ? c.UserPhone.PhoneNumber : "").ThenBy(c => c.CallDuration),
+                    ? query.OrderByDescending(c => c.CallYear).ThenByDescending(c => c.CallMonth).ThenBy(c => c.UserPhone != null ? c.UserPhone.PhoneNumber : "").ThenByDescending(c => c.CallDuration)
+                    : query.OrderBy(c => c.CallYear).ThenBy(c => c.CallMonth).ThenBy(c => c.UserPhone != null ? c.UserPhone.PhoneNumber : "").ThenBy(c => c.CallDuration),
                 "destination" => SortDescending
-                    ? query.OrderBy(c => c.UserPhone != null ? c.UserPhone.PhoneNumber : "").ThenByDescending(c => c.CallDestination)
-                    : query.OrderBy(c => c.UserPhone != null ? c.UserPhone.PhoneNumber : "").ThenBy(c => c.CallDestination),
-                _ => query.OrderBy(c => c.UserPhone != null ? c.UserPhone.PhoneNumber : "").ThenByDescending(c => c.CallDate)
+                    ? query.OrderByDescending(c => c.CallYear).ThenByDescending(c => c.CallMonth).ThenBy(c => c.UserPhone != null ? c.UserPhone.PhoneNumber : "").ThenByDescending(c => c.CallDestination)
+                    : query.OrderBy(c => c.CallYear).ThenBy(c => c.CallMonth).ThenBy(c => c.UserPhone != null ? c.UserPhone.PhoneNumber : "").ThenBy(c => c.CallDestination),
+                _ => query.OrderByDescending(c => c.CallYear).ThenByDescending(c => c.CallMonth).ThenBy(c => c.UserPhone != null ? c.UserPhone.PhoneNumber : "").ThenByDescending(c => c.CallDate)
             };
 
             // Apply pagination
@@ -264,8 +260,20 @@ namespace TAB.Web.Pages.Modules.EBillManagement.CallRecords
                 .Take(PageSize)
                 .ToListAsync();
 
-            // Populate submitted call IDs
-            SubmittedCallIds = verifications.ToHashSet();
+            // NOW load verification data ONLY for the calls we're displaying (much faster!)
+            if (CallRecords.Any())
+            {
+                var displayedCallIds = CallRecords.Select(c => c.Id).ToList();
+
+                var verificationsData = await _context.CallLogVerifications
+                    .Where(v => displayedCallIds.Contains(v.CallRecordId) && v.SubmittedToSupervisor)
+                    .Select(v => new { v.CallRecordId, v.ApprovalStatus })
+                    .ToListAsync();
+
+                // Create lookup dictionaries
+                SubmittedCallIds = verificationsData.Select(v => v.CallRecordId).ToHashSet();
+                VerificationStatuses = verificationsData.ToDictionary(v => v.CallRecordId, v => v.ApprovalStatus);
+            }
         }
 
         private async Task LoadSummaryAsync()
@@ -289,19 +297,25 @@ namespace TAB.Web.Pages.Modules.EBillManagement.CallRecords
                     query = query.Where(c => c.CallYear == FilterYear.Value);
                 }
 
-                var allRecords = await query.ToListAsync();
+                // Use database aggregation instead of loading all records into memory
+                var totalCalls = await query.CountAsync();
+                var verifiedCalls = await query.CountAsync(c => c.IsVerified);
+                var totalAmount = await query.SumAsync(c => (decimal?)c.CallCostUSD) ?? 0;
+                var verifiedAmount = await query.Where(c => c.IsVerified).SumAsync(c => (decimal?)c.CallCostUSD) ?? 0;
+                var personalCalls = await query.CountAsync(c => c.VerificationType == "Personal");
+                var officialCalls = await query.CountAsync(c => c.VerificationType == "Official");
 
                 Summary = new VerificationSummary
                 {
-                    TotalCalls = allRecords.Count,
-                    VerifiedCalls = allRecords.Count(c => c.IsVerified),
-                    UnverifiedCalls = allRecords.Count(c => !c.IsVerified),
-                    TotalAmount = allRecords.Sum(c => c.CallCostUSD),
-                    VerifiedAmount = allRecords.Where(c => c.IsVerified).Sum(c => c.CallCostUSD),
-                    PersonalCalls = allRecords.Count(c => c.VerificationType == "Personal"),
-                    OfficialCalls = allRecords.Count(c => c.VerificationType == "Official"),
-                    CompliancePercentage = allRecords.Count > 0
-                        ? (decimal)allRecords.Count(c => c.IsVerified) / allRecords.Count * 100
+                    TotalCalls = totalCalls,
+                    VerifiedCalls = verifiedCalls,
+                    UnverifiedCalls = totalCalls - verifiedCalls,
+                    TotalAmount = totalAmount,
+                    VerifiedAmount = verifiedAmount,
+                    PersonalCalls = personalCalls,
+                    OfficialCalls = officialCalls,
+                    CompliancePercentage = totalCalls > 0
+                        ? (decimal)verifiedCalls / totalCalls * 100
                         : 0
                 };
 
@@ -589,6 +603,166 @@ namespace TAB.Web.Pages.Modules.EBillManagement.CallRecords
             catch (Exception ex)
             {
                 return new JsonResult(new { success = false, message = $"Error: {ex.Message}" });
+            }
+        }
+
+        // Search users for reassignment
+        public async Task<JsonResult> OnGetSearchUsersAsync(string searchTerm)
+        {
+            try
+            {
+                var user = await _userManager.GetUserAsync(User);
+                if (user == null)
+                    return new JsonResult(new { users = new List<object>(), error = "User not authenticated" });
+
+                var ebillUser = await _context.EbillUsers
+                    .FirstOrDefaultAsync(u => u.Email == user.Email);
+
+                if (ebillUser == null)
+                    return new JsonResult(new { users = new List<object>(), error = "User profile not found" });
+
+                // First, check if the search matches the current user
+                var isSearchingForSelf = false;
+                if (!string.IsNullOrWhiteSpace(searchTerm))
+                {
+                    var lowerTerm = searchTerm.ToLower();
+                    if (ebillUser.Email?.ToLower().Contains(lowerTerm) == true ||
+                        ebillUser.FirstName.ToLower().Contains(lowerTerm) ||
+                        ebillUser.LastName.ToLower().Contains(lowerTerm) ||
+                        ebillUser.IndexNumber.ToLower().Contains(lowerTerm))
+                    {
+                        isSearchingForSelf = true;
+                    }
+                }
+
+                var query = _context.EbillUsers
+                    .Where(u => u.IsActive && u.IndexNumber != ebillUser.IndexNumber);
+
+                if (!string.IsNullOrWhiteSpace(searchTerm))
+                {
+                    // Use EF.Functions.Like for better SQL Server compatibility
+                    query = query.Where(u =>
+                        EF.Functions.Like(u.FirstName, $"%{searchTerm}%") ||
+                        EF.Functions.Like(u.LastName, $"%{searchTerm}%") ||
+                        EF.Functions.Like(u.IndexNumber, $"%{searchTerm}%") ||
+                        (u.Email != null && EF.Functions.Like(u.Email, $"%{searchTerm}%")));
+                }
+
+                var users = await query
+                    .OrderBy(u => u.FirstName)
+                    .ThenBy(u => u.LastName)
+                    .Take(20)
+                    .Select(u => new
+                    {
+                        indexNumber = u.IndexNumber,
+                        firstName = u.FirstName,
+                        lastName = u.LastName,
+                        email = u.Email ?? ""
+                    })
+                    .ToListAsync();
+
+                return new JsonResult(new {
+                    users,
+                    isSearchingForSelf,
+                    currentUserName = $"{ebillUser.FirstName} {ebillUser.LastName}"
+                });
+            }
+            catch (Exception ex)
+            {
+                return new JsonResult(new {
+                    users = new List<object>(),
+                    error = $"Search error: {ex.Message}"
+                });
+            }
+        }
+
+        // Reassign calls to another user
+        public async Task<IActionResult> OnPostReassignCallsAsync(int callId)
+        {
+            var user = await _userManager.GetUserAsync(User);
+            if (user == null)
+                return Challenge();
+
+            var ebillUser = await _context.EbillUsers
+                .FirstOrDefaultAsync(u => u.Email == user.Email);
+
+            if (ebillUser == null)
+            {
+                StatusMessage = "Your profile is not linked to an employee record.";
+                StatusMessageClass = "danger";
+                return RedirectToPage();
+            }
+
+            try
+            {
+                var dialedNumber = Request.Form["dialedNumber"].ToString();
+                var assignToIndexNumber = Request.Form["assignToIndexNumber"].ToString();
+                var assignmentReason = Request.Form["assignmentReason"].ToString();
+
+                if (string.IsNullOrWhiteSpace(dialedNumber) ||
+                    string.IsNullOrWhiteSpace(assignToIndexNumber) ||
+                    string.IsNullOrWhiteSpace(assignmentReason))
+                {
+                    StatusMessage = "Please provide all required information for reassignment.";
+                    StatusMessageClass = "warning";
+                    return RedirectToPage();
+                }
+
+                // Get the call record first to know the month/year
+                var firstCall = await _context.CallRecords.FindAsync(callId);
+
+                if (firstCall == null)
+                {
+                    StatusMessage = "Call record not found.";
+                    StatusMessageClass = "danger";
+                    return RedirectToPage();
+                }
+
+                // Get all calls for this dialed number for the current user in the current month/year
+                var callsToReassign = await _context.CallRecords
+                    .Where(c => c.CallNumber == dialedNumber &&
+                               c.ResponsibleIndexNumber == ebillUser.IndexNumber &&
+                               c.CallMonth == firstCall.CallMonth &&
+                               c.CallYear == firstCall.CallYear &&
+                               string.IsNullOrEmpty(c.VerificationType)) // Only unverified calls
+                    .ToListAsync();
+
+                if (!callsToReassign.Any())
+                {
+                    StatusMessage = "No unverified calls found for this number.";
+                    StatusMessageClass = "warning";
+                    return RedirectToPage();
+                }
+
+                // Create payment assignments for each call using the service
+                int successCount = 0;
+                foreach (var call in callsToReassign)
+                {
+                    try
+                    {
+                        await _verificationService.AssignPaymentAsync(
+                            call.Id,
+                            ebillUser.IndexNumber,
+                            assignToIndexNumber,
+                            assignmentReason);
+                        successCount++;
+                    }
+                    catch (Exception assignEx)
+                    {
+                        // Log individual assignment errors but continue with others
+                        Console.WriteLine($"Error assigning call {call.Id}: {assignEx.Message}");
+                    }
+                }
+
+                StatusMessage = $"Successfully reassigned {successCount} call(s) to the selected user!";
+                StatusMessageClass = "success";
+                return RedirectToPage();
+            }
+            catch (Exception ex)
+            {
+                StatusMessage = $"Error reassigning calls: {ex.Message}";
+                StatusMessageClass = "danger";
+                return RedirectToPage();
             }
         }
     }

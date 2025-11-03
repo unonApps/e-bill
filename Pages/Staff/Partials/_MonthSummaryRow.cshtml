@@ -1,0 +1,81 @@
+@using TAB.Web.Pages.Staff
+@model GroupedMonthlyRecovery
+
+@* Month Summary Row (Level 1) - Always visible *@
+<tr class="month-summary-row" style="background-color: #f8f9fa; font-weight: 600; cursor: pointer;" onclick="toggleMonthDetails('@Model.GroupId')">
+    <td class="text-center px-2">
+        <i class="bi bi-plus-circle text-primary toggle-icon" id="toggle-@Model.GroupId"></i>
+    </td>
+    <td class="px-3 py-3">
+        <div class="d-flex align-items-center gap-2">
+            <span class="badge bg-primary" style="font-size: 0.9rem;">
+                @Model.MonthShort
+            </span>
+            <span class="badge bg-secondary" style="font-size: 0.9rem;">
+                @Model.Year
+            </span>
+            <strong style="font-size: 1rem;">@Model.MonthName</strong>
+        </div>
+    </td>
+    <td class="px-3 py-3">
+        <span class="badge bg-info bg-opacity-10 text-info" style="font-size: 0.875rem;">
+            @Model.TotalCalls calls
+        </span>
+    </td>
+    <td class="px-3 py-3">
+        @if (Model.TotalUSD > 0)
+        {
+            <div>
+                <strong class="text-danger">$@Model.TotalUSD.ToString("N2")</strong>
+                <small class="badge bg-success bg-opacity-10 text-success ms-1">USD</small>
+            </div>
+        }
+        @if (Model.TotalKES > 0)
+        {
+            <div class="mt-1">
+                <strong class="text-danger">KSh @Model.TotalKES.ToString("N2")</strong>
+                <small class="badge bg-secondary bg-opacity-10 text-secondary ms-1">KES</small>
+            </div>
+        }
+    </td>
+    <td class="px-3 py-3">
+        <div class="d-flex flex-wrap gap-1">
+            @if (Model.StaffNonVerificationCount > 0)
+            {
+                <span class="badge bg-danger text-white" style="font-size: 0.75rem;" title="You Missed Deadline">
+                    <i class="bi bi-exclamation-triangle-fill me-1"></i>@Model.StaffNonVerificationCount You Missed
+                </span>
+            }
+            @if (Model.SupervisorNonApprovalCount > 0)
+            {
+                <span class="badge bg-warning text-dark" style="font-size: 0.75rem;" title="Supervisor Missed Deadline">
+                    <i class="bi bi-hourglass-split me-1"></i>@Model.SupervisorNonApprovalCount Supervisor Missed
+                </span>
+            }
+            @if (Model.SupervisorRevertFailureCount > 0)
+            {
+                <span class="badge bg-danger text-white" style="font-size: 0.75rem;" title="Didn't Re-verify">
+                    <i class="bi bi-arrow-counterclockwise me-1"></i>@Model.SupervisorRevertFailureCount Didn't Re-verify
+                </span>
+            }
+            @if (Model.SupervisorRejectionCount > 0)
+            {
+                <span class="badge bg-secondary text-white" style="font-size: 0.75rem;" title="Rejected">
+                    <i class="bi bi-x-circle-fill me-1"></i>@Model.SupervisorRejectionCount Rejected
+                </span>
+            }
+            @if (Model.SupervisorPartialApprovalCount > 0)
+            {
+                <span class="badge bg-info text-white" style="font-size: 0.75rem;" title="Reviewed">
+                    <i class="bi bi-check-circle-fill me-1"></i>@Model.SupervisorPartialApprovalCount Reviewed
+                </span>
+            }
+            @if (Model.ManualOverrideCount > 0)
+            {
+                <span class="badge bg-primary text-white" style="font-size: 0.75rem;" title="Manual Override">
+                    <i class="bi bi-gear-fill me-1"></i>@Model.ManualOverrideCount Manual
+                </span>
+            }
+        </div>
+    </td>
+</tr>

@@ -33,27 +33,23 @@
         left: 0;
         right: 0;
         height: 4px;
-        background: linear-gradient(90deg, var(--gradient-start), var(--gradient-end));
+        background: var(--solid-color);
     }
 
     .stat-card:nth-child(1)::before {
-        --gradient-start: #3b82f6;
-        --gradient-end: #60a5fa;
+        --solid-color: #3b82f6;
     }
 
     .stat-card:nth-child(2)::before {
-        --gradient-start: #10b981;
-        --gradient-end: #34d399;
+        --solid-color: #10b981;
     }
 
     .stat-card:nth-child(3)::before {
-        --gradient-start: #f59e0b;
-        --gradient-end: #fbbf24;
+        --solid-color: #f59e0b;
     }
 
     .stat-card:nth-child(4)::before {
-        --gradient-start: #ef4444;
-        --gradient-end: #f87171;
+        --solid-color: #ef4444;
     }
 
     .stat-card:hover {
@@ -78,22 +74,22 @@
     }
 
     .stat-icon-primary {
-        background: linear-gradient(135deg, #3b82f6, #60a5fa);
+        background: #3b82f6;
         color: white;
     }
 
     .stat-icon-success {
-        background: linear-gradient(135deg, #10b981, #34d399);
+        background: #10b981;
         color: white;
     }
 
     .stat-icon-warning {
-        background: linear-gradient(135deg, #f59e0b, #fbbf24);
+        background: #f59e0b;
         color: white;
     }
 
     .stat-icon-danger {
-        background: linear-gradient(135deg, #ef4444, #f87171);
+        background: #ef4444;
         color: white;
     }
 
@@ -733,11 +729,16 @@ else if (approachingApprovals.Any())
                                     var justification = submission.PhoneOverageJustifications.FirstOrDefault(j => j.UserPhone != null && j.UserPhone.PhoneNumber == extensionNumber);
                                     var modalId = $"justificationModal_{submission.UserIndexNumber}_{extensionNumber}".Replace(" ", "_").Replace(".", "_");
 
+                                    // Get extension-level status
+                                    var extensionStatus = submission.ExtensionStatuses.ContainsKey(extensionNumber)
+                                        ? submission.ExtensionStatuses[extensionNumber]
+                                        : null;
+
                                     <div class="extension-header">
                                         <div class="d-flex justify-content-between align-items-center">
-                                            <div class="d-flex align-items-center">
+                                            <div class="d-flex align-items-center flex-wrap gap-2">
                                                 <input type="checkbox"
-                                                       class="extension-checkbox me-3"
+                                                       class="extension-checkbox me-1"
                                                        id="@extensionId"
                                                        onchange="toggleExtensionCalls('@extensionId')"
                                                        title="Select all calls from this extension">
@@ -746,15 +747,52 @@ else if (approachingApprovals.Any())
                                                 </span>
                                                 <span class="text-muted">@extensionCount call(s)</span>
 
+                                                @* Extension-Level Overage Status *@
+                                                @if (extensionStatus != null)
+                                                {
+                                                    @if (extensionStatus.IsUnlimited)
+                                                    {
+                                                        <span class="badge bg-secondary bg-opacity-10 text-secondary" style="font-size: 0.75rem;">
+                                                            <i class="bi bi-infinity me-1"></i>Unlimited
+                                                        </span>
+                                                    }
+                                                    else if (extensionStatus.HasOverage)
+                                                    {
+                                                        <span class="badge bg-danger text-white" style="font-size: 0.75rem;">
+                                                            <i class="bi bi-exclamation-triangle-fill me-1"></i>OVERAGE
+                                                        </span>
+                                                        <span class="text-danger fw-semibold" style="font-size: 0.85rem;">
+                                                            $@extensionStatus.CurrentUsage.ToString("N2") / $@extensionStatus.AllowanceLimit.ToString("N2")
+                                                            <small class="ms-1">(+$@extensionStatus.OverageAmount.ToString("N2"))</small>
+                                                        </span>
+                                                    }
+                                                    else
+                                                    {
+                                                        <span class="badge bg-success bg-opacity-10 text-success" style="font-size: 0.75rem;">
+                                                            <i class="bi bi-check-circle-fill me-1"></i>Within Limit
+                                                        </span>
+                                                        <span class="text-success" style="font-size: 0.85rem;">
+                                                            $@extensionStatus.CurrentUsage.ToString("N2") / $@extensionStatus.AllowanceLimit.ToString("N2")
+                                                        </span>
+                                                    }
+
+                                                    @if (!string.IsNullOrEmpty(extensionStatus.ClassOfService))
+                                                    {
+                                                        <span class="badge bg-info bg-opacity-10 text-info" style="font-size: 0.75rem;">
+                                                            @extensionStatus.ClassOfService
+                                                        </span>
+                                                    }
+                                                }
+
                                                 @if (justification != null)
                                                 {
                                                     <button type="button"
-                                                            class="btn btn-warning btn-sm ms-3"
+                                                            class="btn btn-warning btn-sm"
                                                             data-bs-toggle="modal"
                                                             data-bs-target="#@modalId"
                                                             title="View Overage Justification">
-                                                        <i class="bi bi-exclamation-triangle-fill me-1"></i>
-                                                        Overage Justification
+                                                        <i class="bi bi-file-text me-1"></i>
+                                                        Justification
                                                         @if (justification.Documents?.Any() == true)
                                                         {
                                                             <span class="badge bg-light text-dark ms-1">@justification.Documents.Count</span>
@@ -783,7 +821,6 @@ else if (approachingApprovals.Any())
                                                     <th>Duration</th>
                                                     <th>Cost</th>
                                                     <th>Verification</th>
-                                                    <th>Status</th>
                                                 </tr>
                                             </thead>
                                             <tbody>
@@ -851,29 +888,6 @@ else if (approachingApprovals.Any())
                                                                 @verification.VerificationType
                                                             </span>
                                                         </td>
-                                                        <td>
-                                                            @if (verification.IsOverage)
-                                                            {
-                                                                <span class="status-badge bg-warning text-dark">
-                                                                    <i class="bi bi-exclamation-triangle"></i>
-                                                                    <span>Overage</span>
-                                                                </span>
-                                                            }
-                                                            else
-                                                            {
-                                                                <span class="status-badge bg-success text-white">
-                                                                    <i class="bi bi-check-circle"></i>
-                                                                    <span>Within Limit</span>
-                                                                </span>
-                                                            }
-                                                            @if (verification.Documents.Any())
-                                                            {
-                                                                <br />
-                                                                <small class="text-muted mt-1 d-inline-flex align-items-center">
-                                                                    <i class="bi bi-paperclip me-1"></i>@verification.Documents.Count doc(s)
-                                                                </small>
-                                                            }
-                                                        </td>
                                                     </tr>
                                                 }
                                             </tbody>
@@ -887,7 +901,7 @@ else if (approachingApprovals.Any())
                                             <div class="modal-dialog modal-dialog-centered modal-lg">
                                                 <div class="modal-content" style="border-radius: 16px; border: none; box-shadow: 0 20px 60px rgba(0, 0, 0, 0.15);">
                                                     <!-- Modal Header -->
-                                                    <div class="modal-header" style="background: linear-gradient(135deg, #fbbf24 0%, #f59e0b 100%); border-radius: 16px 16px 0 0; border: none; padding: 1.5rem;">
+                                                    <div class="modal-header" style="background: #f59e0b; border-radius: 16px 16px 0 0; border: none; padding: 1.5rem;">
                                                         <div class="d-flex align-items-center gap-3 py-2">
                                                             <div class="bg-white rounded-circle d-flex align-items-center justify-content-center flex-shrink-0" style="width: 50px; height: 50px;">
                                                                 <i class="bi bi-exclamation-triangle-fill text-warning" style="font-size: 28px;"></i>
@@ -1077,7 +1091,7 @@ else if (approachingApprovals.Any())
 <div class="modal fade" id="approvalConfirmationModal" tabindex="-1">
     <div class="modal-dialog modal-dialog-centered">
         <div class="modal-content border-0 shadow-lg" style="border-radius: 20px;">
-            <div class="modal-header border-0" style="background: linear-gradient(135deg, #10b981 0%, #059669 100%); border-radius: 20px 20px 0 0;">
+            <div class="modal-header border-0" style="background: #10b981; border-radius: 20px 20px 0 0;">
                 <div class="d-flex align-items-center gap-3 py-2">
                     <div class="bg-white rounded-circle d-flex align-items-center justify-content-center flex-shrink-0" style="width: 50px; height: 50px;">
                         <i class="bi bi-check-circle-fill text-success" style="font-size: 28px;"></i>
@@ -1158,7 +1172,7 @@ else if (approachingApprovals.Any())
 <div class="modal fade" id="partialApprovalModal" tabindex="-1">
     <div class="modal-dialog modal-lg modal-dialog-centered">
         <div class="modal-content border-0 shadow-lg" style="border-radius: 20px;">
-            <div class="modal-header border-0" style="background: linear-gradient(135deg, #3b82f6 0%, #2563eb 100%); border-radius: 20px 20px 0 0;">
+            <div class="modal-header border-0" style="background: #3b82f6; border-radius: 20px 20px 0 0;">
                 <div class="d-flex align-items-center gap-3 py-2">
                     <div class="bg-white rounded-circle d-flex align-items-center justify-content-center flex-shrink-0" style="width: 50px; height: 50px;">
                         <i class="bi bi-check2-square text-primary" style="font-size: 28px;"></i>
@@ -1268,7 +1282,7 @@ else if (approachingApprovals.Any())
 <div class="modal fade" id="rejectModal" tabindex="-1">
     <div class="modal-dialog modal-dialog-centered">
         <div class="modal-content border-0 shadow-lg" style="border-radius: 20px;">
-            <div class="modal-header border-0" style="background: linear-gradient(135deg, #ef4444 0%, #dc2626 100%); border-radius: 20px 20px 0 0;">
+            <div class="modal-header border-0" style="background: #ef4444; border-radius: 20px 20px 0 0;">
                 <div class="d-flex align-items-center gap-3 py-2">
                     <div class="bg-white rounded-circle d-flex align-items-center justify-content-center flex-shrink-0" style="width: 50px; height: 50px;">
                         <i class="bi bi-x-circle-fill text-danger" style="font-size: 28px;"></i>
@@ -1313,7 +1327,7 @@ else if (approachingApprovals.Any())
 <div class="modal fade" id="revertModal" tabindex="-1">
     <div class="modal-dialog modal-dialog-centered">
         <div class="modal-content border-0 shadow-lg" style="border-radius: 20px;">
-            <div class="modal-header border-0" style="background: linear-gradient(135deg, #f59e0b 0%, #d97706 100%); border-radius: 20px 20px 0 0;">
+            <div class="modal-header border-0" style="background: #f59e0b; border-radius: 20px 20px 0 0;">
                 <div class="d-flex align-items-center gap-3 py-2">
                     <div class="bg-white rounded-circle d-flex align-items-center justify-content-center flex-shrink-0" style="width: 50px; height: 50px;">
                         <i class="bi bi-arrow-counterclockwise text-warning" style="font-size: 28px;"></i>

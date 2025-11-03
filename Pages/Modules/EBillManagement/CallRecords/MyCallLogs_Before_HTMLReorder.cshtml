@@ -840,89 +840,562 @@
                 <tbody>
                     @if (Model.CallRecords.Any())
                     {
-                        // First pass: Group calls by Extension+Month+Year and calculate totals
-                        var groupedCalls = new List<(string GroupKey, string Extension, int Month, int Year,
-                                                      int CallCount, decimal TotalCostUSD, decimal TotalCostKSH,
-                                                      decimal TotalRecovered, List<CallRecord> Calls)>();
+                        string currentExtensionMonthYear = null;
 
-                        string currentGroupKey = null;
-                        string currentExtension = "";
-                        int currentMonth = 0;
-                        int currentYear = 0;
-                        int callCount = 0;
-                        decimal totalCostUSD = 0;
-                        decimal totalCostKSH = 0;
-                        decimal totalRecovered = 0;
-                        var currentCalls = new List<CallRecord>();
+                        // Extension level counters
+                        int extensionCallCount = 0;
+                        decimal extensionTotalCostUSD = 0;
+                        decimal extensionTotalCostKSH = 0;
+                        decimal extensionTotalRecovered = 0;
+                        string extensionNumber = "";
+                        int extensionMonth = 0;
+                        int extensionYear = 0;
 
-                        foreach (var call in Model.CallRecords)
+                        @foreach (var call in Model.CallRecords)
                         {
                             var extension = call.UserPhone?.PhoneNumber ?? "Unknown";
-                            var groupKey = $"{extension}-{call.CallMonth}-{call.CallYear}";
+                            var extensionMonthYearKey = $"{extension}-{call.CallMonth}-{call.CallYear}";
 
-                            if (currentGroupKey != groupKey)
+                            // Check if we're starting a new extension+month+year group
+                            if (currentExtensionMonthYear != extensionMonthYearKey)
                             {
-                                // Save previous group
-                                if (currentGroupKey != null)
+                                // Output extension summary row for previous group if it exists
+                                if (currentExtensionMonthYear != null)
                                 {
-                                    groupedCalls.Add((currentGroupKey, currentExtension, currentMonth, currentYear,
-                                                    callCount, totalCostUSD, totalCostKSH, totalRecovered,
-                                                    new List<CallRecord>(currentCalls)));
+                                    var monthName = new DateTime(extensionYear, extensionMonth, 1).ToString("MMMM");
+                                    var groupId = currentExtensionMonthYear.Replace(" ", "_").Replace("+", "");
+
+                                    @* Extension Summary Row (Level 1) *@
+                                    <tr class="extension-summary-row" style="background-color: #f8f9fa; font-weight: 600; cursor: pointer;" onclick="toggleCallDetails('@groupId')">
+                                        <td class="text-center px-2">
+                                            <input type="checkbox" class="extension-checkbox" id="ext-check-@groupId" onclick="event.stopPropagation();" />
+                                        </td>
+                                        <td class="text-center px-2">
+                                            <i class="bi bi-plus-circle text-primary toggle-icon" id="toggle-@groupId"></i>
+                                        </td>
+                                        <td class="px-3 py-2">
+                                            <strong>@extensionNumber</strong>
+                                        </td>
+                                        <td class="px-3 py-2">@monthName</td>
+                                        <td class="px-3 py-2">@extensionYear</td>
+                                        <td class="px-3 py-2">
+                                            <strong>$@extensionTotalCostUSD.ToString("N2")</strong>
+                                            @if (extensionTotalCostUSD > 50)
+                                            {
+                                                <div><small class="text-danger"><i class="bi bi-exclamation-triangle"></i> High Cost</small></div>
+                                            }
+                                        </td>
+                                        <td class="px-3 py-2"><strong>KSh @extensionTotalCostKSH.ToString("N2")</strong></td>
+                                        <td class="px-3 py-2">
+                                            @if (extensionTotalRecovered > 0)
+                                            {
+                                                <span class="text-danger">$@extensionTotalRecovered.ToString("N2")</span>
+                                            }
+                                            else
+                                            {
+                                                <span class="text-muted">-</span>
+                                            }
+                                        </td>
+                                        <td class="text-center px-2">
+                                            <span class="badge bg-info bg-opacity-10 text-info">@extensionCallCount calls</span>
+                                        </td>
+                                    </tr>
                                 }
 
-                                // Start new group
-                                currentGroupKey = groupKey;
-                                currentExtension = extension;
-                                currentMonth = call.CallMonth;
-                                currentYear = call.CallYear;
-                                callCount = 0;
-                                totalCostUSD = 0;
-                                totalCostKSH = 0;
-                                totalRecovered = 0;
-                                currentCalls.Clear();
+                                // Reset counters for new extension group
+                                currentExtensionMonthYear = extensionMonthYearKey;
+                                extensionNumber = extension;
+                                extensionMonth = call.CallMonth;
+                                extensionYear = call.CallYear;
+                                extensionCallCount = 0;
+                                extensionTotalCostUSD = 0;
+                                extensionTotalCostKSH = 0;
+                                extensionTotalRecovered = 0;
+
+                                // Output header row for NEW group (will be above the detail rows)
+                                var newGroupId = extensionMonthYearKey.Replace(" ", "_").Replace("+", "");
+                                @* Detail Header Row (Level 2) - Hidden by default *@
+                                <tr class="call-detail-row call-detail-header" data-group="@newGroupId" style="display: none; background-color: #e9ecef; font-weight: 600;">
+                                    <th class="px-2 py-2 text-center" style="font-size: 11px;"><i class="bi bi-check-square"></i></th>
+                                    <th class="px-2 py-2" style="font-size: 11px;"></th>
+                                    <th class="px-2 py-2" style="font-size: 11px;">DIALLED NUMBER</th>
+                                    <th class="px-2 py-2 text-center" style="font-size: 11px;">CALL TYPE</th>
+                                    <th class="px-2 py-2" style="font-size: 11px;">DATE</th>
+                                    <th class="px-2 py-2" style="font-size: 11px;">END TIME</th>
+                                    <th class="px-2 py-2" style="font-size: 11px;">DURATION</th>
+                                    <th class="px-2 py-2" style="font-size: 11px;">KSH</th>
+                                    <th class="px-2 py-2" style="font-size: 11px;">USD</th>
+                                    <th class="px-2 py-2" style="font-size: 11px;">DESTINATION</th>
+                                    <th class="px-2 py-2 text-center" style="font-size: 11px;">STATUS</th>
+                                    <th class="px-2 py-2 text-center" style="font-size: 11px;">ACTION</th>
+                                </tr>
                             }
 
-                            // Accumulate totals
-                            callCount++;
-                            totalCostUSD += call.CallCostUSD;
-                            totalCostKSH += call.CallCostKSHS;
+                            // Increment extension counters
+                            extensionCallCount++;
+                            extensionTotalCostUSD += call.CallCostUSD;
+                            extensionTotalCostKSH += call.CallCostKSHS;
                             if (call.RecoveryAmount.HasValue && call.RecoveryAmount.Value > 0)
                             {
-                                totalRecovered += call.RecoveryAmount.Value;
+                                extensionTotalRecovered += call.RecoveryAmount.Value;
                             }
-                            currentCalls.Add(call);
-                        }
 
-                        // Save last group
-                        if (currentGroupKey != null)
-                        {
-                            groupedCalls.Add((currentGroupKey, currentExtension, currentMonth, currentYear,
-                                            callCount, totalCostUSD, totalCostKSH, totalRecovered,
-                                            new List<CallRecord>(currentCalls)));
-                        }
-
-                        // Second pass: Output HTML in correct order (Summary → Header → Details)
-                        foreach (var group in groupedCalls)
-                        {
-                            var monthName = new DateTime(group.Year, group.Month, 1).ToString("MMMM");
-                            var groupId = group.GroupKey.Replace(" ", "_").Replace("-", "_");
-
-                            // 1. Extension Summary Row (Level 1) - Always visible
-                            @await Html.PartialAsync("Partials/_ExtensionSummaryRow",
-                                (GroupId: groupId, Extension: group.Extension, MonthName: monthName, Year: group.Year,
-                                 CallCount: group.CallCount, TotalCostUSD: group.TotalCostUSD,
-                                 TotalCostKSH: group.TotalCostKSH, TotalRecovered: group.TotalRecovered))
-
-                            // 2. Detail Header Row (Level 2) - Hidden by default
-                            @await Html.PartialAsync("Partials/_DetailHeader", groupId)
-
-                            // 3. Detail Data Rows (Level 2) - Hidden by default
-                            foreach (var call in group.Calls)
+                            var rowClass = "";
+                            if (call.PaymentAssignmentId.HasValue)
                             {
-                                @await Html.PartialAsync("Partials/_DetailRow",
-                                    (Call: call, GroupId: groupId, UserIndexNumber: Model.UserIndexNumber,
-                                     SubmittedCallIds: Model.SubmittedCallIds, VerificationStatuses: Model.VerificationStatuses))
+                                if (call.PayingIndexNumber == Model.UserIndexNumber)
+                                {
+                                    rowClass = "row-assigned-to-you";
+                                }
+                                else if (call.ResponsibleIndexNumber == Model.UserIndexNumber)
+                                {
+                                    rowClass = "row-assigned-out";
+                                }
                             }
+                            else
+                            {
+                                rowClass = "row-your-call";
+                            }
+                            var detailGroupId = extensionMonthYearKey.Replace(" ", "_").Replace("+", "");
+                            <tr class="@rowClass call-detail-row" data-group="@detailGroupId" style="display: none;">
+                                <td class="text-center">
+                                    @{
+                                        // Check if call has been submitted to supervisor
+                                        var isSubmitted = Model.SubmittedCallIds.Contains(call.Id);
+
+                                        // Check if verification deadline has passed
+                                        var isExpired = call.VerificationPeriod.HasValue && call.VerificationPeriod.Value < DateTime.UtcNow;
+
+                                        // Check if supervisor has approved the call
+                                        var callApprovalStatus = isSubmitted && Model.VerificationStatuses.ContainsKey(call.Id)
+                                            ? Model.VerificationStatuses[call.Id]
+                                            : "";
+                                        var isSupervisorApproved = callApprovalStatus == "Approved" || callApprovalStatus == "PartiallyApproved";
+
+                                        // Lock if:
+                                        // 1. Deadline has expired, OR
+                                        // 2. Assigned out and pending acceptance, OR
+                                        // 3. Submitted AND supervisor has approved/partially approved
+                                        // Staff CAN change if submitted but not yet approved by supervisor (Pending/Rejected/Reverted)
+                                        var isLocked = isExpired ||
+                                                      (call.AssignmentStatus == "Pending" &&
+                                                       call.ResponsibleIndexNumber == Model.UserIndexNumber &&
+                                                       call.PayingIndexNumber != Model.UserIndexNumber) ||
+                                                      (isSubmitted && isSupervisorApproved);
+                                    }
+                                    <input type="checkbox" class="call-checkbox" value="@call.Id"
+                                           data-verified="@call.IsVerified.ToString().ToLower()"
+                                           data-locked="@isLocked.ToString().ToLower()"
+                                           data-submitted="@isSubmitted.ToString().ToLower()"
+                                           data-approval-status="@callApprovalStatus"
+                                           data-expired="@isExpired.ToString().ToLower()"
+                                           data-group="@detailGroupId"
+                                           onchange="updateQuickVerifyButtons();"
+                                           @(isLocked ? "disabled" : "") />
+                                </td>
+                                <td class="px-2"></td>
+                                <td class="px-2"><strong>@call.CallDestination</strong></td>
+                                <td class="text-center px-2">
+                                    <span class="badge bg-@(call.CallType == "Voice" ? "primary" : call.CallType == "SMS" ? "info" : "success")">@call.CallType</span>
+                                </td>
+                                <td class="px-2">@call.CallDate.ToString("dd MMM yyyy")</td>
+                                <td class="px-2">@call.CallEndTime.ToString("HH:mm")</td>
+                                <td class="px-2">@call.GetDurationFormatted()</td>
+                                <td class="px-2">KSh @call.CallCostKSHS.ToString("N2")</td>
+                                <td class="px-2">$@call.CallCostUSD.ToString("N2")</td>
+                                <td class="px-2"><small class="text-muted">@call.CallDestinationType</small></td>
+                                <td class="text-center px-2">
+                                    @{
+                                        // Keep existing priority/status badge logic
+                                        // Determine priority based on status
+                                        string priorityBadge = "";
+                                        string priorityIcon = "";
+                                        string priorityTooltip = "";
+
+                                        // URGENT: Expired deadline or pending acceptance
+                                        if (isExpired && !call.IsVerified)
+                                        {
+                                            priorityBadge = "bg-danger";
+                                            priorityIcon = "bi-exclamation-triangle-fill";
+                                            priorityTooltip = "URGENT: Verification deadline has passed";
+                                        }
+                                        else if (call.AssignmentStatus == "Pending" && call.PayingIndexNumber == Model.UserIndexNumber)
+                                        {
+                                            priorityBadge = "bg-danger";
+                                            priorityIcon = "bi-bell-fill";
+                                            priorityTooltip = "URGENT: Accept or reject this assignment";
+                                        }
+                                        // ACTION: Needs verification or decision
+                                        else if (!call.IsVerified && !isExpired)
+                                        {
+                                            priorityBadge = "bg-warning text-dark";
+                                            priorityIcon = "bi-pencil-square";
+                                            priorityTooltip = "ACTION: Needs verification";
+                                        }
+                                        // ACTION: Verified but not yet submitted to supervisor
+                                        else if (call.IsVerified && !isSubmitted)
+                                        {
+                                            priorityBadge = "bg-warning text-dark";
+                                            priorityIcon = "bi-upload";
+                                            priorityTooltip = "ACTION: Ready to submit to supervisor";
+                                        }
+                                        // WAITING: Assigned out and pending
+                                        else if (call.AssignmentStatus == "Pending" && call.ResponsibleIndexNumber == Model.UserIndexNumber)
+                                        {
+                                            priorityBadge = "bg-info";
+                                            priorityIcon = "bi-clock-history";
+                                            priorityTooltip = "WAITING: Pending acceptance from assignee";
+                                        }
+                                        // DONE: Verified and approved
+                                        else if (call.IsVerified && isSubmitted && Model.VerificationStatuses.ContainsKey(call.Id) && Model.VerificationStatuses[call.Id] == "Approved")
+                                        {
+                                            priorityBadge = "bg-success";
+                                            priorityIcon = "bi-check-circle-fill";
+                                            priorityTooltip = "DONE: Verified and approved";
+                                        }
+                                        // WAITING: Verified and submitted, pending supervisor approval
+                                        else if (call.IsVerified && isSubmitted)
+                                        {
+                                            priorityBadge = "bg-info";
+                                            priorityIcon = "bi-hourglass-split";
+                                            priorityTooltip = "WAITING: Verified, pending supervisor approval";
+                                        }
+                                        else
+                                        {
+                                            priorityBadge = "bg-secondary";
+                                            priorityIcon = "bi-dash-circle";
+                                            priorityTooltip = "No action needed";
+                                        }
+                                    }
+                                    <span class="badge @priorityBadge" data-bs-toggle="tooltip" title="@priorityTooltip" style="font-size: 0.75rem; padding: 0.35rem 0.5rem;">
+                                        <i class="bi @priorityIcon"></i>
+                                    </span>
+                                </td>
+                                <td>
+                                    @{
+                                        var callMonthName = new DateTime(call.CallYear, call.CallMonth, 1).ToString("MMMM");
+                                    }
+                                    <div>@callMonthName @call.CallYear</div>
+                                </td>
+                                <td>@call.ExtensionNumber</td>
+                                <td>
+                                    <div>@call.CallDestination</div>
+                                    <small class="text-muted">@call.CallDestinationType</small>
+                                </td>
+                                <td>
+                                    <span class="badge bg-@(call.CallType == "Voice" ? "primary" : call.CallType == "SMS" ? "info" : "success") bg-opacity-10 text-@(call.CallType == "Voice" ? "primary" : call.CallType == "SMS" ? "info" : "success")">
+                                        @call.CallType
+                                    </span>
+                                </td>
+                                <td>
+                                    @* Display assignment status based on stored AssignmentStatus field *@
+                                    <div class="d-flex flex-column gap-1">
+                                        @if (call.AssignmentStatus == "Pending" && call.PayingIndexNumber == Model.UserIndexNumber)
+                                        {
+                                            @* Call assigned to me, awaiting my acceptance *@
+                                            <span class="badge bg-warning bg-opacity-10 text-warning" data-bs-toggle="tooltip" title="From: @(call.ResponsibleUser?.FirstName ?? "") @(call.ResponsibleUser?.LastName ?? "")">
+                                                <i class="bi bi-bell-fill me-1"></i>Needs Acceptance
+                                            </span>
+                                        }
+                                        else if (call.AssignmentStatus == "Accepted" && call.PayingIndexNumber == Model.UserIndexNumber)
+                                        {
+                                            @* Call assigned to me and I accepted it *@
+                                            <span class="badge bg-warning bg-opacity-10 text-warning" data-bs-toggle="tooltip" title="From: @(call.ResponsibleUser?.FirstName ?? "") @(call.ResponsibleUser?.LastName ?? "")">
+                                                <i class="bi bi-arrow-down-circle-fill me-1"></i>Assigned to Me
+                                            </span>
+                                        }
+                                        else if (call.AssignmentStatus == "Pending" && call.ResponsibleIndexNumber == Model.UserIndexNumber)
+                                        {
+                                            @* I assigned this call out, awaiting acceptance *@
+                                            <span class="badge bg-info bg-opacity-10 text-info" data-bs-toggle="tooltip" title="To: @(call.PayingUser?.FirstName ?? "") @(call.PayingUser?.LastName ?? "") - Pending">
+                                                <i class="bi bi-arrow-up-circle me-1"></i>Assigned Out
+                                            </span>
+                                        }
+                                        else if (call.AssignmentStatus == "Accepted" && call.ResponsibleIndexNumber == Model.UserIndexNumber)
+                                        {
+                                            @* I assigned this call out and it was accepted *@
+                                            <span class="badge bg-info bg-opacity-10 text-info" data-bs-toggle="tooltip" title="To: @(call.PayingUser?.FirstName ?? "") @(call.PayingUser?.LastName ?? "") - Accepted">
+                                                <i class="bi bi-arrow-up-circle-fill me-1"></i>Assigned Out
+                                            </span>
+                                        }
+                                        else
+                                        {
+                                            @* Status = "None" or "Rejected" - belongs to original phone owner *@
+                                            <span class="badge bg-success bg-opacity-10 text-success" data-bs-toggle="tooltip" title="Your phone call">
+                                                <i class="bi bi-person-check-fill me-1"></i>My Call
+                                            </span>
+                                        }
+                                    </div>
+                                </td>
+                                <td>@call.GetDurationFormatted()</td>
+                                <td>
+                                    <div class="fw-semibold">$@call.CallCostUSD.ToString("N2")</div>
+                                </td>
+                                <td>
+                                    <div class="fw-semibold">KSh @call.CallCostKSHS.ToString("N2")</div>
+                                </td>
+                                <td>
+                                    @if (call.RecoveryAmount.HasValue && call.RecoveryAmount.Value > 0)
+                                    {
+                                        var currencySymbol = call.SourceSystem?.ToUpper() switch
+                                        {
+                                            "PRIVATEWIRES" => "$",
+                                            "PRIVATEWIRE" => "$",
+                                            "SAFARICOM" => "KSh ",
+                                            "AIRTEL" => "KSh ",
+                                            "PSTN" => "KSh ",
+                                            _ => "KSh "
+                                        };
+                                        var currencyName = call.SourceSystem?.ToUpper() switch
+                                        {
+                                            "PRIVATEWIRES" => "USD",
+                                            "PRIVATEWIRE" => "USD",
+                                            _ => "KSH"
+                                        };
+                                        <div class="fw-semibold text-danger" data-bs-toggle="tooltip" title="Amount recovered in @currencyName">
+                                            @currencySymbol@call.RecoveryAmount.Value.ToString("N2")
+                                        </div>
+                                        @if (!string.IsNullOrEmpty(call.RecoveryStatus) && call.RecoveryStatus == "Processed")
+                                        {
+                                            <small class="text-muted" style="font-size: 0.7rem;">
+                                                <i class="bi bi-arrow-repeat"></i> Recovered
+                                            </small>
+                                        }
+                                    }
+                                    else
+                                    {
+                                        <span class="text-muted">-</span>
+                                    }
+                                </td>
+                                <td>
+                                    <div class="d-flex flex-column gap-1">
+                                        @* Verification Status *@
+                                        @if (call.IsVerified)
+                                        {
+                                            <span class="badge bg-success" data-bs-toggle="tooltip" title="Verified as @call.VerificationType">
+                                                <i class="bi bi-check-circle-fill me-1"></i>@call.VerificationType
+                                            </span>
+                                        }
+                                        else if (call.VerificationPeriod.HasValue && call.VerificationPeriod.Value < DateTime.UtcNow)
+                                        {
+                                            <span class="badge bg-danger" data-bs-toggle="tooltip" title="Verification deadline: @call.VerificationPeriod.Value.ToString("MMM dd, yyyy")">
+                                                <i class="bi bi-exclamation-triangle-fill me-1"></i>Expired
+                                            </span>
+                                        }
+                                        else
+                                        {
+                                            <span class="badge bg-warning text-dark" data-bs-toggle="tooltip" title="Deadline: @(call.VerificationPeriod.HasValue ? call.VerificationPeriod.Value.ToString("MMM dd, yyyy") : "Not set")">
+                                                <i class="bi bi-hourglass-split me-1"></i>Unverified
+                                            </span>
+                                        }
+
+                                        @* Approval Status - only if submitted *@
+                                        @if (isSubmitted && Model.VerificationStatuses.ContainsKey(call.Id))
+                                        {
+                                            var approvalStatus = Model.VerificationStatuses[call.Id];
+                                            @switch (approvalStatus)
+                                            {
+                                                case "Approved":
+                                                    <span class="badge bg-success bg-opacity-10 text-success" data-bs-toggle="tooltip" title="Approved by supervisor">
+                                                        <i class="bi bi-patch-check-fill me-1"></i>Approved
+                                                    </span>
+                                                    break;
+                                                case "PartiallyApproved":
+                                                    <span class="badge bg-info bg-opacity-10 text-info" data-bs-toggle="tooltip" title="Partially approved by supervisor">
+                                                        <i class="bi bi-check-circle me-1"></i>Partial
+                                                    </span>
+                                                    break;
+                                                case "Rejected":
+                                                    <span class="badge bg-danger bg-opacity-10 text-danger" data-bs-toggle="tooltip" title="Rejected by supervisor">
+                                                        <i class="bi bi-x-circle-fill me-1"></i>Rejected
+                                                    </span>
+                                                    break;
+                                                case "Reverted":
+                                                    <span class="badge bg-warning bg-opacity-10 text-warning" data-bs-toggle="tooltip" title="Reverted - needs resubmission">
+                                                        <i class="bi bi-arrow-counterclockwise me-1"></i>Reverted
+                                                    </span>
+                                                    break;
+                                                default: // "Pending"
+                                                    <span class="badge bg-primary bg-opacity-10 text-primary" data-bs-toggle="tooltip" title="Submitted, awaiting supervisor review">
+                                                        <i class="bi bi-send-check me-1"></i>Submitted
+                                                    </span>
+                                                    break;
+                                            }
+                                        }
+                                    </div>
+                                </td>
+                                <td class="text-end">
+                                    @* Check if call is assigned TO me and pending my acceptance *@
+                                    @if (call.AssignmentStatus == "Pending" &&
+                                         call.PayingIndexNumber == Model.UserIndexNumber &&
+                                         call.ResponsibleIndexNumber != Model.UserIndexNumber)
+                                    {
+                                        <div class="btn-group" role="group">
+                                            <button type="button"
+                                                    class="btn btn-sm btn-success"
+                                                    style="border-radius: 8px 0 0 8px;"
+                                                    onclick="showAcceptModal(@call.Id, '@call.CallNumber', '@call.CallCostUSD.ToString("N2")', '@(call.ResponsibleUser?.FirstName ?? "") @(call.ResponsibleUser?.LastName ?? "")')"
+                                                    title="Accept this assignment">
+                                                <i class="bi bi-check-lg me-1"></i>Accept
+                                            </button>
+                                            <button type="button"
+                                                    class="btn btn-sm btn-danger"
+                                                    style="border-radius: 0 8px 8px 0;"
+                                                    onclick="showRejectModal(@call.Id, '@call.CallNumber', '@call.CallCostUSD.ToString("N2")', '@(call.ResponsibleUser?.FirstName ?? "") @(call.ResponsibleUser?.LastName ?? "")')"
+                                                    title="Reject this assignment">
+                                                <i class="bi bi-x-lg me-1"></i>Reject
+                                            </button>
+                                        </div>
+                                    }
+                                    @* Check if verification deadline has expired *@
+                                    @if (isExpired && !call.IsVerified)
+                                    {
+                                        <div class="d-flex flex-column gap-1 align-items-center">
+                                            <span class="badge bg-danger" style="font-size: 0.85rem; padding: 0.5rem 0.75rem; border-radius: 8px;">
+                                                <i class="bi bi-exclamation-triangle-fill me-1"></i>EXPIRED
+                                            </span>
+                                            <small class="text-danger fw-semibold" style="font-size: 0.7rem;">
+                                                @call.VerificationPeriod.Value.ToString("MMM dd, yyyy")
+                                            </small>
+                                        </div>
+                                    }
+                                    @* Check if call is assigned out and pending - cannot verify *@
+                                    else if (call.AssignmentStatus == "Pending" &&
+                                             call.ResponsibleIndexNumber == Model.UserIndexNumber &&
+                                             call.PayingIndexNumber != Model.UserIndexNumber)
+                                    {
+                                        <button type="button"
+                                                class="btn btn-sm btn-secondary"
+                                                style="border-radius: 8px;"
+                                                disabled
+                                                title="Cannot verify - awaiting assignment acceptance">
+                                            <i class="bi bi-lock me-1"></i>Locked
+                                        </button>
+                                    }
+                                    @* Check if supervisor has approved - locked from changes *@
+                                    else if (isSubmitted && isSupervisorApproved)
+                                    {
+                                        <button type="button"
+                                                class="btn btn-sm btn-success"
+                                                style="border-radius: 8px; opacity: 0.7;"
+                                                disabled
+                                                title="Approved by supervisor - cannot be changed">
+                                            <i class="bi bi-shield-check me-1"></i>Approved
+                                        </button>
+                                    }
+                                    else
+                                    {
+                                        <div class="d-flex gap-2 align-items-center">
+                                            @* Quick Verification Dropdown *@
+                                            @if (!call.IsVerified)
+                                            {
+                                                <select class="form-select form-select-sm"
+                                                        style="width: 130px; border-radius: 8px; font-size: 0.875rem;"
+                                                        onchange="quickVerifyCall(@call.Id, this.value, '@call.CallNumber', '@call.CallCostUSD.ToString("N2")', '@call.CallCostKSHS.ToString("N2")', '@((call.CallDuration / 60.0m).ToString("N2"))', '@call.CallDate.ToString("MMM dd")')"
+                                                        data-call-id="@call.Id">
+                                                    <option value="" selected>Mark as...</option>
+                                                    <option value="Official" style="color: #10b981;">Official</option>
+                                                    <option value="Personal" style="color: #f59e0b;">Personal</option>
+                                                </select>
+                                            }
+                                            else
+                                            {
+                                                // Show light blue background if submitted but pending supervisor approval
+                                                var bgColor = call.VerificationType == "Official" ? "#d1fae5" : "#fef3c7";
+                                                if (isSubmitted && !isSupervisorApproved)
+                                                {
+                                                    bgColor = "#dbeafe"; // Light blue to indicate submitted but editable
+                                                }
+                                                <select class="form-select form-select-sm"
+                                                        style="width: 130px; border-radius: 8px; font-size: 0.875rem; background-color: @bgColor; @(isSubmitted && !isSupervisorApproved ? "border: 2px solid #3b82f6;" : "")"
+                                                        onchange="quickVerifyCall(@call.Id, this.value, '@call.CallNumber', '@call.CallCostUSD.ToString("N2")', '@call.CallCostKSHS.ToString("N2")', '@((call.CallDuration / 60.0m).ToString("N2"))', '@call.CallDate.ToString("MMM dd")')"
+                                                        data-call-id="@call.Id"
+                                                        title="@(isSubmitted && !isSupervisorApproved ? "Submitted but can still be changed before supervisor approval" : "")">
+                                                    <option value="" disabled>Change to...</option>
+                                                    @if (call.VerificationType == "Official")
+                                                    {
+                                                        <option value="Official" selected style="color: #10b981;">Official</option>
+                                                        <option value="Personal" style="color: #f59e0b;">Personal</option>
+                                                    }
+                                                    else
+                                                    {
+                                                        <option value="Official" style="color: #10b981;">Official</option>
+                                                        <option value="Personal" selected style="color: #f59e0b;">Personal</option>
+                                                    }
+                                                </select>
+                                            }
+
+                                            @* View Details Button *@
+                                            <a asp-page="/Modules/EBillManagement/CallRecords/Verify"
+                                               asp-route-id="@call.Id"
+                                               class="btn btn-sm btn-outline-secondary"
+                                               style="border-radius: 8px;"
+                                               title="View details">
+                                                <i class="bi bi-eye"></i>
+                                            </a>
+                                        </div>
+                                    }
+                                </td>
+                            </tr>
+                        }
+
+                        @* Show final extension summary for the last group *@
+                        @if (currentExtensionMonthYear != null)
+                        {
+                            var monthName = new DateTime(extensionYear, extensionMonth, 1).ToString("MMMM");
+                            var groupId = currentExtensionMonthYear.Replace(" ", "_").Replace("+", "");
+
+                            @* Final Extension Summary Row *@
+                            <tr class="extension-summary-row" style="background-color: #f8f9fa; font-weight: 600; cursor: pointer;" onclick="toggleCallDetails('@groupId')">
+                                <td class="text-center px-2">
+                                    <input type="checkbox" class="extension-checkbox" id="ext-check-@groupId" onclick="event.stopPropagation();" />
+                                </td>
+                                <td class="text-center px-2">
+                                    <i class="bi bi-plus-circle text-primary toggle-icon" id="toggle-@groupId"></i>
+                                </td>
+                                <td class="px-3 py-2">
+                                    <strong>@extensionNumber</strong>
+                                </td>
+                                <td class="px-3 py-2">@monthName</td>
+                                <td class="px-3 py-2">@extensionYear</td>
+                                <td class="px-3 py-2">
+                                    <strong>$@extensionTotalCostUSD.ToString("N2")</strong>
+                                    @if (extensionTotalCostUSD > 50)
+                                    {
+                                        <div><small class="text-danger"><i class="bi bi-exclamation-triangle"></i> High Cost</small></div>
+                                    }
+                                </td>
+                                <td class="px-3 py-2"><strong>KSh @extensionTotalCostKSH.ToString("N2")</strong></td>
+                                <td class="px-3 py-2">
+                                    @if (extensionTotalRecovered > 0)
+                                    {
+                                        <span class="text-danger">$@extensionTotalRecovered.ToString("N2")</span>
+                                    }
+                                    else
+                                    {
+                                        <span class="text-muted">-</span>
+                                    }
+                                </td>
+                                <td class="text-center px-2">
+                                    <span class="badge bg-info bg-opacity-10 text-info">@extensionCallCount calls</span>
+                                </td>
+                            </tr>
+
+                            @* Detail Header Row (Level 2) - Hidden by default *@
+                            <tr class="call-detail-row call-detail-header" data-group="@groupId" style="display: none; background-color: #e9ecef; font-weight: 600;">
+                                <th class="px-2 py-2 text-center" style="font-size: 11px;"><i class="bi bi-check-square"></i></th>
+                                <th class="px-2 py-2" style="font-size: 11px;"></th>
+                                <th class="px-2 py-2" style="font-size: 11px;">DIALLED NUMBER</th>
+                                <th class="px-2 py-2 text-center" style="font-size: 11px;">CALL TYPE</th>
+                                <th class="px-2 py-2" style="font-size: 11px;">DATE</th>
+                                <th class="px-2 py-2" style="font-size: 11px;">END TIME</th>
+                                <th class="px-2 py-2" style="font-size: 11px;">DURATION</th>
+                                <th class="px-2 py-2" style="font-size: 11px;">KSH</th>
+                                <th class="px-2 py-2" style="font-size: 11px;">USD</th>
+                                <th class="px-2 py-2" style="font-size: 11px;">DESTINATION</th>
+                                <th class="px-2 py-2 text-center" style="font-size: 11px;">STATUS</th>
+                                <th class="px-2 py-2 text-center" style="font-size: 11px;">ACTION</th>
+                            </tr>
                         }
                     }
                     else
@@ -1170,106 +1643,6 @@
     </div>
 </div>
 
-@* Reassign Payment Modal *@
-<div class="modal fade" id="reassignModal" tabindex="-1">
-    <div class="modal-dialog modal-lg modal-dialog-centered">
-        <div class="modal-content" style="border-radius: 16px; border: none; box-shadow: 0 20px 60px rgba(0,0,0,0.2);">
-            <div class="modal-header" style="background: linear-gradient(135deg, #009EDB 0%, #0077B6 100%); color: white; border-bottom: none; padding: 2rem; border-radius: 16px 16px 0 0;">
-                <div class="w-100">
-                    <h5 class="mb-1 fw-bold">
-                        <i class="bi bi-arrow-left-right me-2"></i>
-                        <span>Reassign Payment</span>
-                    </h5>
-                    <p class="mb-0 opacity-75 small">Transfer payment responsibility to another user</p>
-                    <div class="mt-3 d-flex align-items-center gap-2">
-                        <div class="d-flex align-items-center bg-white rounded-3 px-3 py-2" style="border: 2px solid rgba(255,255,255,0.3);">
-                            <i class="bi bi-telephone-fill me-2" style="color: #009EDB;"></i>
-                            <span class="text-muted small me-1">Dialed:</span>
-                            <strong id="reassignDialedNumber" style="color: #1f2937;"></strong>
-                        </div>
-                    </div>
-                </div>
-                <button type="button" class="btn-close btn-close-white position-absolute" data-bs-dismiss="modal" style="top: 1.5rem; right: 1.5rem;"></button>
-            </div>
-            <div class="modal-body" style="padding: 2rem;">
-                <form method="post" asp-page-handler="ReassignCalls" id="reassignForm">
-                    <input type="hidden" name="callId" id="reassignCallId" />
-                    <input type="hidden" name="dialedNumber" id="hiddenDialedNumber" />
-
-                    <div class="mb-4">
-                        <label class="form-label fw-semibold mb-3" style="color: #1f2937;">
-                            <i class="bi bi-person-fill me-2" style="color: #8b5cf6;"></i>
-                            Search for User
-                        </label>
-                        <div class="input-group mb-2">
-                            <span class="input-group-text bg-light" style="border-radius: 12px 0 0 12px; border: 2px solid #e5e7eb; border-right: none;">
-                                <i class="bi bi-search"></i>
-                            </span>
-                            <input type="text" class="form-control" id="reassignUserSearchInput"
-                                   placeholder="Enter name, index number, or email..."
-                                   style="border: 2px solid #e5e7eb; border-left: none; border-radius: 0 12px 12px 0;">
-                        </div>
-                        <div class="d-flex align-items-center mb-3 p-2 bg-light rounded-3">
-                            <i class="bi bi-info-circle me-2" style="color: #06b6d4;"></i>
-                            <small class="text-muted">Type to search and select a user</small>
-                        </div>
-
-                        <!-- Search Results -->
-                        <div id="reassignUserSearchResults" style="max-height: 300px; overflow-y: auto;">
-                            <div class="text-center py-3 text-muted">
-                                <i class="bi bi-search" style="font-size: 2rem; opacity: 0.3;"></i>
-                                <p class="mt-2 mb-0 small">Start typing to search users...</p>
-                            </div>
-                        </div>
-
-                        <!-- Selected User Preview -->
-                        <div id="selectedUserPreview" class="d-none mt-3 p-3 rounded-3" style="border: 2px solid #10b981; background: #f0fdf4;">
-                            <div class="d-flex justify-content-between align-items-center">
-                                <div>
-                                    <h6 class="fw-semibold mb-1" style="color: #10b981;">
-                                        <i class="bi bi-check-circle-fill me-2"></i>Selected User
-                                    </h6>
-                                    <div id="selectedUserDetails"></div>
-                                </div>
-                                <button type="button" class="btn btn-sm btn-light" onclick="clearSelectedUser()">
-                                    <i class="bi bi-x-circle"></i>
-                                </button>
-                            </div>
-                        </div>
-
-                        <!-- Hidden input for the selected user -->
-                        <input type="hidden" name="assignToIndexNumber" id="selectedUserIndexNumber" required>
-                    </div>
-
-                    <div class="mb-4">
-                        <label class="form-label fw-semibold mb-3" style="color: #1f2937;">
-                            <i class="bi bi-chat-left-text-fill me-2" style="color: #f59e0b;"></i>
-                            Assignment Reason
-                        </label>
-                        <textarea class="form-control" name="assignmentReason" rows="4"
-                                  placeholder="Provide a clear explanation for this payment reassignment..."
-                                  style="border: 2px solid #e5e7eb; border-radius: 12px;"
-                                  required></textarea>
-                        <div class="d-flex align-items-center mt-2 p-2 bg-light rounded-3">
-                            <i class="bi bi-exclamation-triangle me-2" style="color: #f59e0b;"></i>
-                            <small class="text-muted">This action will transfer payment responsibility and notify the assigned user</small>
-                        </div>
-                    </div>
-
-                    <div class="d-flex gap-3">
-                        <button type="button" class="btn btn-light flex-grow-1" data-bs-dismiss="modal" style="border-radius: 12px; padding: 0.75rem; border: 2px solid #e5e7eb;">
-                            <i class="bi bi-x-circle me-2" style="color: #6b7280;"></i>Cancel
-                        </button>
-                        <button type="submit" class="btn btn-success flex-grow-1" style="border-radius: 12px; padding: 0.75rem;">
-                            <i class="bi bi-check-circle-fill me-2"></i>Confirm Reassignment
-                        </button>
-                    </div>
-                </form>
-            </div>
-        </div>
-    </div>
-</div>
-
 @* Quick Verify Confirmation Modal - Official *@
 <div class="modal fade" id="confirmOfficialModal" tabindex="-1" aria-labelledby="confirmOfficialLabel" aria-hidden="true">
     <div class="modal-dialog modal-dialog-centered">
@@ -1442,54 +1815,7 @@
 </div>
 
 @section Scripts {
-    <!-- Notification Container for Alerts -->
-    <div id="notificationContainer" style="position: fixed; top: 80px; right: 20px; z-index: 9999; max-width: 400px;"></div>
-
     <script>
-        // Custom notification function
-        function showNotification(type, title, message) {
-            const container = document.getElementById('notificationContainer');
-
-            // Map type to Bootstrap alert class
-            const alertClass = {
-                'success': 'alert-success',
-                'error': 'alert-danger',
-                'warning': 'alert-warning',
-                'info': 'alert-info'
-            }[type] || 'alert-info';
-
-            // Icon mapping
-            const icon = {
-                'success': 'bi-check-circle-fill',
-                'error': 'bi-x-circle-fill',
-                'warning': 'bi-exclamation-triangle-fill',
-                'info': 'bi-info-circle-fill'
-            }[type] || 'bi-info-circle-fill';
-
-            // Create notification element
-            const notification = document.createElement('div');
-            notification.className = `alert ${alertClass} alert-dismissible fade show shadow-sm mb-3`;
-            notification.style.borderRadius = '8px';
-            notification.innerHTML = `
-                <div class="d-flex align-items-start">
-                    <i class="bi ${icon} me-2" style="font-size: 1.2rem;"></i>
-                    <div class="flex-grow-1">
-                        <strong>${title}</strong>
-                        <div class="mt-1">${message}</div>
-                    </div>
-                    <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
-                </div>
-            `;
-
-            container.appendChild(notification);
-
-            // Auto-remove after 5 seconds
-            setTimeout(() => {
-                notification.classList.remove('show');
-                setTimeout(() => notification.remove(), 150);
-            }, 5000);
-        }
-
         // Two-level table: Toggle call details for an extension group
         function toggleCallDetails(groupId) {
             const detailRows = document.querySelectorAll(`tr.call-detail-row[data-group="${groupId}"]`);
@@ -1692,30 +2018,9 @@
         let currentVerificationData = null;
 
         // Quick verify single call from inline dropdown
-        function quickVerifyCall(callId, verificationType, callNumber, costUSD, costKSH, duration, callDate, dropdownElement) {
+        function quickVerifyCall(callId, verificationType, callNumber, costUSD, costKSH, duration, callDate) {
             // Reset dropdown if no selection
             if (!verificationType) {
-                return;
-            }
-
-            // Validate: Check if call is expired
-            const isExpired = dropdownElement.getAttribute('data-expired') === 'true';
-            const isLocked = dropdownElement.getAttribute('data-locked') === 'true';
-            const deadline = dropdownElement.getAttribute('data-deadline');
-
-            if (isExpired) {
-                showNotification('error', 'Verification Expired',
-                    `This call cannot be verified. The verification deadline (${deadline}) has passed.`);
-                // Reset dropdown
-                dropdownElement.selectedIndex = 0;
-                return;
-            }
-
-            if (isLocked) {
-                showNotification('warning', 'Call Locked',
-                    'This call is locked and cannot be verified at this time. It may be pending assignment acceptance or already approved by supervisor.');
-                // Reset dropdown
-                dropdownElement.selectedIndex = 0;
                 return;
             }
 
@@ -1824,170 +2129,6 @@
 
             document.body.appendChild(form);
             form.submit();
-        }
-
-        // Verify all calls in a group (extension + month + year)
-        function verifyAllCallsInGroup(groupId, verificationType) {
-            // Reset dropdown if no selection
-            if (!verificationType) {
-                return;
-            }
-
-            // Get all call checkboxes in this group that are not locked/expired
-            const groupCheckboxes = document.querySelectorAll(`.call-checkbox[data-group="${groupId}"]`);
-            const verifiableCallIds = [];
-            let lockedCount = 0;
-            let expiredCount = 0;
-            let alreadyVerifiedCount = 0;
-
-            groupCheckboxes.forEach(checkbox => {
-                const isLocked = checkbox.getAttribute('data-locked') === 'true';
-                const isExpired = checkbox.getAttribute('data-expired') === 'true';
-                const isVerified = checkbox.getAttribute('data-verified') === 'true';
-
-                if (isLocked) {
-                    lockedCount++;
-                } else if (isExpired) {
-                    expiredCount++;
-                } else if (isVerified) {
-                    alreadyVerifiedCount++;
-                } else {
-                    verifiableCallIds.push(checkbox.value);
-                }
-            });
-
-            // Check if there are any calls to verify
-            if (verifiableCallIds.length === 0) {
-                // Build detailed message
-                let details = [];
-                if (lockedCount > 0) details.push(`${lockedCount} locked`);
-                if (expiredCount > 0) details.push(`${expiredCount} expired`);
-                if (alreadyVerifiedCount > 0) details.push(`${alreadyVerifiedCount} already verified`);
-
-                showNotification('info', 'No Calls to Verify', `All calls in this group are: ${details.join(', ')}.`);
-
-                // Reset dropdown
-                event.target.selectedIndex = 0;
-                return;
-            }
-
-            // Prepare confirmation modal content
-            const callWord = verifiableCallIds.length === 1 ? 'call' : 'calls';
-            const typeLabel = verificationType === 'Official' ? 'Official (work-related)' : 'Personal';
-            const typeColor = verificationType === 'Official' ? 'success' : 'warning';
-
-            let noteHtml = '';
-            if (lockedCount > 0 || expiredCount > 0 || alreadyVerifiedCount > 0) {
-                let notes = [];
-                if (lockedCount > 0) notes.push(`<li>${lockedCount} locked call(s) will be skipped</li>`);
-                if (expiredCount > 0) notes.push(`<li>${expiredCount} expired call(s) will be skipped</li>`);
-                if (alreadyVerifiedCount > 0) notes.push(`<li>${alreadyVerifiedCount} already verified call(s) will be skipped</li>`);
-                noteHtml = `<div class="alert alert-info mt-3"><strong>Note:</strong><ul class="mb-0 mt-2">${notes.join('')}</ul></div>`;
-            }
-
-            // Show custom confirmation modal
-            showConfirmation(
-                `Verify ${verifiableCallIds.length} ${callWord}?`,
-                `You are about to verify <strong>${verifiableCallIds.length} ${callWord}</strong> as <span class="badge bg-${typeColor}">${typeLabel}</span>.${noteHtml}`,
-                'Yes, Verify',
-                () => {
-                    // User confirmed - submit form
-                    const form = document.createElement('form');
-                    form.method = 'POST';
-                    form.action = '?handler=QuickVerify';
-
-                    // Add anti-forgery token
-                    const tokenInput = document.createElement('input');
-                    tokenInput.type = 'hidden';
-                    tokenInput.name = '__RequestVerificationToken';
-                    tokenInput.value = document.querySelector('input[name="__RequestVerificationToken"]').value;
-                    form.appendChild(tokenInput);
-
-                    // Add verification type
-                    const typeInput = document.createElement('input');
-                    typeInput.type = 'hidden';
-                    typeInput.name = 'verificationType';
-                    typeInput.value = verificationType;
-                    form.appendChild(typeInput);
-
-                    // Add all verifiable call IDs
-                    verifiableCallIds.forEach(callId => {
-                        const idInput = document.createElement('input');
-                        idInput.type = 'hidden';
-                        idInput.name = 'selectedIds';
-                        idInput.value = callId;
-                        form.appendChild(idInput);
-                    });
-
-                    document.body.appendChild(form);
-                    form.submit();
-                },
-                () => {
-                    // User cancelled - reset dropdown
-                    event.target.selectedIndex = 0;
-                }
-            );
-        }
-
-        // Custom confirmation modal function
-        function showConfirmation(title, message, confirmText, onConfirm, onCancel) {
-            // Remove existing modal if any
-            const existingModal = document.getElementById('customConfirmModal');
-            if (existingModal) {
-                existingModal.remove();
-            }
-
-            // Create modal HTML
-            const modalHtml = `
-                <div class="modal fade" id="customConfirmModal" tabindex="-1">
-                    <div class="modal-dialog modal-dialog-centered">
-                        <div class="modal-content">
-                            <div class="modal-header bg-primary text-white">
-                                <h5 class="modal-title"><i class="bi bi-question-circle me-2"></i>${title}</h5>
-                                <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal"></button>
-                            </div>
-                            <div class="modal-body">
-                                ${message}
-                            </div>
-                            <div class="modal-footer">
-                                <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancel</button>
-                                <button type="button" class="btn btn-primary" id="confirmModalBtn">
-                                    <i class="bi bi-check-lg me-1"></i>${confirmText}
-                                </button>
-                            </div>
-                        </div>
-                    </div>
-                </div>
-            `;
-
-            // Add modal to page
-            document.body.insertAdjacentHTML('beforeend', modalHtml);
-
-            // Get modal element
-            const modalElement = document.getElementById('customConfirmModal');
-            const modal = new bootstrap.Modal(modalElement);
-
-            // Handle confirm button
-            document.getElementById('confirmModalBtn').addEventListener('click', () => {
-                modal.hide();
-                if (onConfirm) onConfirm();
-            });
-
-            // Handle modal hidden (cleanup)
-            modalElement.addEventListener('hidden.bs.modal', () => {
-                if (!modalElement.classList.contains('confirmed')) {
-                    if (onCancel) onCancel();
-                }
-                modalElement.remove();
-            });
-
-            // Handle confirm button to mark as confirmed
-            document.getElementById('confirmModalBtn').addEventListener('click', () => {
-                modalElement.classList.add('confirmed');
-            }, { once: true });
-
-            // Show modal
-            modal.show();
         }
 
         // Store selected IDs for confirmation
@@ -2180,160 +2321,6 @@
             }
         }
 
-        // ========================
-        // REASSIGNMENT FUNCTIONS
-        // ========================
-
-        // Open reassign dialog
-        function openReassignDialog(callId, callNumber, destination, event) {
-            event.preventDefault();
-            event.stopPropagation();
-
-            // Set call information in modal
-            document.getElementById('reassignCallId').value = callId;
-            document.getElementById('reassignDialedNumber').textContent = callNumber;
-            document.getElementById('hiddenDialedNumber').value = callNumber;
-
-            const modal = new bootstrap.Modal(document.getElementById('reassignModal'));
-            modal.show();
-        }
-
-        // Variables for reassignment
-        let selectedUserForReassignment = null;
-
-        // Search users for reassignment
-        async function searchUsersForReassignment(searchTerm) {
-            const resultsDiv = document.getElementById('reassignUserSearchResults');
-
-            if (!searchTerm || searchTerm.length < 2) {
-                resultsDiv.innerHTML = `
-                    <div class="text-center py-3 text-muted">
-                        <i class="bi bi-search" style="font-size: 2rem; opacity: 0.3;"></i>
-                        <p class="mt-2 mb-0 small">Start typing to search users...</p>
-                    </div>
-                `;
-                return;
-            }
-
-            // Show loading
-            resultsDiv.innerHTML = `
-                <div class="text-center py-3">
-                    <div class="spinner-border spinner-border-sm text-primary" role="status">
-                        <span class="visually-hidden">Searching...</span>
-                    </div>
-                    <p class="mt-2 mb-0 small">Searching for users...</p>
-                </div>
-            `;
-
-            try {
-                const response = await fetch(`/Modules/EBillManagement/CallRecords/MyCallLogs?handler=SearchUsers&searchTerm=${encodeURIComponent(searchTerm)}`);
-                const data = await response.json();
-
-                if (data.error) {
-                    resultsDiv.innerHTML = `
-                        <div class="alert alert-danger mb-0">
-                            <i class="bi bi-x-circle me-2"></i>
-                            ${data.error}
-                        </div>
-                    `;
-                    return;
-                }
-
-                if (data.users && data.users.length > 0) {
-                    // Display users
-                    const usersHtml = data.users.map(user => `
-                        <div class="border rounded-3 p-3 mb-2 user-select-card" style="cursor: pointer; transition: all 0.2s;"
-                             onmouseover="this.style.background='#f9fafb'; this.style.borderColor='#9ca3af';"
-                             onmouseout="this.style.background='white'; this.style.borderColor='#e5e7eb';"
-                             onclick="selectUserForReassignment('${user.indexNumber}', '${user.firstName}', '${user.lastName}', '${user.email || 'N/A'}')">
-                            <div class="d-flex justify-content-between align-items-start">
-                                <div class="flex-grow-1">
-                                    <div class="fw-semibold" style="color: #1f2937;">
-                                        ${user.firstName} ${user.lastName}
-                                    </div>
-                                    <div class="text-muted small mt-1">
-                                        <i class="bi bi-person-badge me-1"></i>Index: ${user.indexNumber}
-                                    </div>
-                                    <div class="text-muted small">
-                                        <i class="bi bi-envelope me-1"></i>${user.email || 'N/A'}
-                                    </div>
-                                </div>
-                                <div class="text-end">
-                                    <i class="bi bi-chevron-right" style="color: #9ca3af;"></i>
-                                </div>
-                            </div>
-                        </div>
-                    `).join('');
-
-                    resultsDiv.innerHTML = usersHtml;
-                } else if (data.isSearchingForSelf) {
-                    // User is searching for themselves
-                    resultsDiv.innerHTML = `
-                        <div class="alert alert-info mb-0">
-                            <i class="bi bi-info-circle me-2"></i>
-                            <strong>Cannot assign to yourself</strong><br>
-                            You are currently logged in as ${data.currentUserName}. You cannot reassign calls to yourself.
-                        </div>
-                    `;
-                } else {
-                    resultsDiv.innerHTML = `
-                        <div class="alert alert-warning mb-0">
-                            <i class="bi bi-exclamation-triangle me-2"></i>
-                            No users found matching "${searchTerm}"
-                        </div>
-                    `;
-                }
-            } catch (error) {
-                console.error('Error searching users:', error);
-                resultsDiv.innerHTML = `
-                    <div class="alert alert-danger mb-0">
-                        <i class="bi bi-x-circle me-2"></i>
-                        Error searching users. Please try again.
-                    </div>
-                `;
-            }
-        }
-
-        // Select user for reassignment
-        function selectUserForReassignment(indexNumber, firstName, lastName, email) {
-            selectedUserForReassignment = { indexNumber, firstName, lastName, email };
-
-            // Update hidden input
-            document.getElementById('selectedUserIndexNumber').value = indexNumber;
-
-            // Show preview
-            const previewDiv = document.getElementById('selectedUserPreview');
-            const detailsDiv = document.getElementById('selectedUserDetails');
-
-            detailsDiv.innerHTML = `
-                <div>
-                    <strong style="color: #1f2937;">${firstName} ${lastName}</strong><br>
-                    <span class="text-muted small">Index: ${indexNumber}</span><br>
-                    <span class="text-muted small">Email: ${email}</span>
-                </div>
-            `;
-
-            previewDiv.classList.remove('d-none');
-
-            // Clear search
-            document.getElementById('reassignUserSearchInput').value = '';
-            document.getElementById('reassignUserSearchResults').innerHTML = '';
-        }
-
-        // Clear selected user
-        function clearSelectedUser() {
-            selectedUserForReassignment = null;
-            document.getElementById('selectedUserIndexNumber').value = '';
-            document.getElementById('selectedUserPreview').classList.add('d-none');
-            document.getElementById('reassignUserSearchInput').value = '';
-            document.getElementById('reassignUserSearchResults').innerHTML = `
-                <div class="text-center py-3 text-muted">
-                    <i class="bi bi-search" style="font-size: 2rem; opacity: 0.3;"></i>
-                    <p class="mt-2 mb-0 small">Start typing to search users...</p>
-                </div>
-            `;
-        }
-
         // Initialize extension checkboxes on page load
         document.addEventListener('DOMContentLoaded', function() {
             // Update all extension checkboxes to reflect their current state
@@ -2350,38 +2337,6 @@
                     delay: { show: 300, hide: 100 }
                 });
             });
-
-            // Initialize reassignment search input with debounce
-            const searchInput = document.getElementById('reassignUserSearchInput');
-            if (searchInput) {
-                let searchTimeout;
-                searchInput.addEventListener('input', function() {
-                    clearTimeout(searchTimeout);
-                    searchTimeout = setTimeout(() => {
-                        searchUsersForReassignment(this.value);
-                    }, 500);
-                });
-            }
-
-            // Reset form when reassignment modal is closed
-            const reassignModal = document.getElementById('reassignModal');
-            if (reassignModal) {
-                reassignModal.addEventListener('hidden.bs.modal', function () {
-                    clearSelectedUser();
-                });
-
-                // Show initial message when modal opens
-                reassignModal.addEventListener('shown.bs.modal', function () {
-                    if (!selectedUserForReassignment) {
-                        document.getElementById('reassignUserSearchResults').innerHTML = `
-                            <div class="text-center py-3 text-muted">
-                                <i class="bi bi-search" style="font-size: 2rem; opacity: 0.3;"></i>
-                                <p class="mt-2 mb-0 small">Start typing to search users...</p>
-                            </div>
-                        `;
-                    }
-                });
-            }
         });
     </script>
 }

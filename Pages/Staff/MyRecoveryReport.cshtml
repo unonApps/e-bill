@@ -298,101 +298,6 @@
         </div>
     </div>
 
-    <!-- Statistics Cards -->
-    <div class="stats-container">
-        <div class="stat-card">
-            <div class="stat-card-top">
-                <div class="stat-card-left">
-                    <div class="stat-icon stat-icon-danger">
-                        <i class="bi bi-exclamation-triangle-fill"></i>
-                    </div>
-                    <p class="stat-label">Total Recovered Calls</p>
-                </div>
-                <h3 class="stat-value">@Model.Summary.TotalRecordsRecovered</h3>
-            </div>
-            <div class="stat-card-bottom">
-                @if (Model.RecoveryDetails.Any())
-                {
-                    @foreach (var currencyGroup in Model.RecoveryDetails.GroupBy(d => d.Currency).OrderBy(g => g.Key))
-                    {
-                        <div class="d-flex justify-content-between align-items-center mb-1">
-                            <span class="badge bg-@(currencyGroup.Key == "USD" ? "success" : "secondary") bg-opacity-10 text-@(currencyGroup.Key == "USD" ? "success" : "secondary")" style="font-size: 11px;">
-                                @currencyGroup.Key
-                            </span>
-                            <strong class="text-danger">@currencyGroup.Sum(d => d.RecoveryAmount).ToString("N2")</strong>
-                        </div>
-                    }
-                }
-                else
-                {
-                    <strong class="text-danger fs-5">@Model.Summary.TotalAmountRecovered.ToString("C0")</strong>
-                }
-            </div>
-        </div>
-
-        <div class="stat-card">
-            <div class="stat-card-top">
-                <div class="stat-card-left">
-                    <div class="stat-icon stat-icon-warning">
-                        <i class="bi bi-clock-history"></i>
-                    </div>
-                    <p class="stat-label">Expired Verifications</p>
-                </div>
-                <h3 class="stat-value">@Model.Summary.ExpiredVerifications</h3>
-            </div>
-            <div class="stat-card-bottom">
-                <small class="text-muted">Missed verification deadline</small>
-            </div>
-        </div>
-
-        <div class="stat-card">
-            <div class="stat-card-top">
-                <div class="stat-card-left">
-                    <div class="stat-icon stat-icon-info">
-                        <i class="bi bi-hourglass-split"></i>
-                    </div>
-                    <p class="stat-label">Expired Approvals</p>
-                </div>
-                <h3 class="stat-value">@Model.Summary.ExpiredApprovals</h3>
-            </div>
-            <div class="stat-card-bottom">
-                <small class="text-muted">Supervisor didn't approve</small>
-            </div>
-        </div>
-
-        <div class="stat-card">
-            <div class="stat-card-top">
-                <div class="stat-card-left">
-                    <div class="stat-icon stat-icon-primary">
-                        <i class="bi bi-clock"></i>
-                    </div>
-                    <p class="stat-label">Pending Now</p>
-                </div>
-                <h3 class="stat-value">@Model.Summary.PendingVerifications</h3>
-            </div>
-            <div class="stat-card-bottom">
-                <a asp-page="/Modules/EBillManagement/CallRecords/MyCallLogs" class="btn btn-sm btn-primary" style="border-radius: 8px; width: 100%;">
-                    <i class="bi bi-arrow-right me-1"></i>Verify Now
-                </a>
-            </div>
-        </div>
-    </div>
-
-    @if (Model.Summary.MissedDeadlines > 0)
-    {
-        <div class="alert alert-danger border-0" style="border-radius: 12px; border-left: 4px solid #ef4444;" role="alert">
-            <div class="d-flex align-items-center justify-content-between">
-                <div>
-                    <i class="bi bi-exclamation-circle-fill me-2"></i>
-                    <strong>Urgent:</strong> You have <strong>@Model.Summary.MissedDeadlines</strong> calls with missed deadlines that will be recovered soon!
-                </div>
-                <a asp-page="/Modules/EBillManagement/CallRecords/MyCallLogs" class="btn btn-sm btn-danger" style="border-radius: 8px;">
-                    <i class="bi bi-arrow-right me-1"></i>Verify Now
-                </a>
-            </div>
-        </div>
-    }
-
     <!-- Filter Card (Collapsible) -->
     <div class="filter-card">
         <div class="filter-header" data-bs-toggle="collapse" data-bs-target="#filterCollapse">
@@ -452,10 +357,10 @@
                     <h5 class="mb-0 fw-bold text-dark">
                         <i class="bi bi-list-ul me-2 text-primary"></i>Recovery Details
                     </h5>
-                    <p class="text-muted mb-0">@Model.RecoveryDetails.Count records found</p>
+                    <p class="text-muted mb-0">@Model.GroupedRecoveryData.Sum(g => g.TotalCalls) records found in @Model.GroupedRecoveryData.Count months</p>
                 </div>
                 <div class="p-0">
-                    @if (Model.RecoveryDetails.Any())
+                    @if (Model.GroupedRecoveryData.Any())
                     {
                         <div class="alert alert-info border-0 m-3" style="border-radius: 12px;">
                             <i class="bi bi-info-circle me-2"></i>
@@ -463,119 +368,68 @@
                         </div>
                         <div class="table-responsive">
                             <table class="table table-hover mb-0">
-                                <thead>
+                                <thead style="background-color: #f8f9fa;">
                                     <tr>
-                                        <th><i class="bi bi-calendar me-1"></i>Call Date</th>
-                                        <th><i class="bi bi-telephone me-1"></i>Number</th>
-                                        <th><i class="bi bi-geo-alt me-1"></i>Destination</th>
-                                        <th><i class="bi bi-clock me-1"></i>Duration</th>
-                                        <th class="text-end"><i class="bi bi-currency-dollar me-1"></i>Cost</th>
-                                        <th><i class="bi bi-cash me-1"></i>Currency</th>
-                                        <th class="text-end"><i class="bi bi-exclamation-triangle me-1"></i>Recovered</th>
-                                        <th><i class="bi bi-calendar-check me-1"></i>Recovery Date</th>
-                                        <th><i class="bi bi-tag me-1"></i>Reason</th>
-                                        <th><i class="bi bi-arrow-right me-1"></i>Assignment</th>
+                                        <th class="border-0 px-3 py-3 text-center" style="font-weight: 600; color: #4a5568; width: 50px;">
+                                            <i class="bi bi-plus-circle"></i>
+                                        </th>
+                                        <th class="border-0 px-3 py-3" style="font-weight: 600; color: #4a5568; text-transform: uppercase; font-size: 12px; letter-spacing: 0.5px;">
+                                            <i class="bi bi-calendar me-2"></i>Month / Year
+                                        </th>
+                                        <th class="border-0 px-3 py-3" style="font-weight: 600; color: #4a5568; text-transform: uppercase; font-size: 12px; letter-spacing: 0.5px;">
+                                            <i class="bi bi-list-ol me-2"></i>Calls
+                                        </th>
+                                        <th class="border-0 px-3 py-3" style="font-weight: 600; color: #4a5568; text-transform: uppercase; font-size: 12px; letter-spacing: 0.5px;">
+                                            <i class="bi bi-currency-dollar me-2"></i>Total Recovered
+                                        </th>
+                                        <th class="border-0 px-3 py-3" style="font-weight: 600; color: #4a5568; text-transform: uppercase; font-size: 12px; letter-spacing: 0.5px;">
+                                            <i class="bi bi-tags me-2"></i>Recovery Breakdown
+                                        </th>
                                     </tr>
                                 </thead>
                                 <tbody>
-                                    @foreach (var detail in Model.RecoveryDetails)
+                                    @foreach (var monthGroup in Model.GroupedRecoveryData)
                                     {
-                                        <tr>
-                                            <td>
-                                                <div>@detail.CallDate.ToString("MMM dd, yyyy")</div>
-                                                <small class="text-muted">@detail.CallDate.ToString("hh:mm tt")</small>
-                                            </td>
-                                            <td><code style="color: #009EDB;">@detail.CallNumber</code></td>
-                                            <td>@detail.CallDestination</td>
-                                            <td>@TimeSpan.FromSeconds(detail.CallDuration).ToString(@"hh\:mm\:ss")</td>
-                                            <td class="text-end">@detail.CallCost.ToString("N2")</td>
-                                            <td>
-                                                <span class="badge bg-@(detail.Currency == "USD" ? "success" : "secondary") bg-opacity-10 text-@(detail.Currency == "USD" ? "success" : "secondary")">
-                                                    @detail.Currency
-                                                </span>
-                                            </td>
-                                            <td class="text-end">
-                                                <strong class="text-danger">@detail.RecoveryAmount.ToString("N2")</strong>
-                                            </td>
-                                            <td>
-                                                @if (detail.RecoveryDate.HasValue)
-                                                {
-                                                    <div>@detail.RecoveryDate.Value.ToString("MMM dd, yyyy")</div>
-                                                    <small class="text-muted">@detail.RecoveryDate.Value.ToString("hh:mm tt")</small>
-                                                }
-                                            </td>
-                                            <td>
-                                                @{
-                                                    // Categorize by RecoveryType for badge styling
-                                                    var badgeClass = detail.RecoveryType switch
-                                                    {
-                                                        "StaffNonVerification" => "bg-danger text-white",
-                                                        "SupervisorNonApproval" => "bg-warning text-dark",
-                                                        "SupervisorRevertFailure" => "bg-danger text-white",
-                                                        "SupervisorRejection" => "bg-secondary text-white",
-                                                        "SupervisorPartialApproval" => "bg-info text-white",
-                                                        "ManualOverride" => "bg-primary text-white",
-                                                        _ => "bg-secondary text-white"
-                                                    };
+                                        @* Level 1: Month Summary Row *@
+                                        <partial name="Partials/_MonthSummaryRow" model="monthGroup" />
 
-                                                    // Short category label for the badge
-                                                    var categoryLabel = detail.RecoveryType switch
-                                                    {
-                                                        "StaffNonVerification" => "You Missed Deadline",
-                                                        "SupervisorNonApproval" => "Supervisor Missed Deadline",
-                                                        "SupervisorRevertFailure" => "Didn't Re-verify",
-                                                        "SupervisorRejection" => "Rejected",
-                                                        "SupervisorPartialApproval" => "Reviewed",
-                                                        "ManualOverride" => "Manual Override",
-                                                        _ => "Unknown"
-                                                    };
-                                                }
-                                                <div class="d-flex flex-column gap-1">
-                                                    <span class="badge @badgeClass" style="font-size: 0.75rem;">
-                                                        <i class="bi bi-@(detail.RecoveryType switch {
-                                                            "StaffNonVerification" => "exclamation-triangle-fill",
-                                                            "SupervisorNonApproval" => "hourglass-split",
-                                                            "SupervisorRevertFailure" => "arrow-counterclockwise",
-                                                            "SupervisorRejection" => "x-circle-fill",
-                                                            "SupervisorPartialApproval" => "check-circle-fill",
-                                                            "ManualOverride" => "gear-fill",
-                                                            _ => "question-circle"
-                                                        }) me-1"></i>
-                                                        @categoryLabel
-                                                    </span>
-                                                    @if (!string.IsNullOrEmpty(detail.RecoveryReason))
-                                                    {
-                                                        <small class="text-muted" style="font-size: 0.75rem;" title="@detail.RecoveryReason">
-                                                            @(detail.RecoveryReason.Length > 60 ? detail.RecoveryReason.Substring(0, 60) + "..." : detail.RecoveryReason)
-                                                        </small>
-                                                    }
-                                                </div>
-                                            </td>
-                                            <td>
-                                                @if (detail.FinalAssignment == "Personal")
-                                                {
-                                                    <span class="badge bg-danger bg-opacity-10 text-danger">Personal</span>
-                                                }
-                                                else if (detail.FinalAssignment == "ClassOfService")
-                                                {
-                                                    <span class="badge bg-warning bg-opacity-10 text-warning">Over Limit</span>
-                                                }
-                                            </td>
-                                        </tr>
+                                        @* Level 2: Detail Header *@
+                                        <partial name="Partials/_DetailHeader" model="monthGroup.GroupId" />
+
+                                        @* Level 2: Detail Rows *@
+                                        @foreach (var detail in monthGroup.Details)
+                                        {
+                                            <partial name="Partials/_DetailRow" model="(detail, monthGroup.GroupId)" />
+                                        }
                                     }
                                 </tbody>
                                 <tfoot style="background: #f8f9fa;">
-                                    @foreach (var currencyGroup in Model.RecoveryDetails.GroupBy(d => d.Currency).OrderBy(g => g.Key))
+                                    @{
+                                        var totalUSD = Model.GroupedRecoveryData.Sum(g => g.TotalUSD);
+                                        var totalKES = Model.GroupedRecoveryData.Sum(g => g.TotalKES);
+                                    }
+                                    @if (totalUSD > 0)
                                     {
                                         <tr>
-                                            <th colspan="5" class="text-end px-3 py-3">Total (@currencyGroup.Key):</th>
+                                            <th colspan="3" class="text-end px-3 py-3">Grand Total (USD):</th>
                                             <th class="px-3 py-3">
-                                                <span class="badge bg-@(currencyGroup.Key == "USD" ? "success" : "secondary")">@currencyGroup.Key</span>
+                                                <span class="badge bg-success">USD</span>
                                             </th>
-                                            <th class="text-end px-3 py-3">
-                                                <strong class="text-danger fs-5">@currencyGroup.Sum(d => d.RecoveryAmount).ToString("N2")</strong>
+                                            <th class="text-start px-3 py-3">
+                                                <strong class="text-danger fs-5">$@totalUSD.ToString("N2")</strong>
                                             </th>
-                                            <th colspan="3"></th>
+                                        </tr>
+                                    }
+                                    @if (totalKES > 0)
+                                    {
+                                        <tr>
+                                            <th colspan="3" class="text-end px-3 py-3">Grand Total (KES):</th>
+                                            <th class="px-3 py-3">
+                                                <span class="badge bg-secondary">KES</span>
+                                            </th>
+                                            <th class="text-start px-3 py-3">
+                                                <strong class="text-danger fs-5">KSh @totalKES.ToString("N2")</strong>
+                                            </th>
                                         </tr>
                                     }
                                 </tfoot>
@@ -607,3 +461,58 @@
         </ul>
     </div>
 </div>
+
+@section Scripts {
+    <script>
+        // Toggle month details (Level 2 rows)
+        function toggleMonthDetails(groupId) {
+            const detailRows = document.querySelectorAll(`tr[data-group="${groupId}"]`);
+            const toggle = document.getElementById('toggle-' + groupId);
+
+            if (detailRows.length > 0) {
+                const isHidden = detailRows[0].style.display === 'none';
+
+                detailRows.forEach(row => {
+                    row.style.display = isHidden ? '' : 'none';
+                });
+
+                if (isHidden) {
+                    toggle.classList.remove('bi-plus-circle');
+                    toggle.classList.add('bi-dash-circle');
+                } else {
+                    toggle.classList.remove('bi-dash-circle');
+                    toggle.classList.add('bi-plus-circle');
+                }
+            }
+        }
+
+        // Expand all months
+        function expandAllMonths() {
+            document.querySelectorAll('.detail-row, .detail-header-row').forEach(row => {
+                row.style.display = '';
+            });
+            document.querySelectorAll('.toggle-icon').forEach(toggle => {
+                toggle.classList.remove('bi-plus-circle');
+                toggle.classList.add('bi-dash-circle');
+            });
+        }
+
+        // Collapse all months
+        function collapseAllMonths() {
+            document.querySelectorAll('.detail-row, .detail-header-row').forEach(row => {
+                row.style.display = 'none';
+            });
+            document.querySelectorAll('.toggle-icon').forEach(toggle => {
+                toggle.classList.remove('bi-dash-circle');
+                toggle.classList.add('bi-plus-circle');
+            });
+        }
+
+        // Initialize on page load
+        document.addEventListener('DOMContentLoaded', function() {
+            // All months collapsed by default (already set in HTML)
+            console.log('Recovery Report 2-level table initialized');
+        });
+    </script>
+}
+

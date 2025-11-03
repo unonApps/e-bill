@@ -1,0 +1,49 @@
+@model (string GroupId, string Extension, string MonthName, int Year, int CallCount, decimal TotalCostUSD, decimal TotalCostKSH, decimal TotalRecovered)
+
+@* Extension Summary Row (Level 1) - Always visible *@
+<tr class="extension-summary-row" style="background-color: #f8f9fa; font-weight: 600;">
+    <td class="text-center px-2" onclick="toggleCallDetails('@Model.GroupId')" style="cursor: pointer;">
+        <input type="checkbox" class="extension-checkbox" id="ext-check-@Model.GroupId" onclick="event.stopPropagation();" />
+    </td>
+    <td class="text-center px-2" onclick="toggleCallDetails('@Model.GroupId')" style="cursor: pointer;">
+        <i class="bi bi-plus-circle text-primary toggle-icon" id="toggle-@Model.GroupId"></i>
+    </td>
+    <td class="px-3 py-2" onclick="toggleCallDetails('@Model.GroupId')" style="cursor: pointer;">
+        <strong>@Model.Extension</strong>
+    </td>
+    <td class="px-3 py-2" onclick="toggleCallDetails('@Model.GroupId')" style="cursor: pointer;">@Model.MonthName</td>
+    <td class="px-3 py-2" onclick="toggleCallDetails('@Model.GroupId')" style="cursor: pointer;">@Model.Year</td>
+    <td class="px-3 py-2" onclick="toggleCallDetails('@Model.GroupId')" style="cursor: pointer;">
+        <strong>$@Model.TotalCostUSD.ToString("N2")</strong>
+        @if (Model.TotalCostUSD > 50)
+        {
+            <div><small class="text-danger"><i class="bi bi-exclamation-triangle"></i> High Cost</small></div>
+        }
+    </td>
+    <td class="px-3 py-2" onclick="toggleCallDetails('@Model.GroupId')" style="cursor: pointer;"><strong>KSh @Model.TotalCostKSH.ToString("N2")</strong></td>
+    <td class="px-3 py-2" onclick="toggleCallDetails('@Model.GroupId')" style="cursor: pointer;">
+        @if (Model.TotalRecovered > 0)
+        {
+            <span class="text-danger">$@Model.TotalRecovered.ToString("N2")</span>
+        }
+        else
+        {
+            <span class="text-muted">-</span>
+        }
+    </td>
+    <td class="text-center px-2" onclick="toggleCallDetails('@Model.GroupId')" style="cursor: pointer;">
+        <span class="badge bg-info bg-opacity-10 text-info">@Model.CallCount calls</span>
+    </td>
+    <td class="text-end px-2" onclick="event.stopPropagation();">
+        <div class="d-flex gap-2 align-items-center justify-content-end">
+            <select class="form-select form-select-sm"
+                    style="width: 140px; border-radius: 8px; font-size: 0.875rem;"
+                    onchange="verifyAllCallsInGroup('@Model.GroupId', this.value)"
+                    onclick="event.stopPropagation();">
+                <option value="" selected>Verify All as...</option>
+                <option value="Official" style="color: #10b981;">✓ All Official</option>
+                <option value="Personal" style="color: #f59e0b;">✓ All Personal</option>
+            </select>
+        </div>
+    </td>
+</tr>
