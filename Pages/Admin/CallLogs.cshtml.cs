@@ -142,6 +142,7 @@ namespace TAB.Web.Pages.Admin
                     MSISDN = c.MSISDN,
                     InvoiceNo = c.InvoiceNo ?? "N/A",
                     InvoiceDate = c.InvoiceDate,
+                    CallType = "CallLog",
                     GrossTotal = c.GrossTotal,
                     AmountUSD = (decimal?)null,
                     AmountKSH = (decimal?)null,
@@ -197,13 +198,15 @@ namespace TAB.Web.Pages.Admin
             {
                 var searchLower = SearchTerm.ToLower();
                 pstnQuery = pstnQuery.Where(p =>
+                    (p.Extension != null && p.Extension.ToLower().Contains(searchLower)) ||
                     (p.IndexNumber != null && p.IndexNumber.ToLower().Contains(searchLower)) ||
                     (p.DialedNumber != null && p.DialedNumber.ToLower().Contains(searchLower)) ||
                     (p.Destination != null && p.Destination.ToLower().Contains(searchLower)) ||
                     (p.EbillUser != null && (
                         p.EbillUser.FirstName.ToLower().Contains(searchLower) ||
                         p.EbillUser.LastName.ToLower().Contains(searchLower) ||
-                        p.EbillUser.IndexNumber.ToLower().Contains(searchLower)
+                        p.EbillUser.IndexNumber.ToLower().Contains(searchLower) ||
+                        p.EbillUser.Email.ToLower().Contains(searchLower)
                     )));
             }
 
@@ -229,6 +232,7 @@ namespace TAB.Web.Pages.Admin
                     MSISDN = p.DialedNumber ?? "N/A",
                     InvoiceNo = "PSTN-" + (p.CallDate.HasValue ? p.CallDate.Value.ToString("yyyyMM") : "000000") + "-" + p.Id,
                     InvoiceDate = p.CallDate ?? DateTime.MinValue,
+                    CallType = "PSTN",
                     GrossTotal = p.AmountKSH ?? 0,
                     AmountUSD = p.AmountUSD,
                     AmountKSH = p.AmountKSH,
@@ -262,13 +266,15 @@ namespace TAB.Web.Pages.Admin
             {
                 var searchLower = SearchTerm.ToLower();
                 privateWireQuery = privateWireQuery.Where(p =>
+                    (p.Extension != null && p.Extension.ToLower().Contains(searchLower)) ||
                     (p.IndexNumber != null && p.IndexNumber.ToLower().Contains(searchLower)) ||
                     (p.DialedNumber != null && p.DialedNumber.ToLower().Contains(searchLower)) ||
                     (p.Destination != null && p.Destination.ToLower().Contains(searchLower)) ||
                     (p.EbillUser != null && (
                         p.EbillUser.FirstName.ToLower().Contains(searchLower) ||
                         p.EbillUser.LastName.ToLower().Contains(searchLower) ||
-                        p.EbillUser.IndexNumber.ToLower().Contains(searchLower)
+                        p.EbillUser.IndexNumber.ToLower().Contains(searchLower) ||
+                        p.EbillUser.Email.ToLower().Contains(searchLower)
                     )));
             }
 
@@ -293,6 +299,7 @@ namespace TAB.Web.Pages.Admin
                     MSISDN = p.DialedNumber ?? "N/A",
                     InvoiceNo = "PW-" + (p.CallDate.HasValue ? p.CallDate.Value.ToString("yyyyMM") : "000000") + "-" + p.Id,
                     InvoiceDate = p.CallDate ?? DateTime.MinValue,
+                    CallType = "Private Wire",
                     GrossTotal = p.AmountKSH ?? ((p.AmountUSD ?? 0) * 150), // Use AmountKSH if available, otherwise approximate
                     AmountUSD = p.AmountUSD,
                     AmountKSH = p.AmountKSH,
@@ -326,13 +333,15 @@ namespace TAB.Web.Pages.Admin
             {
                 var searchLower = SearchTerm.ToLower();
                 safaricomQuery = safaricomQuery.Where(s =>
+                    (s.Ext != null && s.Ext.ToLower().Contains(searchLower)) ||
                     (s.IndexNumber != null && s.IndexNumber.ToLower().Contains(searchLower)) ||
                     (s.Dialed != null && s.Dialed.ToLower().Contains(searchLower)) ||
                     (s.Dest != null && s.Dest.ToLower().Contains(searchLower)) ||
                     (s.EbillUser != null && (
                         s.EbillUser.FirstName.ToLower().Contains(searchLower) ||
                         s.EbillUser.LastName.ToLower().Contains(searchLower) ||
-                        s.EbillUser.IndexNumber.ToLower().Contains(searchLower)
+                        s.EbillUser.IndexNumber.ToLower().Contains(searchLower) ||
+                        s.EbillUser.Email.ToLower().Contains(searchLower)
                     )));
             }
 
@@ -357,6 +366,7 @@ namespace TAB.Web.Pages.Admin
                     MSISDN = s.Dialed ?? "N/A",
                     InvoiceNo = "SAF-" + (s.CallDate.HasValue ? s.CallDate.Value.ToString("yyyyMM") : "000000") + "-" + s.Id,
                     InvoiceDate = s.CallDate ?? DateTime.MinValue,
+                    CallType = s.CallType ?? "N/A",
                     GrossTotal = s.Cost ?? 0,
                     AmountUSD = s.AmountUSD,
                     AmountKSH = s.Cost,
@@ -390,13 +400,15 @@ namespace TAB.Web.Pages.Admin
             {
                 var searchLower = SearchTerm.ToLower();
                 airtelQuery = airtelQuery.Where(a =>
+                    (a.Ext != null && a.Ext.ToLower().Contains(searchLower)) ||
                     (a.IndexNumber != null && a.IndexNumber.ToLower().Contains(searchLower)) ||
                     (a.Dialed != null && a.Dialed.ToLower().Contains(searchLower)) ||
                     (a.Dest != null && a.Dest.ToLower().Contains(searchLower)) ||
                     (a.EbillUser != null && (
                         a.EbillUser.FirstName.ToLower().Contains(searchLower) ||
                         a.EbillUser.LastName.ToLower().Contains(searchLower) ||
-                        a.EbillUser.IndexNumber.ToLower().Contains(searchLower)
+                        a.EbillUser.IndexNumber.ToLower().Contains(searchLower) ||
+                        a.EbillUser.Email.ToLower().Contains(searchLower)
                     )));
             }
 
@@ -421,6 +433,7 @@ namespace TAB.Web.Pages.Admin
                     MSISDN = a.Dialed ?? "N/A",
                     InvoiceNo = "AIR-" + (a.CallDate.HasValue ? a.CallDate.Value.ToString("yyyyMM") : "000000") + "-" + a.Id,
                     InvoiceDate = a.CallDate ?? DateTime.MinValue,
+                    CallType = a.CallType ?? "N/A",
                     GrossTotal = a.Cost ?? 0,
                     AmountUSD = a.AmountUSD,
                     AmountKSH = a.Cost,

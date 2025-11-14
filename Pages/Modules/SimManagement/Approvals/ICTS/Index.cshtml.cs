@@ -44,29 +44,65 @@ namespace TAB.Web.Pages.Modules.SimManagement.Approvals.ICTS
         // Properties for ICTS processing
         public List<TAB.Web.Models.SimRequest> PendingRequests { get; set; } = new();
         public List<TAB.Web.Models.SimRequest> ProcessedRequests { get; set; } = new();
-        
+
         // Summary statistics
         public int PendingCount { get; set; }
         public int ProcessedCount { get; set; }
-        
+
         // Current user information
         public string? CurrentUserName { get; set; }
         public string? CurrentUserEmail { get; set; }
         public bool IsAdmin { get; set; }
+
+        // Detail view properties
+        public bool IsDetailView { get; set; }
+        public TAB.Web.Models.SimRequest? CurrentRequest { get; set; }
+        public List<SimRequestHistory> RequestHistory { get; set; } = new();
 
         [TempData]
         public string? StatusMessage { get; set; }
         [TempData]
         public string? StatusMessageClass { get; set; }
 
-        public async Task OnGetAsync()
+        public async Task<IActionResult> OnGetAsync(int? requestId)
         {
             var currentUser = await _userManager.GetUserAsync(User);
             if (currentUser != null)
             {
                 IsAdmin = await _userManager.IsInRoleAsync(currentUser, "Admin");
+                CurrentUserName = $"{currentUser.FirstName} {currentUser.LastName}";
+                CurrentUserEmail = currentUser.Email;
             }
+
+            // Check if we're showing detail view
+            if (requestId.HasValue)
+            {
+                IsDetailView = true;
+                CurrentRequest = await _context.SimRequests
+                    .Include(s => s.ServiceProvider)
+                    .Include(s => s.History)
+                    .FirstOrDefaultAsync(s => s.Id == requestId.Value);
+
+                if (CurrentRequest == null)
+                {
+                    StatusMessage = "Request not found.";
+                    StatusMessageClass = "danger";
+                    return RedirectToPage("/Modules/SimManagement/Approvals/Index");
+                }
+
+                // Load request history
+                RequestHistory = await _context.SimRequestHistories
+                    .Where(h => h.SimRequestId == requestId.Value)
+                    .OrderByDescending(h => h.Timestamp)
+                    .ToListAsync();
+
+                return Page();
+            }
+
+            // List view - load all requests
+            IsDetailView = false;
             await LoadIctsRequestsAsync();
+            return Page();
         }
 
         public async Task<IActionResult> OnPostIctsProcessAsync(

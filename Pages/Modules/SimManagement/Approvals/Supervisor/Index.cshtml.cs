@@ -45,23 +45,28 @@ namespace TAB.Web.Pages.Modules.SimManagement.Approvals.Supervisor
         public List<UnifiedRequest> PendingSimRequests { get; set; } = new();
         public List<UnifiedRequest> ProcessedSimRequests { get; set; } = new();
         public List<UnifiedRequest> RejectedSimRequests { get; set; } = new();
-        
+
         // Summary statistics
         public int PendingCount { get; set; }
         public int ProcessedCount { get; set; }
         public int RejectedCount { get; set; }
-        
+
         // Current supervisor information
         public string? CurrentSupervisorName { get; set; }
         public string? CurrentSupervisorEmail { get; set; }
         public bool IsAdmin { get; set; }
-        
+
+        // Detail view properties
+        public bool IsDetailView { get; set; }
+        public SimRequest? CurrentRequest { get; set; }
+        public List<SimRequestHistory> RequestHistory { get; set; } = new();
+
         [TempData]
         public string? StatusMessage { get; set; }
         [TempData]
         public string? StatusMessageClass { get; set; }
 
-        public async Task<IActionResult> OnGetAsync()
+        public async Task<IActionResult> OnGetAsync(int? requestId)
         {
             // Check if user has supervisor access
             var hasAccess = await CheckSupervisorAccessAsync();
@@ -74,8 +79,37 @@ namespace TAB.Web.Pages.Modules.SimManagement.Approvals.Supervisor
             if (currentUser != null)
             {
                 IsAdmin = await _userManager.IsInRoleAsync(currentUser, "Admin");
+                CurrentSupervisorName = $"{currentUser.FirstName} {currentUser.LastName}";
+                CurrentSupervisorEmail = currentUser.Email;
             }
 
+            // Check if we're showing detail view
+            if (requestId.HasValue)
+            {
+                IsDetailView = true;
+                CurrentRequest = await _context.SimRequests
+                    .Include(s => s.ServiceProvider)
+                    .Include(s => s.History)
+                    .FirstOrDefaultAsync(s => s.Id == requestId.Value);
+
+                if (CurrentRequest == null)
+                {
+                    StatusMessage = "Request not found.";
+                    StatusMessageClass = "danger";
+                    return RedirectToPage("/Modules/SimManagement/Approvals/Index");
+                }
+
+                // Load request history
+                RequestHistory = await _context.SimRequestHistories
+                    .Where(h => h.SimRequestId == requestId.Value)
+                    .OrderByDescending(h => h.Timestamp)
+                    .ToListAsync();
+
+                return Page();
+            }
+
+            // List view - load all requests
+            IsDetailView = false;
             await LoadSimRequestsAsync();
             return Page();
         }
@@ -277,6 +311,15 @@ namespace TAB.Web.Pages.Modules.SimManagement.Approvals.Supervisor
                 return Page();
             }
 
+            // Check if request is already approved to prevent duplicate processing
+            if (simRequest.Status != RequestStatus.PendingSupervisor)
+            {
+                StatusMessage = $"This request has already been processed. Current status: {simRequest.Status}";
+                StatusMessageClass = "warning";
+                await LoadSimRequestsAsync();
+                return Page();
+            }
+
             // Update request with supervisor approval - now goes to ICTS instead of Admin
             simRequest.Status = RequestStatus.PendingIcts;
             simRequest.SupervisorApprovalDate = supervisorActionDate;
@@ -352,6 +395,15 @@ namespace TAB.Web.Pages.Modules.SimManagement.Approvals.Supervisor
                 return Page();
             }
 
+            // Check if request is already processed to prevent duplicate rejection
+            if (simRequest.Status != RequestStatus.PendingSupervisor)
+            {
+                StatusMessage = $"This request has already been processed. Current status: {simRequest.Status}";
+                StatusMessageClass = "warning";
+                await LoadSimRequestsAsync();
+                return Page();
+            }
+
             simRequest.Status = RequestStatus.Rejected;
             simRequest.SupervisorApprovalDate = DateTime.UtcNow;
             simRequest.SupervisorNotes = notes;
@@ -411,6 +463,15 @@ namespace TAB.Web.Pages.Modules.SimManagement.Approvals.Supervisor
             {
                 StatusMessage = "SIM request not found.";
                 StatusMessageClass = "danger";
+                await LoadSimRequestsAsync();
+                return Page();
+            }
+
+            // Check if request is already processed to prevent duplicate reversion
+            if (simRequest.Status != RequestStatus.PendingSupervisor)
+            {
+                StatusMessage = $"This request cannot be reverted. Current status: {simRequest.Status}";
+                StatusMessageClass = "warning";
                 await LoadSimRequestsAsync();
                 return Page();
             }
@@ -492,6 +553,39 @@ namespace TAB.Web.Pages.Modules.SimManagement.Approvals.Supervisor
                 return simRequest.Status.ToString();
             }
             return "Unknown";
+        }
+
+        // API endpoint to get Class of Service allowances
+        public async Task<JsonResult> OnGetClassOfServiceAsync(string service)
+        {
+            try
+            {
+                if (string.IsNullOrWhiteSpace(service))
+                {
+                    return new JsonResult(new { success = false, message = "Service name is required" });
+                }
+
+                var classOfService = await _context.ClassOfServices
+                    .FirstOrDefaultAsync(c => c.Service == service && c.ServiceStatus == ServiceStatus.Active);
+
+                if (classOfService == null)
+                {
+                    return new JsonResult(new { success = false, message = "Class of Service not found" });
+                }
+
+                return new JsonResult(new
+                {
+                    success = true,
+                    mobileServiceAllowance = classOfService.AirtimeAllowanceAmount?.ToString("F2") ?? "0.00",
+                    handsetAllowance = classOfService.HandsetAllowanceAmount?.ToString("F2") ?? "0.00",
+                    dataAllowance = classOfService.DataAllowanceAmount?.ToString("F2") ?? "0.00"
+                });
+            }
+            catch (Exception ex)
+            {
+                _logger.LogError(ex, "Error fetching Class of Service for service: {Service}", service);
+                return new JsonResult(new { success = false, message = "An error occurred while fetching allowances" });
+            }
         }
 
         private async Task<bool> CheckSupervisorAccessAsync()

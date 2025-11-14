@@ -109,22 +109,22 @@
     }
 
     .stat-icon-primary {
-        background: linear-gradient(135deg, #3b82f6, #60a5fa);
+        background: #3b82f6;
         color: white;
     }
 
     .stat-icon-success {
-        background: linear-gradient(135deg, #10b981, #34d399);
+        background: #10b981;
         color: white;
     }
 
     .stat-icon-info {
-        background: linear-gradient(135deg, #06b6d4, #22d3ee);
+        background: #06b6d4;
         color: white;
     }
 
     .stat-icon-warning {
-        background: linear-gradient(135deg, #f59e0b, #fbbf24);
+        background: #f59e0b;
         color: white;
     }
 
@@ -437,7 +437,7 @@
         display: inline-flex;
         align-items: center;
         padding: 0.25rem 0.625rem;
-        background: linear-gradient(135deg, #009EDB 0%, #0084c7 100%);
+        background: #009EDB;
         color: white;
         border-radius: 6px;
         font-size: 0.7rem;
@@ -526,7 +526,7 @@
 }
 
 <!-- Quick Guide - Color Legend -->
-<div class="card border-0 shadow-sm mb-2" style="border-radius: 12px; background: linear-gradient(135deg, #f8f9fa 0%, #ffffff 100%);">
+<div class="card border-0 shadow-sm mb-2" style="border-radius: 12px; background: #f8f9fa;">
     <div class="card-body p-2">
         <div class="d-flex justify-content-between align-items-center">
             <h6 class="mb-0 fw-bold text-primary" style="font-size: 0.9rem;">
@@ -764,7 +764,7 @@
 
 <!-- Call Records Table -->
 <div class="card border-0 shadow-sm" style="border-radius: 12px;">
-    <div class="card-header bg-gradient border-0 py-2" style="background: linear-gradient(135deg, #f8f9fa 0%, #e9ecef 100%); border-radius: 12px 12px 0 0;">
+    <div class="card-header bg-gradient border-0 py-2" style="background: #f8f9fa; border-radius: 12px 12px 0 0;">
         <div class="d-flex justify-content-between align-items-center">
             <div>
                 <h5 class="card-title mb-0 text-dark fw-bold" style="font-size: 1rem;">
@@ -829,6 +829,12 @@
                         <th class="border-0 px-3 py-3" style="font-weight: 600; color: #4a5568; text-transform: uppercase; font-size: 12px; letter-spacing: 0.5px;">
                             <i class="bi bi-cash me-2"></i>Cost (KSH)
                         </th>
+                        <th class="border-0 px-3 py-3" style="font-weight: 600; color: #10b981; text-transform: uppercase; font-size: 12px; letter-spacing: 0.5px;">
+                            <i class="bi bi-check-circle me-2"></i>Official
+                        </th>
+                        <th class="border-0 px-3 py-3" style="font-weight: 600; color: #f59e0b; text-transform: uppercase; font-size: 12px; letter-spacing: 0.5px;">
+                            <i class="bi bi-person-circle me-2"></i>Personal
+                        </th>
                         <th class="border-0 px-3 py-3" style="font-weight: 600; color: #4a5568; text-transform: uppercase; font-size: 12px; letter-spacing: 0.5px;">
                             <i class="bi bi-arrow-repeat me-2"></i>Recovered
                         </th>
@@ -843,7 +849,10 @@
                         // First pass: Group calls by Extension+Month+Year and calculate totals
                         var groupedCalls = new List<(string GroupKey, string Extension, int Month, int Year,
                                                       int CallCount, decimal TotalCostUSD, decimal TotalCostKSH,
-                                                      decimal TotalRecovered, List<CallRecord> Calls)>();
+                                                      decimal TotalRecoveredUSD, decimal TotalRecoveredKSH, bool IsPrivateWirePrimary,
+                                                      decimal OfficialUSD, decimal OfficialKSH,
+                                                      decimal PersonalUSD, decimal PersonalKSH,
+                                                      List<CallRecord> Calls)>();
 
                         string currentGroupKey = null;
                         string currentExtension = "";
@@ -852,7 +861,14 @@
                         int callCount = 0;
                         decimal totalCostUSD = 0;
                         decimal totalCostKSH = 0;
-                        decimal totalRecovered = 0;
+                        decimal totalRecoveredUSD = 0;
+                        decimal totalRecoveredKSH = 0;
+                        int privateWireCount = 0;
+                        int kshSourceCount = 0;
+                        decimal officialUSD = 0;
+                        decimal officialKSH = 0;
+                        decimal personalUSD = 0;
+                        decimal personalKSH = 0;
                         var currentCalls = new List<CallRecord>();
 
                         foreach (var call in Model.CallRecords)
@@ -865,8 +881,12 @@
                                 // Save previous group
                                 if (currentGroupKey != null)
                                 {
+                                    // Determine if PrivateWire is primary source (more calls from PrivateWire than KSH sources)
+                                    bool isPrivateWirePrimary = privateWireCount > kshSourceCount;
+
                                     groupedCalls.Add((currentGroupKey, currentExtension, currentMonth, currentYear,
-                                                    callCount, totalCostUSD, totalCostKSH, totalRecovered,
+                                                    callCount, totalCostUSD, totalCostKSH, totalRecoveredUSD, totalRecoveredKSH, isPrivateWirePrimary,
+                                                    officialUSD, officialKSH, personalUSD, personalKSH,
                                                     new List<CallRecord>(currentCalls)));
                                 }
 
@@ -878,7 +898,14 @@
                                 callCount = 0;
                                 totalCostUSD = 0;
                                 totalCostKSH = 0;
-                                totalRecovered = 0;
+                                totalRecoveredUSD = 0;
+                                totalRecoveredKSH = 0;
+                                privateWireCount = 0;
+                                kshSourceCount = 0;
+                                officialUSD = 0;
+                                officialKSH = 0;
+                                personalUSD = 0;
+                                personalKSH = 0;
                                 currentCalls.Clear();
                             }
 
@@ -886,9 +913,44 @@
                             callCount++;
                             totalCostUSD += call.CallCostUSD;
                             totalCostKSH += call.CallCostKSHS;
+
+                            // Track source system for currency determination
+                            var sourceSystem = call.SourceSystem?.ToLower() ?? "";
+                            if (sourceSystem.Contains("privatewire") || sourceSystem.Contains("private wire") || sourceSystem.Contains("pw"))
+                            {
+                                privateWireCount++;
+                            }
+                            else if (sourceSystem.Contains("safaricom") || sourceSystem.Contains("airtel") || sourceSystem.Contains("pstn"))
+                            {
+                                kshSourceCount++;
+                            }
+
+                            // Accumulate by verification type
+                            if (call.VerificationType == "Official")
+                            {
+                                officialUSD += call.CallCostUSD;
+                                officialKSH += call.CallCostKSHS;
+                            }
+                            else if (call.VerificationType == "Personal")
+                            {
+                                personalUSD += call.CallCostUSD;
+                                personalKSH += call.CallCostKSHS;
+                            }
+
+                            // Accumulate recovery amounts by currency based on source system
                             if (call.RecoveryAmount.HasValue && call.RecoveryAmount.Value > 0)
                             {
-                                totalRecovered += call.RecoveryAmount.Value;
+                                // RecoveryAmount is stored in the source system's native currency
+                                if (sourceSystem.Contains("privatewire") || sourceSystem.Contains("private wire") || sourceSystem.Contains("pw"))
+                                {
+                                    // PrivateWire uses USD
+                                    totalRecoveredUSD += call.RecoveryAmount.Value;
+                                }
+                                else if (sourceSystem.Contains("safaricom") || sourceSystem.Contains("airtel") || sourceSystem.Contains("pstn"))
+                                {
+                                    // Safaricom/Airtel/PSTN use KSH
+                                    totalRecoveredKSH += call.RecoveryAmount.Value;
+                                }
                             }
                             currentCalls.Add(call);
                         }
@@ -896,12 +958,16 @@
                         // Save last group
                         if (currentGroupKey != null)
                         {
+                            // Determine if PrivateWire is primary source
+                            bool isPrivateWirePrimary = privateWireCount > kshSourceCount;
+
                             groupedCalls.Add((currentGroupKey, currentExtension, currentMonth, currentYear,
-                                            callCount, totalCostUSD, totalCostKSH, totalRecovered,
+                                            callCount, totalCostUSD, totalCostKSH, totalRecoveredUSD, totalRecoveredKSH, isPrivateWirePrimary,
+                                            officialUSD, officialKSH, personalUSD, personalKSH,
                                             new List<CallRecord>(currentCalls)));
                         }
 
-                        // Second pass: Output HTML in correct order (Summary → Header → Details)
+                        // Second pass: Output HTML in correct order (Summary → Dialed Number Groups → Details)
                         foreach (var group in groupedCalls)
                         {
                             var monthName = new DateTime(group.Year, group.Month, 1).ToString("MMMM");
@@ -911,17 +977,63 @@
                             @await Html.PartialAsync("Partials/_ExtensionSummaryRow",
                                 (GroupId: groupId, Extension: group.Extension, MonthName: monthName, Year: group.Year,
                                  CallCount: group.CallCount, TotalCostUSD: group.TotalCostUSD,
-                                 TotalCostKSH: group.TotalCostKSH, TotalRecovered: group.TotalRecovered))
+                                 TotalCostKSH: group.TotalCostKSH, TotalRecoveredUSD: group.TotalRecoveredUSD,
+                                 TotalRecoveredKSH: group.TotalRecoveredKSH, IsPrivateWirePrimary: group.IsPrivateWirePrimary,
+                                 OfficialUSD: group.OfficialUSD, OfficialKSH: group.OfficialKSH,
+                                 PersonalUSD: group.PersonalUSD, PersonalKSH: group.PersonalKSH))
 
-                            // 2. Detail Header Row (Level 2) - Hidden by default
-                            @await Html.PartialAsync("Partials/_DetailHeader", groupId)
+                            // Group calls by dialed number
+                            var dialedNumberGroups = group.Calls
+                                .GroupBy(c => c.CallNumber ?? "Unknown")
+                                .Select(dg => new
+                                {
+                                    DialedNumber = dg.Key,
+                                    Destination = dg.FirstOrDefault()?.CallDestination ?? "",
+                                    CallCount = dg.Count(),
+                                    TotalCostUSD = dg.Sum(c => c.CallCostUSD),
+                                    TotalCostKSH = dg.Sum(c => c.CallCostKSHS),
+                                    TotalDuration = (decimal)dg.Sum(c => c.CallDuration),
+                                    AssignmentStatus = dg.Select(c => c.VerificationType).Distinct().Count() > 1 ? "Mixed" :
+                                                      (dg.FirstOrDefault()?.VerificationType ?? "Unverified"),
+                                    Calls = dg.ToList()
+                                })
+                                .OrderByDescending(dg => dg.CallCount)
+                                .ToList();
 
-                            // 3. Detail Data Rows (Level 2) - Hidden by default
-                            foreach (var call in group.Calls)
+                            // 2. Dialed Number Summary Rows (Level 2) - Hidden by default, shown when extension expanded
+                            foreach (var dialedGroup in dialedNumberGroups)
                             {
-                                @await Html.PartialAsync("Partials/_DetailRow",
-                                    (Call: call, GroupId: groupId, UserIndexNumber: Model.UserIndexNumber,
-                                     SubmittedCallIds: Model.SubmittedCallIds, VerificationStatuses: Model.VerificationStatuses))
+                                var dialedGroupId = $"{groupId}_dialed_{dialedGroup.DialedNumber.Replace("+", "").Replace(" ", "_").Replace("-", "_")}";
+
+                                @await Html.PartialAsync("Partials/_DialedNumberSummaryRow",
+                                    (GroupId: groupId, DialedGroupId: dialedGroupId, DialedNumber: dialedGroup.DialedNumber,
+                                     Destination: dialedGroup.Destination, CallCount: dialedGroup.CallCount,
+                                     TotalCostUSD: dialedGroup.TotalCostUSD, TotalCostKSH: dialedGroup.TotalCostKSH,
+                                     TotalDuration: dialedGroup.TotalDuration, AssignmentStatus: dialedGroup.AssignmentStatus,
+                                     MonthName: monthName, Year: group.Year))
+
+                                // 3. Detail Header Row (Level 3) - Hidden by default, shown when dialed number expanded
+                                <tr class="call-detail-row call-detail-header" data-group="@dialedGroupId" style="display: none; background-color: #e9ecef; font-weight: 600;">
+                                    <th class="px-2 py-2 text-center" style="font-size: 11px;"><i class="bi bi-check-square"></i></th>
+                                    <th class="px-2 py-2" style="font-size: 11px;"></th>
+                                    <th class="px-2 py-2" style="font-size: 11px;">DIALLED NUMBER</th>
+                                    <th class="px-2 py-2" style="font-size: 11px;">ASSIGNMENT</th>
+                                    <th class="px-2 py-2" style="font-size: 11px;">DURATION</th>
+                                    <th class="px-2 py-2" style="font-size: 11px;">KSH</th>
+                                    <th class="px-2 py-2" style="font-size: 11px;">USD</th>
+                                    <th class="px-2 py-2" style="font-size: 11px;">DESTINATION</th>
+                                    <th class="px-2 py-2 text-center" style="font-size: 11px;">STATUS</th>
+                                    <th class="px-2 py-2 text-center" style="font-size: 11px;">ACTION</th>
+                                </tr>
+
+                                // 4. Detail Data Rows (Level 3) - Hidden by default, shown when dialed number expanded
+                                // We'll use a special marker in the row's data-group to identify dialed number rows
+                                foreach (var call in dialedGroup.Calls)
+                                {
+                                    @await Html.PartialAsync("Partials/_DetailRow",
+                                        (Call: call, GroupId: dialedGroupId, UserIndexNumber: Model.UserIndexNumber,
+                                         SubmittedCallIds: Model.SubmittedCallIds, VerificationStatuses: Model.VerificationStatuses))
+                                }
                             }
                         }
                     }
@@ -939,18 +1051,52 @@
         </div>
     </div>
 
-    <!-- Pagination Controls -->
-    @if (Model.TotalPages > 1)
-    {
-        <div class="card-footer bg-white border-0 pt-3 pb-3">
+    <!-- Pagination Info and Controls -->
+    <div class="card-footer bg-white border-0 pt-3 pb-3">
+        <div class="d-flex justify-content-between align-items-center mb-3">
+            <div class="text-muted small">
+                Showing @((Model.PageNumber - 1) * Model.PageSize + 1) - @Math.Min(Model.PageNumber * Model.PageSize, Model.TotalRecords) of @Model.TotalRecords records
+                (Page @Model.PageNumber of @Model.TotalPages)
+            </div>
+            <div class="d-flex align-items-center gap-2">
+                <label class="text-muted small mb-0">Records per page:</label>
+                <select class="form-select form-select-sm" style="width: auto;"
+                        onchange="window.location.href = this.value;">
+                    @{
+                        var pageSizes = new[] { 25, 50, 100, 200 };
+                        foreach (var size in pageSizes)
+                        {
+                            var routeData = new Dictionary<string, string>
+                            {
+                                ["PageSize"] = size.ToString(),
+                                ["PageNumber"] = "1", // Reset to page 1 when changing page size
+                                ["filterStatus"] = Model.FilterStatus ?? "",
+                                ["filterMonth"] = Model.FilterMonth?.ToString() ?? "",
+                                ["filterYear"] = Model.FilterYear?.ToString() ?? "",
+                                ["filterMinCost"] = Model.FilterMinCost?.ToString() ?? "",
+                                ["sortBy"] = Model.SortBy ?? "",
+                                ["sortDescending"] = Model.SortDescending.ToString()
+                            };
+                            var queryString = string.Join("&", routeData.Where(kv => !string.IsNullOrEmpty(kv.Value)).Select(kv => $"{kv.Key}={kv.Value}"));
+                            var url = $"/Modules/EBillManagement/CallRecords/MyCallLogs?{queryString}";
+                            <option value="@url" selected="@(Model.PageSize == size)">@size</option>
+                        }
+                    }
+                </select>
+            </div>
+        </div>
+
+        @if (Model.TotalPages > 1)
+        {
             <nav aria-label="Page navigation">
                 <ul class="pagination justify-content-center mb-0">
                     <!-- First Page -->
                     <li class="page-item @(Model.PageNumber == 1 ? "disabled" : "")">
                         <a class="page-link" asp-page="/Modules/EBillManagement/CallRecords/MyCallLogs"
-                           asp-route-pageNumber="1"
                            asp-all-route-data="@(new Dictionary<string, string>
                            {
+                               ["PageNumber"] = "1",
+                               ["PageSize"] = Model.PageSize.ToString(),
                                ["filterStatus"] = Model.FilterStatus ?? "",
                                ["filterMonth"] = Model.FilterMonth?.ToString() ?? "",
                                ["filterYear"] = Model.FilterYear?.ToString() ?? "",
@@ -966,9 +1112,10 @@
                     <!-- Previous Page -->
                     <li class="page-item @(Model.PageNumber == 1 ? "disabled" : "")">
                         <a class="page-link" asp-page="/Modules/EBillManagement/CallRecords/MyCallLogs"
-                           asp-route-pageNumber="@(Model.PageNumber - 1)"
                            asp-all-route-data="@(new Dictionary<string, string>
                            {
+                               ["PageNumber"] = (Model.PageNumber - 1).ToString(),
+                               ["PageSize"] = Model.PageSize.ToString(),
                                ["filterStatus"] = Model.FilterStatus ?? "",
                                ["filterMonth"] = Model.FilterMonth?.ToString() ?? "",
                                ["filterYear"] = Model.FilterYear?.ToString() ?? "",
@@ -990,9 +1137,10 @@
                         {
                             <li class="page-item">
                                 <a class="page-link" asp-page="/Modules/EBillManagement/CallRecords/MyCallLogs"
-                                   asp-route-pageNumber="1"
                                    asp-all-route-data="@(new Dictionary<string, string>
                                    {
+                                       ["PageNumber"] = "1",
+                                       ["PageSize"] = Model.PageSize.ToString(),
                                        ["filterStatus"] = Model.FilterStatus ?? "",
                                        ["filterMonth"] = Model.FilterMonth?.ToString() ?? "",
                                        ["filterYear"] = Model.FilterYear?.ToString() ?? "",
@@ -1011,9 +1159,10 @@
                         {
                             <li class="page-item @(i == Model.PageNumber ? "active" : "")">
                                 <a class="page-link" asp-page="/Modules/EBillManagement/CallRecords/MyCallLogs"
-                                   asp-route-pageNumber="@i"
                                    asp-all-route-data="@(new Dictionary<string, string>
                                    {
+                                       ["PageNumber"] = i.ToString(),
+                                       ["PageSize"] = Model.PageSize.ToString(),
                                        ["filterStatus"] = Model.FilterStatus ?? "",
                                        ["filterMonth"] = Model.FilterMonth?.ToString() ?? "",
                                        ["filterYear"] = Model.FilterYear?.ToString() ?? "",
@@ -1032,9 +1181,10 @@
                             }
                             <li class="page-item">
                                 <a class="page-link" asp-page="/Modules/EBillManagement/CallRecords/MyCallLogs"
-                                   asp-route-pageNumber="@Model.TotalPages"
                                    asp-all-route-data="@(new Dictionary<string, string>
                                    {
+                                       ["PageNumber"] = Model.TotalPages.ToString(),
+                                       ["PageSize"] = Model.PageSize.ToString(),
                                        ["filterStatus"] = Model.FilterStatus ?? "",
                                        ["filterMonth"] = Model.FilterMonth?.ToString() ?? "",
                                        ["filterYear"] = Model.FilterYear?.ToString() ?? "",
@@ -1049,9 +1199,10 @@
                     <!-- Next Page -->
                     <li class="page-item @(Model.PageNumber == Model.TotalPages ? "disabled" : "")">
                         <a class="page-link" asp-page="/Modules/EBillManagement/CallRecords/MyCallLogs"
-                           asp-route-pageNumber="@(Model.PageNumber + 1)"
                            asp-all-route-data="@(new Dictionary<string, string>
                            {
+                               ["PageNumber"] = (Model.PageNumber + 1).ToString(),
+                               ["PageSize"] = Model.PageSize.ToString(),
                                ["filterStatus"] = Model.FilterStatus ?? "",
                                ["filterMonth"] = Model.FilterMonth?.ToString() ?? "",
                                ["filterYear"] = Model.FilterYear?.ToString() ?? "",
@@ -1067,9 +1218,10 @@
                     <!-- Last Page -->
                     <li class="page-item @(Model.PageNumber == Model.TotalPages ? "disabled" : "")">
                         <a class="page-link" asp-page="/Modules/EBillManagement/CallRecords/MyCallLogs"
-                           asp-route-pageNumber="@Model.TotalPages"
                            asp-all-route-data="@(new Dictionary<string, string>
                            {
+                               ["PageNumber"] = Model.TotalPages.ToString(),
+                               ["PageSize"] = Model.PageSize.ToString(),
                                ["filterStatus"] = Model.FilterStatus ?? "",
                                ["filterMonth"] = Model.FilterMonth?.ToString() ?? "",
                                ["filterYear"] = Model.FilterYear?.ToString() ?? "",
@@ -1083,8 +1235,8 @@
                     </li>
                 </ul>
             </nav>
-        </div>
-    }
+        }
+    </div>
 </div>
 
 @* Accept Assignment Modal *@
@@ -1174,7 +1326,7 @@
 <div class="modal fade" id="reassignModal" tabindex="-1">
     <div class="modal-dialog modal-lg modal-dialog-centered">
         <div class="modal-content" style="border-radius: 16px; border: none; box-shadow: 0 20px 60px rgba(0,0,0,0.2);">
-            <div class="modal-header" style="background: linear-gradient(135deg, #009EDB 0%, #0077B6 100%); color: white; border-bottom: none; padding: 2rem; border-radius: 16px 16px 0 0;">
+            <div class="modal-header bg-primary" style="color: white; border-bottom: none; padding: 2rem; border-radius: 16px 16px 0 0;">
                 <div class="w-100">
                     <h5 class="mb-1 fw-bold">
                         <i class="bi bi-arrow-left-right me-2"></i>
@@ -1274,7 +1426,7 @@
 <div class="modal fade" id="confirmOfficialModal" tabindex="-1" aria-labelledby="confirmOfficialLabel" aria-hidden="true">
     <div class="modal-dialog modal-dialog-centered">
         <div class="modal-content" style="border-radius: 16px; border: none; box-shadow: 0 10px 40px rgba(0,0,0,0.15);">
-            <div class="modal-header" style="background: linear-gradient(135deg, #10b981 0%, #059669 100%); border-bottom: none; padding: 1.5rem; border-radius: 16px 16px 0 0;">
+            <div class="modal-header bg-success" style="border-bottom: none; padding: 1.5rem; border-radius: 16px 16px 0 0;">
                 <div class="d-flex align-items-center gap-3">
                     <div class="bg-white rounded-circle d-flex align-items-center justify-content-center" style="width: 48px; height: 48px;">
                         <i class="bi bi-briefcase-fill text-success" style="font-size: 1.5rem;"></i>
@@ -1321,7 +1473,7 @@
 <div class="modal fade" id="confirmPersonalModal" tabindex="-1" aria-labelledby="confirmPersonalLabel" aria-hidden="true">
     <div class="modal-dialog modal-dialog-centered">
         <div class="modal-content" style="border-radius: 16px; border: none; box-shadow: 0 10px 40px rgba(0,0,0,0.15);">
-            <div class="modal-header" style="background: linear-gradient(135deg, #f59e0b 0%, #d97706 100%); border-bottom: none; padding: 1.5rem; border-radius: 16px 16px 0 0;">
+            <div class="modal-header bg-warning" style="border-bottom: none; padding: 1.5rem; border-radius: 16px 16px 0 0;">
                 <div class="d-flex align-items-center gap-3">
                     <div class="bg-white rounded-circle d-flex align-items-center justify-content-center" style="width: 48px; height: 48px;">
                         <i class="bi bi-person-fill text-warning" style="font-size: 1.5rem;"></i>
@@ -1377,7 +1529,7 @@
             <div class="modal-body" style="padding: 1.5rem;">
                 <p class="mb-3" id="quickVerifyMessage" style="font-size: 1.05rem; color: #4b5563;"></p>
 
-                <div class="card border-0" style="background: linear-gradient(135deg, #f8f9fa 0%, #ffffff 100%); border-radius: 12px;">
+                <div class="card border-0" style="background: #f8f9fa; border-radius: 12px;">
                     <div class="card-body p-3">
                         <h6 class="fw-bold mb-3" style="color: #1f2937;">
                             <i class="bi bi-info-circle me-2 text-primary"></i>Call Details
@@ -1492,13 +1644,14 @@
 
         // Two-level table: Toggle call details for an extension group
         function toggleCallDetails(groupId) {
-            const detailRows = document.querySelectorAll(`tr.call-detail-row[data-group="${groupId}"]`);
+            // Show/hide dialed number summary rows for this extension
+            const dialedSummaryRows = document.querySelectorAll(`tr.dialed-number-summary-row[data-group="${groupId}"]`);
             const toggle = document.getElementById('toggle-' + groupId);
 
-            if (detailRows.length > 0) {
-                const isHidden = detailRows[0].style.display === 'none';
+            if (dialedSummaryRows.length > 0) {
+                const isHidden = dialedSummaryRows[0].style.display === 'none';
 
-                detailRows.forEach(row => {
+                dialedSummaryRows.forEach(row => {
                     row.style.display = isHidden ? '' : 'none';
                 });
 
@@ -1508,6 +1661,49 @@
                 } else {
                     toggle.classList.remove('bi-dash-circle');
                     toggle.classList.add('bi-plus-circle');
+
+                    // When collapsing extension, also collapse all dialed number details within it
+                    // Find all dialed group IDs that start with this groupId
+                    dialedSummaryRows.forEach(row => {
+                        const dialedGroupId = row.getAttribute('data-dialed-group');
+                        if (dialedGroupId) {
+                            const detailRows = document.querySelectorAll(`tr.call-detail-row[data-group="${dialedGroupId}"]`);
+                            detailRows.forEach(detailRow => {
+                                detailRow.style.display = 'none';
+                            });
+
+                            // Reset the toggle icon
+                            const dialedToggle = document.getElementById('toggle-dialed-' + dialedGroupId);
+                            if (dialedToggle) {
+                                dialedToggle.classList.remove('bi-dash-circle');
+                                dialedToggle.classList.add('bi-plus-circle');
+                            }
+                        }
+                    });
+                }
+            }
+        }
+
+        function toggleDialedNumberDetails(dialedGroupId) {
+            // Find all rows that belong to this dialed number group (they have data-group = dialedGroupId)
+            const subRows = document.querySelectorAll(`tr.call-detail-row[data-group="${dialedGroupId}"]`);
+            const toggle = document.getElementById('toggle-dialed-' + dialedGroupId);
+
+            if (subRows.length > 0) {
+                const isHidden = subRows[0].style.display === 'none';
+
+                subRows.forEach(row => {
+                    row.style.display = isHidden ? '' : 'none';
+                });
+
+                if (toggle) {
+                    if (isHidden) {
+                        toggle.classList.remove('bi-plus-circle');
+                        toggle.classList.add('bi-dash-circle');
+                    } else {
+                        toggle.classList.remove('bi-dash-circle');
+                        toggle.classList.add('bi-plus-circle');
+                    }
                 }
             }
         }
@@ -1736,7 +1932,7 @@
 
             // Set colors and content
             if (isOfficial) {
-                modalHeader.style.background = 'linear-gradient(135deg, #10b981, #34d399)';
+                modalHeader.style.background = '#10b981';
                 modalHeader.style.color = 'white';
                 modalHeader.querySelector('.btn-close').classList.add('btn-close-white');
                 modalIcon.className = 'bi bi-check-circle-fill me-2';
@@ -1748,7 +1944,7 @@
                 noteIcon.className = 'bi bi-check-circle-fill me-2';
                 noteText.textContent = 'This call will count towards your official usage and allowance.';
             } else {
-                modalHeader.style.background = 'linear-gradient(135deg, #f59e0b, #fbbf24)';
+                modalHeader.style.background = '#f59e0b';
                 modalHeader.style.color = 'white';
                 modalHeader.querySelector('.btn-close').classList.add('btn-close-white');
                 modalIcon.className = 'bi bi-exclamation-triangle-fill me-2';
@@ -1834,37 +2030,58 @@
             }
 
             // Get all call checkboxes in this group that are not locked/expired
-            const groupCheckboxes = document.querySelectorAll(`.call-checkbox[data-group="${groupId}"]`);
+            // Note: groupId is extension-level, but calls have data-group like "groupId_dialed_number"
+            // So we need to find all checkboxes whose data-group starts with groupId + "_dialed_"
+            const groupCheckboxes = document.querySelectorAll(`.call-checkbox[data-group^="${groupId}_dialed_"]`);
             const verifiableCallIds = [];
             let lockedCount = 0;
             let expiredCount = 0;
-            let alreadyVerifiedCount = 0;
+            let submittedPendingCount = 0;
 
             groupCheckboxes.forEach(checkbox => {
                 const isLocked = checkbox.getAttribute('data-locked') === 'true';
                 const isExpired = checkbox.getAttribute('data-expired') === 'true';
                 const isVerified = checkbox.getAttribute('data-verified') === 'true';
+                const isSubmitted = checkbox.getAttribute('data-submitted') === 'true';
+                const approvalStatus = checkbox.getAttribute('data-approval-status') || '';
 
                 if (isLocked) {
+                    // Locked means approved/partially approved by supervisor - cannot change
                     lockedCount++;
                 } else if (isExpired) {
                     expiredCount++;
-                } else if (isVerified) {
-                    alreadyVerifiedCount++;
-                } else {
+                } else if (isVerified && isSubmitted && approvalStatus === 'Pending') {
+                    // Submitted but still pending - can still be changed, so it's verifiable
+                    submittedPendingCount++;
+                    verifiableCallIds.push(checkbox.value);
+                } else if (isVerified && !isSubmitted) {
+                    // Verified but not submitted yet - can still be changed
+                    verifiableCallIds.push(checkbox.value);
+                } else if (!isVerified) {
+                    // Not verified at all
                     verifiableCallIds.push(checkbox.value);
                 }
             });
 
             // Check if there are any calls to verify
             if (verifiableCallIds.length === 0) {
+                const totalCalls = groupCheckboxes.length;
+
                 // Build detailed message
                 let details = [];
-                if (lockedCount > 0) details.push(`${lockedCount} locked`);
+                if (lockedCount > 0) details.push(`${lockedCount} locked (approved by supervisor)`);
                 if (expiredCount > 0) details.push(`${expiredCount} expired`);
-                if (alreadyVerifiedCount > 0) details.push(`${alreadyVerifiedCount} already verified`);
 
-                showNotification('info', 'No Calls to Verify', `All calls in this group are: ${details.join(', ')}.`);
+                let message = '';
+                if (totalCalls === 0) {
+                    message = 'No calls found in this group.';
+                } else if (details.length > 0) {
+                    message = `All ${totalCalls} call(s) in this group are: ${details.join(', ')}.`;
+                } else {
+                    message = `All ${totalCalls} call(s) in this group cannot be verified at this time.`;
+                }
+
+                showNotification('info', 'No Calls to Verify', message);
 
                 // Reset dropdown
                 event.target.selectedIndex = 0;
@@ -1877,11 +2094,11 @@
             const typeColor = verificationType === 'Official' ? 'success' : 'warning';
 
             let noteHtml = '';
-            if (lockedCount > 0 || expiredCount > 0 || alreadyVerifiedCount > 0) {
+            if (lockedCount > 0 || expiredCount > 0 || submittedPendingCount > 0) {
                 let notes = [];
-                if (lockedCount > 0) notes.push(`<li>${lockedCount} locked call(s) will be skipped</li>`);
+                if (lockedCount > 0) notes.push(`<li>${lockedCount} locked (approved by supervisor) call(s) will be skipped</li>`);
                 if (expiredCount > 0) notes.push(`<li>${expiredCount} expired call(s) will be skipped</li>`);
-                if (alreadyVerifiedCount > 0) notes.push(`<li>${alreadyVerifiedCount} already verified call(s) will be skipped</li>`);
+                if (submittedPendingCount > 0) notes.push(`<li>${submittedPendingCount} call(s) are submitted and pending approval - they will be updated</li>`);
                 noteHtml = `<div class="alert alert-info mt-3"><strong>Note:</strong><ul class="mb-0 mt-2">${notes.join('')}</ul></div>`;
             }
 
@@ -1929,6 +2146,116 @@
             );
         }
 
+        // Verify all calls to a specific dialed number
+        function verifyAllDialedNumber(dialedGroupId, verificationType) {
+            // Get all call checkboxes in this dialed number group that are not locked/expired
+            const dialedNumberCheckboxes = document.querySelectorAll(`.call-checkbox[data-group="${dialedGroupId}"]`);
+            const verifiableCallIds = [];
+            let lockedCount = 0;
+            let expiredCount = 0;
+            let submittedPendingCount = 0;
+
+            dialedNumberCheckboxes.forEach(checkbox => {
+                const isLocked = checkbox.getAttribute('data-locked') === 'true';
+                const isExpired = checkbox.getAttribute('data-expired') === 'true';
+                const isVerified = checkbox.getAttribute('data-verified') === 'true';
+                const isSubmitted = checkbox.getAttribute('data-submitted') === 'true';
+                const approvalStatus = checkbox.getAttribute('data-approval-status') || '';
+
+                if (isLocked) {
+                    // Locked means approved/partially approved by supervisor - cannot change
+                    lockedCount++;
+                } else if (isExpired) {
+                    expiredCount++;
+                } else if (isVerified && isSubmitted && approvalStatus === 'Pending') {
+                    // Submitted but still pending - can still be changed, so it's verifiable
+                    submittedPendingCount++;
+                    verifiableCallIds.push(checkbox.value);
+                } else if (isVerified && !isSubmitted) {
+                    // Verified but not submitted yet - can still be changed
+                    verifiableCallIds.push(checkbox.value);
+                } else if (!isVerified) {
+                    // Not verified at all
+                    verifiableCallIds.push(checkbox.value);
+                }
+            });
+
+            // Check if there are any calls to verify
+            if (verifiableCallIds.length === 0) {
+                const totalCalls = dialedNumberCheckboxes.length;
+
+                // Build detailed message
+                let details = [];
+                if (lockedCount > 0) details.push(`${lockedCount} locked (approved by supervisor)`);
+                if (expiredCount > 0) details.push(`${expiredCount} expired`);
+
+                let message = '';
+                if (totalCalls === 0) {
+                    message = 'No calls found for this number.';
+                } else if (details.length > 0) {
+                    message = `All ${totalCalls} call(s) to this number are: ${details.join(', ')}.`;
+                } else {
+                    message = `All ${totalCalls} call(s) to this number cannot be verified at this time.`;
+                }
+
+                showNotification('info', 'No Calls to Verify', message);
+                return;
+            }
+
+            // Prepare confirmation modal content
+            const callWord = verifiableCallIds.length === 1 ? 'call' : 'calls';
+            const typeLabel = verificationType === 'Official' ? 'Official (work-related)' : 'Personal';
+            const typeColor = verificationType === 'Official' ? 'success' : 'warning';
+
+            let noteHtml = '';
+            if (lockedCount > 0 || expiredCount > 0 || submittedPendingCount > 0) {
+                let notes = [];
+                if (lockedCount > 0) notes.push(`<li>${lockedCount} locked (approved by supervisor) call(s) will be skipped</li>`);
+                if (expiredCount > 0) notes.push(`<li>${expiredCount} expired call(s) will be skipped</li>`);
+                if (submittedPendingCount > 0) notes.push(`<li>${submittedPendingCount} call(s) are submitted and pending approval - they will be updated</li>`);
+                noteHtml = `<div class="alert alert-info mt-3"><strong>Note:</strong><ul class="mb-0 mt-2">${notes.join('')}</ul></div>`;
+            }
+
+            // Show custom confirmation modal
+            showConfirmation(
+                `Verify ${verifiableCallIds.length} ${callWord} to this number?`,
+                `You are about to verify <strong>${verifiableCallIds.length} ${callWord}</strong> to this dialed number as <span class="badge bg-${typeColor}">${typeLabel}</span>.${noteHtml}`,
+                'Yes, Verify',
+                () => {
+                    // User confirmed - submit form
+                    const form = document.createElement('form');
+                    form.method = 'POST';
+                    form.action = '?handler=QuickVerify';
+
+                    // Add anti-forgery token
+                    const tokenInput = document.createElement('input');
+                    tokenInput.type = 'hidden';
+                    tokenInput.name = '__RequestVerificationToken';
+                    tokenInput.value = document.querySelector('input[name="__RequestVerificationToken"]').value;
+                    form.appendChild(tokenInput);
+
+                    // Add verification type
+                    const typeInput = document.createElement('input');
+                    typeInput.type = 'hidden';
+                    typeInput.name = 'verificationType';
+                    typeInput.value = verificationType;
+                    form.appendChild(typeInput);
+
+                    // Add all verifiable call IDs
+                    verifiableCallIds.forEach(callId => {
+                        const idInput = document.createElement('input');
+                        idInput.type = 'hidden';
+                        idInput.name = 'selectedIds';
+                        idInput.value = callId;
+                        form.appendChild(idInput);
+                    });
+
+                    document.body.appendChild(form);
+                    form.submit();
+                }
+            );
+        }
+
         // Custom confirmation modal function
         function showConfirmation(title, message, confirmText, onConfirm, onCancel) {
             // Remove existing modal if any
@@ -1937,21 +2264,31 @@
                 existingModal.remove();
             }
 
-            // Create modal HTML
+            // Create modal HTML with your app's design style
             const modalHtml = `
                 <div class="modal fade" id="customConfirmModal" tabindex="-1">
                     <div class="modal-dialog modal-dialog-centered">
-                        <div class="modal-content">
-                            <div class="modal-header bg-primary text-white">
-                                <h5 class="modal-title"><i class="bi bi-question-circle me-2"></i>${title}</h5>
+                        <div class="modal-content" style="border-radius: 16px; border: none; box-shadow: 0 10px 40px rgba(0,0,0,0.15);">
+                            <div class="modal-header bg-primary text-white" style="border-bottom: none; padding: 1.5rem; border-radius: 16px 16px 0 0;">
+                                <div class="d-flex align-items-center gap-3">
+                                    <div class="bg-white rounded-circle d-flex align-items-center justify-content-center" style="width: 48px; height: 48px;">
+                                        <i class="bi bi-question-circle-fill text-primary" style="font-size: 1.5rem;"></i>
+                                    </div>
+                                    <div>
+                                        <h5 class="modal-title fw-bold text-white mb-0">${title}</h5>
+                                        <p class="text-white text-opacity-75 small mb-0">Please confirm your action</p>
+                                    </div>
+                                </div>
                                 <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal"></button>
                             </div>
-                            <div class="modal-body">
+                            <div class="modal-body" style="padding: 1.5rem;">
                                 ${message}
                             </div>
-                            <div class="modal-footer">
-                                <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancel</button>
-                                <button type="button" class="btn btn-primary" id="confirmModalBtn">
+                            <div class="modal-footer" style="border-top: 1px solid #e5e7eb; padding: 1rem 1.5rem;">
+                                <button type="button" class="btn btn-outline-secondary" data-bs-dismiss="modal" style="border-radius: 8px;">
+                                    <i class="bi bi-x-lg me-1"></i>Cancel
+                                </button>
+                                <button type="button" class="btn btn-primary" id="confirmModalBtn" style="border-radius: 8px;">
                                     <i class="bi bi-check-lg me-1"></i>${confirmText}
                                 </button>
                             </div>

@@ -9,7 +9,7 @@ using TAB.Web.Services;
 
 namespace TAB.Web.Pages.Dashboard.Approver
 {
-    [Authorize(Roles = "Admin,ICTS,User,Supervisor,ICTS Service Desk,Claims Unit Approver,Manager,Staff Claims Unit,Budget Officer,BudgetOfficer")] // Allow all user roles
+    [Authorize] // Allow all authenticated users - role-based filtering handled in data logic
     public class IndexModel : PageModel
     {
         private readonly ApplicationDbContext _context;
@@ -73,14 +73,37 @@ namespace TAB.Web.Pages.Dashboard.Approver
         {
             var currentUser = await _userManager.GetUserAsync(User);
             bool isAdmin = await _userManager.IsInRoleAsync(currentUser!, "Admin");
-            bool isICTS = await _userManager.IsInRoleAsync(currentUser!, "ICTS") || 
+            bool isICTS = await _userManager.IsInRoleAsync(currentUser!, "ICTS") ||
                          await _userManager.IsInRoleAsync(currentUser!, "ICTS Service Desk");
-            bool isBudgetOfficer = await _userManager.IsInRoleAsync(currentUser!, "Budget Officer") || 
+            bool isBudgetOfficer = await _userManager.IsInRoleAsync(currentUser!, "Budget Officer") ||
                                    await _userManager.IsInRoleAsync(currentUser!, "BudgetOfficer");
             bool isClaimsUnit = await _userManager.IsInRoleAsync(currentUser!, "Claims Unit Approver") ||
                                await _userManager.IsInRoleAsync(currentUser!, "Staff Claims Unit");
             bool isSupervisor = await _userManager.IsInRoleAsync(currentUser!, "Supervisor");
             bool isManager = await _userManager.IsInRoleAsync(currentUser!, "Manager");
+
+            // Dynamic supervisor detection - check if user's email is assigned as supervisor on any pending request
+            bool isDynamicSupervisor = false;
+            if (!isAdmin && !isICTS && !isBudgetOfficer && !isClaimsUnit && !isSupervisor && !isManager)
+            {
+                // Check if this user's email is a supervisor on any pending SIM requests
+                var hasSupervisorAssignments = await _context.SimRequests
+                    .AnyAsync(r => (r.SupervisorEmail == userEmail || r.Supervisor == userEmail) &&
+                                   r.Status == RequestStatus.PendingSupervisor);
+
+                // Check if this user's email is a supervisor on any pending call log verifications
+                var hasEbillSupervisorAssignments = await _context.CallLogVerifications
+                    .AnyAsync(v => v.SupervisorIndexNumber == userEmail &&
+                                   v.SubmittedToSupervisor &&
+                                   (v.SupervisorApprovalStatus == null || v.SupervisorApprovalStatus == "Pending"));
+
+                // Check if this user's email is a supervisor on any pending refund requests
+                var hasRefundSupervisorAssignments = await _context.RefundRequests
+                    .AnyAsync(r => r.SupervisorEmail == userEmail &&
+                                   r.Status == RefundRequestStatus.PendingSupervisor);
+
+                isDynamicSupervisor = hasSupervisorAssignments || hasEbillSupervisorAssignments || hasRefundSupervisorAssignments;
+            }
 
             if (isAdmin)
             {
@@ -162,11 +185,11 @@ namespace TAB.Web.Pages.Dashboard.Approver
                 TotalIctsRequests = 0;
                 TotalPendingRequests = claimsPendingRefundRequests;
             }
-            else if (isSupervisor || isManager)
+            else if (isSupervisor || isManager || isDynamicSupervisor)
             {
-                // Supervisors see only requests pending THEIR supervisor approval
+                // Supervisors (with role OR dynamically detected) see only requests pending THEIR supervisor approval
                 var supervisorPendingSimRequests = await _context.SimRequests
-                    .Where(r => r.Status == RequestStatus.PendingSupervisor && 
+                    .Where(r => r.Status == RequestStatus.PendingSupervisor &&
                                (r.SupervisorEmail == userEmail || r.Supervisor == userEmail))
                     .CountAsync();
 
@@ -178,7 +201,7 @@ namespace TAB.Web.Pages.Dashboard.Approver
                     .CountAsync();
 
                 var supervisorPendingRefundRequests = await _context.RefundRequests
-                    .Where(r => r.Status == RefundRequestStatus.PendingSupervisor && 
+                    .Where(r => r.Status == RefundRequestStatus.PendingSupervisor &&
                                r.SupervisorEmail == userEmail)
                     .CountAsync();
 
@@ -217,14 +240,37 @@ namespace TAB.Web.Pages.Dashboard.Approver
             var allRequests = new List<UnifiedRequest>();
             var currentUser = await _userManager.GetUserAsync(User);
             bool isAdmin = await _userManager.IsInRoleAsync(currentUser!, "Admin");
-            bool isICTS = await _userManager.IsInRoleAsync(currentUser!, "ICTS") || 
+            bool isICTS = await _userManager.IsInRoleAsync(currentUser!, "ICTS") ||
                          await _userManager.IsInRoleAsync(currentUser!, "ICTS Service Desk");
-            bool isBudgetOfficer = await _userManager.IsInRoleAsync(currentUser!, "Budget Officer") || 
+            bool isBudgetOfficer = await _userManager.IsInRoleAsync(currentUser!, "Budget Officer") ||
                                    await _userManager.IsInRoleAsync(currentUser!, "BudgetOfficer");
             bool isClaimsUnit = await _userManager.IsInRoleAsync(currentUser!, "Claims Unit Approver") ||
                                await _userManager.IsInRoleAsync(currentUser!, "Staff Claims Unit");
             bool isSupervisor = await _userManager.IsInRoleAsync(currentUser!, "Supervisor");
             bool isManager = await _userManager.IsInRoleAsync(currentUser!, "Manager");
+
+            // Dynamic supervisor detection - check if user's email is assigned as supervisor on any pending request
+            bool isDynamicSupervisor = false;
+            if (!isAdmin && !isICTS && !isBudgetOfficer && !isClaimsUnit && !isSupervisor && !isManager)
+            {
+                // Check if this user's email is a supervisor on any pending SIM requests
+                var hasSupervisorAssignments = await _context.SimRequests
+                    .AnyAsync(r => (r.SupervisorEmail == userEmail || r.Supervisor == userEmail) &&
+                                   r.Status == RequestStatus.PendingSupervisor);
+
+                // Check if this user's email is a supervisor on any pending call log verifications
+                var hasEbillSupervisorAssignments = await _context.CallLogVerifications
+                    .AnyAsync(v => v.SupervisorIndexNumber == userEmail &&
+                                   v.SubmittedToSupervisor &&
+                                   (v.SupervisorApprovalStatus == null || v.SupervisorApprovalStatus == "Pending"));
+
+                // Check if this user's email is a supervisor on any pending refund requests
+                var hasRefundSupervisorAssignments = await _context.RefundRequests
+                    .AnyAsync(r => r.SupervisorEmail == userEmail &&
+                                   r.Status == RefundRequestStatus.PendingSupervisor);
+
+                isDynamicSupervisor = hasSupervisorAssignments || hasEbillSupervisorAssignments || hasRefundSupervisorAssignments;
+            }
 
             if (isAdmin)
             {
@@ -379,9 +425,9 @@ namespace TAB.Web.Pages.Dashboard.Approver
                 //     .Take(10)
                 //     .ToListAsync();
             }
-            else if (isSupervisor || isManager)
+            else if (isSupervisor || isManager || isDynamicSupervisor)
             {
-                // Supervisors see ONLY requests pending THEIR supervisor approval
+                // Supervisors (with role OR dynamically detected) see ONLY requests pending THEIR supervisor approval
                 var simRequests = await _context.SimRequests
                     .Include(r => r.ServiceProvider)
                     .Where(r => r.Status == RequestStatus.PendingSupervisor &&

@@ -102,99 +102,72 @@
 
 </div>
 
-<!-- Main Content Grid -->
-<div class="content-grid">
-    <!-- Recent Activity -->
-    <div class="content-card recent-activity full-width">
-        <div class="card-header">
-            <div class="header-title">
-                <i class="bi bi-activity"></i>
-                <h3>Recent Activity</h3>
-            </div>
-        </div>
-        <div class="card-content">
-            @if (Model.RecentRequests.Any())
-            {
-                <div class="activity-list">
-                    @foreach (var request in Model.RecentRequests)
-                    {
-                        <div class="activity-item">
-                            <div class="activity-icon @Model.GetRequestTypeColor(request.RequestType)">
-                                <i class="bi bi-@(request.RequestType == TAB.Web.Models.RequestType.SimCard ? "sim" : 
-                                                 request.RequestType == TAB.Web.Models.RequestType.DeviceRefund ? "arrow-return-left" : 
-                                                 "receipt-cutoff")"></i>
-                            </div>
-                            <div class="activity-details">
-                                <div class="activity-title">@request.RequestTitle</div>
-                                <div class="activity-meta">
-                                    <span class="Staff-name">@request.StaffName</span>
-                                    <span class="request-date">@request.RequestDate.ToString("MMM dd, yyyy")</span>
-                                </div>
-                            </div>
-                            <div class="activity-status">
-                                <span class="status-badge @Model.GetStatusBadgeClass(request.Status)">
-                                    @request.Status.Replace("Pending", "")
-                                </span>
-                                <span class="priority-indicator @Model.GetPriorityColor(request.Priority)">
-                                    @request.Priority
-                                </span>
-                            </div>
-                        </div>
-                    }
-                </div>
-            }
-            else
-            {
-                <div class="empty-state">
-                    <i class="bi bi-inbox"></i>
-                    <h4>No Recent Activity</h4>
-                    <p>All caught up! No pending requests at the moment.</p>
-                </div>
-            }
-        </div>
-    </div>
-
-</div>
-
-<!-- Urgent Items -->
+<!-- Pending Items -->
 @if (Model.UrgentRequests.Any())
 {
-    <div class="urgent-section">
-        <div class="content-card urgent-card">
-            <div class="card-header urgent-header">
+    <div class="pending-section">
+        <div class="content-card pending-card">
+            <div class="card-header pending-header">
                 <div class="header-title">
-                    <i class="bi bi-exclamation-triangle"></i>
-                    <h3>Urgent Items</h3>
+                    <i class="bi bi-clock-history"></i>
+                    <h3>Pending Items</h3>
                 </div>
-                <div class="urgent-badge">@Model.UrgentRequests.Count</div>
+                <div class="pending-count-badge">@Model.UrgentRequests.Count</div>
             </div>
-            <div class="card-content">
-                <div class="urgent-list">
-                    @foreach (var urgent in Model.UrgentRequests)
-                    {
-                        <div class="urgent-item">
-                            <div class="urgent-icon">
-                                <i class="bi bi-@(urgent.RequestType == TAB.Web.Models.RequestType.SimCard ? "sim" : 
-                                                 urgent.RequestType == TAB.Web.Models.RequestType.DeviceRefund ? "arrow-return-left" : 
-                                                 "receipt-cutoff")"></i>
-                            </div>
-                            <div class="urgent-details">
-                                <div class="urgent-title">@urgent.RequestTitle</div>
-                                <div class="urgent-meta">
-                                    <span>@urgent.StaffName</span>
-                                    <span>•</span>
-                                    <span>@urgent.RequestDate.ToString("MMM dd")</span>
-                                    <span>•</span>
-                                    <span class="days-pending">@((DateTime.Now - urgent.RequestDate).Days) days pending</span>
-                                </div>
-                            </div>
-                            <div class="urgent-action">
-                                <button class="btn-urgent" onclick="window.location.href='@GetDetailsUrl(urgent)'">
-                                    Review
-                                </button>
-                            </div>
-                        </div>
-                    }
+            <div class="card-content p-0">
+                <div class="table-responsive">
+                    <table class="table table-hover pending-table mb-0">
+                        <thead>
+                            <tr>
+                                <th style="width: 50px;">Type</th>
+                                <th>Request</th>
+                                <th style="width: 200px;">Staff</th>
+                                <th style="width: 120px;">Date</th>
+                                <th style="width: 120px;">Days Pending</th>
+                                <th style="width: 100px;">Action</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            @foreach (var urgent in Model.UrgentRequests)
+                            {
+                                <tr class="pending-row" style="cursor: pointer;" onclick="window.location.href='@GetDetailsUrl(urgent)'">
+                                    <td>
+                                        <div class="urgent-icon-sm">
+                                            <i class="bi bi-@(urgent.RequestType == TAB.Web.Models.RequestType.SimCard ? "sim" :
+                                                             urgent.RequestType == TAB.Web.Models.RequestType.DeviceRefund ? "arrow-return-left" :
+                                                             "receipt-cutoff")"></i>
+                                        </div>
+                                    </td>
+                                    <td>
+                                        <div class="urgent-title-sm">@urgent.RequestTitle</div>
+                                        <div class="urgent-status-sm">
+                                            <span class="badge badge-sm @Model.GetStatusBadgeClass(urgent.Status)">
+                                                @urgent.Status.Replace("Pending", "")
+                                            </span>
+                                        </div>
+                                    </td>
+                                    <td>
+                                        <span class="staff-name-sm">@urgent.StaffName</span>
+                                    </td>
+                                    <td>
+                                        <span class="request-date-sm">@urgent.RequestDate.ToString("MMM dd, yyyy")</span>
+                                        <div class="request-time-sm">@urgent.RequestDate.ToString("hh:mm tt")</div>
+                                    </td>
+                                    <td>
+                                        <span class="days-pending-badge @(((DateTime.Now - urgent.RequestDate).Days > 7) ? "severe" : "warning")">
+                                            <i class="bi bi-clock-history me-1"></i>
+                                            @((DateTime.Now - urgent.RequestDate).Days) days
+                                        </span>
+                                    </td>
+                                    <td>
+                                        <button class="btn btn-sm btn-urgent-action" onclick="event.stopPropagation(); window.location.href='@GetDetailsUrl(urgent)'">
+                                            <i class="bi bi-eye me-1"></i>Review
+                                        </button>
+                                    </td>
+                                </tr>
+                            }
+                        </tbody>
+                    </table>
                 </div>
             </div>
         </div>
@@ -204,12 +177,37 @@
 @functions {
     string GetDetailsUrl(TAB.Web.Models.UnifiedRequest request)
     {
+        // Route to appropriate approval page based on request type and status
         return request.RequestType switch
         {
-            TAB.Web.Models.RequestType.SimCard => $"/Modules/SimManagement/Approvals?tab=supervisor",
-            TAB.Web.Models.RequestType.DeviceRefund => $"/Modules/RefundManagement/Approvals",
+            TAB.Web.Models.RequestType.SimCard => GetSimCardApprovalUrl(request),
+            TAB.Web.Models.RequestType.DeviceRefund => GetRefundApprovalUrl(request),
             TAB.Web.Models.RequestType.EBill => $"/Modules/EBillManagement/CallRecords/SupervisorApprovals",
             _ => "#"
+        };
+    }
+
+    string GetSimCardApprovalUrl(TAB.Web.Models.UnifiedRequest request)
+    {
+        // Route to specific approval page based on status with requestId parameter
+        return request.Status switch
+        {
+            "PendingSupervisor" => $"/Modules/SimManagement/Approvals/Supervisor?requestId={request.Id}",
+            "PendingIcts" => $"/Modules/SimManagement/Approvals/ICTS?requestId={request.Id}",
+            _ => $"/Modules/SimManagement/Approvals?requestId={request.Id}" // Fallback to main approvals page
+        };
+    }
+
+    string GetRefundApprovalUrl(TAB.Web.Models.UnifiedRequest request)
+    {
+        // Route to specific approval page based on status with requestId parameter
+        return request.Status switch
+        {
+            "PendingSupervisor" => $"/Modules/RefundManagement/Approvals/Supervisor?requestId={request.Id}",
+            "PendingBudgetOfficer" => $"/Modules/RefundManagement/Approvals/BudgetOfficer?requestId={request.Id}",
+            "PendingStaffClaimsUnit" => $"/Modules/RefundManagement/Approvals/ClaimsUnit?requestId={request.Id}",
+            "PendingPaymentApproval" => $"/Modules/RefundManagement/Approvals/PaymentApprover?requestId={request.Id}",
+            _ => $"/Modules/RefundManagement/Approvals?requestId={request.Id}" // Fallback to main approvals page
         };
     }
 }
@@ -286,11 +284,21 @@
     height: 4px;
 }
 
-.primary-card::before { background: #009edb; }
-.sim-card::before { background: #009edb; }
-.refund-card::before { background: #009edb; }
-.ebill-card::before { background: #009edb; }
-.icts-card::before { background: #009edb; }
+.primary-card::before {
+    background: linear-gradient(90deg, #009EDB, #0084c7);
+}
+.sim-card::before {
+    background: linear-gradient(90deg, #009EDB, #0084c7);
+}
+.refund-card::before {
+    background: linear-gradient(90deg, #10b981, #34d399);
+}
+.ebill-card::before {
+    background: linear-gradient(90deg, #f59e0b, #fbbf24);
+}
+.icts-card::before {
+    background: linear-gradient(90deg, #ef4444, #f87171);
+}
 
 .stat-card:hover {
     transform: translateY(-4px);
@@ -308,27 +316,27 @@
 }
 
 .primary-card .stat-icon {
-    background: #009edb;
+    background: linear-gradient(135deg, #009EDB, #0084c7);
     color: white;
 }
 
 .sim-card .stat-icon {
-    background: #009edb;
+    background: linear-gradient(135deg, #009EDB, #0084c7);
     color: white;
 }
 
 .refund-card .stat-icon {
-    background: #009edb;
+    background: linear-gradient(135deg, #10b981, #34d399);
     color: white;
 }
 
 .ebill-card .stat-icon {
-    background: #009edb;
+    background: linear-gradient(135deg, #f59e0b, #fbbf24);
     color: white;
 }
 
 .icts-card .stat-icon {
-    background: #009edb;
+    background: linear-gradient(135deg, #ef4444, #f87171);
     color: white;
 }
 
@@ -623,95 +631,175 @@
     color: #667eea;
 }
 
-/* Urgent Section */
-.urgent-section {
+/* Pending Section */
+.pending-section {
     margin-bottom: 2rem;
 }
 
-.urgent-card {
-    border: 1px solid #e5e7eb;
-}
-
-.urgent-header {
-    background: #f97316;
-    color: white;
-    margin: -1px -1px 0 -1px;
-    padding: 1rem 1.5rem;
-}
-
-.urgent-badge {
-    background: rgba(255, 255, 255, 0.25);
-    color: white;
-    padding: 0.25rem 0.75rem;
+.pending-card {
+    background: white;
     border-radius: 12px;
+    border: 1px solid #e5e7eb;
+    overflow: hidden;
+}
+
+.pending-header {
+    background: linear-gradient(135deg, #009EDB, #0084c7);
+    color: white;
+    padding: 1rem 1.5rem;
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+}
+
+.pending-header .header-title i {
+    color: white;
+}
+
+.pending-header .header-title h3 {
+    color: white;
+}
+
+.pending-count-badge {
+    background: rgba(255, 255, 255, 0.2);
+    color: white;
+    padding: 0.35rem 0.75rem;
+    border-radius: 20px;
     font-weight: 600;
     font-size: 0.85rem;
 }
 
-.urgent-list {
-    display: flex;
-    flex-direction: column;
-    gap: 1rem;
+/* Pending Table Styles */
+.pending-table {
+    border-collapse: separate;
+    border-spacing: 0;
 }
 
-.urgent-item {
-    display: flex;
-    align-items: center;
-    gap: 1rem;
+.pending-table thead {
+    background: #f9fafb;
+}
+
+.pending-table thead th {
     padding: 1rem;
-    background: #fef9f5;
-    border: 1px solid #fed7aa;
-    border-radius: 12px;
+    font-weight: 600;
+    color: #374151;
+    font-size: 0.85rem;
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
+    border-bottom: 2px solid #e5e7eb;
 }
 
-.urgent-icon {
+.pending-row {
+    transition: all 0.2s ease;
+    border-bottom: 1px solid #f3f4f6;
+}
+
+.pending-row:hover {
+    background-color: #f9fafb;
+    transform: translateX(2px);
+    box-shadow: 0 2px 4px rgba(0, 0, 0, 0.05);
+}
+
+.pending-row td {
+    padding: 1rem;
+    vertical-align: middle;
+}
+
+.urgent-icon-sm {
     display: flex;
     align-items: center;
     justify-content: center;
-    width: 40px;
-    height: 40px;
-    border-radius: 10px;
-    background: #f97316;
+    width: 36px;
+    height: 36px;
+    border-radius: 8px;
+    background: linear-gradient(135deg, #009EDB, #0084c7);
     color: white;
-    font-size: 1.1rem;
+    font-size: 1rem;
 }
 
-.urgent-details {
-    flex: 1;
-}
-
-.urgent-title {
+.urgent-title-sm {
     font-weight: 600;
-    color: #1a202c;
+    color: #1f2937;
     margin-bottom: 0.25rem;
+    font-size: 0.95rem;
 }
 
-.urgent-meta {
-    display: flex;
-    gap: 0.5rem;
-    font-size: 0.85rem;
-    color: #78716c;
+.urgent-status-sm {
+    margin-top: 0.25rem;
 }
 
-.days-pending {
-    color: #ea580c;
+.badge-sm {
+    padding: 0.35rem 0.75rem;
+    border-radius: 20px;
+    font-size: 0.75rem;
+    font-weight: 600;
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
+}
+
+.staff-name-sm {
     font-weight: 500;
+    color: #374151;
 }
 
-.btn-urgent {
-    background: #f97316;
+.request-date-sm {
+    font-weight: 500;
+    color: #374151;
+    display: block;
+}
+
+.request-time-sm {
+    font-size: 0.75rem;
+    color: #9ca3af;
+    margin-top: 0.15rem;
+}
+
+.days-pending-badge {
+    display: inline-flex;
+    align-items: center;
+    padding: 0.35rem 0.75rem;
+    border-radius: 20px;
+    font-size: 0.75rem;
+    font-weight: 600;
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
+}
+
+.days-pending-badge.warning {
+    background: #fef3c7;
+    color: #d97706;
+}
+
+.days-pending-badge.severe {
+    background: #fee2e2;
+    color: #b91c1c;
+    animation: pulse 2s infinite;
+}
+
+@@keyframes pulse {
+    0%, 100% { opacity: 1; }
+    50% { opacity: 0.7; }
+}
+
+.btn-urgent-action {
+    background: linear-gradient(135deg, #009EDB, #0084c7);
     color: white;
     border: none;
-    padding: 0.5rem 1rem;
+    padding: 0.4rem 0.9rem;
     border-radius: 8px;
     font-weight: 500;
     font-size: 0.85rem;
-    cursor: pointer;
-    transition: background-color 0.3s ease;
+    transition: all 0.3s ease;
+    white-space: nowrap;
 }
 
-.btn-urgent:hover {
-    background: #ea580c;
+.btn-urgent-action:hover {
+    background: linear-gradient(135deg, #0084c7, #006da3);
+    color: white;
+    box-shadow: 0 4px 12px rgba(0, 158, 219, 0.3);
+    transform: translateY(-1px);
+}
+
 }
 
 /* Empty State */

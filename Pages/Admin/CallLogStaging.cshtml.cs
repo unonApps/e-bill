@@ -80,6 +80,7 @@ namespace TAB.Web.Pages.Admin
         public int TotalPendingRecords { get; set; }
         public int TotalVerifiedToday { get; set; }
         public int TotalAnomaliesDetected { get; set; }
+        public int CurrentBatchPendingCount { get; set; }
 
         // Pagination helpers
         public bool HasPreviousPage => PageNumber > 1;
@@ -133,6 +134,16 @@ namespace TAB.Web.Pages.Admin
 
             // Calculate statistics
             await CalculateStatisticsAsync();
+
+            // Calculate pending count for current batch
+            if (BatchId.HasValue)
+            {
+                CurrentBatchPendingCount = await _context.CallLogStagings
+                    .Where(c => c.BatchId == BatchId.Value &&
+                           (c.VerificationStatus == VerificationStatus.Pending ||
+                            c.VerificationStatus == VerificationStatus.RequiresReview))
+                    .CountAsync();
+            }
 
             // Diagnostic: Check record counts in source tables
             if (!string.IsNullOrEmpty(Request.Query["debug"]))
@@ -447,6 +458,51 @@ namespace TAB.Web.Pages.Admin
             return RedirectToPage(new { BatchId });
         }
 
+        public async Task<IActionResult> OnPostVerifyAllAsync()
+        {
+            if (!BatchId.HasValue)
+            {
+                StatusMessage = "Please select a batch to verify";
+                StatusMessageClass = "warning";
+                return RedirectToPage();
+            }
+
+            try
+            {
+                var userName = User.Identity?.Name ?? "System";
+
+                // Get ALL records that need verification in the batch (Pending and RequiresReview)
+                // IMPORTANT: This queries ALL records in the batch, not just the current page
+                // This will verify all 4000+ records at once if needed
+                var recordsToVerify = await _context.CallLogStagings
+                    .Where(c => c.BatchId == BatchId.Value &&
+                           (c.VerificationStatus == VerificationStatus.Pending ||
+                            c.VerificationStatus == VerificationStatus.RequiresReview))
+                    .Select(c => c.Id)
+                    .ToListAsync();
+
+                if (!recordsToVerify.Any())
+                {
+                    StatusMessage = "No records to verify in this batch";
+                    StatusMessageClass = "info";
+                    return RedirectToPage(new { BatchId });
+                }
+
+                var count = await _stagingService.BulkVerifyAsync(recordsToVerify, userName);
+
+                StatusMessage = $"Successfully verified all {count} records in this batch";
+                StatusMessageClass = "success";
+            }
+            catch (Exception ex)
+            {
+                _logger.LogError(ex, "Error verifying all records");
+                StatusMessage = $"Error: {ex.Message}";
+                StatusMessageClass = "danger";
+            }
+
+            return RedirectToPage(new { BatchId });
+        }
+
         public async Task<IActionResult> OnPostRejectSelectedAsync(string reason)
         {
             if (!SelectedIds.Any())
@@ -481,7 +537,7 @@ namespace TAB.Web.Pages.Admin
             return RedirectToPage(new { BatchId });
         }
 
-        public async Task<IActionResult> OnPostPushToProductionAsync(Guid batchId, string verificationPeriod)
+        public async Task<IActionResult> OnPostPushToProductionAsync(Guid batchId, string verificationPeriod, string? verificationType)
         {
             try
             {
@@ -495,7 +551,7 @@ namespace TAB.Web.Pages.Admin
                     }
                 }
 
-                var count = await _stagingService.PushToProductionAsync(batchId, verificationDeadline);
+                var count = await _stagingService.PushToProductionAsync(batchId, verificationDeadline, verificationType);
 
                 if (count > 0)
                 {
@@ -698,23 +754,24 @@ namespace TAB.Web.Pages.Admin
                     .CountAsync();
 
                 // Get source records count for the selected month
+                // Filter by call_month and call_year for better accuracy (handles null call_date)
                 var safaricomCount = await _context.Safaricoms
-                    .Where(s => s.CallDate >= startDate && s.CallDate <= endDate &&
+                    .Where(s => s.CallMonth == billingDate.Month && s.CallYear == billingDate.Year &&
                                (s.ProcessingStatus == ProcessingStatus.Staged || s.ProcessingStatus == ProcessingStatus.Failed))
                     .CountAsync();
 
                 var airtelCount = await _context.Airtels
-                    .Where(a => a.CallDate >= startDate && a.CallDate <= endDate &&
+                    .Where(a => a.CallMonth == billingDate.Month && a.CallYear == billingDate.Year &&
                                (a.ProcessingStatus == ProcessingStatus.Staged || a.ProcessingStatus == ProcessingStatus.Failed))
                     .CountAsync();
 
                 var pstnCount = await _context.PSTNs
-                    .Where(p => p.CallDate >= startDate && p.CallDate <= endDate &&
+                    .Where(p => p.CallMonth == billingDate.Month && p.CallYear == billingDate.Year &&
                                (p.ProcessingStatus == ProcessingStatus.Staged || p.ProcessingStatus == ProcessingStatus.Failed))
                     .CountAsync();
 
                 var privateWireCount = await _context.PrivateWires
-                    .Where(pw => pw.CallDate >= startDate && pw.CallDate <= endDate &&
+                    .Where(pw => pw.CallMonth == billingDate.Month && pw.CallYear == billingDate.Year &&
                                 (pw.ProcessingStatus == ProcessingStatus.Staged || pw.ProcessingStatus == ProcessingStatus.Failed))
                     .CountAsync();
 
@@ -722,9 +779,19 @@ namespace TAB.Web.Pages.Admin
 
                 // Check for already processed records in this period
                 // Using InvoiceDate as a proxy for call date in production CallLogs
-                var alreadyProcessedCount = await _context.CallLogs
-                    .Where(c => c.InvoiceDate >= startDate && c.InvoiceDate <= endDate)
-                    .CountAsync();
+                int alreadyProcessedCount = 0;
+                try
+                {
+                    #pragma warning disable CS0618 // Type or member is obsolete
+                    alreadyProcessedCount = await _context.CallLogs
+                        .Where(c => c.InvoiceDate >= startDate && c.InvoiceDate <= endDate)
+                        .CountAsync();
+                    #pragma warning restore CS0618 // Type or member is obsolete
+                }
+                catch (Exception ex)
+                {
+                    _logger.LogWarning(ex, "Could not query CallLogs table (deprecated)");
+                }
 
                 // Get recent batches for this month
                 // Using CreatedDate to find batches created within the billing month

@@ -61,7 +61,9 @@ namespace TAB.Web.Pages.Staff
 
             if (ebillUser == null)
             {
-                return RedirectToPage("/Error");
+                _logger.LogWarning("User {Email} attempted to access recovery report but has no EbillUser account", UserEmail);
+                TempData["ErrorMessage"] = "Access Denied: You do not have an E-Bill account. Please contact your system administrator to set up your account.";
+                return RedirectToPage("/Account/AccessDenied");
             }
 
             UserIndexNumber = ebillUser.IndexNumber;

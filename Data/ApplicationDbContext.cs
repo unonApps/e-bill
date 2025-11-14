@@ -42,6 +42,7 @@ namespace TAB.Web.Data
         public DbSet<StagingBatch> StagingBatches { get; set; }
         public DbSet<CallRecord> CallRecords { get; set; }
         public DbSet<AnomalyType> AnomalyTypes { get; set; }
+        public DbSet<ImportJob> ImportJobs { get; set; }
 
         // Billing Period Management
         public DbSet<BillingPeriod> BillingPeriods { get; set; }
@@ -779,6 +780,12 @@ namespace TAB.Web.Data
                     .HasForeignKey<ApplicationUser>(a => a.EbillUserId)
                     .OnDelete(DeleteBehavior.SetNull);
             });
+
+            // Configure Telecom Table Names (to match migration-created tables)
+            builder.Entity<Safaricom>().ToTable("Safaricom");
+            builder.Entity<Airtel>().ToTable("Airtel");
+            builder.Entity<PSTN>().ToTable("PSTNs");
+            builder.Entity<PrivateWire>().ToTable("PrivateWires");
         }
     }
 } 

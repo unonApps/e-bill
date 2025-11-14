@@ -32,6 +32,27 @@ namespace TAB.Web.Models
         [Display(Name = "Azure AD UPN")]
         public string? AzureAdUpn { get; set; }  // User Principal Name (username@domain.com)
 
+        // Additional Azure AD Profile Information
+        [MaxLength(200)]
+        [Display(Name = "Job Title")]
+        public string? JobTitle { get; set; }
+
+        [MaxLength(200)]
+        [Display(Name = "Department")]
+        public string? Department { get; set; }
+
+        [MaxLength(200)]
+        [Display(Name = "Company Name")]
+        public string? CompanyName { get; set; }
+
+        [MaxLength(50)]
+        [Display(Name = "Mobile Phone")]
+        public string? MobilePhone { get; set; }
+
+        [MaxLength(200)]
+        [Display(Name = "Office Location")]
+        public string? OfficeLocation { get; set; }
+
         // Optional link to EbillUser (if this system user is also a staff member with billing records)
         [Display(Name = "E-Bill User")]
         public int? EbillUserId { get; set; }

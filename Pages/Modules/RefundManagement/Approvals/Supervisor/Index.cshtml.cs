@@ -33,6 +33,8 @@ namespace TAB.Web.Pages.Modules.RefundManagement.Approvals.Supervisor
         public List<RefundRequest> AllSupervisorRequests { get; set; } = new();
         public List<ApplicationUser> BudgetOfficers { get; set; } = new();
         public string CurrentUserRole { get; set; } = "";
+        public bool IsDetailView { get; set; } = false;
+        public RefundRequest? CurrentRequest { get; set; }
 
         [TempData]
         public string? StatusMessage { get; set; }
@@ -40,7 +42,7 @@ namespace TAB.Web.Pages.Modules.RefundManagement.Approvals.Supervisor
         [TempData]
         public string? StatusMessageClass { get; set; }
 
-        public async Task OnGetAsync()
+        public async Task OnGetAsync(int? requestId = null)
         {
             var currentUser = await _userManager.GetUserAsync(User);
             if (currentUser != null)
@@ -48,7 +50,17 @@ namespace TAB.Web.Pages.Modules.RefundManagement.Approvals.Supervisor
                 // Determine user role for filtering and display logic
                 var userRoles = await _userManager.GetRolesAsync(currentUser);
                 CurrentUserRole = userRoles.FirstOrDefault() ?? "";
-                
+
+                // Check if this is a detail view request
+                if (requestId.HasValue)
+                {
+                    CurrentRequest = await _context.RefundRequests.FindAsync(requestId.Value);
+                    if (CurrentRequest != null)
+                    {
+                        IsDetailView = true;
+                    }
+                }
+
                 // Filter requests based on user role
                 if (await _userManager.IsInRoleAsync(currentUser, "Supervisor"))
                 {
@@ -58,7 +70,7 @@ namespace TAB.Web.Pages.Modules.RefundManagement.Approvals.Supervisor
                         .OrderBy(r => r.RequestDate)
                         .ToListAsync();
                 }
-                else if (await _userManager.IsInRoleAsync(currentUser, "Budget Officer") || 
+                else if (await _userManager.IsInRoleAsync(currentUser, "Budget Officer") ||
                          await _userManager.IsInRoleAsync(currentUser, "BudgetOfficer"))
                 {
                     // Budget Officers see requests where they are assigned as the budget officer
@@ -78,7 +90,7 @@ namespace TAB.Web.Pages.Modules.RefundManagement.Approvals.Supervisor
                 // For backward compatibility, keep PendingRequests as all requests
                 // The frontend will filter by status for display
                 PendingRequests = AllSupervisorRequests;
-                
+
                 // Load budget officers for the dropdown (only needed for supervisors)
                 if (await _userManager.IsInRoleAsync(currentUser, "Supervisor") || await _userManager.IsInRoleAsync(currentUser, "Admin"))
                 {

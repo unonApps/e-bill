@@ -671,10 +671,51 @@ namespace TAB.Web.Pages.Admin
                     return RedirectToPage();
                 }
 
+                // Check for related UserPhones
+                var userPhones = await _context.UserPhones
+                    .Where(up => up.IndexNumber == ebillUser.IndexNumber)
+                    .ToListAsync();
+
+                if (userPhones.Any())
+                {
+                    var userPhoneIds = userPhones.Select(up => up.Id).ToList();
+
+                    // Check if any UserPhones are referenced in CallLogStaging
+                    var hasCallLogStagings = await _context.CallLogStagings
+                        .AnyAsync(cls => cls.UserPhoneId.HasValue && userPhoneIds.Contains(cls.UserPhoneId.Value));
+
+                    if (hasCallLogStagings)
+                    {
+                        StatusMessage = $"Cannot delete user {ebillUser.FullName}. This user has associated call log staging records. Please remove or reassign the call logs before deleting the user.";
+                        StatusMessageClass = "danger";
+                        _logger.LogWarning("Attempted to delete EbillUser {Id} with existing CallLogStaging records", id);
+                        return RedirectToPage();
+                    }
+
+                    // Check if any UserPhones are referenced in other tables (CallRecords, etc.)
+                    var hasCallRecords = await _context.CallRecords
+                        .AnyAsync(cr => cr.UserPhoneId.HasValue && userPhoneIds.Contains(cr.UserPhoneId.Value));
+
+                    if (hasCallRecords)
+                    {
+                        StatusMessage = $"Cannot delete user {ebillUser.FullName}. This user has associated call records. Please archive or reassign the records before deleting the user.";
+                        StatusMessageClass = "danger";
+                        _logger.LogWarning("Attempted to delete EbillUser {Id} with existing CallRecords", id);
+                        return RedirectToPage();
+                    }
+
+                    // If no related records, safe to delete UserPhones
+                    _context.UserPhones.RemoveRange(userPhones);
+                }
+
+                // Check for other related records
+                // Add more checks here for other tables if needed
+
+                // Safe to delete the EbillUser
                 _context.EbillUsers.Remove(ebillUser);
                 await _context.SaveChangesAsync();
 
-                _logger.LogInformation("Deleted EbillUser: {FirstName} {LastName} (ID: {Id})", 
+                _logger.LogInformation("Deleted EbillUser: {FirstName} {LastName} (ID: {Id})",
                     ebillUser.FirstName, ebillUser.LastName, id);
 
                 StatusMessage = "Ebill user deleted successfully.";
@@ -683,7 +724,7 @@ namespace TAB.Web.Pages.Admin
             catch (Exception ex)
             {
                 _logger.LogError(ex, "Error deleting EbillUser with ID: {Id}", id);
-                StatusMessage = "An error occurred while deleting the user.";
+                StatusMessage = $"An error occurred while deleting the user. {ex.Message}";
                 StatusMessageClass = "danger";
             }
 

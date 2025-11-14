@@ -297,17 +297,16 @@
         transform: translateY(-1px);
     }
 
-    .priority-badge {
+    .info-badge {
         display: inline-block;
-        padding: 0.25rem 0.75rem;
+        padding: 0.35rem 0.85rem;
         border-radius: 6px;
         font-size: 12px;
         font-weight: 500;
+        background: #e0f2fe;
+        color: #075985;
+        border: 1px solid #bae6fd;
     }
-
-    .priority-high { background: #fee2e2; color: #991b1b; }
-    .priority-medium { background: #fef3c7; color: #92400e; }
-    .priority-low { background: #dbeafe; color: #1e3a8a; }
 
     .action-button {
         background: #009EDB;
@@ -384,7 +383,7 @@
 <div class="container-fluid px-4">
     <div class="page-header">
         <h1 class="page-title"><i class="bi bi-sim me-2"></i>SIM Card Approvals</h1>
-        <p class="page-subtitle">Unified overview of all SIM card requests with filters and pagination</p>
+        <p class="page-subtitle">Overview of all SIM card requests with detailed information and advanced filtering</p>
     </div>
 
     <!-- Statistics Cards -->
@@ -509,7 +508,7 @@
 
     <!-- Filter Bar -->
     <div class="filter-bar">
-        <input type="text" id="searchInput" placeholder="Search by name, ID, service provider..." />
+        <input type="text" id="searchInput" placeholder="Search by name, ID, organization, grade..." />
         <select id="statusFilter">
             <option value="">All Statuses</option>
             <option value="PendingSupervisor">Pending Supervisor</option>
@@ -522,11 +521,13 @@
             <option value="Rejected">Rejected</option>
             <option value="Cancelled">Cancelled</option>
         </select>
-        <select id="priorityFilter">
-            <option value="">All Priorities</option>
-            <option value="high">High Priority</option>
-            <option value="medium">Medium Priority</option>
-            <option value="low">Low Priority</option>
+        <select id="simTypeFilter">
+            <option value="">All SIM Types</option>
+            <option value="Physical">Physical SIM</option>
+            <option value="ESim">eSIM</option>
+        </select>
+        <select id="organizationFilter">
+            <option value="">All Organizations</option>
         </select>
         <button onclick="applyFilters()">
             <i class="bi bi-funnel me-2"></i>Filter
@@ -545,9 +546,11 @@
                     <tr>
                         <th>Request ID</th>
                         <th>Staff Name</th>
-                        <th>Service Provider</th>
+                        <th>Organization</th>
+                        <th>Grade</th>
+                        <th>SIM Type</th>
+                        <th>Mobile Service</th>
                         <th>Request Date</th>
-                        <th>Priority</th>
                         <th>Status</th>
                         <th>Action</th>
                     </tr>
@@ -555,9 +558,6 @@
                 <tbody>
                     @foreach (var request in Model.SimRequests)
                     {
-                        var daysSinceRequest = (DateTime.UtcNow - request.RequestDate).Days;
-                        var priorityClass = daysSinceRequest > 14 ? "priority-high" : daysSinceRequest > 7 ? "priority-medium" : "priority-low";
-                        var priorityText = daysSinceRequest > 14 ? "High" : daysSinceRequest > 7 ? "Medium" : "Low";
                         var statusClass = request.Status.ToString() switch
                         {
                             "PendingSupervisor" => "status-pending-supervisor",
@@ -573,13 +573,16 @@
                             _ => "status-draft"
                         };
                         var statusDisplay = request.Status.ToString().Replace("Pending", "Pending ").Replace("SIM", " SIM");
+                        var simTypeDisplay = request.SimType == TAB.Web.Models.SimType.Physical ? "Physical SIM" : "eSIM";
 
-                        <tr data-status="@request.Status" data-priority="@priorityText.ToLower()" data-id="@request.Id">
+                        <tr data-status="@request.Status" data-simtype="@request.SimType" data-organization="@request.Organization" data-id="@request.Id">
                             <td><strong>#@request.Id</strong></td>
                             <td>@request.FirstName @request.LastName</td>
-                            <td>@(request.ServiceProvider?.ServiceProviderName ?? "N/A")</td>
+                            <td>@request.Organization</td>
+                            <td>@request.Grade</td>
+                            <td><span class="info-badge">@simTypeDisplay</span></td>
+                            <td>@(request.MobileService ?? "Not assigned")</td>
                             <td>@request.RequestDate.ToString("MMM dd, yyyy")</td>
-                            <td><span class="priority-badge @priorityClass">@priorityText</span></td>
                             <td><span class="status-badge @statusClass">@statusDisplay</span></td>
                             <td>
                                 <button class="action-button" onclick="navigateToApproval('@request.Status', @request.Id)">
@@ -635,6 +638,21 @@
             if (table) {
                 const tbody = table.querySelector('tbody');
                 originalRows = Array.from(tbody.querySelectorAll('tr'));
+
+                // Populate organization filter with unique values
+                const organizations = new Set();
+                originalRows.forEach(row => {
+                    const org = row.getAttribute('data-organization');
+                    if (org) organizations.add(org);
+                });
+
+                const orgFilter = document.getElementById('organizationFilter');
+                Array.from(organizations).sort().forEach(org => {
+                    const option = document.createElement('option');
+                    option.value = org;
+                    option.textContent = org;
+                    orgFilter.appendChild(option);
+                });
             }
         });
 
@@ -655,7 +673,8 @@
         function applyFilters() {
             const searchTerm = document.getElementById('searchInput').value.toLowerCase();
             const statusFilter = document.getElementById('statusFilter').value;
-            const priorityFilter = document.getElementById('priorityFilter').value;
+            const simTypeFilter = document.getElementById('simTypeFilter').value;
+            const organizationFilter = document.getElementById('organizationFilter').value;
 
             const table = document.getElementById('requestsTable');
             if (!table) return;
@@ -668,14 +687,16 @@
             rows.forEach(row => {
                 const id = row.getAttribute('data-id');
                 const status = row.getAttribute('data-status');
-                const priority = row.getAttribute('data-priority');
+                const simType = row.getAttribute('data-simtype');
+                const organization = row.getAttribute('data-organization');
                 const textContent = row.textContent.toLowerCase();
 
                 const matchesSearch = searchTerm === '' || textContent.includes(searchTerm);
                 const matchesStatus = statusFilter === '' || status === statusFilter;
-                const matchesPriority = priorityFilter === '' || priority === priorityFilter;
+                const matchesSimType = simTypeFilter === '' || simType === simTypeFilter;
+                const matchesOrganization = organizationFilter === '' || organization === organizationFilter;
 
-                if (matchesSearch && matchesStatus && matchesPriority) {
+                if (matchesSearch && matchesStatus && matchesSimType && matchesOrganization) {
                     row.style.display = '';
                     visibleCount++;
                 } else {
@@ -692,7 +713,8 @@
         function clearFilters() {
             document.getElementById('searchInput').value = '';
             document.getElementById('statusFilter').value = '';
-            document.getElementById('priorityFilter').value = '';
+            document.getElementById('simTypeFilter').value = '';
+            document.getElementById('organizationFilter').value = '';
 
             document.querySelectorAll('.stat-card').forEach(card => {
                 card.classList.remove('active');

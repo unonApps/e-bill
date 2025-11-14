@@ -391,6 +391,28 @@
         font-style: italic;
         text-align: center;
     }
+
+    .searchable-dropdown .dropdown-info {
+        padding: 12px 16px;
+        color: #6b7280;
+        font-size: 0.75rem;
+        text-align: center;
+        font-style: italic;
+    }
+
+    .searchable-dropdown .dropdown-loading {
+        padding: 12px 16px;
+        color: #009EDB;
+        text-align: center;
+        font-size: 0.75rem;
+    }
+
+    .searchable-dropdown .dropdown-item-detail {
+        font-size: 0.7rem;
+        color: #6b7280;
+        margin-top: 2px;
+        display: block;
+    }
     
     .searchable-dropdown .form-floating > label {
         color: #6b7280 !important;
@@ -876,20 +898,21 @@
                         </h6>
                         <div class="row g-3">
                             <div class="col-12 col-md-6">
-                                <div class="form-floating searchable-dropdown">
-                                    <input type="text" class="search-input" id="supervisorSearch" placeholder="Search supervisors..." autocomplete="off" />
-                                    <input type="hidden" asp-for="SimRequest.Supervisor" id="supervisorValue" />
-                                    <label for="supervisorSearch">
-                                        <span class="text-danger">*</span> Supervisor
+                                <div class="form-floating">
+                                    <input asp-for="SimRequest.Supervisor" type="email" class="form-control" placeholder="Supervisor Email" required />
+                                    <label asp-for="SimRequest.Supervisor">
+                                        <span class="text-danger">*</span> Supervisor Email
                                     </label>
-                                    <div class="dropdown-icon">▼</div>
-                                    <div class="dropdown-menu" id="supervisorDropdown">
-                                        @foreach (var supervisor in Model.Supervisors)
-                                        {
-                                            <div class="dropdown-item" data-value="@supervisor.Value">@supervisor.Text</div>
-                                        }
-                                    </div>
                                     <span asp-validation-for="SimRequest.Supervisor" class="text-danger"></span>
+                                </div>
+                            </div>
+                            <div class="col-12 col-md-6">
+                                <div class="form-floating">
+                                    <input asp-for="SimRequest.SupervisorName" class="form-control" placeholder="Supervisor Name" />
+                                    <label asp-for="SimRequest.SupervisorName">
+                                        Supervisor Name
+                                    </label>
+                                    <span asp-validation-for="SimRequest.SupervisorName" class="text-danger"></span>
                                 </div>
                             </div>
                             <div class="col-12 col-md-6">
@@ -1013,8 +1036,11 @@
         // Filter offices based on selected organization
         const organizationSelect = document.querySelector('select[name="SimRequest.Organization"]');
         const officeSelect = document.querySelector('select[name="SimRequest.Office"]');
-        
+
         if (organizationSelect && officeSelect) {
+            // Store the pre-selected office value before filtering
+            const preSelectedOffice = officeSelect.value;
+
             // Store all office options initially
             const allOfficeOptions = Array.from(officeSelect.options).map(option => ({
                 value: option.value,
@@ -1022,14 +1048,15 @@
                 organization: option.getAttribute('data-organization'),
                 element: option.cloneNode(true)
             }));
-            
+
             // Function to filter offices
-            function filterOffices() {
+            function filterOffices(preserveSelection = false) {
                 const selectedOrg = organizationSelect.value;
-                
+                const currentOfficeValue = preserveSelection ? officeSelect.value : '';
+
                 // Clear current options
                 officeSelect.innerHTML = '';
-                
+
                 // Add back filtered options
                 allOfficeOptions.forEach(optionData => {
                     if (optionData.value === '') {
@@ -1040,16 +1067,33 @@
                         officeSelect.appendChild(optionData.element.cloneNode(true));
                     }
                 });
-                
-                // Reset selection
-                officeSelect.value = '';
+
+                // Restore selection if preserving
+                if (preserveSelection && currentOfficeValue) {
+                    officeSelect.value = currentOfficeValue;
+                }
             }
-            
-            // Initial filter on page load (in case organization is pre-selected)
-            filterOffices();
-            
+
+            // Auto-load offices if organization is pre-selected (for auto-population)
+            const preSelectedOrgId = @(Model.PreSelectedOrganizationId?.ToString() ?? "null");
+
+            if (preSelectedOrgId && organizationSelect.value) {
+                // Filter offices for the pre-selected organization
+                filterOffices(true);
+
+                // Restore the pre-selected office value if it was set
+                if (preSelectedOffice) {
+                    officeSelect.value = preSelectedOffice;
+                }
+            } else {
+                // Initial filter on page load
+                filterOffices();
+            }
+
             // Filter when organization changes
-            organizationSelect.addEventListener('change', filterOffices);
+            organizationSelect.addEventListener('change', function() {
+                filterOffices(false);
+            });
         }
 
         // Ensure Service Provider dropdown works
@@ -1111,130 +1155,7 @@
             }, index * 100);
         });
 
-        // Searchable Supervisor Dropdown
-        const supervisorSearch = document.getElementById('supervisorSearch');
-        const supervisorValue = document.getElementById('supervisorValue');
-        const supervisorDropdown = document.getElementById('supervisorDropdown');
-        const supervisorIcon = document.querySelector('.searchable-dropdown .dropdown-icon');
-        
-        if (supervisorSearch && supervisorValue && supervisorDropdown) {
-            let supervisorOptions = Array.from(supervisorDropdown.querySelectorAll('.dropdown-item'));
-            
-            // Show dropdown when input is focused or clicked
-            supervisorSearch.addEventListener('focus', function() {
-                supervisorDropdown.classList.add('show');
-                supervisorIcon.classList.add('rotated');
-                filterSupervisors('');
-            });
-            
-            // Hide dropdown when clicking outside
-            document.addEventListener('click', function(e) {
-                if (!e.target.closest('.searchable-dropdown')) {
-                    supervisorDropdown.classList.remove('show');
-                    supervisorIcon.classList.remove('rotated');
-                }
-            });
-            
-            // Filter supervisors based on search input
-            supervisorSearch.addEventListener('input', function() {
-                const searchTerm = this.value.toLowerCase();
-                filterSupervisors(searchTerm);
-            });
-            
-            // Handle supervisor selection
-            supervisorDropdown.addEventListener('click', function(e) {
-                if (e.target.classList.contains('dropdown-item')) {
-                    const selectedValue = e.target.getAttribute('data-value');
-                    const selectedText = e.target.textContent;
-                    
-                    supervisorSearch.value = selectedText;
-                    supervisorValue.value = selectedValue;
-                    supervisorDropdown.classList.remove('show');
-                    supervisorIcon.classList.remove('rotated');
-                    
-                    // Remove previous selections
-                    supervisorOptions.forEach(item => item.classList.remove('selected'));
-                    e.target.classList.add('selected');
-                }
-            });
-            
-            // Filter function
-            function filterSupervisors(searchTerm) {
-                let hasResults = false;
-                
-                supervisorOptions.forEach(option => {
-                    const text = option.textContent.toLowerCase();
-                    if (text.includes(searchTerm)) {
-                        option.style.display = 'block';
-                        hasResults = true;
-                    } else {
-                        option.style.display = 'none';
-                    }
-                });
-                
-                // Show/hide no results message
-                let noResultsMsg = supervisorDropdown.querySelector('.no-results');
-                if (!hasResults && searchTerm) {
-                    if (!noResultsMsg) {
-                        noResultsMsg = document.createElement('div');
-                        noResultsMsg.className = 'no-results';
-                        noResultsMsg.textContent = 'No supervisors found';
-                        supervisorDropdown.appendChild(noResultsMsg);
-                    }
-                    noResultsMsg.style.display = 'block';
-                } else if (noResultsMsg) {
-                    noResultsMsg.style.display = 'none';
-                }
-            }
-            
-            // Keyboard navigation
-            supervisorSearch.addEventListener('keydown', function(e) {
-                const visibleItems = supervisorOptions.filter(item => item.style.display !== 'none');
-                const currentSelected = supervisorDropdown.querySelector('.dropdown-item.highlighted');
-                let selectedIndex = currentSelected ? visibleItems.indexOf(currentSelected) : -1;
-                
-                switch(e.key) {
-                    case 'ArrowDown':
-                        e.preventDefault();
-                        if (!supervisorDropdown.classList.contains('show')) {
-                            supervisorDropdown.classList.add('show');
-                            supervisorIcon.classList.add('rotated');
-                        }
-                        selectedIndex = Math.min(selectedIndex + 1, visibleItems.length - 1);
-                        highlightItem(visibleItems, selectedIndex);
-                        break;
-                        
-                    case 'ArrowUp':
-                        e.preventDefault();
-                        selectedIndex = Math.max(selectedIndex - 1, 0);
-                        highlightItem(visibleItems, selectedIndex);
-                        break;
-                        
-                    case 'Enter':
-                        e.preventDefault();
-                        if (currentSelected) {
-                            currentSelected.click();
-                        }
-                        break;
-                        
-                    case 'Escape':
-                        supervisorDropdown.classList.remove('show');
-                        supervisorIcon.classList.remove('rotated');
-                        supervisorSearch.blur();
-                        break;
-                }
-            });
-            
-            function highlightItem(items, index) {
-                // Remove previous highlight
-                supervisorOptions.forEach(item => item.classList.remove('highlighted'));
-                
-                if (items[index]) {
-                    items[index].classList.add('highlighted');
-                    items[index].scrollIntoView({ block: 'nearest' });
-                }
-            }
-        }
+        // Supervisor fields are now simple text inputs - no special JavaScript needed
     });
 </script>
 

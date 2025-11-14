@@ -321,9 +321,14 @@
     <h4 class="mb-0">
         <i class="bi bi-clipboard-check me-2 text-primary"></i>Call Logs Staging
     </h4>
-    <button type="button" class="btn btn-primary" data-bs-toggle="modal" data-bs-target="#consolidateModal">
-        <i class="bi bi-arrow-repeat me-2"></i>Consolidate New Batch
-    </button>
+    <div class="btn-group">
+        <button type="button" class="btn btn-primary" data-bs-toggle="modal" data-bs-target="#consolidateModal">
+            <i class="bi bi-arrow-repeat me-2"></i>Consolidate New Batch
+        </button>
+        <a href="/hangfire" target="_blank" class="btn btn-outline-secondary">
+            <i class="bi bi-speedometer2 me-2"></i>Monitor Jobs
+        </a>
+    </div>
 </div>
 
 
@@ -412,15 +417,15 @@
                     <div class="col-md-3">
                         <label class="form-label text-muted small" for="searchFilter">Search</label>
                         <input type="text" name="SearchTerm" id="searchFilter"
-                               class="form-control border-0 bg-light filter-search-input"
+                               class="form-control border-0 bg-light"
                                style="border-radius: 12px;"
-                               placeholder="Phone number, user..." value="@Model.SearchTerm" />
+                               placeholder="Extension, name, index, email..." value="@Model.SearchTerm" />
                     </div>
 
                     <div class="col-md-2">
                         <label class="form-label text-muted small" for="statusFilter">Status</label>
                         <select name="Status" id="statusFilter"
-                                class="form-select border-0 bg-light filter-auto-submit"
+                                class="form-select border-0 bg-light"
                                 style="border-radius: 12px;">
                             <option value="">All Status</option>
                             @foreach (var status in Model.StatusList)
@@ -433,7 +438,7 @@
                     <div class="col-md-2">
                         <label class="form-label text-muted small" for="anomaliesFilter">Anomalies</label>
                         <select name="HasAnomalies" id="anomaliesFilter"
-                                class="form-select border-0 bg-light filter-auto-submit"
+                                class="form-select border-0 bg-light"
                                 style="border-radius: 12px;">
                             <option value="">All Records</option>
                             <option value="true" selected="@(Model.HasAnomalies == true)">With Anomalies</option>
@@ -444,7 +449,7 @@
                     <div class="col-md-2">
                         <label class="form-label text-muted small" for="startDate">Start Date</label>
                         <input type="date" name="StartDate" id="startDate"
-                               class="form-control border-0 bg-light filter-auto-submit"
+                               class="form-control border-0 bg-light"
                                style="border-radius: 12px;"
                                value="@Model.StartDate?.ToString("yyyy-MM-dd")" />
                     </div>
@@ -452,15 +457,18 @@
                     <div class="col-md-2">
                         <label class="form-label text-muted small" for="endDate">End Date</label>
                         <input type="date" name="EndDate" id="endDate"
-                               class="form-control border-0 bg-light filter-auto-submit"
+                               class="form-control border-0 bg-light"
                                style="border-radius: 12px;"
                                value="@Model.EndDate?.ToString("yyyy-MM-dd")" />
                     </div>
 
-                    <div class="col-md-1 d-flex align-items-end">
+                    <div class="col-md-1 d-flex align-items-end gap-2">
+                        <button type="submit" class="btn btn-primary btn-sm" style="border-radius: 12px;">
+                            <i class="bi bi-check-circle me-1"></i>Apply
+                        </button>
                         <a href="/Admin/CallLogStaging@(Model.BatchId.HasValue ? $"?BatchId={Model.BatchId}" : "")"
                            class="btn btn-outline-secondary btn-sm" style="border-radius: 12px;">
-                            <i class="bi bi-x-circle me-1"></i>Clear
+                            <i class="bi bi-x-circle"></i>
                         </a>
                     </div>
                 </div>
@@ -773,28 +781,40 @@
                     </tbody>
                 </table>
             </div>
-            <!-- Bulk Actions Bar -->
-            @if (Model.StagedLogs.Items.Any())
-            {
-                <div class="p-3 bg-light border-top">
-                    <div class="d-flex justify-content-between align-items-center">
-                        <div>
-                            <span class="text-muted me-3">With selected:</span>
-                            <button type="submit" class="btn btn-sm btn-success me-2">
-                                <i class="bi bi-check-all me-1"></i>Verify Selected
-                            </button>
-                            <button type="button" class="btn btn-sm btn-danger"
-                                    onclick="rejectSelected()">
-                                <i class="bi bi-x-circle me-1"></i>Reject Selected
-                            </button>
-                        </div>
-                        <span class="badge bg-secondary">
-                            <span id="selectedCount">0</span> selected
-                        </span>
-                    </div>
-                </div>
-            }
         </form>
+
+        <!-- Bulk Actions Bar -->
+        @if (Model.StagedLogs.Items.Any())
+        {
+            <div class="p-3 bg-light border-top">
+                <div class="d-flex justify-content-between align-items-center">
+                    <div class="d-flex gap-2 align-items-center">
+                        <span class="text-muted me-2">With selected:</span>
+                        <button type="button" class="btn btn-sm btn-success" onclick="verifySelected()">
+                            <i class="bi bi-check-all me-1"></i>Verify Selected
+                        </button>
+                        <button type="button" class="btn btn-sm btn-danger"
+                                onclick="rejectSelected()">
+                            <i class="bi bi-x-circle me-1"></i>Reject Selected
+                        </button>
+                        @if (Model.BatchId.HasValue && Model.CurrentBatchPendingCount > 0)
+                        {
+                            <div class="vr mx-2"></div>
+                            <form method="post" asp-page-handler="VerifyAll" class="d-inline" id="verifyAllForm"
+                                  onsubmit="return confirmVerifyAll();">
+                                <input type="hidden" name="BatchId" value="@Model.BatchId" />
+                                <button type="submit" class="btn btn-sm btn-primary">
+                                    <i class="bi bi-check-circle-fill me-1"></i>Verify All (@Model.CurrentBatchPendingCount)
+                                </button>
+                            </form>
+                        }
+                    </div>
+                    <span class="badge bg-secondary">
+                        <span id="selectedCount">0</span> selected
+                    </span>
+                </div>
+            </div>
+        }
     </div>
 
     <!-- Pagination -->
@@ -936,12 +956,6 @@
                                         </div>
                                     </div>
                                 </div>
-                            </div>
-
-                            <!-- No unverified records message -->
-                            <div id="noUnverifiedMessage" class="alert alert-success d-none">
-                                <i class="bi bi-check-circle-fill me-2"></i>
-                                <strong>All Clear!</strong> There are no unverified records pending. You can proceed with new consolidation.
                             </div>
 
                             <!-- Batch breakdown -->
@@ -1096,30 +1110,6 @@
                                 <strong>Warning:</strong> <span id="existingBatchMessage"></span>
                             </div>
 
-                            <!-- Current Status Overview -->
-                            <div class="card border-0 shadow-sm mb-3" style="background: #f8f9fa;">
-                                <div class="card-body">
-                                    <h6 class="card-title text-primary mb-3">
-                                        <i class="bi bi-clipboard-data me-2"></i>Current Status
-                                    </h6>
-
-                                    <div class="row g-3">
-                                        <div class="col-md-6">
-                                            <div class="d-flex justify-content-between align-items-center p-2 bg-white rounded">
-                                                <span class="text-muted small">Unverified Records:</span>
-                                                <span class="badge bg-warning" id="unverifiedCount">0</span>
-                                            </div>
-                                        </div>
-                                        <div class="col-md-6">
-                                            <div class="d-flex justify-content-between align-items-center p-2 bg-white rounded">
-                                                <span class="text-muted small">Pending Batches:</span>
-                                                <span class="badge bg-info" id="pendingBatchesCount">0</span>
-                                            </div>
-                                        </div>
-                                    </div>
-                                </div>
-                            </div>
-
                             <!-- Records to Import -->
                             <div class="card border-0 shadow-sm mb-3" style="background: #e8f5e9;">
                                 <div class="card-body">
@@ -1171,13 +1161,43 @@
                         </div>
                     </div>
 
-                    <div class="alert alert-info small">
+                    <div class="alert alert-info small" id="consolidationInfoAlert">
                         <i class="bi bi-info-circle me-2"></i>
                         This will import call logs from all configured sources (Safaricom, Airtel, PSTN, PrivateWire) for the selected month.
                     </div>
 
-                    <div class="d-flex gap-2 justify-content-end">
-                        <button type="button" class="btn btn-light px-4" data-bs-dismiss="modal">
+                    <!-- Progress Section (Hidden by default) -->
+                    <div id="consolidationProgress" class="d-none mb-4">
+                        <div class="card border-0" style="background: linear-gradient(135deg, #f8f9fa 0%, #e9ecef 100%);">
+                            <div class="card-body">
+                                <div class="d-flex align-items-center mb-3">
+                                    <div class="spinner-border spinner-border-sm text-primary me-3" role="status">
+                                        <span class="visually-hidden">Processing...</span>
+                                    </div>
+                                    <div class="flex-grow-1">
+                                        <h6 class="mb-1 fw-bold">Consolidating Call Logs...</h6>
+                                        <p class="mb-0 small text-muted" id="progressMessage">Starting consolidation process...</p>
+                                    </div>
+                                </div>
+                                <div class="progress" style="height: 8px;">
+                                    <div class="progress-bar progress-bar-striped progress-bar-animated bg-primary"
+                                         role="progressbar"
+                                         id="progressBar"
+                                         style="width: 0%"
+                                         aria-valuenow="0"
+                                         aria-valuemin="0"
+                                         aria-valuemax="100"></div>
+                                </div>
+                                <div class="d-flex justify-content-between mt-2">
+                                    <small class="text-muted" id="progressStats">Processing records...</small>
+                                    <small class="text-muted" id="progressPercent">0%</small>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+
+                    <div class="d-flex gap-2 justify-content-end" id="consolidationButtons">
+                        <button type="button" class="btn btn-light px-4" data-bs-dismiss="modal" id="cancelBtn">
                             <i class="bi bi-x-circle me-2"></i>Cancel
                         </button>
                         <button type="submit" class="btn btn-primary px-4" id="consolidateBtn">
@@ -1277,6 +1297,149 @@
     </div>
 </div>
 
+<!-- Verify All Modal -->
+<div class="modal fade" id="verifyAllModal" tabindex="-1" aria-hidden="true">
+    <div class="modal-dialog modal-dialog-centered">
+        <div class="modal-content" style="border-radius: 20px; border: none; box-shadow: 0 10px 40px rgba(0, 0, 0, 0.1);">
+            <div class="modal-body p-0">
+                <!-- Icon and Title Section -->
+                <div class="text-center pt-4 pb-3" style="background: linear-gradient(135deg, #dbeafe 0%, #bfdbfe 100%); border-radius: 20px 20px 0 0;">
+                    <div class="d-inline-flex align-items-center justify-content-center mb-3"
+                         style="width: 64px; height: 64px; background: linear-gradient(135deg, #3b82f6 0%, #2563eb 100%); border-radius: 16px;">
+                        <i class="bi bi-check-circle-fill text-white" style="font-size: 28px;"></i>
+                    </div>
+                    <h5 class="modal-title mb-1 fw-bold" style="color: #1e40af;">Verify All Records</h5>
+                    <p class="text-muted mb-0 small">Bulk verification confirmation</p>
+                </div>
+
+                <!-- Content Section -->
+                <div class="p-4">
+                    <div class="text-center mb-4">
+                        <p class="mb-2">You are about to verify:</p>
+                        <h3 class="fw-bold" style="color: #3b82f6;"><span id="verifyAllCount">0</span> records</h3>
+                        <p class="text-muted small mb-0">across all pages in this batch</p>
+                    </div>
+
+                    <div class="alert alert-info d-flex align-items-start" style="background-color: #dbeafe; border: none; border-radius: 12px;">
+                        <i class="bi bi-info-circle me-3 mt-1" style="font-size: 20px; color: #3b82f6;"></i>
+                        <div>
+                            <strong>This will verify ALL unverified records in this batch</strong>
+                            <p class="mb-0 mt-1 small">This action will verify all records with "Pending" or "RequiresReview" status, regardless of pagination. This action cannot be undone.</p>
+                        </div>
+                    </div>
+
+                    <div class="d-flex gap-2 justify-content-end mt-4">
+                        <button type="button" class="btn btn-light px-4" data-bs-dismiss="modal" style="border-radius: 10px;">
+                            <i class="bi bi-x-circle me-2"></i>Cancel
+                        </button>
+                        <button type="button" class="btn btn-primary px-4" onclick="submitVerifyAll()" style="border-radius: 10px;">
+                            <i class="bi bi-check-circle-fill me-2"></i>Verify All
+                        </button>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Verify Selected Modal -->
+<div class="modal fade" id="verifySelectedModal" tabindex="-1" aria-hidden="true">
+    <div class="modal-dialog modal-dialog-centered">
+        <div class="modal-content" style="border-radius: 20px; border: none; box-shadow: 0 10px 40px rgba(0, 0, 0, 0.1);">
+            <div class="modal-body p-0">
+                <!-- Icon and Title Section -->
+                <div class="text-center pt-4 pb-3" style="background: linear-gradient(135deg, #d1fae5 0%, #a7f3d0 100%); border-radius: 20px 20px 0 0;">
+                    <div class="d-inline-flex align-items-center justify-content-center mb-3"
+                         style="width: 64px; height: 64px; background: linear-gradient(135deg, #10b981 0%, #059669 100%); border-radius: 16px;">
+                        <i class="bi bi-check-all text-white" style="font-size: 28px;"></i>
+                    </div>
+                    <h5 class="modal-title mb-1 fw-bold" style="color: #047857;">Verify Selected Records</h5>
+                    <p class="text-muted mb-0 small">Confirm verification</p>
+                </div>
+
+                <!-- Content Section -->
+                <div class="p-4">
+                    <div class="text-center mb-4">
+                        <p class="mb-2">You are about to verify:</p>
+                        <h3 class="fw-bold" style="color: #10b981;"><span id="verifySelectedCount">0</span> selected record(s)</h3>
+                    </div>
+
+                    <div class="alert alert-success d-flex align-items-start" style="background-color: #d1fae5; border: none; border-radius: 12px;">
+                        <i class="bi bi-check-circle me-3 mt-1" style="font-size: 20px; color: #10b981;"></i>
+                        <div>
+                            <strong>Verification Confirmation</strong>
+                            <p class="mb-0 mt-1 small">The selected records will be marked as verified and can be pushed to production.</p>
+                        </div>
+                    </div>
+
+                    <div class="d-flex gap-2 justify-content-end mt-4">
+                        <button type="button" class="btn btn-light px-4" data-bs-dismiss="modal" style="border-radius: 10px;">
+                            <i class="bi bi-x-circle me-2"></i>Cancel
+                        </button>
+                        <button type="button" class="btn btn-success px-4" onclick="submitVerifySelected()" style="border-radius: 10px;">
+                            <i class="bi bi-check-all me-2"></i>Verify Selected
+                        </button>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Reject Selected Modal -->
+<div class="modal fade" id="rejectSelectedModal" tabindex="-1" aria-hidden="true">
+    <div class="modal-dialog modal-dialog-centered">
+        <div class="modal-content" style="border-radius: 20px; border: none; box-shadow: 0 10px 40px rgba(0, 0, 0, 0.1);">
+            <div class="modal-body p-0">
+                <!-- Icon and Title Section -->
+                <div class="text-center pt-4 pb-3" style="background: linear-gradient(135deg, #fee2e2 0%, #fecaca 100%); border-radius: 20px 20px 0 0;">
+                    <div class="d-inline-flex align-items-center justify-content-center mb-3"
+                         style="width: 64px; height: 64px; background: linear-gradient(135deg, #ef4444 0%, #dc2626 100%); border-radius: 16px;">
+                        <i class="bi bi-x-circle text-white" style="font-size: 28px;"></i>
+                    </div>
+                    <h5 class="modal-title mb-1 fw-bold text-danger">Reject Selected Records</h5>
+                    <p class="text-muted mb-0 small">Provide rejection reason</p>
+                </div>
+
+                <!-- Content Section -->
+                <div class="p-4">
+                    <div class="text-center mb-3">
+                        <p class="mb-1">Rejecting:</p>
+                        <h5 class="fw-bold text-danger"><span id="rejectSelectedCount">0</span> selected record(s)</h5>
+                    </div>
+
+                    <div class="form-group mb-3">
+                        <label for="rejectSelectedReason" class="form-label" style="font-weight: 600; color: #374151;">
+                            <i class="bi bi-chat-text me-1"></i>Rejection Reason
+                        </label>
+                        <textarea class="form-control" id="rejectSelectedReason" rows="4"
+                                  placeholder="Enter detailed reason for rejection..."
+                                  style="border: 2px solid #e5e7eb; border-radius: 10px;"></textarea>
+                        <div class="invalid-feedback">Please provide a reason for rejection.</div>
+                        <small class="text-muted">This reason will be recorded in the audit log for all selected records.</small>
+                    </div>
+
+                    <div class="alert alert-warning d-flex align-items-start" style="background-color: #fef3c7; border: none; border-radius: 12px;">
+                        <i class="bi bi-exclamation-triangle me-3 mt-1" style="font-size: 18px; color: #f59e0b;"></i>
+                        <div class="small">
+                            <strong>Warning:</strong> Rejected records will need to be corrected and re-verified before they can be pushed to production.
+                        </div>
+                    </div>
+
+                    <div class="d-flex gap-2 justify-content-end mt-4">
+                        <button type="button" class="btn btn-light px-4" data-bs-dismiss="modal" style="border-radius: 10px;">
+                            <i class="bi bi-x-circle me-2"></i>Cancel
+                        </button>
+                        <button type="button" class="btn btn-danger px-4" onclick="submitRejectSelected()" style="border-radius: 10px;">
+                            <i class="bi bi-x-circle me-2"></i>Reject Selected
+                        </button>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
 <!-- Verification Period Modal -->
 <div class="modal fade" id="verificationPeriodModal" tabindex="-1" aria-hidden="true">
     <div class="modal-dialog modal-dialog-centered modal-lg">
@@ -1367,8 +1530,23 @@
                         </div>
                     </div>
 
+                    <!-- Verification Type Selection -->
+                    <div class="mb-4">
+                        <label class="form-label" style="font-weight: 600; color: #374151;">
+                            <i class="bi bi-tag me-1"></i>Call Classification
+                        </label>
+                        <select class="form-select" id="verificationType" name="verificationType" style="border: 2px solid #e5e7eb; border-radius: 8px;">
+                            <option value="">No Classification (Staff will classify)</option>
+                            <option value="Official" selected>Official</option>
+                            <option value="Personal">Personal</option>
+                        </select>
+                        <small class="text-muted mt-1">
+                            <i class="bi bi-info-circle me-1"></i>By default, all calls are marked as "Official" (business calls). Change to "Personal" or "No Classification" if needed.
+                        </small>
+                    </div>
+
                     <!-- Workflow Information -->
-                    <div class="alert alert-warning d-flex align-items-start mt-3" style="background-color: #fef3c7; border: none; border-radius: 8px;">
+                    <div class="alert alert-warning d-flex align-items-start mt-3" id="pushWorkflowInfo" style="background-color: #fef3c7; border: none; border-radius: 8px;">
                         <i class="bi bi-exclamation-triangle me-2 mt-1"></i>
                         <div>
                             <strong>What happens after pushing to production:</strong>
@@ -1381,14 +1559,44 @@
                             </ol>
                         </div>
                     </div>
+
+                    <!-- Progress Section (Hidden by default) -->
+                    <div id="pushProgress" class="d-none mt-3">
+                        <div class="card border-0" style="background: linear-gradient(135deg, #d1fae5 0%, #a7f3d0 100%);">
+                            <div class="card-body">
+                                <div class="d-flex align-items-center mb-3">
+                                    <div class="spinner-border spinner-border-sm text-success me-3" role="status">
+                                        <span class="visually-hidden">Processing...</span>
+                                    </div>
+                                    <div class="flex-grow-1">
+                                        <h6 class="mb-1 fw-bold text-success">Pushing to Production...</h6>
+                                        <p class="mb-0 small text-muted" id="pushProgressMessage">Starting push to production...</p>
+                                    </div>
+                                </div>
+                                <div class="progress" style="height: 8px;">
+                                    <div class="progress-bar progress-bar-striped progress-bar-animated bg-success"
+                                         role="progressbar"
+                                         id="pushProgressBar"
+                                         style="width: 0%"
+                                         aria-valuenow="0"
+                                         aria-valuemin="0"
+                                         aria-valuemax="100"></div>
+                                </div>
+                                <div class="d-flex justify-content-between mt-2">
+                                    <small class="text-muted" id="pushProgressStats">Processing records...</small>
+                                    <small class="text-muted" id="pushProgressPercent">0%</small>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
                 </form>
             </div>
-            <div class="modal-footer" style="background-color: #f8f9fa; border: none; padding: 1.5rem;">
-                <button type="button" class="btn btn-light px-4" data-bs-dismiss="modal"
+            <div class="modal-footer" id="pushModalFooter" style="background-color: #f8f9fa; border: none; padding: 1.5rem;">
+                <button type="button" class="btn btn-light px-4" data-bs-dismiss="modal" id="pushCancelBtn"
                         style="border-radius: 8px; font-weight: 500;">
                     Cancel
                 </button>
-                <button type="button" class="btn btn-success px-4" onclick="submitPushToProduction()"
+                <button type="button" class="btn btn-success px-4" onclick="submitPushToProduction()" id="pushToProductionBtn"
                         style="background: linear-gradient(135deg, #10b981, #059669); border: none; border-radius: 8px; font-weight: 500;">
                     <i class="bi bi-cloud-upload me-2"></i>Push to Production
                 </button>
@@ -1466,28 +1674,7 @@
 
 @section Scripts {
 <script>
-    // Auto-submit functionality for filters
     document.addEventListener('DOMContentLoaded', function() {
-        // Auto-submit for select elements and date inputs
-        const autoSubmitElements = document.querySelectorAll('.filter-auto-submit');
-        autoSubmitElements.forEach(element => {
-            element.addEventListener('change', function() {
-                document.getElementById('filterForm').submit();
-            });
-        });
-
-        // Debounced auto-submit for search input
-        let searchTimeout;
-        const searchInput = document.querySelector('.filter-search-input');
-        if (searchInput) {
-            searchInput.addEventListener('input', function() {
-                clearTimeout(searchTimeout);
-                searchTimeout = setTimeout(() => {
-                    document.getElementById('filterForm').submit();
-                }, 500); // 500ms delay
-            });
-        }
-
         // Update chevron icon when filters are shown/hidden
         const filterCollapse = document.getElementById('filterCollapse');
         if (filterCollapse) {
@@ -1518,6 +1705,17 @@
                     chevronIcon.classList.add('bi-chevron-up');
                 }
             }
+        }
+
+        // Allow Enter key to submit search
+        const searchInput = document.getElementById('searchFilter');
+        if (searchInput) {
+            searchInput.addEventListener('keypress', function(e) {
+                if (e.key === 'Enter') {
+                    e.preventDefault();
+                    document.getElementById('filterForm').submit();
+                }
+            });
         }
 
         // Checkbox functionality
@@ -1599,17 +1797,93 @@
         modal.show();
     }
 
+    function confirmVerifyAll() {
+        const count = @Model.CurrentBatchPendingCount;
+        document.getElementById('verifyAllCount').textContent = count.toLocaleString();
+        const modal = new bootstrap.Modal(document.getElementById('verifyAllModal'));
+        modal.show();
+        return false; // Prevent form submission
+    }
+
+    function submitVerifyAll() {
+        const modal = bootstrap.Modal.getInstance(document.getElementById('verifyAllModal'));
+        modal.hide();
+        document.getElementById('verifyAllForm').submit();
+    }
+
+    function verifySelected() {
+        const selectedCheckboxes = document.querySelectorAll('.row-checkbox:checked');
+
+        if (selectedCheckboxes.length === 0) {
+            alert('Please select at least one record to verify.\n\nTip: Use the "Verify All" button to verify all records at once without selecting individual checkboxes.');
+            return;
+        }
+
+        document.getElementById('verifySelectedCount').textContent = selectedCheckboxes.length;
+        const modal = new bootstrap.Modal(document.getElementById('verifySelectedModal'));
+        modal.show();
+    }
+
+    function submitVerifySelected() {
+        const modal = bootstrap.Modal.getInstance(document.getElementById('verifySelectedModal'));
+        modal.hide();
+        document.getElementById('bulkActionsForm').submit();
+    }
+
     function rejectSelected() {
         const selectedCount = document.querySelectorAll('.row-checkbox:checked').length;
         if (selectedCount === 0) {
-            showErrorAlert('Please select at least one record to reject.');
+            alert('Please select at least one record to reject.');
             return;
         }
-        currentRejectType = 'bulk';
-        document.getElementById('rejectionReason').value = '';
-        const modal = new bootstrap.Modal(document.getElementById('rejectionModal'));
+
+        document.getElementById('rejectSelectedCount').textContent = selectedCount;
+        document.getElementById('rejectSelectedReason').value = '';
+        const modal = new bootstrap.Modal(document.getElementById('rejectSelectedModal'));
         modal.show();
     }
+
+    function submitRejectSelected() {
+        const reasonField = document.getElementById('rejectSelectedReason');
+        const reason = reasonField.value.trim();
+        if (!reason) {
+            reasonField.classList.add('is-invalid');
+            return;
+        }
+
+        const modal = bootstrap.Modal.getInstance(document.getElementById('rejectSelectedModal'));
+        modal.hide();
+
+        // Submit the form with rejection
+        const selectedCheckboxes = document.querySelectorAll('.row-checkbox:checked');
+        const selectedIds = Array.from(selectedCheckboxes).map(cb => cb.value);
+
+        const form = document.getElementById('bulkActionsForm');
+        form.action = '/Admin/CallLogStaging?handler=RejectSelected';
+
+        // Add reason as form field
+        let reasonInput = document.getElementById('bulkRejectReason');
+        if (!reasonInput) {
+            reasonInput = document.createElement('input');
+            reasonInput.type = 'hidden';
+            reasonInput.id = 'bulkRejectReason';
+            reasonInput.name = 'reason';
+            form.appendChild(reasonInput);
+        }
+        reasonInput.value = reason;
+
+        form.submit();
+    }
+
+    // Clear validation errors when typing
+    document.addEventListener('DOMContentLoaded', function() {
+        const rejectReasonField = document.getElementById('rejectSelectedReason');
+        if (rejectReasonField) {
+            rejectReasonField.addEventListener('input', function() {
+                this.classList.remove('is-invalid');
+            });
+        }
+    });
 
     function submitRejection() {
         const reason = document.getElementById('rejectionReason').value.trim();
@@ -1776,6 +2050,7 @@
             // Reset the form when modal opens
             document.getElementById('consolidationForm').reset();
             hideConsolidationInfo();
+            hideConsolidationProgress();
             consolidationInfoLoaded = false;
 
             // Load pending verification summary immediately
@@ -1784,6 +2059,53 @@
             // Reset to monthly consolidation
             document.getElementById('monthlyConsolidation').checked = true;
             showMonthlySection();
+        });
+
+        // Clean up when modal is hidden
+        consolidationModal.addEventListener('hidden.bs.modal', function() {
+            // Clear progress interval if running
+            if (window.consolidationProgressInterval) {
+                clearInterval(window.consolidationProgressInterval);
+                window.consolidationProgressInterval = null;
+            }
+
+            // Reset progress UI
+            hideConsolidationProgress();
+
+            // Reset modal backdrop behavior
+            const modal = bootstrap.Modal.getInstance(consolidationModal);
+            if (modal) {
+                modal._config.backdrop = true;
+                modal._config.keyboard = true;
+            }
+        });
+    }
+
+    // Push to Production Modal Event Listeners
+    const pushModal = document.getElementById('verificationPeriodModal');
+    if (pushModal) {
+        pushModal.addEventListener('show.bs.modal', function() {
+            // Reset progress when modal opens
+            hidePushProgress();
+        });
+
+        // Clean up when modal is hidden
+        pushModal.addEventListener('hidden.bs.modal', function() {
+            // Clear progress interval if running
+            if (window.pushProgressInterval) {
+                clearInterval(window.pushProgressInterval);
+                window.pushProgressInterval = null;
+            }
+
+            // Reset progress UI
+            hidePushProgress();
+
+            // Reset modal backdrop behavior
+            const modal = bootstrap.Modal.getInstance(pushModal);
+            if (modal) {
+                modal._config.backdrop = true;
+                modal._config.keyboard = true;
+            }
         });
     }
 
@@ -1879,8 +2201,100 @@
         if (document.getElementById('interimConsolidation').checked) {
             e.preventDefault();
             submitInterimConsolidation();
+        } else {
+            // For monthly consolidation, show progress and prevent modal close
+            showConsolidationProgress('Consolidating monthly call logs...');
         }
     });
+
+    // Progress functions
+    function showConsolidationProgress(message) {
+        const progressDiv = document.getElementById('consolidationProgress');
+        const buttonsDiv = document.getElementById('consolidationButtons');
+        const infoAlert = document.getElementById('consolidationInfoAlert');
+        const cancelBtn = document.getElementById('cancelBtn');
+
+        // Hide info alert and buttons, show progress
+        infoAlert.classList.add('d-none');
+        buttonsDiv.classList.add('d-none');
+        progressDiv.classList.remove('d-none');
+
+        // Update message
+        document.getElementById('progressMessage').textContent = message;
+
+        // Disable cancel button and prevent modal close
+        cancelBtn.disabled = true;
+
+        // Prevent modal from closing
+        const modal = bootstrap.Modal.getInstance(document.getElementById('consolidateModal'));
+        if (modal) {
+            modal._config.backdrop = 'static';
+            modal._config.keyboard = false;
+        }
+
+        // Simulate progress (since we don't have real-time progress from backend)
+        simulateProgress();
+    }
+
+    function hideConsolidationProgress() {
+        const progressDiv = document.getElementById('consolidationProgress');
+        const buttonsDiv = document.getElementById('consolidationButtons');
+        const infoAlert = document.getElementById('consolidationInfoAlert');
+        const cancelBtn = document.getElementById('cancelBtn');
+
+        // Show info alert and buttons, hide progress
+        infoAlert.classList.remove('d-none');
+        buttonsDiv.classList.remove('d-none');
+        progressDiv.classList.add('d-none');
+
+        // Reset progress
+        document.getElementById('progressBar').style.width = '0%';
+        document.getElementById('progressPercent').textContent = '0%';
+
+        // Re-enable cancel button
+        cancelBtn.disabled = false;
+    }
+
+    function updateProgress(percent, message, stats) {
+        const progressBar = document.getElementById('progressBar');
+        const progressMessage = document.getElementById('progressMessage');
+        const progressPercent = document.getElementById('progressPercent');
+        const progressStats = document.getElementById('progressStats');
+
+        progressBar.style.width = percent + '%';
+        progressBar.setAttribute('aria-valuenow', percent);
+        progressPercent.textContent = percent + '%';
+
+        if (message) progressMessage.textContent = message;
+        if (stats) progressStats.textContent = stats;
+    }
+
+    function simulateProgress() {
+        let progress = 0;
+        const messages = [
+            { percent: 10, message: 'Fetching call logs from Safaricom...', stats: 'Connecting to data source...' },
+            { percent: 25, message: 'Processing Safaricom records...', stats: 'Importing records...' },
+            { percent: 40, message: 'Fetching call logs from Airtel...', stats: 'Connecting to data source...' },
+            { percent: 55, message: 'Processing Airtel records...', stats: 'Importing records...' },
+            { percent: 70, message: 'Fetching PSTN records...', stats: 'Connecting to data source...' },
+            { percent: 85, message: 'Consolidating all records...', stats: 'Merging data sources...' },
+            { percent: 95, message: 'Finalizing consolidation...', stats: 'Almost done...' }
+        ];
+
+        let currentStep = 0;
+        const interval = setInterval(() => {
+            if (currentStep < messages.length) {
+                const step = messages[currentStep];
+                updateProgress(step.percent, step.message, step.stats);
+                currentStep++;
+            } else {
+                clearInterval(interval);
+            }
+        }, 1000); // Update every second
+
+        // Store interval ID so we can clear it if needed
+        window.consolidationProgressInterval = interval;
+    }
 
     function submitInterimConsolidation() {
         const formData = {
@@ -1893,11 +2307,8 @@
             InterimBillingYear: parseInt(document.getElementById('interimBillingYear').value)
         };
 
-        // Show loading state
-        const submitBtn = document.getElementById('consolidateBtn');
-        const originalBtnText = submitBtn.innerHTML;
-        submitBtn.disabled = true;
-        submitBtn.innerHTML = '<span class="spinner-border spinner-border-sm me-2"></span>Processing...';
+        // Show progress
+        showConsolidationProgress('Creating interim consolidation batch...');
 
         fetch('/Admin/CallLogStaging?handler=ConsolidateInterim', {
             method: 'POST',
@@ -1909,19 +2320,34 @@
         })
         .then(response => response.json())
         .then(data => {
+            // Clear progress interval
+            if (window.consolidationProgressInterval) {
+                clearInterval(window.consolidationProgressInterval);
+            }
+
             if (data.success) {
-                // Success - redirect to the new batch
-                window.location.href = `/Admin/CallLogStaging?BatchId=${data.batchId}`;
+                // Show completion message
+                updateProgress(100, 'Consolidation complete! Redirecting...', 'Success');
+
+                // Redirect after brief delay to show completion
+                setTimeout(() => {
+                    window.location.href = `/Admin/CallLogStaging?BatchId=${data.batchId}`;
+                }, 1000);
             } else {
+                // Hide progress and show error
+                hideConsolidationProgress();
                 showErrorAlert(data.error || 'Error creating interim batch');
-                submitBtn.disabled = false;
-                submitBtn.innerHTML = originalBtnText;
             }
         })
         .catch(error => {
+            // Clear progress interval
+            if (window.consolidationProgressInterval) {
+                clearInterval(window.consolidationProgressInterval);
+            }
+
+            // Hide progress and show error
+            hideConsolidationProgress();
             showErrorAlert('Failed to create interim batch');
-            submitBtn.disabled = false;
-            submitBtn.innerHTML = originalBtnText;
         });
     }
 
@@ -2008,9 +2434,8 @@
                             });
                         }
                     } else {
-                        // Show all clear message
+                        // Hide unverified alert when there are no unverified records
                         document.getElementById('unverifiedAlert').classList.add('d-none');
-                        document.getElementById('noUnverifiedMessage').classList.remove('d-none');
                         document.getElementById('batchBreakdown').classList.add('d-none');
                     }
                 }
@@ -2052,20 +2477,11 @@
 
                 // Update statistics
                 if (data.statistics) {
-                    document.getElementById('unverifiedCount').textContent = data.statistics.unverifiedCount.toLocaleString();
-                    document.getElementById('pendingBatchesCount').textContent = data.statistics.pendingBatches.toLocaleString();
                     document.getElementById('safaricomCount').textContent = data.statistics.safaricomCount.toLocaleString();
                     document.getElementById('airtelCount').textContent = data.statistics.airtelCount.toLocaleString();
                     document.getElementById('pstnCount').textContent = data.statistics.pstnCount.toLocaleString();
                     document.getElementById('privateWireCount').textContent = data.statistics.privateWireCount.toLocaleString();
                     document.getElementById('totalSourceRecords').textContent = data.statistics.totalSourceRecords.toLocaleString();
-
-                    // Show unverified records warning if any exist
-                    if (data.statistics.unverifiedCount > 0) {
-                        const warningBadge = document.getElementById('unverifiedCount');
-                        warningBadge.classList.remove('bg-warning');
-                        warningBadge.classList.add('bg-danger');
-                    }
 
                     // Show already processed warning if any
                     if (data.statistics.alreadyProcessedCount > 0) {
@@ -2224,6 +2640,93 @@
     // Update deadlines when date input changes
     document.getElementById('verificationDate')?.addEventListener('change', updateDeadlineDisplay);
 
+    // Push to Production Progress Functions
+    function showPushProgress(message) {
+        const progressDiv = document.getElementById('pushProgress');
+        const footerDiv = document.getElementById('pushModalFooter');
+        const workflowInfo = document.getElementById('pushWorkflowInfo');
+        const cancelBtn = document.getElementById('pushCancelBtn');
+
+        // Hide workflow info and footer, show progress
+        workflowInfo.classList.add('d-none');
+        footerDiv.classList.add('d-none');
+        progressDiv.classList.remove('d-none');
+
+        // Update message
+        document.getElementById('pushProgressMessage').textContent = message;
+
+        // Disable cancel button
+        cancelBtn.disabled = true;
+
+        // Prevent modal from closing
+        const modal = bootstrap.Modal.getInstance(document.getElementById('verificationPeriodModal'));
+        if (modal) {
+            modal._config.backdrop = 'static';
+            modal._config.keyboard = false;
+        }
+
+        // Simulate progress
+        simulatePushProgress();
+    }
+
+    function hidePushProgress() {
+        const progressDiv = document.getElementById('pushProgress');
+        const footerDiv = document.getElementById('pushModalFooter');
+        const workflowInfo = document.getElementById('pushWorkflowInfo');
+        const cancelBtn = document.getElementById('pushCancelBtn');
+
+        // Show workflow info and footer, hide progress
+        workflowInfo.classList.remove('d-none');
+        footerDiv.classList.remove('d-none');
+        progressDiv.classList.add('d-none');
+
+        // Reset progress
+        document.getElementById('pushProgressBar').style.width = '0%';
+        document.getElementById('pushProgressPercent').textContent = '0%';
+
+        // Re-enable cancel button
+        cancelBtn.disabled = false;
+    }
+
+    function updatePushProgress(percent, message, stats) {
+        const progressBar = document.getElementById('pushProgressBar');
+        const progressMessage = document.getElementById('pushProgressMessage');
+        const progressPercent = document.getElementById('pushProgressPercent');
+        const progressStats = document.getElementById('pushProgressStats');
+
+        progressBar.style.width = percent + '%';
+        progressBar.setAttribute('aria-valuenow', percent);
+        progressPercent.textContent = percent + '%';
+
+        if (message) progressMessage.textContent = message;
+        if (stats) progressStats.textContent = stats;
+    }
+
+    function simulatePushProgress() {
+        const messages = [
+            { percent: 15, message: 'Validating records...', stats: 'Checking data integrity...' },
+            { percent: 30, message: 'Setting up verification periods...', stats: 'Configuring deadlines...' },
+            { percent: 50, message: 'Transferring records to production...', stats: 'Moving data...' },
+            { percent: 70, message: 'Creating verification assignments...', stats: 'Assigning to staff...' },
+            { percent: 85, message: 'Setting up recovery rules...', stats: 'Configuring automation...' },
+            { percent: 95, message: 'Finalizing push to production...', stats: 'Almost done...' }
+        ];
+
+        let currentStep = 0;
+        const interval = setInterval(() => {
+            if (currentStep < messages.length) {
+                const step = messages[currentStep];
+                updatePushProgress(step.percent, step.message, step.stats);
+                currentStep++;
+            } else {
+                clearInterval(interval);
+            }
+        }, 800);
+
+        // Store interval ID
+        window.pushProgressInterval = interval;
+    }
+
     function submitPushToProduction() {
         const batchId = document.getElementById('verificationBatchId').value;
         const periodType = document.querySelector('input[name="periodType"]:checked').value;
@@ -2258,6 +2761,9 @@
             }
         }
 
+        // Show progress
+        showPushProgress('Preparing to push records to production...');
+
         // Create form and submit
         const form = document.createElement('form');
         form.method = 'POST';
@@ -2274,6 +2780,16 @@
         periodInput.name = 'verificationPeriod';
         periodInput.value = verificationPeriod;
         form.appendChild(periodInput);
+
+        // Add verification type
+        const verificationTypeSelect = document.getElementById('verificationType');
+        if (verificationTypeSelect && verificationTypeSelect.value) {
+            const verificationTypeInput = document.createElement('input');
+            verificationTypeInput.type = 'hidden';
+            verificationTypeInput.name = 'verificationType';
+            verificationTypeInput.value = verificationTypeSelect.value;
+            form.appendChild(verificationTypeInput);
+        }
 
         // Add anti-forgery token
         const tokenInput = document.querySelector('input[name="__RequestVerificationToken"]');

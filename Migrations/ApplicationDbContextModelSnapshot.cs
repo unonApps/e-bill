@@ -183,8 +183,8 @@ namespace TAB.Web.Migrations
                         .HasColumnName("call_time");
 
                     b.Property<string>("CallType")
-                        .HasMaxLength(50)
-                        .HasColumnType("nvarchar(50)")
+                        .HasMaxLength(100)
+                        .HasColumnType("nvarchar(100)")
                         .HasColumnName("call_type");
 
                     b.Property<int?>("CallYear")
@@ -256,7 +256,7 @@ namespace TAB.Web.Migrations
 
                     b.HasIndex("UserPhoneId");
 
-                    b.ToTable("Airtel");
+                    b.ToTable("Airtel", (string)null);
                 });
 
             modelBuilder.Entity("TAB.Web.Models.AnomalyType", b =>
@@ -319,9 +319,17 @@ namespace TAB.Web.Migrations
                         .HasMaxLength(200)
                         .HasColumnType("nvarchar(200)");
 
+                    b.Property<string>("CompanyName")
+                        .HasMaxLength(200)
+                        .HasColumnType("nvarchar(200)");
+
                     b.Property<string>("ConcurrencyStamp")
                         .IsConcurrencyToken()
                         .HasColumnType("nvarchar(max)");
+
+                    b.Property<string>("Department")
+                        .HasMaxLength(200)
+                        .HasColumnType("nvarchar(200)");
 
                     b.Property<int?>("EbillUserId")
                         .HasColumnType("int");
@@ -336,6 +344,10 @@ namespace TAB.Web.Migrations
                     b.Property<string>("FirstName")
                         .HasColumnType("nvarchar(max)");
 
+                    b.Property<string>("JobTitle")
+                        .HasMaxLength(200)
+                        .HasColumnType("nvarchar(200)");
+
                     b.Property<string>("LastName")
                         .HasColumnType("nvarchar(max)");
 
@@ -344,6 +356,10 @@ namespace TAB.Web.Migrations
 
                     b.Property<DateTimeOffset?>("LockoutEnd")
                         .HasColumnType("datetimeoffset");
+
+                    b.Property<string>("MobilePhone")
+                        .HasMaxLength(50)
+                        .HasColumnType("nvarchar(50)");
 
                     b.Property<string>("NormalizedEmail")
                         .HasMaxLength(256)
@@ -355,6 +371,10 @@ namespace TAB.Web.Migrations
 
                     b.Property<int?>("OfficeId")
                         .HasColumnType("int");
+
+                    b.Property<string>("OfficeLocation")
+                        .HasMaxLength(200)
+                        .HasColumnType("nvarchar(200)");
 
                     b.Property<int?>("OrganizationId")
                         .HasColumnType("int");
@@ -900,8 +920,8 @@ namespace TAB.Web.Migrations
 
                     b.Property<string>("CallType")
                         .IsRequired()
-                        .HasMaxLength(50)
-                        .HasColumnType("nvarchar(50)");
+                        .HasMaxLength(100)
+                        .HasColumnType("nvarchar(100)");
 
                     b.Property<int>("CallYear")
                         .HasColumnType("int");
@@ -1212,8 +1232,8 @@ namespace TAB.Web.Migrations
 
                     b.Property<string>("CallType")
                         .IsRequired()
-                        .HasMaxLength(50)
-                        .HasColumnType("nvarchar(50)")
+                        .HasMaxLength(100)
+                        .HasColumnType("nvarchar(100)")
                         .HasColumnName("call_type");
 
                     b.Property<int>("CallYear")
@@ -2127,6 +2147,84 @@ namespace TAB.Web.Migrations
                     b.ToTable("ImportAudits");
                 });
 
+            modelBuilder.Entity("TAB.Web.Models.ImportJob", b =>
+                {
+                    b.Property<Guid>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("uniqueidentifier");
+
+                    b.Property<int>("BillingMonth")
+                        .HasColumnType("int");
+
+                    b.Property<int>("BillingYear")
+                        .HasColumnType("int");
+
+                    b.Property<string>("CallLogType")
+                        .IsRequired()
+                        .HasMaxLength(50)
+                        .HasColumnType("nvarchar(50)");
+
+                    b.Property<DateTime?>("CompletedDate")
+                        .HasColumnType("datetime2");
+
+                    b.Property<string>("CreatedBy")
+                        .IsRequired()
+                        .HasMaxLength(256)
+                        .HasColumnType("nvarchar(256)");
+
+                    b.Property<DateTime>("CreatedDate")
+                        .HasColumnType("datetime2");
+
+                    b.Property<string>("DateFormat")
+                        .HasMaxLength(50)
+                        .HasColumnType("nvarchar(50)");
+
+                    b.Property<int?>("DurationSeconds")
+                        .HasColumnType("int");
+
+                    b.Property<string>("ErrorMessage")
+                        .HasColumnType("nvarchar(max)");
+
+                    b.Property<string>("FileName")
+                        .IsRequired()
+                        .HasMaxLength(500)
+                        .HasColumnType("nvarchar(500)");
+
+                    b.Property<long>("FileSize")
+                        .HasColumnType("bigint");
+
+                    b.Property<string>("HangfireJobId")
+                        .HasMaxLength(100)
+                        .HasColumnType("nvarchar(100)");
+
+                    b.Property<string>("Metadata")
+                        .HasColumnType("nvarchar(max)");
+
+                    b.Property<int?>("ProgressPercentage")
+                        .HasColumnType("int");
+
+                    b.Property<int?>("RecordsError")
+                        .HasColumnType("int");
+
+                    b.Property<int?>("RecordsProcessed")
+                        .HasColumnType("int");
+
+                    b.Property<int?>("RecordsSuccess")
+                        .HasColumnType("int");
+
+                    b.Property<DateTime?>("StartedDate")
+                        .HasColumnType("datetime2");
+
+                    b.Property<string>("Status")
+                        .IsRequired()
+                        .HasMaxLength(50)
+                        .HasColumnType("nvarchar(50)");
+
+                    b.HasKey("Id");
+
+                    b.ToTable("ImportJobs");
+                });
+
             modelBuilder.Entity("TAB.Web.Models.InterimUpdate", b =>
                 {
                     b.Property<int>("Id")
@@ -2436,7 +2534,7 @@ namespace TAB.Web.Migrations
 
                     b.HasIndex("UserPhoneId");
 
-                    b.ToTable("PSTNs");
+                    b.ToTable("PSTNs", (string)null);
                 });
 
             modelBuilder.Entity("TAB.Web.Models.PhoneOverageDocument", b =>
@@ -2650,7 +2748,7 @@ namespace TAB.Web.Migrations
 
                     b.HasIndex("UserPhoneId");
 
-                    b.ToTable("PrivateWires");
+                    b.ToTable("PrivateWires", (string)null);
                 });
 
             modelBuilder.Entity("TAB.Web.Models.RecoveryConfiguration", b =>
@@ -3138,8 +3236,8 @@ namespace TAB.Web.Migrations
                         .HasColumnName("call_time");
 
                     b.Property<string>("CallType")
-                        .HasMaxLength(50)
-                        .HasColumnType("nvarchar(50)")
+                        .HasMaxLength(100)
+                        .HasColumnType("nvarchar(100)")
                         .HasColumnName("call_type");
 
                     b.Property<int?>("CallYear")
@@ -3211,7 +3309,7 @@ namespace TAB.Web.Migrations
 
                     b.HasIndex("UserPhoneId");
 
-                    b.ToTable("Safaricom");
+                    b.ToTable("Safaricom", (string)null);
                 });
 
             modelBuilder.Entity("TAB.Web.Models.ServiceProvider", b =>

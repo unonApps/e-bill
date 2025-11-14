@@ -26,7 +26,7 @@ namespace TAB.Web.Services
         Task<int> BulkRejectAsync(List<int> stagingIds, string rejectedBy, string reason);
 
         // Production Push
-        Task<int> PushToProductionAsync(Guid batchId, DateTime? verificationPeriod = null);
+        Task<int> PushToProductionAsync(Guid batchId, DateTime? verificationPeriod = null, string? verificationType = null);
         Task<bool> RollbackBatchAsync(Guid batchId);
 
         // Batch Management

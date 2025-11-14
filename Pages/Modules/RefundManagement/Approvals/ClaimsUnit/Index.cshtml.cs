@@ -32,6 +32,8 @@ namespace TAB.Web.Pages.Modules.RefundManagement.Approvals.ClaimsUnit
         public List<RefundRequest> PendingRequests { get; set; } = new();
         public List<RefundRequest> AllClaimsRequests { get; set; } = new();
         public string CurrentUserRole { get; set; } = "";
+        public bool IsDetailView { get; set; } = false;
+        public RefundRequest? CurrentRequest { get; set; }
 
         [TempData]
         public string? StatusMessage { get; set; }
@@ -39,7 +41,7 @@ namespace TAB.Web.Pages.Modules.RefundManagement.Approvals.ClaimsUnit
         [TempData]
         public string? StatusMessageClass { get; set; }
 
-        public async Task OnGetAsync()
+        public async Task OnGetAsync(int? requestId = null)
         {
             var currentUser = await _userManager.GetUserAsync(User);
             if (currentUser != null)
@@ -47,7 +49,17 @@ namespace TAB.Web.Pages.Modules.RefundManagement.Approvals.ClaimsUnit
                 // Determine user role for filtering and display logic
                 var userRoles = await _userManager.GetRolesAsync(currentUser);
                 CurrentUserRole = userRoles.FirstOrDefault() ?? "";
-                
+
+                // Check if this is a detail view request
+                if (requestId.HasValue)
+                {
+                    CurrentRequest = await _context.RefundRequests.FindAsync(requestId.Value);
+                    if (CurrentRequest != null)
+                    {
+                        IsDetailView = true;
+                    }
+                }
+
                 // Filter requests based on user role
                 if (await _userManager.IsInRoleAsync(currentUser, "Claims Unit Approver"))
                 {

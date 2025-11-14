@@ -50,7 +50,7 @@ namespace TAB.Web.Models
         [Display(Name = "Duration")]
         public decimal? Dur { get; set; }
 
-        [MaxLength(50)]
+        [MaxLength(100)]
         [Display(Name = "Call Type")]
         [Column("call_type")]
         public string? CallType { get; set; }

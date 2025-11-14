@@ -40,6 +40,7 @@ namespace TAB.Web.Pages.Modules.EBillManagement.CallRecords
         }
 
         public List<CallRecord> CallRecordsToSubmit { get; set; } = new();
+        public List<DialedNumberGroup> GroupedCallRecords { get; set; } = new();
         public string? UserIndexNumber { get; set; }
         public EbillUser? CurrentUser { get; set; }
         public decimal TotalCost { get; set; }
@@ -123,6 +124,19 @@ namespace TAB.Web.Pages.Modules.EBillManagement.CallRecords
                 StatusMessageClass = "warning";
                 return RedirectToPage("/Modules/EBillManagement/CallRecords/MyCallLogs");
             }
+
+            // Group calls by dialed number
+            GroupedCallRecords = CallRecordsToSubmit
+                .GroupBy(c => c.CallNumber)
+                .Select((g, index) => new DialedNumberGroup
+                {
+                    CallNumber = g.Key,
+                    CallDestination = g.First().CallDestination,
+                    GroupId = $"dialed_{index}",
+                    Calls = g.OrderBy(c => c.CallDate).ToList()
+                })
+                .OrderByDescending(g => g.TotalCost)
+                .ToList();
 
             // Get month/year from first call (all should be same month typically)
             CallMonth = CallRecordsToSubmit.First().CallMonth;
@@ -736,5 +750,26 @@ namespace TAB.Web.Pages.Modules.EBillManagement.CallRecords
         public int UserPhoneId { get; set; }
         public string Justification { get; set; } = string.Empty;
         public IFormFile? Document { get; set; }
+    }
+
+    /// <summary>
+    /// Groups calls by dialed number
+    /// </summary>
+    public class DialedNumberGroup
+    {
+        public string CallNumber { get; set; } = string.Empty;
+        public string CallDestination { get; set; } = string.Empty;
+        public string GroupId { get; set; } = string.Empty;
+        public List<CallRecord> Calls { get; set; } = new();
+        public int CallCount => Calls.Count;
+        public decimal TotalCost => Calls.Sum(c => c.CallCostUSD);
+        public int TotalDuration => Calls.Sum(c => c.CallDuration);
+        public string GetDurationFormatted()
+        {
+            var totalMinutes = TotalDuration / 60.0m;
+            if (totalMinutes < 1)
+                return $"{TotalDuration}s";
+            return $"{totalMinutes:N2}m";
+        }
     }
 }

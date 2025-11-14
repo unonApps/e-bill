@@ -1,0 +1,647 @@
+@page
+@model TAB.Web.Pages.Admin.ImportJobsModel
+@{
+    ViewData["Title"] = "Import Jobs";
+}
+
+<style>
+    /* Statistics Grid */
+    .stats-grid {
+        display: grid;
+        grid-template-columns: repeat(auto-fit, minmax(240px, 1fr));
+        gap: 1.25rem;
+        margin-bottom: 2rem;
+    }
+
+    .stat-card {
+        background: white;
+        border-radius: 12px;
+        padding: 1.5rem;
+        border: 1px solid #e5e7eb;
+        transition: all 0.3s ease;
+        position: relative;
+        overflow: hidden;
+    }
+
+    .stat-card::before {
+        content: '';
+        position: absolute;
+        top: 0;
+        left: 0;
+        right: 0;
+        height: 4px;
+        background: linear-gradient(90deg, var(--gradient-start), var(--gradient-end));
+    }
+
+    .stat-card:nth-child(1)::before {
+        --gradient-start: #009EDB;
+        --gradient-end: #0084c7;
+    }
+
+    .stat-card:nth-child(2)::before {
+        --gradient-start: #10b981;
+        --gradient-end: #34d399;
+    }
+
+    .stat-card:nth-child(3)::before {
+        --gradient-start: #f59e0b;
+        --gradient-end: #fbbf24;
+    }
+
+    .stat-card:nth-child(4)::before {
+        --gradient-start: #ef4444;
+        --gradient-end: #f87171;
+    }
+
+    .stat-card:hover {
+        transform: translateY(-4px);
+        box-shadow: 0 10px 30px rgba(0, 0, 0, 0.1);
+    }
+
+    .stat-content {
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+    }
+
+    .stat-icon {
+        width: 50px;
+        height: 50px;
+        border-radius: 12px;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        font-size: 1.5rem;
+    }
+
+    .stat-icon-primary {
+        background: linear-gradient(135deg, #009EDB, #0084c7);
+        color: white;
+    }
+
+    .stat-icon-success {
+        background: linear-gradient(135deg, #10b981, #34d399);
+        color: white;
+    }
+
+    .stat-icon-warning {
+        background: linear-gradient(135deg, #f59e0b, #fbbf24);
+        color: white;
+    }
+
+    .stat-icon-danger {
+        background: linear-gradient(135deg, #ef4444, #f87171);
+        color: white;
+    }
+
+    .stat-details {
+        text-align: right;
+    }
+
+    .stat-number {
+        font-size: 1.75rem;
+        font-weight: 700;
+        color: #1f2937;
+        line-height: 1;
+        margin-bottom: 0.25rem;
+    }
+
+    .stat-label {
+        font-size: 0.875rem;
+        color: #6b7280;
+        font-weight: 500;
+    }
+
+    /* Table Row Effects */
+    .job-row {
+        transition: all 0.2s ease;
+        border-bottom: 1px solid #f3f4f6;
+    }
+
+    .job-row:hover {
+        background-color: #f9fafb;
+        transform: translateX(2px);
+        box-shadow: 0 2px 4px rgba(0, 0, 0, 0.05);
+    }
+
+    /* Status badges */
+    .status-badge {
+        padding: 0.35rem 0.75rem;
+        border-radius: 20px;
+        font-size: 0.75rem;
+        font-weight: 600;
+        text-transform: uppercase;
+        letter-spacing: 0.5px;
+    }
+
+    .status-queued {
+        background-color: #e0f2fe;
+        color: #0369a1;
+    }
+
+    .status-processing {
+        background-color: #fef3c7;
+        color: #d97706;
+        animation: pulse 2s infinite;
+    }
+
+    .status-completed {
+        background-color: #dcfce7;
+        color: #15803d;
+    }
+
+    .status-failed {
+        background-color: #fee2e2;
+        color: #b91c1c;
+    }
+
+    @@keyframes pulse {
+        0%, 100% { opacity: 1; }
+        50% { opacity: 0.7; }
+    }
+
+    /* Progress bar */
+    .progress-thin {
+        height: 6px;
+        border-radius: 10px;
+        background-color: #f3f4f6;
+    }
+
+    .progress-bar-animated {
+        animation: progress-animation 1.5s ease-in-out infinite;
+    }
+
+    @@keyframes progress-animation {
+        0% { background-position: 0% 50%; }
+        50% { background-position: 100% 50%; }
+        100% { background-position: 0% 50%; }
+    }
+
+    @@media (max-width: 768px) {
+        .stats-grid {
+            grid-template-columns: repeat(2, 1fr);
+            gap: 1rem;
+        }
+    }
+</style>
+
+<!-- Statistics Cards -->
+<div class="stats-grid">
+    <div class="stat-card">
+        <div class="stat-content">
+            <div class="stat-icon stat-icon-primary">
+                <i class="bi bi-list-task"></i>
+            </div>
+            <div class="stat-details">
+                <div class="stat-number">@Model.TotalJobs.ToString("N0")</div>
+                <div class="stat-label">Total Jobs</div>
+            </div>
+        </div>
+    </div>
+
+    <div class="stat-card">
+        <div class="stat-content">
+            <div class="stat-icon stat-icon-success">
+                <i class="bi bi-check-circle"></i>
+            </div>
+            <div class="stat-details">
+                <div class="stat-number">@Model.CompletedJobs.ToString("N0")</div>
+                <div class="stat-label">Completed</div>
+            </div>
+        </div>
+    </div>
+
+    <div class="stat-card">
+        <div class="stat-content">
+            <div class="stat-icon stat-icon-warning">
+                <i class="bi bi-hourglass-split"></i>
+            </div>
+            <div class="stat-details">
+                <div class="stat-number">@Model.RunningJobs.ToString("N0")</div>
+                <div class="stat-label">Running</div>
+            </div>
+        </div>
+    </div>
+
+    <div class="stat-card">
+        <div class="stat-content">
+            <div class="stat-icon stat-icon-danger">
+                <i class="bi bi-x-circle"></i>
+            </div>
+            <div class="stat-details">
+                <div class="stat-number">@Model.FailedJobs.ToString("N0")</div>
+                <div class="stat-label">Failed</div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Page Title and Actions -->
+<div class="d-flex justify-content-between align-items-center mb-3">
+    <h4 class="mb-0">
+        <i class="bi bi-server me-2 text-primary"></i>Import Jobs
+    </h4>
+    <a href="/hangfire" target="_blank" class="btn btn-sm btn-outline-primary" style="border-radius: 12px;">
+        <i class="bi bi-speedometer2 me-1"></i> View Dashboard
+    </a>
+</div>
+
+<!-- Filter Section (Collapsible) -->
+<div class="card border-0 shadow-sm mb-4" style="border-radius: 20px;">
+    <div class="card-header bg-white border-0 p-3" style="cursor: pointer; border-radius: 20px 20px 0 0;" data-bs-toggle="collapse" data-bs-target="#filterCollapse">
+        <div class="d-flex justify-content-between align-items-center">
+            <h6 class="mb-0 fw-bold">
+                <i class="bi bi-funnel me-2"></i>Filters
+            </h6>
+            <div class="d-flex align-items-center gap-3">
+                <span class="badge bg-light text-dark" style="font-weight: 500;">
+                    @if (Model.ImportJobs.Any())
+                    {
+                        <text>@Model.ImportJobs.Count results</text>
+                    }
+                    else
+                    {
+                        <text>No results</text>
+                    }
+                </span>
+                <i class="bi bi-chevron-down"></i>
+            </div>
+        </div>
+    </div>
+    <div class="collapse" id="filterCollapse">
+        <div class="card-body p-4">
+            <form method="get" class="filter-form" id="filterForm">
+                <div class="row g-3">
+                    <div class="col-md-3">
+                        <label class="form-label text-muted small" for="searchFilter">Search</label>
+                        <input type="text" name="SearchTerm" id="searchFilter"
+                               class="form-control border-0 bg-light filter-search-input"
+                               style="border-radius: 12px;"
+                               placeholder="File name or user..." value="@Model.SearchTerm" />
+                    </div>
+
+                    <div class="col-md-3">
+                        <label class="form-label text-muted small" for="statusFilter">Status</label>
+                        <select name="FilterStatus" id="statusFilter"
+                                class="form-select border-0 bg-light filter-auto-submit"
+                                style="border-radius: 12px;">
+                            <option value="all" selected="@(Model.FilterStatus == "all")">All Status</option>
+                            <option value="Queued" selected="@(Model.FilterStatus == "Queued")">Queued</option>
+                            <option value="Processing" selected="@(Model.FilterStatus == "Processing")">Processing</option>
+                            <option value="Completed" selected="@(Model.FilterStatus == "Completed")">Completed</option>
+                            <option value="Failed" selected="@(Model.FilterStatus == "Failed")">Failed</option>
+                        </select>
+                    </div>
+
+                    <div class="col-md-3">
+                        <label class="form-label text-muted small" for="typeFilter">Call Log Type</label>
+                        <select name="FilterCallLogType" id="typeFilter"
+                                class="form-select border-0 bg-light filter-auto-submit"
+                                style="border-radius: 12px;">
+                            <option value="all" selected="@(Model.FilterCallLogType == "all")">All Types</option>
+                            <option value="Safaricom" selected="@(Model.FilterCallLogType == "Safaricom")">Safaricom</option>
+                            <option value="Airtel" selected="@(Model.FilterCallLogType == "Airtel")">Airtel</option>
+                            <option value="PSTN" selected="@(Model.FilterCallLogType == "PSTN")">PSTN</option>
+                            <option value="PrivateWire" selected="@(Model.FilterCallLogType == "PrivateWire")">Private Wire</option>
+                        </select>
+                    </div>
+
+                    <div class="col-md-3">
+                        <label class="form-label text-muted small" for="startDate">Start Date</label>
+                        <input type="date" name="StartDate" id="startDate"
+                               class="form-control border-0 bg-light filter-auto-submit"
+                               style="border-radius: 12px;"
+                               value="@Model.StartDate?.ToString("yyyy-MM-dd")" />
+                    </div>
+
+                    <div class="col-md-3">
+                        <label class="form-label text-muted small" for="endDate">End Date</label>
+                        <input type="date" name="EndDate" id="endDate"
+                               class="form-control border-0 bg-light filter-auto-submit"
+                               style="border-radius: 12px;"
+                               value="@Model.EndDate?.ToString("yyyy-MM-dd")" />
+                    </div>
+
+                    <div class="col-md-9 d-flex align-items-end">
+                        <a href="/Admin/ImportJobs" class="btn btn-outline-secondary btn-sm" style="border-radius: 12px;">
+                            <i class="bi bi-x-circle me-1"></i> Clear Filters
+                        </a>
+                    </div>
+                </div>
+            </form>
+        </div>
+    </div>
+</div>
+
+<!-- Import Jobs Table -->
+@if (!Model.ImportJobs.Any())
+{
+    <div class="card border-0 shadow-sm" style="border-radius: 16px;">
+        <div class="card-body text-center py-5">
+            <div class="bg-white rounded-circle d-inline-flex align-items-center justify-content-center mb-3"
+                 style="width: 80px; height: 80px; box-shadow: 0 4px 12px rgba(0, 0, 0, 0.08);">
+                <i class="bi bi-inbox text-muted" style="font-size: 32px;"></i>
+            </div>
+            <h5 class="text-muted mb-2">No Import Jobs Found</h5>
+            <p class="text-muted mb-0">Import jobs will appear here once you upload files.</p>
+        </div>
+    </div>
+}
+else
+{
+    <div class="card border-0 shadow-sm" style="border-radius: 16px;">
+        <div class="card-header bg-gradient border-0 py-4"
+             style="background: linear-gradient(135deg, #f8f9fa 0%, #e9ecef 100%); border-radius: 16px 16px 0 0;">
+            <div class="d-flex justify-content-between align-items-center">
+                <div class="d-flex align-items-center gap-2">
+                    <label class="mb-0" style="font-size: 14px; color: #4b5563;">Showing @Model.ImportJobs.Count jobs</label>
+                </div>
+                <div class="input-group" style="max-width: 300px;">
+                    <span class="input-group-text bg-white border-1">
+                        <i class="bi bi-search text-muted"></i>
+                    </span>
+                    <input type="text" class="form-control bg-white border-1 text-dark"
+                           id="quickSearch" placeholder="Quick search..."
+                           style="border-radius: 0 8px 8px 0;">
+                </div>
+            </div>
+        </div>
+        <div class="card-body p-0">
+            <div class="table-responsive">
+                <table class="table table-hover mb-0" id="jobsTable">
+                    <thead style="background-color: #f8f9fa;">
+                        <tr>
+                            <th class="border-0 px-3 py-3" style="font-weight: 600; color: #4a5568; text-transform: uppercase; font-size: 12px; letter-spacing: 0.5px;">
+                                <i class="bi bi-flag me-2"></i>Status
+                            </th>
+                            <th class="border-0 px-3 py-3" style="font-weight: 600; color: #4a5568; text-transform: uppercase; font-size: 12px; letter-spacing: 0.5px;">
+                                <i class="bi bi-file-earmark me-2"></i>Job Details
+                            </th>
+                            <th class="border-0 px-3 py-3" style="font-weight: 600; color: #4a5568; text-transform: uppercase; font-size: 12px; letter-spacing: 0.5px;">
+                                <i class="bi bi-graph-up me-2"></i>Progress
+                            </th>
+                            <th class="border-0 px-3 py-3" style="font-weight: 600; color: #4a5568; text-transform: uppercase; font-size: 12px; letter-spacing: 0.5px;">
+                                <i class="bi bi-clock-history me-2"></i>Timing
+                            </th>
+                            <th class="border-0 px-3 py-3" style="font-weight: 600; color: #4a5568; text-transform: uppercase; font-size: 12px; letter-spacing: 0.5px;">
+                                <i class="bi bi-person me-2"></i>Created By
+                            </th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        @foreach (var job in Model.ImportJobs)
+                        {
+                            <tr class="job-row">
+                                <td class="px-3">
+                                    @if (job.Status == "Completed")
+                                    {
+                                        <span class="status-badge status-completed">
+                                            <i class="bi bi-check-circle me-1"></i>Completed
+                                        </span>
+                                    }
+                                    else if (job.Status == "Processing")
+                                    {
+                                        <span class="status-badge status-processing">
+                                            <i class="bi bi-hourglass-split me-1"></i>Processing
+                                        </span>
+                                    }
+                                    else if (job.Status == "Queued")
+                                    {
+                                        <span class="status-badge status-queued">
+                                            <i class="bi bi-clock me-1"></i>Queued
+                                        </span>
+                                    }
+                                    else if (job.Status == "Failed")
+                                    {
+                                        <span class="status-badge status-failed">
+                                            <i class="bi bi-x-circle me-1"></i>Failed
+                                        </span>
+                                    }
+                                </td>
+                                <td class="px-3">
+                                    <div>
+                                        <div class="fw-semibold text-dark">@job.FileName</div>
+                                        <div class="d-flex gap-2 mt-1">
+                                            @if (job.CallLogType == "Safaricom")
+                                            {
+                                                <span class="badge rounded-pill bg-success bg-opacity-10 text-success" style="font-size: 11px;">
+                                                    <i class="bi bi-sim me-1"></i>Safaricom
+                                                </span>
+                                            }
+                                            else if (job.CallLogType == "Airtel")
+                                            {
+                                                <span class="badge rounded-pill bg-danger bg-opacity-10 text-danger" style="font-size: 11px;">
+                                                    <i class="bi bi-sim me-1"></i>Airtel
+                                                </span>
+                                            }
+                                            else if (job.CallLogType == "PSTN")
+                                            {
+                                                <span class="badge rounded-pill bg-info bg-opacity-10 text-info" style="font-size: 11px;">
+                                                    <i class="bi bi-telephone me-1"></i>PSTN
+                                                </span>
+                                            }
+                                            else if (job.CallLogType == "PrivateWire")
+                                            {
+                                                <span class="badge rounded-pill bg-warning bg-opacity-10 text-warning" style="font-size: 11px;">
+                                                    <i class="bi bi-diagram-3 me-1"></i>Private Wire
+                                                </span>
+                                            }
+                                            <span class="badge rounded-pill bg-light text-dark" style="font-size: 11px;">
+                                                @FormatFileSize(job.FileSize)
+                                            </span>
+                                            <span class="badge rounded-pill bg-light text-dark" style="font-size: 11px;">
+                                                @job.BillingMonth.ToString("00")/@job.BillingYear
+                                            </span>
+                                        </div>
+                                    </div>
+                                </td>
+                                <td class="px-3" style="min-width: 200px;">
+                                    @if (job.Status == "Completed")
+                                    {
+                                        <div>
+                                            <div class="d-flex justify-content-between mb-1">
+                                                <small class="text-muted">@job.RecordsSuccess.GetValueOrDefault().ToString("N0") records</small>
+                                                <small class="text-success fw-semibold">100%</small>
+                                            </div>
+                                            <div class="progress progress-thin">
+                                                <div class="progress-bar bg-success" role="progressbar" style="width: 100%"></div>
+                                            </div>
+                                            @if (job.RecordsError > 0)
+                                            {
+                                                <small class="text-danger"><i class="bi bi-exclamation-triangle me-1"></i>@job.RecordsError errors</small>
+                                            }
+                                        </div>
+                                    }
+                                    else if (job.Status == "Processing")
+                                    {
+                                        var progress = job.ProgressPercentage ?? 0;
+                                        <div>
+                                            <div class="d-flex justify-content-between mb-1">
+                                                <small class="text-muted">@job.RecordsProcessed.GetValueOrDefault().ToString("N0") / @job.RecordsSuccess.GetValueOrDefault().ToString("N0")</small>
+                                                <small class="text-warning fw-semibold">@progress.ToString("F0")%</small>
+                                            </div>
+                                            <div class="progress progress-thin">
+                                                <div class="progress-bar bg-warning progress-bar-animated progress-bar-striped" role="progressbar" style="width: @progress%"></div>
+                                            </div>
+                                        </div>
+                                    }
+                                    else if (job.Status == "Failed")
+                                    {
+                                        <div>
+                                            <span class="badge bg-danger bg-opacity-10 text-danger">
+                                                <i class="bi bi-x-circle me-1"></i>Import failed
+                                            </span>
+                                            @if (!string.IsNullOrEmpty(job.ErrorMessage))
+                                            {
+                                                <div class="mt-1">
+                                                    <small class="text-danger">@job.ErrorMessage.Substring(0, Math.Min(50, job.ErrorMessage.Length))...</small>
+                                                </div>
+                                            }
+                                        </div>
+                                    }
+                                    else
+                                    {
+                                        <span class="badge bg-light text-muted">
+                                            <i class="bi bi-clock me-1"></i>Waiting to start
+                                        </span>
+                                    }
+                                </td>
+                                <td class="px-3">
+                                    <div>
+                                        <div class="fw-semibold text-dark">@job.CreatedDate.ToString("MMM dd, yyyy")</div>
+                                        <small class="text-muted">@job.CreatedDate.ToString("hh:mm tt")</small>
+                                        @if (job.DurationSeconds.HasValue)
+                                        {
+                                            <div class="mt-1">
+                                                <span class="badge bg-light text-dark" style="font-size: 11px;">
+                                                    <i class="bi bi-stopwatch me-1"></i>@FormatDuration(job.DurationSeconds.Value)
+                                                </span>
+                                            </div>
+                                        }
+                                    </div>
+                                </td>
+                                <td class="px-3">
+                                    <div>
+                                        <div class="fw-medium">@job.CreatedBy</div>
+                                        @if (!string.IsNullOrEmpty(job.HangfireJobId))
+                                        {
+                                            <small class="text-muted font-monospace">@job.HangfireJobId.Substring(0, Math.Min(8, job.HangfireJobId.Length))</small>
+                                        }
+                                    </div>
+                                </td>
+                            </tr>
+                        }
+                    </tbody>
+                </table>
+            </div>
+        </div>
+    </div>
+}
+
+@section Scripts {
+    <script>
+        // Auto-submit functionality for filters
+        document.addEventListener('DOMContentLoaded', function() {
+            // Auto-submit for select elements and date inputs
+            const autoSubmitElements = document.querySelectorAll('.filter-auto-submit');
+            autoSubmitElements.forEach(element => {
+                element.addEventListener('change', function() {
+                    document.getElementById('filterForm').submit();
+                });
+            });
+
+            // Debounced auto-submit for search input
+            let searchTimeout;
+            const searchInput = document.querySelector('.filter-search-input');
+            if (searchInput) {
+                searchInput.addEventListener('input', function() {
+                    clearTimeout(searchTimeout);
+                    searchTimeout = setTimeout(() => {
+                        document.getElementById('filterForm').submit();
+                    }, 500);
+                });
+            }
+
+            // Update chevron icon when filters are shown/hidden
+            const filterCollapse = document.getElementById('filterCollapse');
+            if (filterCollapse) {
+                const chevronIcon = document.querySelector('[data-bs-target="#filterCollapse"] .bi-chevron-down');
+
+                filterCollapse.addEventListener('show.bs.collapse', function () {
+                    if (chevronIcon) {
+                        chevronIcon.classList.remove('bi-chevron-down');
+                        chevronIcon.classList.add('bi-chevron-up');
+                    }
+                });
+
+                filterCollapse.addEventListener('hide.bs.collapse', function () {
+                    if (chevronIcon) {
+                        chevronIcon.classList.remove('bi-chevron-up');
+                        chevronIcon.classList.add('bi-chevron-down');
+                    }
+                });
+
+                // Check if any filters are active
+                const hasActiveFilters = @Html.Raw((!string.IsNullOrEmpty(Model.SearchTerm) ||
+                                                    Model.FilterStatus != "all" ||
+                                                    Model.FilterCallLogType != "all" ||
+                                                    Model.StartDate.HasValue ||
+                                                    Model.EndDate.HasValue).ToString().ToLower());
+                if (hasActiveFilters) {
+                    filterCollapse.classList.add('show');
+                    if (chevronIcon) {
+                        chevronIcon.classList.remove('bi-chevron-down');
+                        chevronIcon.classList.add('bi-chevron-up');
+                    }
+                }
+            }
+
+            // Quick search functionality
+            const quickSearch = document.getElementById('quickSearch');
+            if (quickSearch) {
+                quickSearch.addEventListener('keyup', function() {
+                    const searchTerm = this.value.toLowerCase();
+                    const rows = document.querySelectorAll('#jobsTable tbody tr');
+
+                    rows.forEach(row => {
+                        const text = row.textContent.toLowerCase();
+                        row.style.display = text.includes(searchTerm) ? '' : 'none';
+                    });
+                });
+            }
+
+            // Auto-refresh for running jobs
+            const hasRunningJobs = @Html.Raw(Model.ImportJobs.Any(j => j.Status == "Processing" || j.Status == "Queued").ToString().ToLower());
+            if (hasRunningJobs) {
+                setTimeout(() => {
+                    location.reload();
+                }, 10000); // Refresh every 10 seconds
+            }
+        });
+    </script>
+}
+
+@functions {
+    private string FormatFileSize(long bytes)
+    {
+        string[] sizes = { "B", "KB", "MB", "GB" };
+        double len = bytes;
+        int order = 0;
+        while (len >= 1024 && order < sizes.Length - 1)
+        {
+            order++;
+            len = len / 1024;
+        }
+        return $"{len:0.##} {sizes[order]}";
+    }
+
+    private string FormatDuration(int seconds)
+    {
+        if (seconds < 60)
+            return $"{seconds}s";
+        else if (seconds < 3600)
+            return $"{seconds / 60}m {seconds % 60}s";
+        else
+            return $"{seconds / 3600}h {(seconds % 3600) / 60}m";
+    }
+}

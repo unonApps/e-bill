@@ -75,7 +75,7 @@ namespace TAB.Web.Pages.Modules.EBillManagement.CallRecords
         [TempData]
         public string? StatusMessageClass { get; set; }
 
-        public async Task<IActionResult> OnGetAsync(int id)
+        public async Task<IActionResult> OnGetAsync(int? id, string? dialedNumber, string? month = null, int? year = null)
         {
             var user = await _userManager.GetUserAsync(User);
             if (user == null)
@@ -93,53 +93,118 @@ namespace TAB.Web.Pages.Modules.EBillManagement.CallRecords
 
             UserIndexNumber = ebillUser.IndexNumber;
 
-            // Load the specific call record (for reference)
-            CallRecord = await _context.CallRecords
-                .Include(c => c.ResponsibleUser)
-                .Include(c => c.UserPhone)
-                .FirstOrDefaultAsync(c => c.Id == id);
-
-            if (CallRecord == null)
+            // MODE 1: Load all calls to a specific dialed number
+            if (!string.IsNullOrEmpty(dialedNumber))
             {
-                StatusMessage = "Call record not found.";
-                StatusMessageClass = "danger";
-                return RedirectToPage("/Modules/EBillManagement/CallRecords/MyCallLogs");
-            }
+                // Build query for calls to this dialed number
+                var query = _context.CallRecords
+                    .Include(c => c.ResponsibleUser)
+                    .Include(c => c.UserPhone)
+                    .Where(c => c.CallNumber == dialedNumber &&
+                               (c.ResponsibleIndexNumber == UserIndexNumber ||
+                               (c.PayingIndexNumber == UserIndexNumber && c.AssignmentStatus == "Accepted")));
 
-            // Verify ownership - User can verify if they are either the responsible user OR the paying user (assigned and accepted)
-            bool isResponsibleUser = CallRecord.ResponsibleIndexNumber == UserIndexNumber;
-            bool isPayingUser = CallRecord.PayingIndexNumber == UserIndexNumber &&
-                               CallRecord.AssignmentStatus == "Accepted";
-
-            if (!isResponsibleUser && !isPayingUser)
-            {
-                StatusMessage = "You can only verify call records that belong to you or have been assigned to you and accepted.";
-                StatusMessageClass = "danger";
-                return RedirectToPage("/Modules/EBillManagement/CallRecords/MyCallLogs");
-            }
-
-            // Set extension info
-            ExtensionNumber = CallRecord.ExtensionNumber;
-            CallMonth = CallRecord.CallMonth;
-            CallYear = CallRecord.CallYear;
-
-            // Only load the specific call record that was clicked
-            AllExtensionCalls = new List<CallRecord> { CallRecord };
-
-            // Create a single group for this call record
-            GroupedCalls = new List<GroupedCallSummary>
-            {
-                new GroupedCallSummary
+                // Filter by month and year if provided
+                if (!string.IsNullOrEmpty(month) && year.HasValue)
                 {
-                    DialedNumber = CallRecord.CallNumber,
-                    ContactName = "",
-                    CallCount = 1,
-                    TotalDurationMinutes = CallRecord.CallDuration / 60.0m,
-                    TotalCostUSD = CallRecord.CallCostUSD,
-                    TotalCostKSH = CallRecord.CallCostKSHS,
-                    Calls = new List<CallRecord> { CallRecord }
+                    // Convert month name to month number
+                    int monthNumber = DateTime.ParseExact(month, "MMMM", System.Globalization.CultureInfo.InvariantCulture).Month;
+                    query = query.Where(c => c.CallMonth == monthNumber && c.CallYear == year.Value);
                 }
-            };
+                else if (year.HasValue)
+                {
+                    query = query.Where(c => c.CallYear == year.Value);
+                }
+
+                // Load all calls to this dialed number that belong to the user
+                AllExtensionCalls = await query
+                    .OrderByDescending(c => c.CallDate)
+                    .ToListAsync();
+
+                if (AllExtensionCalls.Count == 0)
+                {
+                    StatusMessage = $"No call records found for number {dialedNumber}.";
+                    StatusMessageClass = "warning";
+                    return RedirectToPage("/Modules/EBillManagement/CallRecords/MyCallLogs");
+                }
+
+                // Use the first call for reference info
+                CallRecord = AllExtensionCalls.First();
+                ExtensionNumber = CallRecord.ExtensionNumber;
+                CallMonth = CallRecord.CallMonth;
+                CallYear = CallRecord.CallYear;
+
+                // Create a single group for all calls to this number
+                GroupedCalls = new List<GroupedCallSummary>
+                {
+                    new GroupedCallSummary
+                    {
+                        DialedNumber = dialedNumber,
+                        ContactName = "",
+                        CallCount = AllExtensionCalls.Count,
+                        TotalDurationMinutes = AllExtensionCalls.Sum(c => c.CallDuration) / 60.0m,
+                        TotalCostUSD = AllExtensionCalls.Sum(c => c.CallCostUSD),
+                        TotalCostKSH = AllExtensionCalls.Sum(c => c.CallCostKSHS),
+                        Calls = AllExtensionCalls
+                    }
+                };
+            }
+            // MODE 2: Load a single call record by ID (original behavior)
+            else if (id.HasValue)
+            {
+                CallRecord = await _context.CallRecords
+                    .Include(c => c.ResponsibleUser)
+                    .Include(c => c.UserPhone)
+                    .FirstOrDefaultAsync(c => c.Id == id.Value);
+
+                if (CallRecord == null)
+                {
+                    StatusMessage = "Call record not found.";
+                    StatusMessageClass = "danger";
+                    return RedirectToPage("/Modules/EBillManagement/CallRecords/MyCallLogs");
+                }
+
+                // Verify ownership
+                bool isResponsibleUser = CallRecord.ResponsibleIndexNumber == UserIndexNumber;
+                bool isPayingUser = CallRecord.PayingIndexNumber == UserIndexNumber &&
+                                   CallRecord.AssignmentStatus == "Accepted";
+
+                if (!isResponsibleUser && !isPayingUser)
+                {
+                    StatusMessage = "You can only verify call records that belong to you or have been assigned to you and accepted.";
+                    StatusMessageClass = "danger";
+                    return RedirectToPage("/Modules/EBillManagement/CallRecords/MyCallLogs");
+                }
+
+                // Set extension info
+                ExtensionNumber = CallRecord.ExtensionNumber;
+                CallMonth = CallRecord.CallMonth;
+                CallYear = CallRecord.CallYear;
+
+                // Only load the specific call record that was clicked
+                AllExtensionCalls = new List<CallRecord> { CallRecord };
+
+                // Create a single group for this call record
+                GroupedCalls = new List<GroupedCallSummary>
+                {
+                    new GroupedCallSummary
+                    {
+                        DialedNumber = CallRecord.CallNumber,
+                        ContactName = "",
+                        CallCount = 1,
+                        TotalDurationMinutes = CallRecord.CallDuration / 60.0m,
+                        TotalCostUSD = CallRecord.CallCostUSD,
+                        TotalCostKSH = CallRecord.CallCostKSHS,
+                        Calls = new List<CallRecord> { CallRecord }
+                    }
+                };
+            }
+            else
+            {
+                StatusMessage = "Please provide either a call ID or dialed number.";
+                StatusMessageClass = "danger";
+                return RedirectToPage("/Modules/EBillManagement/CallRecords/MyCallLogs");
+            }
 
             // Load class of service and allowance info
             ClassOfService = await _calculationService.GetUserClassOfServiceAsync(UserIndexNumber);
@@ -203,7 +268,7 @@ namespace TAB.Web.Pages.Modules.EBillManagement.CallRecords
                     {
                         StatusMessage = "Please provide a reason for payment assignment.";
                         StatusMessageClass = "warning";
-                        return await OnGetAsync(id);
+                        return await OnGetAsync(id, null);
                     }
 
                     await _verificationService.AssignPaymentAsync(
@@ -226,7 +291,7 @@ namespace TAB.Web.Pages.Modules.EBillManagement.CallRecords
             {
                 StatusMessage = $"Error verifying call: {ex.Message}";
                 StatusMessageClass = "danger";
-                return await OnGetAsync(id);
+                return await OnGetAsync(id, null);
             }
         }
 

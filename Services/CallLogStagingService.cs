@@ -6,6 +6,7 @@ using System.Threading.Tasks;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Logging;
 using Microsoft.Extensions.Configuration;
+using Microsoft.Data.SqlClient;
 using TAB.Web.Data;
 using TAB.Web.Models;
 
@@ -134,13 +135,41 @@ namespace TAB.Web.Services
                 batch.StartProcessingDate = DateTime.UtcNow;
                 await _context.SaveChangesAsync();
 
-                int totalImported = 0;
+                // =============================================
+                // Use stored procedure for efficient bulk consolidation
+                // This handles 1M+ records without timeout or memory issues
+                // =============================================
+                _logger.LogInformation("Calling stored procedure sp_ConsolidateCallLogBatch for batch {BatchId}", batch.Id);
 
-                // Import from each source
-                totalImported += await ImportFromSafaricomAsync(batch.Id, startDate, endDate);
-                totalImported += await ImportFromAirtelAsync(batch.Id, startDate, endDate);
-                totalImported += await ImportFromPSTNAsync(batch.Id, startDate, endDate);
-                totalImported += await ImportFromPrivateWireAsync(batch.Id, startDate, endDate);
+                var batchIdParam = new SqlParameter("@BatchId", batch.Id);
+                var startMonthParam = new SqlParameter("@StartMonth", startMonth);
+                var startYearParam = new SqlParameter("@StartYear", startYear);
+                var endMonthParam = new SqlParameter("@EndMonth", endMonth);
+                var endYearParam = new SqlParameter("@EndYear", endYear);
+                var createdByParam = new SqlParameter("@CreatedBy", createdBy);
+
+                // Execute stored procedure with 10 minute timeout for large datasets
+                var originalTimeout = _context.Database.GetCommandTimeout();
+                _context.Database.SetCommandTimeout(600); // 10 minutes
+
+                var result = await _context.Database
+                    .SqlQueryRaw<ConsolidationResult>(
+                        "EXEC sp_ConsolidateCallLogBatch @BatchId, @StartMonth, @StartYear, @EndMonth, @EndYear, @CreatedBy",
+                        batchIdParam, startMonthParam, startYearParam, endMonthParam, endYearParam, createdByParam)
+                    .ToListAsync();
+
+                // Restore original timeout
+                _context.Database.SetCommandTimeout(originalTimeout);
+
+                int totalImported = result.FirstOrDefault()?.TotalRecords ?? 0;
+
+                _logger.LogInformation(
+                    "Stored procedure completed. Total: {Total}, Safaricom: {Safaricom}, Airtel: {Airtel}, PSTN: {PSTN}, PrivateWire: {PrivateWire}",
+                    totalImported,
+                    result.FirstOrDefault()?.SafaricomRecords ?? 0,
+                    result.FirstOrDefault()?.AirtelRecords ?? 0,
+                    result.FirstOrDefault()?.PSTNRecords ?? 0,
+                    result.FirstOrDefault()?.PrivateWireRecords ?? 0);
 
                 // If no records were actually imported, delete the batch and throw an error
                 if (totalImported == 0)
@@ -721,7 +750,7 @@ namespace TAB.Web.Services
             return logs.Count;
         }
 
-        public async Task<int> PushToProductionAsync(Guid batchId, DateTime? verificationPeriod = null)
+        public async Task<int> PushToProductionAsync(Guid batchId, DateTime? verificationPeriod = null, string? verificationType = null)
         {
             var batch = await _context.StagingBatches
                 .Include(b => b.BillingPeriod)
@@ -758,17 +787,6 @@ namespace TAB.Web.Services
                 }
             }
 
-            // Get only verified records to push to production
-            var verifiedLogs = await _context.CallLogStagings
-                .Where(l => l.BatchId == batchId && l.VerificationStatus == VerificationStatus.Verified)
-                .ToListAsync();
-
-            if (verifiedLogs.Count == 0)
-            {
-                _logger.LogWarning("Cannot push batch {BatchId} - no verified records found", batchId);
-                return 0;
-            }
-
             // Load recovery configuration for approval deadline calculation
             var config = await _context.RecoveryConfigurations
                 .FirstOrDefaultAsync(rc => rc.RuleName == "SystemConfiguration");
@@ -782,139 +800,44 @@ namespace TAB.Web.Services
                     approvalPeriod, config.DefaultApprovalDays);
             }
 
-            var productionRecords = verifiedLogs.Select(l => new CallRecord
-            {
-                ExtensionNumber = l.ExtensionNumber,
-                CallDate = l.CallDate,
-                CallNumber = l.CallNumber,
-                CallDestination = l.CallDestination,
-                CallEndTime = l.CallEndTime,
-                CallDuration = l.CallDuration,
-                CallCurrencyCode = l.CallCurrencyCode,
-                CallCost = l.CallCost,
-                CallCostUSD = l.CallCostUSD,
-                CallCostKSHS = l.CallCostKSHS,
-                CallType = l.CallType,
-                CallDestinationType = l.CallDestinationType,
-                CallYear = l.CallYear,  // Use year from staging record (original upload)
-                CallMonth = l.CallMonth,  // Use month from staging record (original upload)
-                ResponsibleIndexNumber = l.ResponsibleIndexNumber,
-                PayingIndexNumber = l.PayingIndexNumber,
-                UserPhoneId = l.UserPhoneId,  // Include UserPhone relationship
-                AssignmentStatus = "None",  // Initial status - belongs to original phone owner
-                IsVerified = false,  // Set to false initially for user verification workflow
-                VerificationDate = null,
-                VerificationPeriod = verificationPeriod,  // Set the verification period deadline
-                ApprovalPeriod = approvalPeriod,  // Set the approval period deadline
-                RevertCount = 0,  // Initialize revert count
-                IsCertified = false,
-                IsProcessed = false,
-                EntryDate = DateTime.UtcNow,
-                SourceSystem = l.SourceSystem,
-                SourceBatchId = l.BatchId,
-                SourceStagingId = l.Id
-            }).ToList();
+            // Use stored procedure to push verified records to production efficiently
+            _logger.LogInformation("Calling sp_PushBatchToProduction for batch {BatchId}", batchId);
 
-            _context.CallRecords.AddRange(productionRecords);
+            var batchIdParam = new SqlParameter("@BatchId", batchId);
+            var verificationPeriodParam = new SqlParameter("@VerificationPeriod", (object?)verificationPeriod ?? DBNull.Value);
+            var verificationTypeParam = new SqlParameter("@VerificationType", (object?)verificationType ?? DBNull.Value);
+            var approvalPeriodParam = new SqlParameter("@ApprovalPeriod", (object?)approvalPeriod ?? DBNull.Value);
+            var publishedByParam = new SqlParameter("@PublishedBy", "System");
 
-            // Update staging records as processed
-            foreach (var log in verifiedLogs)
+            var result = await _context.Database
+                .SqlQueryRaw<PushToProductionResult>(
+                    "EXEC sp_PushBatchToProduction @BatchId, @VerificationPeriod, @VerificationType, @ApprovalPeriod, @PublishedBy",
+                    batchIdParam, verificationPeriodParam, verificationTypeParam, approvalPeriodParam, publishedByParam)
+                .AsNoTracking()
+                .ToListAsync();
+
+            var pushResult = result.FirstOrDefault();
+
+            if (pushResult == null || pushResult.Success == 0)
             {
-                log.ProcessingStatus = ProcessingStatus.Completed;
-                log.ProcessedDate = DateTime.UtcNow;
+                var errorMessage = pushResult?.Error ?? "Unknown error during push to production";
+                _logger.LogError("Failed to push batch {BatchId} to production: {Error}", batchId, errorMessage);
+                throw new InvalidOperationException($"Failed to push batch to production: {errorMessage}");
             }
 
-            // Update source telecom tables to mark records as Completed
-            // Get the source record IDs from verified logs
-            var sourceRecordIdsByType = verifiedLogs
-                .GroupBy(l => l.SourceSystem)
-                .ToDictionary(g => g.Key, g => g.Select(l => l.SourceRecordId).ToList());
+            _logger.LogInformation(
+                "Successfully pushed {RecordsPushed} records to production. " +
+                "Source records updated: Safaricom={Safaricom}, Airtel={Airtel}, PSTN={PSTN}, PrivateWire={PrivateWire}. " +
+                "Remaining unprocessed: {Remaining}",
+                pushResult.RecordsPushed,
+                pushResult.SafaricomUpdated,
+                pushResult.AirtelUpdated,
+                pushResult.PSTNUpdated,
+                pushResult.PrivateWireUpdated,
+                pushResult.RemainingUnprocessed);
 
-            foreach (var sourceType in sourceRecordIdsByType)
-            {
-                var sourceSystem = sourceType.Key;
-                var sourceRecordIds = sourceType.Value;
-
-                _logger.LogInformation("Updating {Count} {SourceSystem} source records to Completed status",
-                    sourceRecordIds.Count, sourceSystem);
-
-                switch (sourceSystem.ToLower())
-                {
-                    case "pstn":
-                        var pstnRecords = await _context.PSTNs
-                            .Where(p => sourceRecordIds.Contains(p.Id.ToString()))
-                            .ToListAsync();
-                        foreach (var record in pstnRecords)
-                        {
-                            record.ProcessingStatus = ProcessingStatus.Completed;
-                            record.ProcessedDate = DateTime.UtcNow;
-                        }
-                        break;
-
-                    case "privatewire":
-                        var privateWireRecords = await _context.PrivateWires
-                            .Where(p => sourceRecordIds.Contains(p.Id.ToString()))
-                            .ToListAsync();
-                        foreach (var record in privateWireRecords)
-                        {
-                            record.ProcessingStatus = ProcessingStatus.Completed;
-                            record.ProcessedDate = DateTime.UtcNow;
-                        }
-                        break;
-
-                    case "safaricom":
-                        var safaricomRecords = await _context.Safaricoms
-                            .Where(s => sourceRecordIds.Contains(s.Id.ToString()))
-                            .ToListAsync();
-                        foreach (var record in safaricomRecords)
-                        {
-                            record.ProcessingStatus = ProcessingStatus.Completed;
-                            record.ProcessedDate = DateTime.UtcNow;
-                        }
-                        break;
-
-                    case "airtel":
-                        var airtelRecords = await _context.Airtels
-                            .Where(a => sourceRecordIds.Contains(a.Id.ToString()))
-                            .ToListAsync();
-                        foreach (var record in airtelRecords)
-                        {
-                            record.ProcessingStatus = ProcessingStatus.Completed;
-                            record.ProcessedDate = DateTime.UtcNow;
-                        }
-                        break;
-
-                    default:
-                        _logger.LogWarning("Unknown source system: {SourceSystem}", sourceSystem);
-                        break;
-                }
-            }
-
-            // Check if there are any unverified/rejected records remaining in the batch
-            var remainingUnprocessedCount = await _context.CallLogStagings
-                .CountAsync(l => l.BatchId == batchId &&
-                               l.VerificationStatus != VerificationStatus.Verified &&
-                               l.ProcessingStatus != ProcessingStatus.Completed);
-
-            // Update batch status based on remaining records
-            if (remainingUnprocessedCount == 0)
-            {
-                // All records processed - mark batch as Published
-                batch.BatchStatus = BatchStatus.Published;
-                batch.EndProcessingDate = DateTime.UtcNow;
-                _logger.LogInformation("Batch {BatchId} fully published - all records processed", batchId);
-            }
-            else
-            {
-                // Some records remain unverified/rejected - keep as PartiallyVerified
-                batch.BatchStatus = BatchStatus.PartiallyVerified;
-                _logger.LogInformation("Batch {BatchId} partially published - {Count} verified records pushed, {Remaining} records remain unverified/rejected",
-                    batchId, verifiedLogs.Count, remainingUnprocessedCount);
-            }
-
-            batch.PublishedBy = "System";
-
-            await _context.SaveChangesAsync();
+            // Reload batch to get updated status from stored procedure
+            await _context.Entry(batch).ReloadAsync();
 
             // Create deadline tracking entries if verification period is set
             if (verificationPeriod.HasValue)
@@ -940,7 +863,12 @@ namespace TAB.Web.Services
             // Send email notifications to staff members about published records
             try
             {
-                await SendPublishedNotificationsAsync(productionRecords, batch, verificationPeriod, approvalPeriod);
+                // Query the records that were just pushed to production
+                var publishedRecords = await _context.CallRecords
+                    .Where(r => r.SourceBatchId == batchId)
+                    .ToListAsync();
+
+                await SendPublishedNotificationsAsync(publishedRecords, batch, verificationPeriod, approvalPeriod);
             }
             catch (Exception ex)
             {
@@ -949,9 +877,9 @@ namespace TAB.Web.Services
             }
 
             _logger.LogInformation("Pushed {Count} verified records to production from batch {BatchId}",
-                productionRecords.Count, batchId);
+                pushResult.RecordsPushed, batchId);
 
-            return productionRecords.Count;
+            return pushResult.RecordsPushed;
         }
 
         public async Task<bool> RollbackBatchAsync(Guid batchId)
@@ -1014,11 +942,17 @@ namespace TAB.Web.Services
 
             if (!string.IsNullOrEmpty(filter.SearchTerm))
             {
+                var searchLower = filter.SearchTerm.ToLower();
                 query = query.Where(l =>
-                    l.ExtensionNumber.Contains(filter.SearchTerm) ||
-                    l.CallNumber.Contains(filter.SearchTerm) ||
-                    l.CallDestination.Contains(filter.SearchTerm) ||
-                    (l.ResponsibleIndexNumber != null && l.ResponsibleIndexNumber.Contains(filter.SearchTerm)));
+                    l.ExtensionNumber.ToLower().Contains(searchLower) ||
+                    l.CallNumber.ToLower().Contains(searchLower) ||
+                    l.CallDestination.ToLower().Contains(searchLower) ||
+                    (l.ResponsibleIndexNumber != null && l.ResponsibleIndexNumber.ToLower().Contains(searchLower)) ||
+                    (l.ResponsibleUser != null && (
+                        l.ResponsibleUser.FirstName.ToLower().Contains(searchLower) ||
+                        l.ResponsibleUser.LastName.ToLower().Contains(searchLower) ||
+                        l.ResponsibleUser.Email.ToLower().Contains(searchLower)
+                    )));
             }
 
             if (filter.StartDate.HasValue)
@@ -1138,141 +1072,63 @@ namespace TAB.Web.Services
 
         public async Task<bool> DeleteBatchAsync(Guid batchId, string deletedBy)
         {
-            // Use the execution strategy for handling retries with transactions
-            var strategy = _context.Database.CreateExecutionStrategy();
-
-            return await strategy.ExecuteAsync(async () =>
+            try
             {
-                using var transaction = await _context.Database.BeginTransactionAsync();
-                try
+                // =============================================
+                // Use stored procedure for efficient bulk deletion
+                // This handles 1M+ records without timeout or memory issues
+                // =============================================
+                _logger.LogInformation("Calling stored procedure sp_DeleteBatch for batch {BatchId}", batchId);
+
+                var batchIdParam = new SqlParameter("@BatchId", batchId);
+                var deletedByParam = new SqlParameter("@DeletedBy", deletedBy);
+                var resultParam = new SqlParameter
                 {
-                    // First check if we can delete
-                    if (!await CanDeleteBatchAsync(batchId))
-                    {
-                        throw new InvalidOperationException("This batch cannot be deleted. It may be published or have records in production.");
-                    }
+                    ParameterName = "@Result",
+                    SqlDbType = System.Data.SqlDbType.NVarChar,
+                    Size = -1, // MAX
+                    Direction = System.Data.ParameterDirection.Output
+                };
 
-                    var batch = await _context.StagingBatches.FindAsync(batchId);
-                    if (batch == null)
-                    {
-                        throw new InvalidOperationException($"Batch {batchId} not found.");
-                    }
+                // Execute stored procedure with 5 minute timeout for large datasets
+                var originalTimeout = _context.Database.GetCommandTimeout();
+                _context.Database.SetCommandTimeout(300); // 5 minutes
 
-                    _logger.LogInformation("Deleting batch {BatchName} (ID: {BatchId}) by {DeletedBy}",
-                        batch.BatchName, batchId, deletedBy);
+                var result = await _context.Database
+                    .SqlQueryRaw<DeleteBatchResult>(
+                        "EXEC sp_DeleteBatch @BatchId, @DeletedBy, @Result OUTPUT",
+                        batchIdParam, deletedByParam, resultParam)
+                    .ToListAsync();
 
-                    // Get all staging records for this batch
-                    var stagingRecords = await _context.CallLogStagings
-                        .Where(c => c.BatchId == batchId)
-                        .ToListAsync();
+                // Restore original timeout
+                _context.Database.SetCommandTimeout(originalTimeout);
 
-                    _logger.LogInformation("Found {Count} staging records to delete", stagingRecords.Count);
+                var deleteResult = result.FirstOrDefault();
 
-                    // Create audit log entry
-                    var auditLog = new AuditLog
-                    {
-                        EntityType = "StagingBatch",
-                        EntityId = batchId.ToString(),
-                        Action = "Deleted",
-                        Description = $"Deleted batch '{batch.BatchName}' with {stagingRecords.Count} staging records",
-                        OldValues = System.Text.Json.JsonSerializer.Serialize(new
-                        {
-                            batch.BatchName,
-                            batch.BatchStatus,
-                            batch.TotalRecords,
-                            batch.VerifiedRecords,
-                            batch.RejectedRecords,
-                            batch.RecordsWithAnomalies,
-                            batch.CreatedDate,
-                            batch.CreatedBy
-                        }),
-                        PerformedBy = deletedBy,
-                        PerformedDate = DateTime.UtcNow,
-                        Module = "CallLogStaging",
-                        IsSuccess = true,
-                        AdditionalData = System.Text.Json.JsonSerializer.Serialize(new
-                        {
-                            RecordsDeleted = stagingRecords.Count,
-                            SourceSystems = batch.SourceSystems
-                        })
-                    };
-
-                    _context.AuditLogs.Add(auditLog);
-
-                    // Delete all staging records
-                    _context.CallLogStagings.RemoveRange(stagingRecords);
-
-                    // Reset source records StagingBatchId back to null (Unverified state)
-                    // Update all telecom tables that have this StagingBatchId
-                    _logger.LogInformation("Resetting StagingBatchId to null for all records with batch {BatchId}", batchId);
-
-                    // Update PSTN records
-                    var pstnRecords = await _context.PSTNs
-                        .Where(p => p.StagingBatchId == batchId)
-                        .ToListAsync();
-                    foreach (var record in pstnRecords)
-                    {
-                        record.StagingBatchId = null;
-                        _context.PSTNs.Update(record);
-                    }
-                    if (pstnRecords.Count > 0)
-                        _logger.LogInformation("Reset {RecordCount} PSTN records to unverified state", pstnRecords.Count);
-
-                    // Update PrivateWire records
-                    var privateWireRecords = await _context.PrivateWires
-                        .Where(p => p.StagingBatchId == batchId)
-                        .ToListAsync();
-                    foreach (var record in privateWireRecords)
-                    {
-                        record.StagingBatchId = null;
-                        _context.PrivateWires.Update(record);
-                    }
-                    if (privateWireRecords.Count > 0)
-                        _logger.LogInformation("Reset {RecordCount} PrivateWire records to unverified state", privateWireRecords.Count);
-
-                    // Update Safaricom records
-                    var safaricomRecords = await _context.Safaricoms
-                        .Where(s => s.StagingBatchId == batchId)
-                        .ToListAsync();
-                    foreach (var record in safaricomRecords)
-                    {
-                        record.StagingBatchId = null;
-                        _context.Safaricoms.Update(record);
-                    }
-                    if (safaricomRecords.Count > 0)
-                        _logger.LogInformation("Reset {RecordCount} Safaricom records to unverified state", safaricomRecords.Count);
-
-                    // Update Airtel records
-                    var airtelRecords = await _context.Airtels
-                        .Where(a => a.StagingBatchId == batchId)
-                        .ToListAsync();
-                    foreach (var record in airtelRecords)
-                    {
-                        record.StagingBatchId = null;
-                        _context.Airtels.Update(record);
-                    }
-                    if (airtelRecords.Count > 0)
-                        _logger.LogInformation("Reset {RecordCount} Airtel records to unverified state", airtelRecords.Count);
-
-                    // Delete the batch itself
-                    _context.StagingBatches.Remove(batch);
-
-                    // Save all changes
-                    await _context.SaveChangesAsync();
-                    await transaction.CommitAsync();
-
-                    _logger.LogInformation("Successfully deleted batch {BatchName} and {Count} staging records",
-                        batch.BatchName, stagingRecords.Count);
-
-                    return true;
-                }
-                catch (Exception ex)
+                if (deleteResult == null || deleteResult.Success == 0)
                 {
-                    await transaction.RollbackAsync();
-                    _logger.LogError(ex, "Error deleting batch {BatchId}", batchId);
-                    throw;
+                    var errorMessage = deleteResult?.Error ?? "Unknown error occurred during batch deletion";
+                    _logger.LogError("Batch deletion failed: {Error}", errorMessage);
+                    throw new InvalidOperationException(errorMessage);
                 }
-            });
+
+                _logger.LogInformation(
+                    "Batch deletion completed. Batch: {BatchName}, Staging deleted: {Staging}, Source records reset: {Total} (Safaricom: {Safaricom}, Airtel: {Airtel}, PSTN: {PSTN}, PrivateWire: {PrivateWire})",
+                    deleteResult.BatchName,
+                    deleteResult.StagingRecordsDeleted,
+                    deleteResult.SafaricomRecordsReset + deleteResult.AirtelRecordsReset + deleteResult.PSTNRecordsReset + deleteResult.PrivateWireRecordsReset,
+                    deleteResult.SafaricomRecordsReset,
+                    deleteResult.AirtelRecordsReset,
+                    deleteResult.PSTNRecordsReset,
+                    deleteResult.PrivateWireRecordsReset);
+
+                return true;
+            }
+            catch (Exception ex)
+            {
+                _logger.LogError(ex, "Error deleting batch {BatchId}", batchId);
+                throw;
+            }
         }
 
         private async Task UpdateBatchStatistics(Guid batchId)
@@ -1453,5 +1309,50 @@ namespace TAB.Web.Services
                 throw;
             }
         }
+    }
+
+    /// <summary>
+    /// Result class for mapping stored procedure output from sp_ConsolidateCallLogBatch
+    /// </summary>
+    public class ConsolidationResult
+    {
+        public int TotalRecords { get; set; }
+        public int SafaricomRecords { get; set; }
+        public int AirtelRecords { get; set; }
+        public int PSTNRecords { get; set; }
+        public int PrivateWireRecords { get; set; }
+        public DateTime CompletedAt { get; set; }
+    }
+
+    /// <summary>
+    /// Result class for mapping stored procedure output from sp_DeleteBatch
+    /// </summary>
+    public class DeleteBatchResult
+    {
+        public int Success { get; set; }
+        public string? BatchName { get; set; }
+        public int StagingRecordsDeleted { get; set; }
+        public int SafaricomRecordsReset { get; set; }
+        public int AirtelRecordsReset { get; set; }
+        public int PSTNRecordsReset { get; set; }
+        public int PrivateWireRecordsReset { get; set; }
+        public DateTime? DeletedAt { get; set; }
+        public string? Error { get; set; }
+    }
+
+    /// <summary>
+    /// Result class for mapping stored procedure output from sp_PushBatchToProduction
+    /// </summary>
+    public class PushToProductionResult
+    {
+        public int Success { get; set; }
+        public int RecordsPushed { get; set; }
+        public int RemainingUnprocessed { get; set; }
+        public int SafaricomUpdated { get; set; }
+        public int AirtelUpdated { get; set; }
+        public int PSTNUpdated { get; set; }
+        public int PrivateWireUpdated { get; set; }
+        public DateTime? CompletedAt { get; set; }
+        public string? Error { get; set; }
     }
 }

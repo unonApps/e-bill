@@ -44,10 +44,13 @@ namespace TAB.Web.Pages.Modules.RefundManagement.Requests
 
         public List<SelectListItem> Supervisors { get; set; } = new List<SelectListItem>();
         public List<SelectListItem> ClassOfServices { get; set; } = new List<SelectListItem>();
-        
+
         // Add these properties for the form dropdowns
         public List<Organization> Organizations { get; set; } = new List<Organization>();
         public List<ClassOfService> ClassesOfService { get; set; } = new List<ClassOfService>();
+
+        // Pre-populated organization ID for office loading
+        public int? PreSelectedOrganizationId { get; set; }
 
         [TempData]
         public string? StatusMessage { get; set; }
@@ -59,7 +62,72 @@ namespace TAB.Web.Pages.Modules.RefundManagement.Requests
             // await LoadOfficesAsync(); // Removed - Office table no longer exists
             await LoadOrganizationsAsync();
             await LoadClassesOfServiceAsync();
+            await PopulateUserInfoAsync();
             return Page();
+        }
+
+        private async Task PopulateUserInfoAsync()
+        {
+            var currentUser = await _userManager.GetUserAsync(User);
+            if (currentUser == null)
+            {
+                return;
+            }
+
+            // Try to get user information from ApplicationUser
+            var user = await _context.Users
+                .Include(u => u.Organization)
+                .Include(u => u.Office)
+                .FirstOrDefaultAsync(u => u.Id == currentUser.Id);
+
+            if (user != null)
+            {
+                // Auto-populate name
+                RefundRequest.MobileNumberAssignedTo = $"{user.FirstName} {user.LastName}".Trim();
+
+                // Auto-populate organization
+                if (user.Organization != null)
+                {
+                    RefundRequest.Organization = user.Organization.Name ?? string.Empty;
+                    PreSelectedOrganizationId = user.OrganizationId; // Store ID for JavaScript
+                }
+
+                // Auto-populate office
+                if (user.Office != null)
+                {
+                    RefundRequest.Office = user.Office.Name ?? string.Empty;
+                }
+            }
+
+            // Try to get additional information from EbillUser
+            var ebillUser = await _context.EbillUsers
+                .FirstOrDefaultAsync(u => u.Email == currentUser.Email);
+
+            if (ebillUser != null)
+            {
+                // Auto-populate index number
+                if (!string.IsNullOrEmpty(ebillUser.IndexNumber))
+                {
+                    RefundRequest.IndexNo = ebillUser.IndexNumber;
+                }
+
+                // Auto-populate primary mobile number from EbillUser's OfficialMobileNumber
+                if (!string.IsNullOrEmpty(ebillUser.OfficialMobileNumber))
+                {
+                    RefundRequest.PrimaryMobileNumber = ebillUser.OfficialMobileNumber;
+                }
+
+                // Auto-populate supervisor details
+                if (!string.IsNullOrEmpty(ebillUser.SupervisorEmail))
+                {
+                    RefundRequest.Supervisor = ebillUser.SupervisorEmail;
+                }
+
+                if (!string.IsNullOrEmpty(ebillUser.SupervisorName))
+                {
+                    RefundRequest.SupervisorName = ebillUser.SupervisorName;
+                }
+            }
         }
 
         public async Task<IActionResult> OnPostAsync(string action, IFormFile? receiptFile)
@@ -151,16 +219,14 @@ namespace TAB.Web.Pages.Modules.RefundManagement.Requests
             RefundRequest.RequestedBy = currentUser?.Id;
             RefundRequest.RequestDate = DateTime.UtcNow;
 
-            // Parse supervisor email from the selected supervisor value
+            // Set supervisor email (now directly from email input field)
             if (!string.IsNullOrEmpty(RefundRequest.Supervisor))
             {
-                // Extract email from format "First Name Last Name (email@domain.com)"
-                var emailMatch = System.Text.RegularExpressions.Regex.Match(RefundRequest.Supervisor, @"\(([^)]+)\)");
-                if (emailMatch.Success)
+                RefundRequest.SupervisorEmail = RefundRequest.Supervisor;
+
+                // If supervisor name is not provided, try to get it from the database
+                if (string.IsNullOrEmpty(RefundRequest.SupervisorName))
                 {
-                    RefundRequest.SupervisorEmail = emailMatch.Groups[1].Value;
-                    
-                    // Also set supervisor name by getting user details
                     var supervisorUser = await _context.Users
                         .FirstOrDefaultAsync(u => u.Email == RefundRequest.SupervisorEmail);
                     if (supervisorUser != null)
@@ -297,39 +363,10 @@ namespace TAB.Web.Pages.Modules.RefundManagement.Requests
 
         private async Task LoadSupervisorsAsync()
         {
-            var supervisors = new List<ApplicationUser>();
-            
-            // Try to get users from multiple roles that can act as supervisors
-            var supervisorUsers = await _userManager.GetUsersInRoleAsync("Supervisor");
-            supervisors.AddRange(supervisorUsers);
-            
-            // Also include Budget Officers who can supervise
-            var budgetOfficers = await _userManager.GetUsersInRoleAsync("Budget Officer");
-            supervisors.AddRange(budgetOfficers);
-            
-            // Also include BudgetOfficer (in case role name variations exist)
-            var budgetOfficersAlt = await _userManager.GetUsersInRoleAsync("BudgetOfficer");
-            supervisors.AddRange(budgetOfficersAlt);
-            
-            // If still no supervisors found, fall back to Admin users
-            if (!supervisors.Any())
-            {
-                var adminUsers = await _userManager.GetUsersInRoleAsync("Admin");
-                supervisors.AddRange(adminUsers);
-            }
-            
-            // Remove duplicates (in case a user has multiple roles)
-            supervisors = supervisors.GroupBy(u => u.Id).Select(g => g.First()).ToList();
-            
-            Supervisors = supervisors.Select(s => new SelectListItem
-            {
-                Value = $"{s.FirstName} {s.LastName} ({s.Email})",
-                Text = $"{s.FirstName} {s.LastName} - {s.Email}"
-            }).OrderBy(s => s.Text).ToList();
-            
-            // Add debugging information
-            TempData["SupervisorCount"] = Supervisors.Count;
-            TempData["SupervisorDebug"] = $"Found {Supervisors.Count} potential supervisors from roles: Supervisor, Budget Officer, Admin";
+            // Note: Supervisors are now entered via text inputs (email and name)
+            // This list is kept for backward compatibility but can be empty
+            Supervisors = new List<SelectListItem>();
+            await Task.CompletedTask; // Keep async signature
         }
 
         private async Task LoadClassOfServicesAsync()

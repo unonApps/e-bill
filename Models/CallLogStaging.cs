@@ -38,7 +38,7 @@ namespace TAB.Web.Models
         [Column(TypeName = "decimal(18,4)")]
         public decimal CallCostKSHS { get; set; }
 
-        [MaxLength(50)]
+        [MaxLength(100)]
         public string CallType { get; set; } = string.Empty; // Voice/SMS/Data
 
         [MaxLength(50)]

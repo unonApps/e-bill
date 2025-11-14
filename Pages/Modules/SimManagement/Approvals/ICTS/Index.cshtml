@@ -318,52 +318,6 @@
 </style>
 
 <div class="container-fluid px-4">
-    <!-- Back Button -->
-    <div class="mb-3">
-        <a href="/Modules/SimManagement/Approvals" class="btn btn-outline-secondary btn-sm">
-            <i class="bi bi-arrow-left me-2"></i>Back to Overview
-        </a>
-    </div>
-
-    <!-- Page Header -->
-    <div class="page-header">
-        <div class="d-flex justify-content-between align-items-start">
-            <div>
-                <h1 class="page-title">
-                    <i class="bi bi-gear-fill text-primary me-3"></i>
-                    ICTS Processing
-                    @if (Model.IsAdmin)
-                    {
-                        <span class="badge bg-primary ms-2" style="font-size: 12px; vertical-align: top;">Admin View</span>
-                    }
-                </h1>
-                <p class="page-subtitle">
-                    @if (Model.IsAdmin)
-                    {
-                        <span>Process all SIM card requests across the system (Admin)</span>
-                    }
-                    else
-                    {
-                        <span>Process SIM card requests forwarded by supervisors</span>
-                    }
-                </p>
-            </div>
-            <div class="text-end">
-                <span class="badge bg-light text-dark px-3 py-2">
-                    <i class="bi bi-person-circle me-2"></i>
-                    @if (Model.IsAdmin)
-                    {
-                        <span>Admin: @Model.CurrentUserName</span>
-                    }
-                    else
-                    {
-                        <span>ICTS: @Model.CurrentUserName</span>
-                    }
-                </span>
-            </div>
-        </div>
-    </div>
-
     <!-- Status Messages -->
     @if (!string.IsNullOrEmpty(Model.StatusMessage))
     {
@@ -375,8 +329,11 @@
 
     @* Role-based authorization is now handled at the controller level *@
 
-    <!-- Statistics Cards -->
-    <div class="row g-4 mb-5">
+    @if (!Model.IsDetailView)
+    {
+        <!-- LIST VIEW -->
+        <!-- Statistics Cards -->
+        <div class="row g-4 mb-5">
         <div class="col-md-6">
             <div class="minimal-card p-4">
                 <div class="d-flex align-items-center">
@@ -1606,6 +1563,547 @@
             }
         </div>
     </div>
+    }
+
+    @if (Model.IsDetailView && Model.CurrentRequest != null)
+    {
+        @* DETAIL VIEW *@
+            @* Header with Back Button *@
+            <div class="d-flex justify-content-between align-items-center mb-4">
+                <div>
+                    <h2 class="page-title mb-2">
+                        <i class="bi bi-sim me-2" style="color: #009EDB;"></i>SIM Request Details
+                    </h2>
+                    <p class="page-subtitle">Request #@Model.CurrentRequest.Id • @Model.CurrentRequest.FirstName @Model.CurrentRequest.LastName</p>
+                </div>
+                <div>
+                    <a href="/Modules/SimManagement/Approvals/ICTS" class="btn btn-outline-secondary">
+                        <i class="bi bi-arrow-left me-2"></i>Back to Approvals
+                    </a>
+                </div>
+            </div>
+
+                @* Status Banner *@
+                <div class="status-banner mb-4" style="padding: 1.25rem; border-radius: 12px; display: flex; align-items-center; gap: 1rem; background: #FEF3C7; border-left: 4px solid #F59E0B;">
+                    <i class="bi bi-@(Model.CurrentRequest.Status == TAB.Web.Models.RequestStatus.PendingIcts ? "gear-fill" : Model.CurrentRequest.Status == TAB.Web.Models.RequestStatus.PendingServiceProvider ? "telephone" : "collection")" style="font-size: 1.75rem; color: #92400e;"></i>
+                    <div class="flex-grow-1">
+                        <div class="fw-bold fs-5" style="color: #92400e;">
+                            @if (Model.CurrentRequest.Status == TAB.Web.Models.RequestStatus.PendingIcts)
+                            {
+                                <text>Pending ICTS Processing</text>
+                            }
+                            else if (Model.CurrentRequest.Status == TAB.Web.Models.RequestStatus.PendingServiceProvider)
+                            {
+                                <text>Pending Service Provider SIM Issuance</text>
+                            }
+                            else if (Model.CurrentRequest.Status == TAB.Web.Models.RequestStatus.PendingSIMCollection)
+                            {
+                                <text>Pending SIM Collection</text>
+                            }
+                        </div>
+                        <small style="color: #78350f;">Requested on @Model.CurrentRequest.RequestDate.ToString("MMMM dd, yyyy 'at' hh:mm tt")</small>
+                    </div>
+                </div>
+
+                @* Tab Navigation *@
+                <ul class="nav nav-tabs" style="background: #E3EDF6; padding: 0.75rem 1.25rem 0; border-bottom: 2px solid #C5DFEF; margin-bottom: 0; border-radius: 12px 12px 0 0;">
+                    <li class="nav-item">
+                        <button class="nav-link" data-bs-toggle="tab" data-bs-target="#personal-info" type="button" style="color: #6E6259; border: none; border-bottom: 3px solid transparent; padding: 0.75rem 1.5rem; font-weight: 500; font-size: 0.875rem; border-radius: 8px 8px 0 0;">
+                            <i class="bi bi-person-circle me-2"></i>Personal Information
+                        </button>
+                    </li>
+                    <li class="nav-item">
+                        <button class="nav-link" data-bs-toggle="tab" data-bs-target="#sim-config" type="button" style="color: #6E6259; border: none; border-bottom: 3px solid transparent; padding: 0.75rem 1.5rem; font-weight: 500; font-size: 0.875rem; border-radius: 8px 8px 0 0;">
+                            <i class="bi bi-sim me-2"></i>SIM Configuration
+                        </button>
+                    </li>
+                    <li class="nav-item">
+                        <button class="nav-link" data-bs-toggle="tab" data-bs-target="#supervisor-approval" type="button" style="color: #6E6259; border: none; border-bottom: 3px solid transparent; padding: 0.75rem 1.5rem; font-weight: 500; font-size: 0.875rem; border-radius: 8px 8px 0 0;">
+                            <i class="bi bi-check-circle me-2"></i>Supervisor Approval
+                        </button>
+                    </li>
+                    <li class="nav-item">
+                        <button class="nav-link active" data-bs-toggle="tab" data-bs-target="#icts-processing" type="button" style="color: #6E6259; border: none; border-bottom: 3px solid transparent; padding: 0.75rem 1.5rem; font-weight: 500; font-size: 0.875rem; border-radius: 8px 8px 0 0;">
+                            <i class="bi bi-gear-fill me-2"></i>ICTS Processing
+                        </button>
+                    </li>
+                    <li class="nav-item">
+                        <button class="nav-link" data-bs-toggle="tab" data-bs-target="#additional-details" type="button" style="color: #6E6259; border: none; border-bottom: 3px solid transparent; padding: 0.75rem 1.5rem; font-weight: 500; font-size: 0.875rem; border-radius: 8px 8px 0 0;">
+                            <i class="bi bi-chat-square-text me-2"></i>Additional Details
+                        </button>
+                    </li>
+                </ul>
+
+                @* Tab Content Container *@
+                <div class="minimal-card" style="border-radius: 0 0 12px 12px; border-top: none; padding: 0;">
+                    <div class="tab-content" style="background: white; padding: 2rem; border-radius: 0 0 12px 12px;">
+
+                        @* Personal Information Tab *@
+                        <div class="tab-pane fade" id="personal-info">
+                            <div class="mb-4" style="background: #f8fafc; border-radius: 8px; padding: 1.25rem; border: 1px solid #e2e8f0;">
+                                <h6 style="font-size: 0.875rem; font-weight: 600; color: #004987; margin-bottom: 1rem; padding-bottom: 0.5rem; border-bottom: 2px solid #E3EDF6; display: flex; align-items: center;">
+                                    <i class="bi bi-person-circle me-2" style="color: #009EDB;"></i>Personal Information
+                                </h6>
+                                <div class="row g-3">
+                                    <div class="col-md-6">
+                                        <div class="mb-3">
+                                            <span class="text-muted" style="font-size: 12px; font-weight: 500; text-transform: uppercase; letter-spacing: 0.5px;">Full Name</span>
+                                            <div style="font-weight: 500; color: #111827; font-size: 15px;">@Model.CurrentRequest.FirstName @Model.CurrentRequest.LastName</div>
+                                        </div>
+                                        <div class="mb-3">
+                                            <span class="text-muted" style="font-size: 12px; font-weight: 500; text-transform: uppercase; letter-spacing: 0.5px;">Index Number</span>
+                                            <div style="color: #6b7280; font-size: 14px;">@Model.CurrentRequest.IndexNo</div>
+                                        </div>
+                                        <div class="mb-3">
+                                            <span class="text-muted" style="font-size: 12px; font-weight: 500; text-transform: uppercase; letter-spacing: 0.5px;">Official Email</span>
+                                            <div style="color: #6b7280; font-size: 14px;">@Model.CurrentRequest.OfficialEmail</div>
+                                        </div>
+                                    </div>
+                                    <div class="col-md-6">
+                                        <div class="mb-3">
+                                            <span class="text-muted" style="font-size: 12px; font-weight: 500; text-transform: uppercase; letter-spacing: 0.5px;">Organization</span>
+                                            <div style="color: #6b7280; font-size: 14px;">@Model.CurrentRequest.Organization</div>
+                                        </div>
+                                        <div class="mb-3">
+                                            <span class="text-muted" style="font-size: 12px; font-weight: 500; text-transform: uppercase; letter-spacing: 0.5px;">Office</span>
+                                            <div style="color: #6b7280; font-size: 14px;">@Model.CurrentRequest.Office</div>
+                                        </div>
+                                        <div class="mb-3">
+                                            <span class="text-muted" style="font-size: 12px; font-weight: 500; text-transform: uppercase; letter-spacing: 0.5px;">Grade</span>
+                                            <div style="color: #6b7280; font-size: 14px;">@Model.CurrentRequest.Grade</div>
+                                        </div>
+                                    </div>
+                                    <div class="col-12">
+                                        <div class="mb-3">
+                                            <span class="text-muted" style="font-size: 12px; font-weight: 500; text-transform: uppercase; letter-spacing: 0.5px;">Functional Title</span>
+                                            <div style="color: #6b7280; font-size: 14px;">@Model.CurrentRequest.FunctionalTitle</div>
+                                        </div>
+                                        @if (!string.IsNullOrEmpty(Model.CurrentRequest.OfficeExtension))
+                                        {
+                                            <div class="mb-3">
+                                                <span class="text-muted" style="font-size: 12px; font-weight: 500; text-transform: uppercase; letter-spacing: 0.5px;">Office Extension</span>
+                                                <div style="color: #6b7280; font-size: 14px;">@Model.CurrentRequest.OfficeExtension</div>
+                                            </div>
+                                        }
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+
+                        @* SIM Configuration Tab *@
+                        <div class="tab-pane fade" id="sim-config">
+                            <div class="mb-4" style="background: #f8fafc; border-radius: 8px; padding: 1.25rem; border: 1px solid #e2e8f0;">
+                                <h6 style="font-size: 0.875rem; font-weight: 600; color: #004987; margin-bottom: 1rem; padding-bottom: 0.5rem; border-bottom: 2px solid #E3EDF6; display: flex; align-items: center;">
+                                    <i class="bi bi-sim me-2" style="color: #009EDB;"></i>SIM Configuration
+                                </h6>
+                                <div class="row g-3">
+                                    <div class="col-md-6">
+                                        <div class="mb-3">
+                                            <span class="text-muted" style="font-size: 12px; font-weight: 500; text-transform: uppercase; letter-spacing: 0.5px;">SIM Type</span>
+                                            <div style="font-weight: 500; color: #111827;">@(Model.CurrentRequest.SimType == TAB.Web.Models.SimType.Physical ? "Physical SIM" : "eSIM")</div>
+                                        </div>
+                                        <div class="mb-3">
+                                            <span class="text-muted" style="font-size: 12px; font-weight: 500; text-transform: uppercase; letter-spacing: 0.5px;">Service Provider</span>
+                                            <div style="color: #6b7280; font-size: 14px;">@(Model.CurrentRequest.ServiceProvider?.ServiceProviderName ?? "N/A")</div>
+                                        </div>
+                                    </div>
+                                    <div class="col-md-6">
+                                        @if (!string.IsNullOrEmpty(Model.CurrentRequest.PreviouslyAssignedLines))
+                                        {
+                                            <div class="mb-3">
+                                                <span class="text-muted" style="font-size: 12px; font-weight: 500; text-transform: uppercase; letter-spacing: 0.5px;">Previously Assigned Lines</span>
+                                                <div style="color: #6b7280; font-size: 14px;">@Model.CurrentRequest.PreviouslyAssignedLines</div>
+                                            </div>
+                                        }
+                                        @if (!string.IsNullOrEmpty(Model.CurrentRequest.Remarks))
+                                        {
+                                            <div class="mb-3">
+                                                <span class="text-muted" style="font-size: 12px; font-weight: 500; text-transform: uppercase; letter-spacing: 0.5px;">Remarks</span>
+                                                <div style="color: #6b7280; font-size: 14px;">@Model.CurrentRequest.Remarks</div>
+                                            </div>
+                                        }
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+
+                        @* Supervisor Approval Tab *@
+                        <div class="tab-pane fade" id="supervisor-approval">
+                            @if (!string.IsNullOrEmpty(Model.CurrentRequest.MobileService) || !string.IsNullOrEmpty(Model.CurrentRequest.SupervisorName))
+                            {
+                                <div class="mb-4" style="background: #f8fafc; border-radius: 8px; padding: 1.25rem; border: 1px solid #e2e8f0;">
+                                    <h6 style="font-size: 0.875rem; font-weight: 600; color: #004987; margin-bottom: 1rem; padding-bottom: 0.5rem; border-bottom: 2px solid #E3EDF6; display: flex; align-items: center;">
+                                        <i class="bi bi-check-circle me-2" style="color: #009EDB;"></i>Supervisor Approval Details
+                                    </h6>
+                                    <div class="row g-3">
+                                        <div class="col-md-6">
+                                            @if (!string.IsNullOrEmpty(Model.CurrentRequest.MobileService))
+                                            {
+                                                <div class="mb-3">
+                                                    <span class="text-muted" style="font-size: 12px; font-weight: 500; text-transform: uppercase; letter-spacing: 0.5px;">Mobile Service</span>
+                                                    <div style="font-weight: 500; color: #111827;">@Model.CurrentRequest.MobileService</div>
+                                                </div>
+                                            }
+                                            @if (!string.IsNullOrEmpty(Model.CurrentRequest.MobileServiceAllowance))
+                                            {
+                                                <div class="mb-3">
+                                                    <span class="text-muted" style="font-size: 12px; font-weight: 500; text-transform: uppercase; letter-spacing: 0.5px;">Mobile Service Allowance</span>
+                                                    <div style="color: #6b7280; font-size: 14px;">@Model.CurrentRequest.MobileServiceAllowance</div>
+                                                </div>
+                                            }
+                                        </div>
+                                        <div class="col-md-6">
+                                            @if (!string.IsNullOrEmpty(Model.CurrentRequest.HandsetAllowance))
+                                            {
+                                                <div class="mb-3">
+                                                    <span class="text-muted" style="font-size: 12px; font-weight: 500; text-transform: uppercase; letter-spacing: 0.5px;">Handset Allowance</span>
+                                                    <div style="color: #6b7280; font-size: 14px;">@Model.CurrentRequest.HandsetAllowance</div>
+                                                </div>
+                                            }
+                                            @if (Model.CurrentRequest.SupervisorApprovalDate.HasValue)
+                                            {
+                                                <div class="mb-3">
+                                                    <span class="text-muted" style="font-size: 12px; font-weight: 500; text-transform: uppercase; letter-spacing: 0.5px;">Approval Date</span>
+                                                    <div style="color: #6b7280; font-size: 14px;">@Model.CurrentRequest.SupervisorApprovalDate?.ToString("MMM dd, yyyy")</div>
+                                                </div>
+                                            }
+                                        </div>
+                                        @if (!string.IsNullOrEmpty(Model.CurrentRequest.SupervisorName))
+                                        {
+                                            <div class="col-12">
+                                                <div class="mb-3">
+                                                    <span class="text-muted" style="font-size: 12px; font-weight: 500; text-transform: uppercase; letter-spacing: 0.5px;">Approved By</span>
+                                                    <div style="font-weight: 500; color: #111827;">@Model.CurrentRequest.SupervisorName</div>
+                                                </div>
+                                            </div>
+                                        }
+                                        @if (!string.IsNullOrEmpty(Model.CurrentRequest.SupervisorNotes))
+                                        {
+                                            <div class="col-12">
+                                                <div class="mb-3">
+                                                    <span class="text-muted" style="font-size: 12px; font-weight: 500; text-transform: uppercase; letter-spacing: 0.5px;">Supervisor Notes</span>
+                                                    <div style="color: #6b7280; font-size: 14px;">@Model.CurrentRequest.SupervisorNotes</div>
+                                                </div>
+                                            </div>
+                                        }
+                                    </div>
+                                </div>
+                            }
+                            else
+                            {
+                                <div class="text-center py-5">
+                                    <i class="bi bi-clock-history text-muted" style="font-size: 3rem;"></i>
+                                    <h5 class="text-muted mt-3">No supervisor approval information available yet</h5>
+                                </div>
+                            }
+                        </div>
+
+                        @* ICTS Processing Tab *@
+                        <div class="tab-pane fade show active" id="icts-processing">
+
+                            @if (Model.CurrentRequest.Status == TAB.Web.Models.RequestStatus.PendingIcts)
+                            {
+                                @* Request New SIM Form *@
+                                <form method="post" asp-page-handler="IctsProcess">
+                                    <input type="hidden" name="requestId" value="@Model.CurrentRequest.Id" />
+
+                                    @* Service Provider Information Card *@
+                                    <div class="mb-4" style="background: #f8fafc; border-radius: 12px; padding: 1.5rem; border: 1px solid #e2e8f0;">
+                                        <h6 style="font-size: 0.875rem; font-weight: 600; color: #004987; margin-bottom: 1rem; padding-bottom: 0.5rem; border-bottom: 2px solid #E3EDF6; display: flex; align-items: center;">
+                                            <i class="bi bi-building me-2" style="color: #009EDB;"></i>Service Provider Information
+                                        </h6>
+                                        <div class="row g-3">
+                                            <div class="col-md-6">
+                                                <label class="form-label fw-medium">Service Provider</label>
+                                                <input type="text" class="form-control" value="@Model.CurrentRequest.ServiceProvider?.ServiceProviderName" readonly style="background: #f9fafb;" />
+                                            </div>
+                                            <div class="col-md-6">
+                                                <label class="form-label fw-medium">Main Contact Person</label>
+                                                <input type="text" class="form-control" value="@Model.CurrentRequest.ServiceProvider?.SPMainCP" readonly style="background: #f9fafb;" />
+                                            </div>
+                                            <div class="col-md-6">
+                                                <label class="form-label fw-medium">Main CP Email</label>
+                                                <input type="email" class="form-control" value="@Model.CurrentRequest.ServiceProvider?.SPMainCPEmail" readonly style="background: #f9fafb;" />
+                                            </div>
+                                            <div class="col-md-6">
+                                                <label class="form-label fw-medium">Other Contacts</label>
+                                                <input type="text" class="form-control" value="@Model.CurrentRequest.ServiceProvider?.SPOtherCPsEmail" readonly style="background: #f9fafb;" />
+                                            </div>
+                                        </div>
+                                    </div>
+
+                                    @* SIM Request Details Card *@
+                                    <div class="mb-4" style="background: #ffffff; border-radius: 12px; padding: 1.5rem; border: 1px solid #e2e8f0;">
+                                        <h6 style="font-size: 0.875rem; font-weight: 600; color: #004987; margin-bottom: 1rem; padding-bottom: 0.5rem; border-bottom: 2px solid #E3EDF6; display: flex; align-items: center;">
+                                            <i class="bi bi-sim me-2" style="color: #009EDB;"></i>SIM Request Details
+                                        </h6>
+                                        <div class="row g-3">
+                                            <div class="col-md-6">
+                                                <label class="form-label fw-medium">SIM Serial No <span class="text-danger">*</span></label>
+                                                <input type="text" name="simSerialNo" class="form-control" required />
+                                            </div>
+                                            <div class="col-md-6">
+                                                <label class="form-label fw-medium">Service Request No <span class="text-danger">*</span></label>
+                                                <input type="text" name="serviceRequestNo" class="form-control" required />
+                                            </div>
+                                            <div class="col-md-6">
+                                                <label class="form-label fw-medium">Line Type <span class="text-danger">*</span></label>
+                                                <select name="lineType" class="form-select" required>
+                                                    <option value="">Select Line Type</option>
+                                                    <option value="Voice">Voice</option>
+                                                    <option value="Data">Data</option>
+                                                    <option value="Voice + Data">Voice + Data</option>
+                                                </select>
+                                            </div>
+                                            <div class="col-md-6">
+                                                <label class="form-label fw-medium">SIM PUK <span class="text-danger">*</span></label>
+                                                <input type="text" name="simPuk" class="form-control" required />
+                                            </div>
+                                            <div class="col-md-6">
+                                                <label class="form-label fw-medium">Line Usage <span class="text-danger">*</span></label>
+                                                <select name="lineUsage" class="form-select" required>
+                                                    <option value="">Select Line Usage</option>
+                                                    <option value="Primary">Primary</option>
+                                                    <option value="Secondary">Secondary</option>
+                                                    <option value="Reserve">Reserve</option>
+                                                </select>
+                                            </div>
+                                            <div class="col-md-6">
+                                                <label class="form-label fw-medium">Previous Lines</label>
+                                                <input type="text" name="previousLines" class="form-control" value="@Model.CurrentRequest.PreviouslyAssignedLines" />
+                                            </div>
+                                            <div class="col-md-6">
+                                                <label class="form-label fw-medium">SP Notified Date <span class="text-danger">*</span></label>
+                                                <input type="date" name="spNotifiedDate" class="form-control" value="@DateTime.Now.ToString("yyyy-MM-dd")" required />
+                                            </div>
+                                            <div class="col-md-6">
+                                                <label class="form-label fw-medium">Assigned No <span class="text-danger">*</span></label>
+                                                <input type="text" name="assignedNo" class="form-control" required />
+                                            </div>
+                                        </div>
+                                    </div>
+
+                                    @* ICTS Remarks Card *@
+                                    <div class="mb-4" style="background: #ffffff; border-radius: 12px; padding: 1.5rem; border: 1px solid #e2e8f0;">
+                                        <h6 style="font-size: 0.875rem; font-weight: 600; color: #004987; margin-bottom: 1rem; padding-bottom: 0.5rem; border-bottom: 2px solid #E3EDF6; display: flex; align-items: center;">
+                                            <i class="bi bi-chat-square-text me-2" style="color: #009EDB;"></i>ICTS Remarks
+                                        </h6>
+                                        <label class="form-label fw-medium">ICTS Remark (Optional)</label>
+                                        <textarea name="ictsRemark" class="form-control" rows="3" maxlength="200" placeholder="Add processing notes and remarks..."></textarea>
+                                        <div class="d-flex justify-content-between align-items-center mt-2">
+                                            <small class="text-muted">Optional processing notes</small>
+                                            <small class="text-muted">Max 200 characters</small>
+                                        </div>
+                                    </div>
+
+                                    @* Action Buttons *@
+                                    <div class="d-flex gap-3 justify-content-end">
+                                        <button type="submit" name="action" value="revert" class="btn btn-warning" style="min-width: 180px;">
+                                            <i class="bi bi-arrow-left me-2"></i>Revert To Requestor
+                                        </button>
+                                        <button type="submit" name="action" value="newsim" class="btn btn-success" style="min-width: 180px;">
+                                            <i class="bi bi-sim me-2"></i>Request New SIM
+                                        </button>
+                                    </div>
+                                </form>
+                            }
+                            else if (Model.CurrentRequest.Status == TAB.Web.Models.RequestStatus.PendingServiceProvider || Model.CurrentRequest.Status == TAB.Web.Models.RequestStatus.PendingSIMCollection)
+                            {
+                                @* Show existing processing info *@
+                                <div class="mb-4" style="background: #f8fafc; border-radius: 12px; padding: 1.5rem; border: 1px solid #e2e8f0;">
+                                    <h6 style="font-size: 0.875rem; font-weight: 600; color: #004987; margin-bottom: 1rem; padding-bottom: 0.5rem; border-bottom: 2px solid #E3EDF6; display: flex; align-items: center;">
+                                        <i class="bi bi-info-circle me-2" style="color: #009EDB;"></i>ICTS Processing Information
+                                    </h6>
+                                    <div class="row g-3">
+                                        @if (!string.IsNullOrEmpty(Model.CurrentRequest.SimSerialNo))
+                                        {
+                                            <div class="col-md-4">
+                                                <span class="text-muted d-block" style="font-size: 12px; font-weight: 500; text-transform: uppercase;">SIM Serial No</span>
+                                                <div class="fw-medium">@Model.CurrentRequest.SimSerialNo</div>
+                                            </div>
+                                        }
+                                        @if (!string.IsNullOrEmpty(Model.CurrentRequest.ServiceRequestNo))
+                                        {
+                                            <div class="col-md-4">
+                                                <span class="text-muted d-block" style="font-size: 12px; font-weight: 500; text-transform: uppercase;">Service Request No</span>
+                                                <div class="fw-medium">@Model.CurrentRequest.ServiceRequestNo</div>
+                                            </div>
+                                        }
+                                        @if (!string.IsNullOrEmpty(Model.CurrentRequest.AssignedNo))
+                                        {
+                                            <div class="col-md-4">
+                                                <span class="text-muted d-block" style="font-size: 12px; font-weight: 500; text-transform: uppercase;">Assigned Number</span>
+                                                <div class="fw-medium">@Model.CurrentRequest.AssignedNo</div>
+                                            </div>
+                                        }
+                                        @if (!string.IsNullOrEmpty(Model.CurrentRequest.LineType))
+                                        {
+                                            <div class="col-md-4">
+                                                <span class="text-muted d-block" style="font-size: 12px; font-weight: 500; text-transform: uppercase;">Line Type</span>
+                                                <div class="fw-medium">@Model.CurrentRequest.LineType</div>
+                                            </div>
+                                        }
+                                        @if (Model.CurrentRequest.SpNotifiedDate.HasValue)
+                                        {
+                                            <div class="col-md-4">
+                                                <span class="text-muted d-block" style="font-size: 12px; font-weight: 500; text-transform: uppercase;">SP Notified Date</span>
+                                                <div class="fw-medium">@Model.CurrentRequest.SpNotifiedDate?.ToString("MMM dd, yyyy")</div>
+                                            </div>
+                                        }
+                                        @if (!string.IsNullOrEmpty(Model.CurrentRequest.IctsRemark))
+                                        {
+                                            <div class="col-12">
+                                                <span class="text-muted d-block" style="font-size: 12px; font-weight: 500; text-transform: uppercase;">ICTS Remarks</span>
+                                                <div class="fw-medium">@Model.CurrentRequest.IctsRemark</div>
+                                            </div>
+                                        }
+                                    </div>
+                                </div>
+
+                                @if (Model.CurrentRequest.Status == TAB.Web.Models.RequestStatus.PendingServiceProvider)
+                                {
+                                    @* Notify Collection Form *@
+                                    <form method="post" asp-page-handler="IctsProcess">
+                                        <input type="hidden" name="requestId" value="@Model.CurrentRequest.Id" />
+                                        <input type="hidden" name="action" value="notify" />
+
+                                        <div class="mb-4" style="background: #ffffff; border-radius: 12px; padding: 1.5rem; border: 1px solid #e2e8f0;">
+                                            <h6 style="font-size: 0.875rem; font-weight: 600; color: #004987; margin-bottom: 1rem; padding-bottom: 0.5rem; border-bottom: 2px solid #E3EDF6; display: flex; align-items: center;">
+                                                <i class="bi bi-bell me-2" style="color: #009EDB;"></i>Notify Staff for Collection
+                                            </h6>
+                                            <div class="row g-3">
+                                                <div class="col-md-6">
+                                                    <label class="form-label fw-medium">Collection Notified Date <span class="text-danger">*</span></label>
+                                                    <input type="date" name="collectionNotifiedDate" class="form-control" value="@DateTime.Now.ToString("yyyy-MM-dd")" required />
+                                                </div>
+                                                <div class="col-md-6">
+                                                    <label class="form-label fw-medium">SIM Issued By</label>
+                                                    <input type="text" name="simIssuedBy" class="form-control" />
+                                                </div>
+                                                <div class="col-12">
+                                                    <label class="form-label fw-medium">Additional Remarks</label>
+                                                    <textarea name="ictsRemark" class="form-control" rows="2" placeholder="Any additional notes..."></textarea>
+                                                </div>
+                                            </div>
+                                        </div>
+                                        <div class="d-flex gap-3 justify-content-end">
+                                            <button type="submit" class="btn btn-primary" style="min-width: 200px;">
+                                                <i class="bi bi-bell me-2"></i>Notify for Collection
+                                            </button>
+                                        </div>
+                                    </form>
+                                }
+                                else if (Model.CurrentRequest.Status == TAB.Web.Models.RequestStatus.PendingSIMCollection)
+                                {
+                                    @* Mark as Completed Form *@
+                                    <form method="post" asp-page-handler="IctsProcess">
+                                        <input type="hidden" name="requestId" value="@Model.CurrentRequest.Id" />
+                                        <input type="hidden" name="action" value="correct" />
+
+                                        <div class="mb-4" style="background: #ffffff; border-radius: 12px; padding: 1.5rem; border: 1px solid #e2e8f0;">
+                                            <h6 style="font-size: 0.875rem; font-weight: 600; color: #004987; margin-bottom: 1rem; padding-bottom: 0.5rem; border-bottom: 2px solid #E3EDF6; display: flex; align-items: center;">
+                                                <i class="bi bi-check-circle me-2" style="color: #009EDB;"></i>Complete SIM Collection
+                                            </h6>
+                                            <div class="row g-3">
+                                                <div class="col-md-6">
+                                                    <label class="form-label fw-medium">SIM Issued By</label>
+                                                    <input type="text" name="simIssuedBy" class="form-control" />
+                                                </div>
+                                                <div class="col-md-6">
+                                                    <label class="form-label fw-medium">SIM Collected By</label>
+                                                    <input type="text" name="simCollectedBy" class="form-control" />
+                                                </div>
+                                                <div class="col-md-6">
+                                                    <label class="form-label fw-medium">Collection Date</label>
+                                                    <input type="date" name="simCollectedDate" class="form-control" value="@DateTime.Now.ToString("yyyy-MM-dd")" />
+                                                </div>
+                                                <div class="col-12">
+                                                    <label class="form-label fw-medium">Final Remarks</label>
+                                                    <textarea name="ictsRemark" class="form-control" rows="2" placeholder="Any final notes..."></textarea>
+                                                </div>
+                                            </div>
+                                        </div>
+                                        <div class="d-flex gap-3 justify-content-end">
+                                            <button type="submit" class="btn btn-success" style="min-width: 200px;">
+                                                <i class="bi bi-check-circle me-2"></i>Mark as Completed
+                                            </button>
+                                        </div>
+                                    </form>
+                                }
+                            }
+                            else
+                            {
+                                <div class="text-center py-5">
+                                    <i class="bi bi-info-circle text-muted" style="font-size: 3rem;"></i>
+                                    <h5 class="text-muted mt-3">No ICTS processing available for this status</h5>
+                                </div>
+                            }
+                        </div>
+
+                        @* Additional Details Tab *@
+                        <div class="tab-pane fade" id="additional-details">
+                            <div class="mb-4" style="background: #f8fafc; border-radius: 8px; padding: 1.25rem; border: 1px solid #e2e8f0;">
+                                <h6 style="font-size: 0.875rem; font-weight: 600; color: #004987; margin-bottom: 1rem; padding-bottom: 0.5rem; border-bottom: 2px solid #E3EDF6; display: flex; align-items: center;">
+                                    <i class="bi bi-info-circle me-2" style="color: #009EDB;"></i>Request Timeline
+                                </h6>
+                                <div class="row g-3">
+                                    <div class="col-md-4">
+                                        <div class="mb-3">
+                                            <span class="text-muted" style="font-size: 12px; font-weight: 500; text-transform: uppercase; letter-spacing: 0.5px;">Request Date</span>
+                                            <div style="color: #6b7280; font-size: 14px;">@Model.CurrentRequest.RequestDate.ToString("MMM dd, yyyy HH:mm")</div>
+                                        </div>
+                                    </div>
+                                    <div class="col-md-4">
+                                        <div class="mb-3">
+                                            <span class="text-muted" style="font-size: 12px; font-weight: 500; text-transform: uppercase; letter-spacing: 0.5px;">Priority</span>
+                                            <div>
+                                                <span class="priority-badge @(Model.GetPriority(Model.CurrentRequest.RequestDate) == "Critical" ? "priority-high" : (Model.GetPriority(Model.CurrentRequest.RequestDate) == "High" ? "priority-medium" : "priority-low"))">
+                                                    @Model.GetPriority(Model.CurrentRequest.RequestDate)
+                                                </span>
+                                            </div>
+                                        </div>
+                                    </div>
+                                    @if (Model.CurrentRequest.SupervisorApprovalDate.HasValue)
+                                    {
+                                        <div class="col-md-4">
+                                            <div class="mb-3">
+                                                <span class="text-muted" style="font-size: 12px; font-weight: 500; text-transform: uppercase; letter-spacing: 0.5px;">Supervisor Approval</span>
+                                                <div style="color: #6b7280; font-size: 14px;">@Model.CurrentRequest.SupervisorApprovalDate?.ToString("MMM dd, yyyy HH:mm")</div>
+                                            </div>
+                                        </div>
+                                    }
+                                </div>
+                            </div>
+
+                            @if (Model.RequestHistory.Any())
+                            {
+                                <div class="mb-4" style="background: #f8fafc; border-radius: 8px; padding: 1.25rem; border: 1px solid #e2e8f0;">
+                                    <h6 style="font-size: 0.875rem; font-weight: 600; color: #004987; margin-bottom: 1rem; padding-bottom: 0.5rem; border-bottom: 2px solid #E3EDF6; display: flex; align-items: center;">
+                                        <i class="bi bi-clock-history me-2" style="color: #009EDB;"></i>Request History
+                                    </h6>
+                                    <div class="timeline">
+                                        @foreach (var history in Model.RequestHistory)
+                                        {
+                                            <div class="timeline-item mb-3 pb-3" style="border-bottom: 1px solid #e5e7eb;">
+                                                <div class="d-flex justify-content-between mb-2">
+                                                    <strong style="color: #111827;">@history.Action</strong>
+                                                    <small class="text-muted">@history.Timestamp.ToString("MMM dd, yyyy HH:mm")</small>
+                                                </div>
+                                                <div class="text-muted" style="font-size: 13px;">By: @history.UserName</div>
+                                                @if (!string.IsNullOrEmpty(history.Comments))
+                                                {
+                                                    <div class="mt-2" style="font-size: 13px; color: #6b7280;">@history.Comments</div>
+                                                }
+                                            </div>
+                                        }
+                                    </div>
+                                </div>
+                            }
+                        </div>
+
+                    </div>
+                </div>
+    }
 </div>
 
 @section Scripts {

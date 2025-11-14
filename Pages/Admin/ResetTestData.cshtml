@@ -1,0 +1,209 @@
+@page
+@model TAB.Web.Pages.Admin.ResetTestDataModel
+@{
+    ViewData["Title"] = "Reset Test Data";
+}
+
+<div class="container mt-4">
+    <div class="row">
+        <div class="col-md-12">
+            <h2><i class="fas fa-database"></i> Reset Test Data</h2>
+            <p class="text-muted">Clear call logs and related testing data while preserving master data (organizations, users, settings).</p>
+            <hr />
+        </div>
+    </div>
+
+    @if (!string.IsNullOrEmpty(Model.Message))
+    {
+        <div class="alert @(Model.Success ? "alert-success" : "alert-danger") alert-dismissible fade show" role="alert">
+            <h5 class="alert-heading">
+                @if (Model.Success)
+                {
+                    <i class="fas fa-check-circle"></i> @:Operation Complete
+                }
+                else
+                {
+                    <i class="fas fa-exclamation-triangle"></i> @:Operation Failed
+                }
+            </h5>
+            <hr />
+            <pre style="white-space: pre-wrap; background-color: rgba(0,0,0,0.05); padding: 15px; border-radius: 5px;">@Model.Message</pre>
+            <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
+        </div>
+    }
+
+    <div class="row">
+        <div class="col-md-8">
+            <div class="card shadow-sm">
+                <div class="card-header bg-danger text-white">
+                    <h5 class="mb-0"><i class="fas fa-exclamation-triangle"></i> Warning - Data Deletion</h5>
+                </div>
+                <div class="card-body">
+                    <div class="alert alert-warning" role="alert">
+                        <strong>CAUTION:</strong> This operation will permanently delete the following data:
+                    </div>
+
+                    <h6 class="text-danger"><i class="fas fa-trash-alt"></i> Data to be Deleted:</h6>
+                    <ul class="list-group mb-3">
+                        <li class="list-group-item d-flex justify-content-between align-items-center">
+                            <span><i class="fas fa-phone"></i> Call Records & Verifications</span>
+                            <span class="badge bg-danger rounded-pill">@Model.CallRecordCount</span>
+                        </li>
+                        <li class="list-group-item d-flex justify-content-between align-items-center">
+                            <span><i class="fas fa-clipboard-list"></i> Staging Batches & Call Log Staging</span>
+                            <span class="badge bg-danger rounded-pill">@Model.StagingRecordCount</span>
+                        </li>
+                        <li class="list-group-item d-flex justify-content-between align-items-center">
+                            <span><i class="fas fa-redo"></i> Recovery Logs</span>
+                            <span class="badge bg-danger rounded-pill">@Model.RecoveryLogCount</span>
+                        </li>
+                        <li class="list-group-item d-flex justify-content-between align-items-center">
+                            <span><i class="fas fa-calendar-times"></i> Deadline Tracking</span>
+                            <span class="badge bg-danger rounded-pill">@Model.DeadlineTrackingCount</span>
+                        </li>
+                        <li class="list-group-item d-flex justify-content-between align-items-center">
+                            <span><i class="fas fa-cogs"></i> Recovery Job Executions</span>
+                            <span class="badge bg-danger rounded-pill">@Model.RecoveryJobCount</span>
+                        </li>
+                        <li class="list-group-item d-flex justify-content-between align-items-center">
+                            <span><i class="fas fa-file-alt"></i> Phone Overage Justifications</span>
+                            <span class="badge bg-danger rounded-pill">@Model.OverageJustificationCount</span>
+                        </li>
+                        <li class="list-group-item d-flex justify-content-between align-items-center">
+                            <span><i class="fas fa-signal"></i> Telecom Records (Safaricom, Airtel, PSTN, PrivateWire)</span>
+                            <span class="badge bg-danger rounded-pill">@Model.TelecomRecordCount</span>
+                        </li>
+                        <li class="list-group-item d-flex justify-content-between align-items-center">
+                            <span><i class="fas fa-balance-scale"></i> Call Log Reconciliations</span>
+                            <span class="badge bg-danger rounded-pill">@Model.ReconciliationCount</span>
+                        </li>
+                    </ul>
+
+                    <h6 class="text-success"><i class="fas fa-shield-alt"></i> Data to be Preserved:</h6>
+                    <ul class="list-group mb-4">
+                        <li class="list-group-item"><i class="fas fa-building"></i> Organizations & Offices</li>
+                        <li class="list-group-item"><i class="fas fa-users"></i> Users & EBill Users</li>
+                        <li class="list-group-item"><i class="fas fa-mobile-alt"></i> User Phones & Phone History</li>
+                        <li class="list-group-item"><i class="fas fa-cog"></i> Class of Service</li>
+                        <li class="list-group-item"><i class="fas fa-network-wired"></i> Service Providers</li>
+                        <li class="list-group-item"><i class="fas fa-dollar-sign"></i> Exchange Rates</li>
+                        <li class="list-group-item"><i class="fas fa-wrench"></i> Recovery Configurations</li>
+                        <li class="list-group-item"><i class="fas fa-envelope"></i> Email Settings & Templates</li>
+                        <li class="list-group-item"><i class="fas fa-clipboard-check"></i> Anomaly Types & Import Audits</li>
+                        <li class="list-group-item"><i class="fas fa-file-invoice"></i> Billing Periods & Interim Updates</li>
+                    </ul>
+
+                    <form method="post" id="resetForm">
+                        <div class="mb-3 form-check">
+                            <input type="checkbox" class="form-check-input" id="confirmDelete" required />
+                            <label class="form-check-label" for="confirmDelete">
+                                <strong>I understand that this action cannot be undone</strong>
+                            </label>
+                        </div>
+
+                        <div class="mb-3">
+                            <label for="confirmText" class="form-label">Type <code>DELETE TEST DATA</code> to confirm:</label>
+                            <input type="text" class="form-control" id="confirmText" name="confirmText"
+                                   placeholder="DELETE TEST DATA" required />
+                        </div>
+
+                        <div class="d-grid gap-2">
+                            <button type="submit" class="btn btn-danger btn-lg" id="deleteButton" disabled>
+                                <i class="fas fa-trash-alt"></i> Reset Test Data
+                            </button>
+                            <a asp-page="/Admin/Index" class="btn btn-secondary">
+                                <i class="fas fa-arrow-left"></i> Cancel
+                            </a>
+                        </div>
+                    </form>
+                </div>
+            </div>
+        </div>
+
+        <div class="col-md-4">
+            <div class="card shadow-sm mb-3">
+                <div class="card-header bg-info text-white">
+                    <h6 class="mb-0"><i class="fas fa-info-circle"></i> Information</h6>
+                </div>
+                <div class="card-body">
+                    <h6>When to use this:</h6>
+                    <ul class="small">
+                        <li>Testing new features</li>
+                        <li>Cleaning up after test imports</li>
+                        <li>Resetting development environment</li>
+                        <li>Before starting a new test cycle</li>
+                    </ul>
+
+                    <h6 class="mt-3">What happens:</h6>
+                    <ul class="small">
+                        <li>All test call data is deleted</li>
+                        <li>Master data remains intact</li>
+                        <li>User accounts are preserved</li>
+                        <li>System settings are kept</li>
+                    </ul>
+
+                    <h6 class="mt-3">Time estimate:</h6>
+                    <p class="small">
+                        <i class="fas fa-clock"></i> Operation may take 30-60 seconds depending on data volume.
+                    </p>
+                </div>
+            </div>
+
+            <div class="card shadow-sm border-warning">
+                <div class="card-header bg-warning text-dark">
+                    <h6 class="mb-0"><i class="fas fa-database"></i> Current Statistics</h6>
+                </div>
+                <div class="card-body">
+                    <p class="mb-1"><strong>Total Records to Delete:</strong></p>
+                    <h3 class="text-danger">@Model.TotalRecordsToDelete.ToString("N0")</h3>
+
+                    <hr />
+
+                    <p class="small mb-0">
+                        <i class="fas fa-info-circle"></i> Counts updated on page load
+                    </p>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+@section Scripts {
+    <script>
+        // Enable delete button only when confirmation is complete
+        document.getElementById('confirmText').addEventListener('input', function() {
+            const checkbox = document.getElementById('confirmDelete');
+            const button = document.getElementById('deleteButton');
+            const confirmText = this.value.trim();
+
+            if (confirmText === 'DELETE TEST DATA' && checkbox.checked) {
+                button.disabled = false;
+            } else {
+                button.disabled = true;
+            }
+        });
+
+        document.getElementById('confirmDelete').addEventListener('change', function() {
+            const confirmText = document.getElementById('confirmText').value.trim();
+            const button = document.getElementById('deleteButton');
+
+            if (confirmText === 'DELETE TEST DATA' && this.checked) {
+                button.disabled = false;
+            } else {
+                button.disabled = true;
+            }
+        });
+
+        // Confirm before submission
+        document.getElementById('resetForm').addEventListener('submit', function(e) {
+            if (!confirm('Are you absolutely sure you want to delete all test data? This cannot be undone!')) {
+                e.preventDefault();
+            } else {
+                // Show loading indicator
+                const button = document.getElementById('deleteButton');
+                button.innerHTML = '<i class="fas fa-spinner fa-spin"></i> Deleting Data...';
+                button.disabled = true;
+            }
+        });
+    </script>
+}

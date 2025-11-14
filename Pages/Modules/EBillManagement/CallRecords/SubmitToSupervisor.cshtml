@@ -305,61 +305,91 @@
 
             <!-- Call Records Summary Table -->
             <div class="mb-4">
-                <h6 class="fw-bold mb-3">
-                    <i class="bi bi-table me-2 text-primary"></i>
-                    Official Calls to Submit (@Model.TotalCalls calls)
-                </h6>
+                <div class="d-flex justify-content-between align-items-center mb-3">
+                    <h6 class="fw-bold mb-0">
+                        <i class="bi bi-table me-2 text-primary"></i>
+                        Official Calls to Submit (@Model.TotalCalls calls grouped by @Model.GroupedCallRecords.Count dialed number(s))
+                    </h6>
+                    <div>
+                        <button type="button" class="btn btn-sm btn-outline-primary" onclick="expandAllGroups()" style="border-radius: 8px;">
+                            <i class="bi bi-chevron-down me-1"></i>Expand All
+                        </button>
+                        <button type="button" class="btn btn-sm btn-outline-secondary" onclick="collapseAllGroups()" style="border-radius: 8px;">
+                            <i class="bi bi-chevron-up me-1"></i>Collapse All
+                        </button>
+                    </div>
+                </div>
                 <div class="table-responsive modern-table">
                     <table class="table table-hover mb-0">
                         <thead class="table-light">
                             <tr>
-                                <th>Date</th>
-                                <th>Number</th>
+                                <th style="width: 40px;"></th>
+                                <th>Number Dialed</th>
                                 <th>Destination</th>
-                                <th>Class of Service</th>
-                                <th>Type</th>
+                                <th>Calls</th>
+                                <th>Duration</th>
                                 <th class="text-end">Amount</th>
                             </tr>
                         </thead>
                         <tbody>
-                            @foreach (var call in Model.CallRecordsToSubmit)
+                            @foreach (var group in Model.GroupedCallRecords)
                             {
-                                <tr>
-                                    <td>@call.CallDate.ToString("MMM dd, yyyy")</td>
-                                    <td>@call.CallNumber</td>
-                                    <td>@call.CallDestination</td>
-                                    <td>
-                                        @if (call.UserPhone?.ClassOfService != null)
-                                        {
-                                            var allowance = call.UserPhone.ClassOfService.AirtimeAllowanceAmount;
-                                            <div>
-                                                <span class="badge bg-info bg-opacity-10 text-info">
-                                                    @call.UserPhone.ClassOfService.Class
-                                                </span>
-                                                @if (allowance.HasValue && allowance.Value > 0)
-                                                {
-                                                    <br />
-                                                    <small class="text-muted">Limit: $@allowance.Value.ToString("N2")</small>
-                                                }
-                                                else
-                                                {
-                                                    <br />
-                                                    <small class="text-muted">Unlimited</small>
-                                                }
-                                            </div>
-                                        }
-                                        else
-                                        {
-                                            <span class="text-muted small">N/A</span>
-                                        }
+                                @* Summary Row - Clickable to expand/collapse *@
+                                <tr class="group-summary-row" style="cursor: pointer; background-color: #f8f9fa;" onclick="toggleGroup('@group.GroupId')">
+                                    <td class="text-center">
+                                        <i class="bi bi-chevron-right group-toggle" id="toggle_@group.GroupId" style="transition: transform 0.3s;"></i>
                                     </td>
                                     <td>
-                                        <span class="badge bg-@(call.VerificationType == "Official" ? "success" : "warning") bg-opacity-10 text-@(call.VerificationType == "Official" ? "success" : "warning")">
-                                            @call.VerificationType
+                                        <strong>@group.CallNumber</strong>
+                                        <br />
+                                        <small class="text-muted">@group.CallCount call(s)</small>
+                                    </td>
+                                    <td>@group.CallDestination</td>
+                                    <td>
+                                        <span class="badge bg-primary bg-opacity-10 text-primary">
+                                            @group.CallCount
                                         </span>
                                     </td>
-                                    <td class="text-end">$@call.CallCostUSD.ToString("N2")</td>
+                                    <td>@group.GetDurationFormatted()</td>
+                                    <td class="text-end"><strong>$@group.TotalCost.ToString("N2")</strong></td>
                                 </tr>
+
+                                @* Detail Rows - Hidden by default *@
+                                @foreach (var call in group.Calls)
+                                {
+                                    <tr class="group-detail-row" data-group="@group.GroupId" style="display: none; background-color: #ffffff;">
+                                        <td></td>
+                                        <td>
+                                            <small class="text-muted">@call.CallDate.ToString("MMM dd, yyyy")</small>
+                                        </td>
+                                        <td>
+                                            <small>@call.CallDestination</small>
+                                        </td>
+                                        <td>
+                                            @if (call.UserPhone?.ClassOfService != null)
+                                            {
+                                                var allowance = call.UserPhone.ClassOfService.AirtimeAllowanceAmount;
+                                                <div>
+                                                    <small>
+                                                        <span class="badge bg-info bg-opacity-10 text-info" style="font-size: 0.7rem;">
+                                                            @call.UserPhone.ClassOfService.Class
+                                                        </span>
+                                                    </small>
+                                                </div>
+                                            }
+                                            else
+                                            {
+                                                <small class="text-muted">N/A</small>
+                                            }
+                                        </td>
+                                        <td>
+                                            <small>@call.GetDurationFormatted()</small>
+                                        </td>
+                                        <td class="text-end">
+                                            <small>$@call.CallCostUSD.ToString("N2")</small>
+                                        </td>
+                                    </tr>
+                                }
                             }
                         </tbody>
                         <tfoot class="table-light fw-bold">
@@ -497,6 +527,60 @@
 
 @section Scripts {
     <script>
+        // Toggle group expand/collapse
+        function toggleGroup(groupId) {
+            const detailRows = document.querySelectorAll(`tr[data-group="${groupId}"]`);
+            const toggleIcon = document.getElementById(`toggle_${groupId}`);
+
+            const isExpanded = detailRows[0]?.style.display !== 'none';
+
+            detailRows.forEach(row => {
+                row.style.display = isExpanded ? 'none' : 'table-row';
+            });
+
+            if (toggleIcon) {
+                toggleIcon.style.transform = isExpanded ? 'rotate(0deg)' : 'rotate(90deg)';
+            }
+        }
+
+        // Expand all groups
+        function expandAllGroups() {
+            const summaryRows = document.querySelectorAll('.group-summary-row');
+            summaryRows.forEach(row => {
+                const onclick = row.getAttribute('onclick');
+                const groupId = onclick.match(/'([^']+)'/)[1];
+                const detailRows = document.querySelectorAll(`tr[data-group="${groupId}"]`);
+                const toggleIcon = document.getElementById(`toggle_${groupId}`);
+
+                detailRows.forEach(detailRow => {
+                    detailRow.style.display = 'table-row';
+                });
+
+                if (toggleIcon) {
+                    toggleIcon.style.transform = 'rotate(90deg)';
+                }
+            });
+        }
+
+        // Collapse all groups
+        function collapseAllGroups() {
+            const summaryRows = document.querySelectorAll('.group-summary-row');
+            summaryRows.forEach(row => {
+                const onclick = row.getAttribute('onclick');
+                const groupId = onclick.match(/'([^']+)'/)[1];
+                const detailRows = document.querySelectorAll(`tr[data-group="${groupId}"]`);
+                const toggleIcon = document.getElementById(`toggle_${groupId}`);
+
+                detailRows.forEach(detailRow => {
+                    detailRow.style.display = 'none';
+                });
+
+                if (toggleIcon) {
+                    toggleIcon.style.transform = 'rotate(0deg)';
+                }
+            });
+        }
+
         // Form validation feedback
         document.querySelector('form').addEventListener('submit', function (e) {
             const hasOverage = @Model.HasOverage.ToString().ToLower();

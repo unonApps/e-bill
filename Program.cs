@@ -9,8 +9,20 @@ using Microsoft.Identity.Web.UI;
 using Microsoft.AspNetCore.Authentication.OpenIdConnect;
 using Microsoft.AspNetCore.Authentication.Cookies;
 using System.Security.Claims;
+using Microsoft.AspNetCore.HttpOverrides;
+using Microsoft.AspNetCore.Http;
+using Hangfire;
+using Hangfire.SqlServer;
 
 var builder = WebApplication.CreateBuilder(args);
+
+// Configure forwarded headers for HTTPS behind reverse proxy (IIS)
+builder.Services.Configure<ForwardedHeadersOptions>(options =>
+{
+    options.ForwardedHeaders = ForwardedHeaders.XForwardedFor | ForwardedHeaders.XForwardedProto;
+    options.KnownNetworks.Clear();
+    options.KnownProxies.Clear();
+});
 
 // Add services to the container.
 var connectionString = builder.Configuration.GetConnectionString("DefaultConnection");
@@ -74,15 +86,73 @@ builder.Services.AddScoped<ICurrencyConversionService, CurrencyConversionService
 // Register Recovery Automation Background Service
 builder.Services.AddHostedService<RecoveryAutomationJob>();
 
+// Register Bulk Import Service for enterprise-level upload processing
+builder.Services.AddScoped<IBulkImportService, BulkImportService>();
+
+// Add Hangfire for background job processing
+builder.Services.AddHangfire(config => config
+    .SetDataCompatibilityLevel(CompatibilityLevel.Version_180)
+    .UseSimpleAssemblyNameTypeSerializer()
+    .UseRecommendedSerializerSettings()
+    .UseSqlServerStorage(connectionString, new Hangfire.SqlServer.SqlServerStorageOptions
+    {
+        CommandBatchMaxTimeout = TimeSpan.FromMinutes(5),
+        SlidingInvisibilityTimeout = TimeSpan.FromMinutes(5),
+        QueuePollInterval = TimeSpan.Zero,
+        UseRecommendedIsolationLevel = true,
+        DisableGlobalLocks = true
+    }));
+
+builder.Services.AddHangfireServer(options =>
+{
+    options.WorkerCount = 4; // Number of concurrent jobs
+    options.Queues = new[] { "imports", "default" }; // Separate queue for imports
+});
+
+// Configure file upload limits for large CSV files
+builder.Services.Configure<Microsoft.AspNetCore.Http.Features.FormOptions>(options =>
+{
+    options.MultipartBodyLengthLimit = 500 * 1024 * 1024; // 500MB
+});
+
+builder.WebHost.ConfigureKestrel(options =>
+{
+    options.Limits.MaxRequestBodySize = 500 * 1024 * 1024; // 500MB
+});
+
 // Add Azure AD Authentication
 builder.Services.AddAuthentication(OpenIdConnectDefaults.AuthenticationScheme)
     .AddMicrosoftIdentityWebApp(options =>
     {
         builder.Configuration.Bind("AzureAd", options);
 
+        // Reduce token size by only requesting essential scopes
+        options.Scope.Clear();
+        options.Scope.Add("openid");
+        options.Scope.Add("profile");
+        options.Scope.Add("email");
+
+        // Save tokens in cookie to avoid large headers
+        options.SaveTokens = false; // Don't save access tokens in cookies (reduces size)
+        options.GetClaimsFromUserInfoEndpoint = true;
+
         // Configure events for auto-provisioning users
         options.Events = new OpenIdConnectEvents
         {
+            OnRedirectToIdentityProvider = context =>
+            {
+                // CRITICAL: Force HTTPS redirect URI when behind IIS
+                // IIS in-process hosting doesn't properly detect HTTPS, so we force it here
+                if (!builder.Environment.IsDevelopment())
+                {
+                    // Replace any HTTP redirect URIs with HTTPS
+                    if (context.ProtocolMessage.RedirectUri != null && context.ProtocolMessage.RedirectUri.StartsWith("http://"))
+                    {
+                        context.ProtocolMessage.RedirectUri = context.ProtocolMessage.RedirectUri.Replace("http://", "https://");
+                    }
+                }
+                return Task.CompletedTask;
+            },
             OnTokenValidated = async context =>
             {
                 var userManager = context.HttpContext.RequestServices.GetRequiredService<UserManager<ApplicationUser>>();
@@ -195,9 +265,39 @@ builder.Services.AddAuthentication(OpenIdConnectDefaults.AuthenticationScheme)
     }, cookieOptions =>
     {
         cookieOptions.Cookie.Name = "TAB.AzureAD";
-        cookieOptions.LoginPath = "/Account/Login";
-        cookieOptions.LogoutPath = "/Account/Logout";
-        cookieOptions.AccessDeniedPath = "/Account/AccessDenied";
+
+        // Use relative paths to avoid mixed content issues
+        // ASP.NET Core will automatically use the current scheme (HTTPS)
+        cookieOptions.LoginPath = new PathString("/Account/Login");
+        cookieOptions.LogoutPath = new PathString("/Account/Logout");
+        cookieOptions.AccessDeniedPath = new PathString("/Account/AccessDenied");
+
+        // Configure cookie chunking to handle large Azure AD tokens
+        // This splits large cookies into multiple smaller cookies automatically
+        cookieOptions.Cookie.HttpOnly = true;
+        cookieOptions.Cookie.SecurePolicy = CookieSecurePolicy.Always;
+        cookieOptions.Cookie.SameSite = SameSiteMode.Lax;
+
+        // Disable automatic redirects for challenge responses
+        // This prevents redirect loops and mixed content issues
+        cookieOptions.Events.OnRedirectToLogin = context =>
+        {
+            // Ensure HTTPS for redirects
+            if (context.Request.Path.StartsWithSegments("/api"))
+            {
+                context.Response.StatusCode = 401;
+            }
+            else
+            {
+                var redirectUri = context.RedirectUri;
+                if (redirectUri.StartsWith("http://"))
+                {
+                    redirectUri = redirectUri.Replace("http://", "https://");
+                }
+                context.Response.Redirect(redirectUri);
+            }
+            return Task.CompletedTask;
+        };
     });
 
 // Add Identity with roles (for local accounts and role management)
@@ -251,6 +351,10 @@ builder.Services.AddControllers();
 
 var app = builder.Build();
 
+// Use forwarded headers FIRST - before any other middleware
+// This is critical for HTTPS to work properly behind IIS
+app.UseForwardedHeaders();
+
 // Configure the HTTP request pipeline.
 if (!app.Environment.IsDevelopment())
 {
@@ -259,7 +363,13 @@ if (!app.Environment.IsDevelopment())
     app.UseHsts();
 }
 
-app.UseHttpsRedirection();
+// Only redirect to HTTPS in development mode
+// In production, IIS handles HTTPS and we're already on HTTPS
+if (app.Environment.IsDevelopment())
+{
+    app.UseHttpsRedirection();
+}
+
 app.UseStaticFiles();
 
 app.UseRouting();
@@ -267,6 +377,12 @@ app.UseRouting();
 // Add authentication middleware
 app.UseAuthentication();
 app.UseAuthorization();
+
+// Add Hangfire Dashboard (only accessible by Admin users)
+app.UseHangfireDashboard("/hangfire", new Hangfire.DashboardOptions
+{
+    Authorization = new[] { new HangfireAuthorizationFilter() }
+});
 
 // Add password change middleware
 app.UsePasswordChangeMiddleware();

@@ -207,6 +207,12 @@
                                 <span>Import Audit Trail</span>
                             </a>
                         </li>
+                        <li>
+                            <a asp-page="/Admin/ImportJobs" class="nested-submenu-item @(ViewContext.RouteData.Values["Page"]?.ToString() == "/Admin/ImportJobs" ? "active" : "")">
+                                <i class="menu-icon bi bi-server"></i>
+                                <span>Import Jobs</span>
+                            </a>
+                        </li>
 
                         <!-- System Configuration Section -->
                         <li class="menu-divider"></li>
@@ -223,6 +229,12 @@
                             <a asp-page="/Admin/AuditLogs" class="nested-submenu-item @(ViewContext.RouteData.Values["Page"]?.ToString() == "/Admin/AuditLogs" ? "active" : "")">
                                 <i class="menu-icon bi bi-journal-text"></i>
                                 <span>Audit Logs</span>
+                            </a>
+                        </li>
+                        <li>
+                            <a asp-page="/Admin/ResetTestData" class="nested-submenu-item @(ViewContext.RouteData.Values["Page"]?.ToString() == "/Admin/ResetTestData" ? "active" : "")">
+                                <i class="menu-icon bi bi-trash3"></i>
+                                <span>Reset Test Data</span>
                             </a>
                         </li>
 

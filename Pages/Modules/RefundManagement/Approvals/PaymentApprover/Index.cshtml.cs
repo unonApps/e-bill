@@ -32,6 +32,8 @@ namespace TAB.Web.Pages.Modules.RefundManagement.Approvals.PaymentApprover
         public List<RefundRequest> PendingRequests { get; set; } = new();
         public List<RefundRequest> AllPaymentRequests { get; set; } = new();
         public string CurrentUserRole { get; set; } = "";
+        public bool IsDetailView { get; set; } = false;
+        public RefundRequest? CurrentRequest { get; set; }
 
         [TempData]
         public string? StatusMessage { get; set; }
@@ -39,7 +41,7 @@ namespace TAB.Web.Pages.Modules.RefundManagement.Approvals.PaymentApprover
         [TempData]
         public string? StatusMessageClass { get; set; }
 
-        public async Task OnGetAsync()
+        public async Task OnGetAsync(int? requestId = null)
         {
             var currentUser = await _userManager.GetUserAsync(User);
             if (currentUser != null)
@@ -47,7 +49,17 @@ namespace TAB.Web.Pages.Modules.RefundManagement.Approvals.PaymentApprover
                 // Determine user role for filtering and display logic
                 var userRoles = await _userManager.GetRolesAsync(currentUser);
                 CurrentUserRole = userRoles.FirstOrDefault() ?? "";
-                
+
+                // Check if this is a detail view request
+                if (requestId.HasValue)
+                {
+                    CurrentRequest = await _context.RefundRequests.FindAsync(requestId.Value);
+                    if (CurrentRequest != null)
+                    {
+                        IsDetailView = true;
+                    }
+                }
+
                 // Filter requests based on user role
                 if (await _userManager.IsInRoleAsync(currentUser, "ICTS"))
                 {
@@ -61,7 +73,7 @@ namespace TAB.Web.Pages.Modules.RefundManagement.Approvals.PaymentApprover
                 {
                     // Admins see all requests that are ready for payment or completed
                     AllPaymentRequests = await _context.RefundRequests
-                        .Where(r => r.Status == RefundRequestStatus.PendingPaymentApproval || 
+                        .Where(r => r.Status == RefundRequestStatus.PendingPaymentApproval ||
                                    r.Status == RefundRequestStatus.Completed)
                         .OrderBy(r => r.RequestDate)
                         .ToListAsync();

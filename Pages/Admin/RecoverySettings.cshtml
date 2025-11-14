@@ -605,14 +605,23 @@
                         <div class="row rules-section">
                             <div class="col-md-6">
                                 <h6 class="text-primary">
-                                    <i class="bi bi-exclamation-circle-fill"></i>Automatic Recovery Scenarios
+                                    <i class="bi bi-exclamation-circle-fill"></i>Staff-Related Recovery Rules
                                 </h6>
                                 <ul>
-                                    <li><strong>Expired Verification Deadline:</strong> Unverified calls are automatically recovered as PERSONAL (deadline set by admin when pushing to production)</li>
-                                    <li><strong>Expired Approval Deadline:</strong> Unapproved verifications are recovered as CLASS OF SERVICE (calculated from settings above)</li>
-                                    <li><strong>Supervisor Partial Approval:</strong> Approved calls = OFFICIAL, Rest = PERSONAL</li>
-                                    <li><strong>Supervisor Rejection:</strong> All calls in verification are recovered as PERSONAL</li>
-                                    <li><strong>Revert + Re-failure:</strong> Staff fails to re-verify within deadline = PERSONAL (uses Re-Verification Days setting)</li>
+                                    <li><strong>Rule 1 - Staff Non-Verification:</strong> Staff didn't verify call + verification deadline passed → Recovered as PERSONAL</li>
+                                    <li><strong>Rule 1A - Verified as Personal:</strong> Staff verified as "Personal" + deadline passed → Recovered as PERSONAL</li>
+                                    <li><strong>Rule 1B - Official Not Submitted:</strong> Staff verified as "Official" but didn't submit to supervisor + deadline passed → Recovered as PERSONAL</li>
+                                    <li><strong>Rule 4 - Revert Failure:</strong> Supervisor reverted + staff didn't resubmit + revert deadline passed → Recovered as PERSONAL (uses Re-Verification Days setting)</li>
+                                </ul>
+
+                                <h6 class="text-warning mt-4">
+                                    <i class="bi bi-person-badge-fill"></i>Supervisor-Related Recovery Rules
+                                </h6>
+                                <ul>
+                                    <li><strong>Rule 2 - Supervisor Non-Approval:</strong> Staff verified + submitted + supervisor didn't act + approval deadline passed → Recovered as CLASS OF SERVICE</li>
+                                    <li><strong>Rule 3 - Partial Approval:</strong> Supervisor approves only some calls → Approved calls processed as verified, Rest = PERSONAL</li>
+                                    <li><strong>Rule 5 - Full Approval:</strong> Supervisor approves all calls → Official calls = NO RECOVERY (organization pays), Personal calls = PERSONAL recovery</li>
+                                    @* <li><strong>Rule 6 - Rejection:</strong> Supervisor rejects verification → All calls recovered as PERSONAL</li> *@
                                 </ul>
                             </div>
                             <div class="col-md-6">
@@ -620,14 +629,21 @@
                                     <i class="bi bi-shield-check"></i>Recovery Types
                                 </h6>
                                 <ul class="mb-3">
-                                    <li><strong>PERSONAL:</strong> Cost charged to staff member</li>
-                                    <li><strong>OFFICIAL:</strong> Cost covered by organization</li>
-                                    <li><strong>CLASS OF SERVICE:</strong> Cost allocated to department/class of service</li>
+                                    <li><strong>PERSONAL:</strong> Full call cost charged to staff member</li>
+                                    <li><strong>OFFICIAL:</strong> Cost covered by organization (no recovery)</li>
+                                    <li><strong>CLASS OF SERVICE:</strong> Reduced rate charged to supervisor (based on handset allowance)</li>
+                                </ul>
+
+                                <h6 class="text-info mt-4">
+                                    <i class="bi bi-tools"></i>Manual Actions
+                                </h6>
+                                <ul class="mb-3">
+                                    <li><strong>Rule 6 - Manual Override:</strong> Admin can manually override automatic recovery for exceptional cases</li>
                                 </ul>
 
                                 <div class="warning-alert">
                                     <i class="bi bi-lightbulb-fill me-2"></i>
-                                    <strong>Tip:</strong> All recovery actions are logged in detail and can be audited through the Recovery Job Status page.
+                                    <strong>Tip:</strong> All recovery actions are logged in detail with reasons and can be audited through the Recovery Job Status page.
                                 </div>
                             </div>
                         </div>

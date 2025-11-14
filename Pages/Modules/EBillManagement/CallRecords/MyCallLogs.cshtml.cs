@@ -70,7 +70,9 @@ namespace TAB.Web.Pages.Modules.EBillManagement.CallRecords
         [BindProperty(SupportsGet = true)]
         public int PageNumber { get; set; } = 1;
 
+        [BindProperty(SupportsGet = true)]
         public int PageSize { get; set; } = 50;
+
         public int TotalPages { get; set; }
         public int TotalRecords { get; set; }
 

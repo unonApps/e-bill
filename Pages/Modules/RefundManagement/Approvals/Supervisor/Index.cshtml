@@ -403,58 +403,6 @@
 </style>
 
 <div class="container-fluid px-4">
-    <!-- Back Button -->
-    <div class="mb-3">
-        <a href="/Modules/RefundManagement/Approvals" class="btn btn-outline-secondary btn-sm">
-            <i class="bi bi-arrow-left me-2"></i>Back to Overview
-        </a>
-    </div>
-
-    <!-- Page Header -->
-    <div class="page-header">
-        <div class="d-flex justify-content-between align-items-start">
-            <div>
-                <h1 class="page-title">
-                    <i class="bi bi-credit-card text-primary me-3"></i>
-                    Refund Requests Management
-                </h1>
-                <p class="page-subtitle">
-                    @if (Model.CurrentUserRole.Contains("Supervisor"))
-                    {
-                        <span>Manage mobile device reimbursement requests requiring your approval</span>
-                    }
-                    else if (Model.CurrentUserRole.Contains("Budget"))
-                    {
-                        <span>Review and approve budget allocations for mobile device reimbursements</span>
-                    }
-                    else
-                    {
-                        <span>Manage mobile device reimbursement requests</span>
-                    }
-                </p>
-            </div>
-            <div class="text-end">
-                <span class="badge bg-light text-dark px-3 py-2">
-                    <i class="bi bi-person-circle me-2"></i>
-                    <span>
-                        @if (Model.CurrentUserRole.Contains("Supervisor"))
-                        {
-                            <text>Supervisor</text>
-                        }
-                        else if (Model.CurrentUserRole.Contains("Budget"))
-                        {
-                            <text>Budget Officer</text>
-                        }
-                        else
-                        {
-                            <text>@Model.CurrentUserRole</text>
-                        }
-                    </span>
-                </span>
-            </div>
-        </div>
-    </div>
-
     <!-- Status Messages -->
     @if (!string.IsNullOrEmpty(Model.StatusMessage))
     {
@@ -463,6 +411,10 @@
             <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
         </div>
     }
+
+    @if (!Model.IsDetailView)
+    {
+    @* LIST VIEW - All tabs and tables *@
 
     <!-- Statistics Cards -->
     <div class="stats-container">
@@ -843,7 +795,536 @@
             }
         </div>
     </div>
-</div>
+
+    }
+    @* End of List View *@
+
+    @if (Model.IsDetailView && Model.CurrentRequest != null)
+    {
+    @* DETAIL VIEW - Full Page with Tabs *@
+
+    <!-- Header with Back Button -->
+    <div class="d-flex justify-content-between align-items-center mb-4">
+        <div>
+            <h2 class="mb-2" style="font-weight: 700; font-size: 28px; color: #111827;">
+                <i class="bi bi-receipt me-2" style="color: #009EDB;"></i>
+                Refund Request Details
+                <span style="opacity: 0.7; font-size: 20px;">#@Model.CurrentRequest.Id</span>
+            </h2>
+            <p class="mb-0" style="color: #6b7280;">@Model.CurrentRequest.MobileNumberAssignedTo</p>
+        </div>
+        <a href="/Modules/RefundManagement/Approvals/Supervisor" class="btn btn-outline-secondary">
+            <i class="bi bi-arrow-left me-2"></i>Back to Approvals
+        </a>
+    </div>
+
+    <!-- Tab Navigation -->
+    <ul class="nav nav-tabs" style="background: #f8fafc; padding: 0.75rem 1.25rem 0; border-bottom: 2px solid #e2e8f0; margin-bottom: 0; border-radius: 12px 12px 0 0;">
+        <li class="nav-item">
+            <button class="nav-link active" id="detail-overview-tab" data-bs-toggle="tab" data-bs-target="#detail-overview" type="button" style="color: #64748b; border: none; border-bottom: 3px solid transparent; padding: 0.75rem 1.5rem; font-weight: 500; font-size: 0.875rem;">
+                <i class="bi bi-info-circle me-2"></i>Overview
+            </button>
+        </li>
+        <li class="nav-item">
+            <button class="nav-link" id="detail-financial-tab" data-bs-toggle="tab" data-bs-target="#detail-financial" type="button" style="color: #64748b; border: none; border-bottom: 3px solid transparent; padding: 0.75rem 1.5rem; font-weight: 500; font-size: 0.875rem;">
+                <i class="bi bi-currency-dollar me-2"></i>Financial Details
+            </button>
+        </li>
+        <li class="nav-item">
+            <button class="nav-link" id="detail-supervisor-tab" data-bs-toggle="tab" data-bs-target="#detail-supervisor" type="button" style="color: #64748b; border: none; border-bottom: 3px solid transparent; padding: 0.75rem 1.5rem; font-weight: 500; font-size: 0.875rem;">
+                <i class="bi bi-check-circle me-2"></i>Supervisor Approval
+            </button>
+        </li>
+        <li class="nav-item">
+            <button class="nav-link" id="detail-budget-tab" data-bs-toggle="tab" data-bs-target="#detail-budget" type="button" style="color: #64748b; border: none; border-bottom: 3px solid transparent; padding: 0.75rem 1.5rem; font-weight: 500; font-size: 0.875rem;">
+                <i class="bi bi-calculator me-2"></i>Budget Officer
+            </button>
+        </li>
+        <li class="nav-item">
+            <button class="nav-link" id="detail-claims-tab" data-bs-toggle="tab" data-bs-target="#detail-claims" type="button" style="color: #64748b; border: none; border-bottom: 3px solid transparent; padding: 0.75rem 1.5rem; font-weight: 500; font-size: 0.875rem;">
+                <i class="bi bi-receipt me-2"></i>Claims Processing
+            </button>
+        </li>
+        <li class="nav-item">
+            <button class="nav-link" id="detail-workflow-tab" data-bs-toggle="tab" data-bs-target="#detail-workflow" type="button" style="color: #64748b; border: none; border-bottom: 3px solid transparent; padding: 0.75rem 1.5rem; font-weight: 500; font-size: 0.875rem;">
+                <i class="bi bi-diagram-3 me-2"></i>Workflow History
+            </button>
+        </li>
+        <li class="nav-item">
+            <button class="nav-link" id="detail-remarks-tab" data-bs-toggle="tab" data-bs-target="#detail-remarks" type="button" style="color: #64748b; border: none; border-bottom: 3px solid transparent; padding: 0.75rem 1.5rem; font-weight: 500; font-size: 0.875rem;">
+                <i class="bi bi-chat-square-text me-2"></i>Remarks
+            </button>
+        </li>
+    </ul>
+
+    <!-- Tab Content -->
+    <div class="tab-content" style="padding: 1.5rem; background: white; border-radius: 0 0 12px 12px; box-shadow: 0 2px 12px rgba(0, 0, 0, 0.04);">
+        <!-- Overview Tab -->
+        <div class="tab-pane fade show active" id="detail-overview">
+            <!-- Staff Information Section -->
+            <div class="mb-4" style="background: #eff6ff; border-radius: 16px; padding: 24px; border: 1px solid #bfdbfe;">
+                <div class="d-flex align-items-center mb-3">
+                    <i class="bi bi-person-circle me-3" style="font-size: 20px; color: #2563eb;"></i>
+                    <h6 class="mb-0" style="font-weight: 600; color: #1e40af;">Staff Information</h6>
+                </div>
+                <div class="row g-3">
+                    <div class="col-md-4">
+                        <div class="mb-2">
+                            <span class="detail-label">Staff Name</span>
+                            <div class="detail-value">@Model.CurrentRequest.MobileNumberAssignedTo</div>
+                        </div>
+                    </div>
+                    <div class="col-md-4">
+                        <div class="mb-2">
+                            <span class="detail-label">Mobile Number</span>
+                            <div class="detail-value">@Model.CurrentRequest.PrimaryMobileNumber</div>
+                        </div>
+                    </div>
+                    <div class="col-md-4">
+                        <div class="mb-2">
+                            <span class="detail-label">Index Number</span>
+                            <div class="detail-value">@(Model.CurrentRequest.IndexNo ?? "N/A")</div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Mobile Service Details Section -->
+            <div class="mb-4" style="background: #f8fafc; border-radius: 16px; padding: 24px; border: 1px solid #e2e8f0;">
+                <div class="d-flex align-items-center mb-3">
+                    <i class="bi bi-phone me-3" style="font-size: 20px; color: #059669;"></i>
+                    <h6 class="mb-0" style="font-weight: 600; color: #047857;">Mobile Service Details</h6>
+                </div>
+                <div class="row g-3">
+                    <div class="col-md-3">
+                        <div class="mb-2">
+                            <span class="detail-label">Office</span>
+                            <div class="detail-value">@(Model.CurrentRequest.Office ?? "N/A")</div>
+                        </div>
+                    </div>
+                    <div class="col-md-3">
+                        <div class="mb-2">
+                            <span class="detail-label">Organization</span>
+                            <div class="detail-value">@(Model.CurrentRequest.Organization ?? "N/A")</div>
+                        </div>
+                    </div>
+                    <div class="col-md-3">
+                        <div class="mb-2">
+                            <span class="detail-label">Mobile Service</span>
+                            <div class="detail-value">@(Model.CurrentRequest.MobileService ?? "N/A")</div>
+                        </div>
+                    </div>
+                    <div class="col-md-3">
+                        <div class="mb-2">
+                            <span class="detail-label">Class of Service</span>
+                            <div class="detail-value">@(Model.CurrentRequest.ClassOfService ?? "N/A")</div>
+                        </div>
+                    </div>
+                </div>
+                <div class="row g-3 mt-2">
+                    <div class="col-md-6">
+                        <div class="mb-2">
+                            <span class="detail-label">Device Allowance</span>
+                            <div class="detail-value">@(Model.CurrentRequest.DeviceAllowance.ToString("C"))</div>
+                        </div>
+                    </div>
+                    <div class="col-md-6">
+                        <div class="mb-2">
+                            <span class="detail-label">Supervisor</span>
+                            <div class="detail-value">@(Model.CurrentRequest.SupervisorEmail ?? "N/A")</div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Financial Details Tab -->
+        <div class="tab-pane fade" id="detail-financial">
+            <!-- Financial Information Section -->
+            <div class="mb-4" style="background: #fefce8; border-radius: 16px; padding: 24px; border: 1px solid #fde047;">
+                <div class="d-flex align-items-center mb-3">
+                    <i class="bi bi-currency-dollar me-3" style="font-size: 20px; color: #ca8a04;"></i>
+                    <h6 class="mb-0" style="font-weight: 600; color: #713f12;">Financial Information</h6>
+                </div>
+                <div class="row g-3">
+                    <div class="col-md-4">
+                        <div class="mb-2">
+                            <span class="detail-label">Purchase Amount</span>
+                            <div class="detail-value" style="font-weight: 600; color: #111827; font-size: 16px;">@Model.CurrentRequest.DevicePurchaseCurrency @Model.CurrentRequest.DevicePurchaseAmount.ToString("N2")</div>
+                        </div>
+                    </div>
+                    <div class="col-md-4">
+                        <div class="mb-2">
+                            <span class="detail-label">Refund USD Amount</span>
+                            <div class="detail-value" style="font-weight: 600; color: #111827; font-size: 16px;">@(Model.CurrentRequest.RefundUsdAmount.HasValue ? Model.CurrentRequest.RefundUsdAmount.Value.ToString("C") : "N/A")</div>
+                        </div>
+                    </div>
+                    <div class="col-md-4">
+                        <div class="mb-2">
+                            <span class="detail-label">Request Date</span>
+                            <div class="detail-value">@Model.CurrentRequest.RequestDate.ToString("MMM dd, yyyy HH:mm")</div>
+                        </div>
+                    </div>
+                </div>
+                <div class="row g-3 mt-2">
+                    <div class="col-md-4">
+                        <div class="mb-2">
+                            <span class="detail-label">Cost Object</span>
+                            <div class="detail-value">@(Model.CurrentRequest.CostObject ?? "N/A")</div>
+                        </div>
+                    </div>
+                    <div class="col-md-4">
+                        <div class="mb-2">
+                            <span class="detail-label">Cost Center</span>
+                            <div class="detail-value">@(Model.CurrentRequest.CostCenter ?? "N/A")</div>
+                        </div>
+                    </div>
+                    <div class="col-md-4">
+                        <div class="mb-2">
+                            <span class="detail-label">Fund Commitment</span>
+                            <div class="detail-value">@(Model.CurrentRequest.FundCommitment ?? "N/A")</div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Budget Information Section -->
+            <div class="mb-4" style="background: #f0f9ff; border-radius: 16px; padding: 24px; border: 1px solid #0ea5e9;">
+                <div class="d-flex align-items-center mb-3">
+                    <i class="bi bi-calculator me-3" style="font-size: 20px; color: #0284c7;"></i>
+                    <h6 class="mb-0" style="font-weight: 600; color: #0369a1;">Budget Information</h6>
+                </div>
+                <div class="row g-3">
+                    <div class="col-md-6">
+                        <div class="mb-2">
+                            <span class="detail-label">Current Status</span>
+                            <div>
+                                <span class="badge" style="background: #6366f1; color: white; font-size: 12px; padding: 6px 12px; border-radius: 8px; font-weight: 500;">@Model.CurrentRequest.Status</span>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="col-md-6">
+                        <div class="mb-2">
+                            <span class="detail-label">Umoja Bank Name</span>
+                            <div class="detail-value">@(Model.CurrentRequest.UmojaBankName ?? "N/A")</div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Purchase Receipt Section -->
+            <div class="mb-4" style="background: #f0fdf4; border-radius: 16px; padding: 24px; border: 1px solid #bbf7d0;">
+                <div class="d-flex align-items-center mb-3">
+                    <i class="bi bi-file-earmark-pdf me-3" style="font-size: 20px; color: #059669;"></i>
+                    <h6 class="mb-0" style="font-weight: 600; color: #047857;">Purchase Receipt</h6>
+                </div>
+                <div class="row g-3">
+                    <div class="col-md-8">
+                        <div class="mb-2">
+                            <span class="detail-label">Receipt File</span>
+                            @if (!string.IsNullOrEmpty(Model.CurrentRequest.PurchaseReceiptPath))
+                            {
+                                <div class="detail-value d-flex align-items-center justify-content-between">
+                                    <span>@System.IO.Path.GetFileName(Model.CurrentRequest.PurchaseReceiptPath)</span>
+                                    <div>
+                                        <a href="@Model.CurrentRequest.PurchaseReceiptPath" target="_blank" class="btn btn-sm btn-outline-success me-2" style="border-radius: 8px; font-size: 12px;">
+                                            <i class="bi bi-eye me-1"></i>View
+                                        </a>
+                                        <a href="@Model.CurrentRequest.PurchaseReceiptPath" download class="btn btn-sm btn-success" style="border-radius: 8px; font-size: 12px;">
+                                            <i class="bi bi-download me-1"></i>Download
+                                        </a>
+                                    </div>
+                                </div>
+                            }
+                            else
+                            {
+                                <div class="detail-value">No receipt uploaded</div>
+                            }
+                        </div>
+                    </div>
+                    <div class="col-md-4">
+                        <div class="mb-2">
+                            <span class="detail-label">Previous Reimbursement</span>
+                            <div class="detail-value">@(Model.CurrentRequest.PreviousDeviceReimbursedDate?.ToString("MMM dd, yyyy") ?? "N/A")</div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Supervisor Approval Tab -->
+        <div class="tab-pane fade" id="detail-supervisor">
+            @if (Model.CurrentRequest.Status == TAB.Web.Models.RefundRequestStatus.PendingSupervisor)
+            {
+                <!-- Approval Form -->
+                <div class="mb-4" style="background: #f0fdf4; border-radius: 16px; padding: 24px; border: 1px solid #bbf7d0;">
+                    <div class="d-flex align-items-center mb-3">
+                        <i class="bi bi-check-circle me-3" style="font-size: 20px; color: #059669;"></i>
+                        <h6 class="mb-0" style="font-weight: 600; color: #047857;">Supervisor Approval</h6>
+                    </div>
+
+                    @if (Model.CurrentUserRole.Contains("Supervisor"))
+                    {
+                        <form method="post" asp-page-handler="Approve">
+                            <input type="hidden" name="requestId" value="@Model.CurrentRequest.Id" />
+
+                            <div class="row g-3">
+                                <div class="col-md-6">
+                                    <label class="form-label" style="font-weight: 500; color: #374151; font-size: 14px; margin-bottom: 8px;">
+                                        Supervisor Remarks <span class="text-muted">(max 200 characters)</span>
+                                    </label>
+                                    <textarea name="remarks" class="form-control" rows="4" maxlength="200" placeholder="Enter your remarks..." style="border: 1px solid #d1d5db; border-radius: 12px; padding: 12px 16px; font-size: 14px; resize: none;"></textarea>
+                                </div>
+                                <div class="col-md-6">
+                                    <label class="form-label" style="font-weight: 500; color: #374151; font-size: 14px; margin-bottom: 8px;">
+                                        Budget Officer <span style="color: #ef4444;">*</span>
+                                    </label>
+                                    <select name="budgetOfficerEmail" class="form-select" required style="border: 1px solid #d1d5db; border-radius: 12px; padding: 12px 16px; font-size: 14px;">
+                                        <option value="">Select Budget Officer...</option>
+                                        @if (Model.BudgetOfficers != null && Model.BudgetOfficers.Any())
+                                        {
+                                            @foreach (var officer in Model.BudgetOfficers)
+                                            {
+                                                <option value="@officer.Email">@officer.FirstName @officer.LastName (@officer.Email)</option>
+                                            }
+                                        }
+                                    </select>
+                                </div>
+                            </div>
+
+                            <div class="d-flex gap-3 justify-content-end mt-4 pt-3" style="border-top: 1px solid #e5e7eb;">
+                                <a href="/Modules/RefundManagement/Approvals/Supervisor" class="btn btn-light" style="border-radius: 12px; padding: 12px 24px; font-weight: 500;">
+                                    Cancel
+                                </a>
+                                <button type="button" class="btn btn-warning" data-bs-toggle="modal" data-bs-target="#detailRevertModal" onclick="setDetailRequestId(@Model.CurrentRequest.Id)" style="border-radius: 12px; padding: 12px 24px; font-weight: 500;">
+                                    <i class="bi bi-arrow-left me-2"></i>Revert to Requestor
+                                </button>
+                                <button type="button" class="btn btn-danger" data-bs-toggle="modal" data-bs-target="#detailRejectModal" onclick="setDetailRequestId(@Model.CurrentRequest.Id)" style="border-radius: 12px; padding: 12px 24px; font-weight: 500;">
+                                    <i class="bi bi-x-circle me-2"></i>Reject Request
+                                </button>
+                                <button type="submit" name="action" value="approve" class="btn btn-success" style="border-radius: 12px; padding: 12px 24px; font-weight: 500;">
+                                    <i class="bi bi-check-circle me-2"></i>Approve Request
+                                </button>
+                            </div>
+                        </form>
+                    }
+                    else
+                    {
+                        <div class="alert alert-info" style="border-radius: 12px;">
+                            <i class="bi bi-info-circle me-2"></i>
+                            This request is awaiting supervisor approval. Only supervisors can approve or reject this request.
+                        </div>
+                    }
+                </div>
+            }
+            else if (Model.CurrentRequest.SupervisorApprovalDate.HasValue)
+            {
+                <!-- Approved Status -->
+                <div class="mb-4" style="background: #f0fdf4; border-radius: 16px; padding: 24px; border: 1px solid #bbf7d0;">
+                    <div class="d-flex align-items-center mb-3">
+                        <i class="bi bi-check-circle me-3" style="font-size: 20px; color: #10b981;"></i>
+                        <h6 class="mb-0" style="font-weight: 600; color: #047857;">Approved by Supervisor</h6>
+                    </div>
+                    <div class="row g-3">
+                        <div class="col-md-6">
+                            <span class="detail-label">Approved On</span>
+                            <div class="detail-value">@Model.CurrentRequest.SupervisorApprovalDate.Value.ToString("MMM dd, yyyy HH:mm")</div>
+                        </div>
+                        <div class="col-md-6">
+                            <span class="detail-label">Supervisor</span>
+                            <div class="detail-value">@(Model.CurrentRequest.SupervisorName ?? "N/A")</div>
+                        </div>
+                    </div>
+                    @if (!string.IsNullOrEmpty(Model.CurrentRequest.SupervisorRemarks))
+                    {
+                        <div class="mt-3">
+                            <span class="detail-label">Remarks</span>
+                            <div class="detail-value">@Model.CurrentRequest.SupervisorRemarks</div>
+                        </div>
+                    }
+                </div>
+            }
+            else
+            {
+                <div class="text-center py-5">
+                    <i class="bi bi-clock-history" style="font-size: 3rem; color: #cbd5e1;"></i>
+                    <h5 class="text-muted mt-3 mb-2">Awaiting Supervisor Review</h5>
+                    <p class="text-muted" style="font-size: 0.875rem;">This stage will be completed when the supervisor approves the request.</p>
+                </div>
+            }
+        </div>
+
+        <!-- Budget Officer Tab -->
+        <div class="tab-pane fade" id="detail-budget">
+            <div class="text-center py-5">
+                <div class="mb-3">
+                    @if (Model.CurrentRequest.Status == TAB.Web.Models.RefundRequestStatus.PendingBudgetOfficer)
+                    {
+                        <i class="bi bi-hourglass-split" style="font-size: 3rem; color: #cbd5e1;"></i>
+                    }
+                    else if (Model.CurrentRequest.Status > TAB.Web.Models.RefundRequestStatus.PendingBudgetOfficer)
+                    {
+                        <i class="bi bi-check-circle" style="font-size: 3rem; color: #10b981;"></i>
+                    }
+                    else
+                    {
+                        <i class="bi bi-clock" style="font-size: 3rem; color: #cbd5e1;"></i>
+                    }
+                </div>
+                <h5 class="text-muted mb-2">
+                    @if (Model.CurrentRequest.Status == TAB.Web.Models.RefundRequestStatus.PendingBudgetOfficer)
+                    {
+                        <text>Pending Budget Officer Approval</text>
+                    }
+                    else if (Model.CurrentRequest.Status > TAB.Web.Models.RefundRequestStatus.PendingBudgetOfficer)
+                    {
+                        <text>Budget Officer Approved</text>
+                    }
+                    else
+                    {
+                        <text>Awaiting Supervisor Approval</text>
+                    }
+                </h5>
+                <p class="text-muted" style="font-size: 0.875rem;">
+                    @if (Model.CurrentRequest.BudgetOfficerApprovalDate.HasValue)
+                    {
+                        <text>Approved on @Model.CurrentRequest.BudgetOfficerApprovalDate.Value.ToString("MMM dd, yyyy HH:mm")</text>
+                    }
+                    else if (Model.CurrentRequest.Status == TAB.Web.Models.RefundRequestStatus.PendingBudgetOfficer)
+                    {
+                        <text>The budget officer has not yet reviewed and approved this request.</text>
+                    }
+                    else
+                    {
+                        <text>Waiting for supervisor approval before budget review.</text>
+                    }
+                </p>
+            </div>
+        </div>
+
+        <!-- Claims Processing Tab -->
+        <div class="tab-pane fade" id="detail-claims">
+            <div class="text-center py-5">
+                <div class="mb-3">
+                    <i class="bi bi-hourglass-split" style="font-size: 3rem; color: #cbd5e1;"></i>
+                </div>
+                <h5 class="text-muted mb-2">Pending Claims Processing</h5>
+                <p class="text-muted" style="font-size: 0.875rem;">
+                    The claims unit has not yet processed this request.
+                </p>
+            </div>
+        </div>
+
+        <!-- Workflow History Tab -->
+        <div class="tab-pane fade" id="detail-workflow">
+            <!-- Workflow History Section -->
+            <div class="mb-4" style="background: #fef3f2; border-radius: 16px; padding: 24px; border: 1px solid #fecaca;">
+                <div class="d-flex align-items-center mb-3">
+                    <i class="bi bi-diagram-3 me-3" style="font-size: 20px; color: #dc2626;"></i>
+                    <h6 class="mb-0" style="font-weight: 600; color: #991b1b;">Workflow History</h6>
+                </div>
+
+                <!-- Timeline Container -->
+                <div class="workflow-timeline">
+                    <!-- Request Submission -->
+                    <div class="timeline-item">
+                        <div class="timeline-marker timeline-submitted">
+                            <i class="bi bi-file-plus"></i>
+                        </div>
+                        <div class="timeline-content">
+                            <div class="timeline-header">
+                                <h6 class="timeline-title">Request Submitted</h6>
+                                <span class="timeline-date">@Model.CurrentRequest.RequestDate.ToString("MMM dd, yyyy HH:mm")</span>
+                            </div>
+                            <p class="timeline-description">Refund request created and submitted for approval</p>
+                            <div class="timeline-details">
+                                <small class="text-muted">Submitted by: <span>@Model.CurrentRequest.MobileNumberAssignedTo</span></small>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Supervisor Approval -->
+                    <div class="timeline-item">
+                        <div class="timeline-marker @(Model.CurrentRequest.SupervisorApprovalDate.HasValue ? "timeline-submitted" : Model.CurrentRequest.Status >= TAB.Web.Models.RefundRequestStatus.PendingSupervisor ? "timeline-current" : "timeline-pending")">
+                            <i class="bi @(Model.CurrentRequest.SupervisorApprovalDate.HasValue ? "bi-check-circle" : "bi-clock")"></i>
+                        </div>
+                        <div class="timeline-content">
+                            <div class="timeline-header">
+                                <h6 class="timeline-title">Supervisor Review</h6>
+                                <span class="timeline-date">@(Model.CurrentRequest.SupervisorApprovalDate.HasValue ? Model.CurrentRequest.SupervisorApprovalDate.Value.ToString("MMM dd, yyyy HH:mm") : "Pending")</span>
+                            </div>
+                            <p class="timeline-description">@(Model.CurrentRequest.SupervisorApprovalDate.HasValue ? "Approved by supervisor" : "Awaiting supervisor approval")</p>
+                            <div class="timeline-details">
+                                <small class="text-muted">Supervisor: <span>@(Model.CurrentRequest.SupervisorEmail ?? "N/A")</span></small>
+                                @if (!string.IsNullOrEmpty(Model.CurrentRequest.SupervisorRemarks))
+                                {
+                                    <div class="timeline-remarks mt-1">
+                                        <small class="text-muted"><strong>Remarks:</strong> <span>@Model.CurrentRequest.SupervisorRemarks</span></small>
+                                    </div>
+                                }
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Budget Officer Approval -->
+                    <div class="timeline-item">
+                        <div class="timeline-marker @(Model.CurrentRequest.BudgetOfficerApprovalDate.HasValue ? "timeline-submitted" : Model.CurrentRequest.Status >= TAB.Web.Models.RefundRequestStatus.PendingBudgetOfficer ? "timeline-current" : "timeline-pending")">
+                            <i class="bi @(Model.CurrentRequest.BudgetOfficerApprovalDate.HasValue ? "bi-calculator" : "bi-clock")"></i>
+                        </div>
+                        <div class="timeline-content">
+                            <div class="timeline-header">
+                                <h6 class="timeline-title">Budget Officer Review</h6>
+                                <span class="timeline-date">@(Model.CurrentRequest.BudgetOfficerApprovalDate.HasValue ? Model.CurrentRequest.BudgetOfficerApprovalDate.Value.ToString("MMM dd, yyyy HH:mm") : Model.CurrentRequest.Status == TAB.Web.Models.RefundRequestStatus.PendingBudgetOfficer ? "Current Stage" : "Pending")</span>
+                            </div>
+                            <p class="timeline-description">@(Model.CurrentRequest.BudgetOfficerApprovalDate.HasValue ? "Approved by budget officer" : "Pending budget officer approval")</p>
+                            <div class="timeline-details">
+                                <small class="text-muted">Budget Officer: <span>@(Model.CurrentRequest.BudgetOfficerEmail ?? "Not assigned")</span></small>
+                                @if (!string.IsNullOrEmpty(Model.CurrentRequest.BudgetOfficerRemarks))
+                                {
+                                    <div class="timeline-remarks mt-1">
+                                        <small class="text-muted"><strong>Remarks:</strong> <span>@Model.CurrentRequest.BudgetOfficerRemarks</span></small>
+                                    </div>
+                                }
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Additional stages can be added here as needed -->
+                </div>
+            </div>
+        </div>
+
+        <!-- Remarks Tab -->
+        <div class="tab-pane fade" id="detail-remarks">
+            <div class="mb-4" style="background: #fff7ed; border-radius: 16px; padding: 24px; border: 1px solid #fed7aa;">
+                <div class="d-flex align-items-center mb-3">
+                    <i class="bi bi-chat-square-text me-3" style="font-size: 20px; color: #ea580c;"></i>
+                    <h6 class="mb-0" style="font-weight: 600; color: #9a3412;">Processing Remarks</h6>
+                </div>
+                <div class="row g-3">
+                    <div class="col-md-6">
+                        <div class="mb-3">
+                            <span class="detail-label">Supervisor Remarks</span>
+                            <div style="color: #6b7280; font-size: 14px; background: white; padding: 12px; border-radius: 8px; border: 1px solid #e5e7eb; min-height: 60px;">
+                                @(Model.CurrentRequest.SupervisorRemarks ?? "No remarks provided")
+                            </div>
+                        </div>
+                    </div>
+                    <div class="col-md-6">
+                        <div class="mb-3">
+                            <span class="detail-label">Budget Officer Remarks</span>
+                            <div style="color: #6b7280; font-size: 14px; background: white; padding: 12px; border-radius: 8px; border: 1px solid #e5e7eb; min-height: 60px;">
+                                @(Model.CurrentRequest.BudgetOfficerRemarks ?? "No remarks provided")
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    }
+    @* End of Detail View *@
 
 <!-- Approve Modal -->
 <div class="modal fade" id="approveModal" tabindex="-1">
@@ -1404,6 +1885,76 @@
             <div class="modal-footer" style="border: none; padding: 24px 32px 32px 32px;">
                 <button type="button" class="btn btn-secondary" data-bs-dismiss="modal" style="border-radius: 12px; padding: 12px 24px; font-weight: 500;">Close</button>
             </div>
+        </div>
+    </div>
+</div>
+
+<!-- Detail View Revert Modal -->
+<div class="modal fade" id="detailRevertModal" tabindex="-1">
+    <div class="modal-dialog modal-dialog-centered">
+        <div class="modal-content" style="border: none; border-radius: 20px; box-shadow: 0 20px 60px rgba(0,0,0,0.1);">
+            <form method="post" asp-page-handler="Revert">
+                <input type="hidden" id="detailRevertRequestId" name="requestId" />
+                <div class="modal-header" style="border: none; padding: 32px 32px 0 32px;">
+                    <div class="d-flex align-items-center">
+                        <div class="me-3" style="width: 48px; height: 48px; background: linear-gradient(135deg, #f59e0b, #d97706); border-radius: 16px; display: flex; align-items: center; justify-content: center;">
+                            <i class="bi bi-arrow-left text-white" style="font-size: 24px;"></i>
+                        </div>
+                        <div>
+                            <h4 class="mb-1" style="font-weight: 700; color: #111827; font-size: 24px;">Revert to Requestor</h4>
+                            <p class="mb-0 text-muted" style="font-size: 14px;">Provide reason for reverting this request</p>
+                        </div>
+                    </div>
+                    <button type="button" class="btn-close" data-bs-dismiss="modal" style="margin: 0; padding: 12px;"></button>
+                </div>
+                <div class="modal-body" style="padding: 24px 32px 32px 32px;">
+                    <div class="mb-4">
+                        <label class="form-label" style="font-weight: 500; color: #374151; font-size: 14px; margin-bottom: 8px;">Revert Reason <span style="color: #ef4444;">*</span></label>
+                        <textarea name="supervisorRemarks" class="form-control" rows="3" required placeholder="Please provide a clear reason for reverting this request to the requestor..." style="border: 1px solid #d1d5db; border-radius: 12px; padding: 12px 16px; font-size: 14px;"></textarea>
+                    </div>
+                    <div class="d-flex gap-3 justify-content-end">
+                        <button type="button" class="btn btn-light" data-bs-dismiss="modal" style="border-radius: 12px; padding: 12px 24px; font-weight: 500;">Cancel</button>
+                        <button type="submit" class="btn btn-warning" style="background: linear-gradient(135deg, #f59e0b, #d97706); border: none; border-radius: 12px; padding: 12px 24px; font-weight: 500;">
+                            <i class="bi bi-arrow-left me-2"></i>Revert to Requestor
+                        </button>
+                    </div>
+                </div>
+            </form>
+        </div>
+    </div>
+</div>
+
+<!-- Detail View Reject Modal -->
+<div class="modal fade" id="detailRejectModal" tabindex="-1">
+    <div class="modal-dialog modal-dialog-centered">
+        <div class="modal-content" style="border: none; border-radius: 20px; box-shadow: 0 20px 60px rgba(0,0,0,0.1);">
+            <form method="post" asp-page-handler="Reject">
+                <input type="hidden" id="detailRejectRequestId" name="requestId" />
+                <div class="modal-header" style="border: none; padding: 32px 32px 0 32px;">
+                    <div class="d-flex align-items-center">
+                        <div class="me-3" style="width: 48px; height: 48px; background: linear-gradient(135deg, #ef4444, #dc2626); border-radius: 16px; display: flex; align-items: center; justify-content: center;">
+                            <i class="bi bi-x-circle text-white" style="font-size: 24px;"></i>
+                        </div>
+                        <div>
+                            <h4 class="mb-1" style="font-weight: 700; color: #111827; font-size: 24px;">Reject Request</h4>
+                            <p class="mb-0 text-muted" style="font-size: 14px;">Provide reason for rejection</p>
+                        </div>
+                    </div>
+                    <button type="button" class="btn-close" data-bs-dismiss="modal" style="margin: 0; padding: 12px;"></button>
+                </div>
+                <div class="modal-body" style="padding: 24px 32px 32px 32px;">
+                    <div class="mb-4">
+                        <label class="form-label" style="font-weight: 500; color: #374151; font-size: 14px; margin-bottom: 8px;">Rejection Reason <span style="color: #ef4444;">*</span></label>
+                        <textarea name="supervisorRemarks" class="form-control" rows="3" required placeholder="Please provide a clear reason for rejecting this request..." style="border: 1px solid #d1d5db; border-radius: 12px; padding: 12px 16px; font-size: 14px;"></textarea>
+                    </div>
+                    <div class="d-flex gap-3 justify-content-end">
+                        <button type="button" class="btn btn-light" data-bs-dismiss="modal" style="border-radius: 12px; padding: 12px 24px; font-weight: 500;">Cancel</button>
+                        <button type="submit" class="btn btn-danger" style="background: linear-gradient(135deg, #ef4444, #dc2626); border: none; border-radius: 12px; padding: 12px 24px; font-weight: 500;">
+                            <i class="bi bi-x-circle me-2"></i>Reject Request
+                        </button>
+                    </div>
+                </div>
+            </form>
         </div>
     </div>
 </div>
@@ -1974,12 +2525,18 @@
     
     function budgetRevertToSupervisor() {
         const remarks = document.getElementById('budgetOfficerRemarks').value;
-        
+
         if (confirm('Are you sure you want to revert this request to the supervisor?')) {
             document.getElementById('budgetRevertSupervisorId').value = document.getElementById('budgetApproveRequestId').value;
             document.getElementById('budgetRevertSupervisorRemarks').value = remarks;
             document.getElementById('budgetRevertSupervisorForm').submit();
         }
+    }
+
+    // Detail view modal helpers
+    function setDetailRequestId(requestId) {
+        document.getElementById('detailRevertRequestId').value = requestId;
+        document.getElementById('detailRejectRequestId').value = requestId;
     }
 </script>
  

@@ -50,6 +50,7 @@ namespace TAB.Web.Pages.Modules.SimManagement.Requests
 
         public string? StatusMessage { get; set; }
         public string? StatusMessageClass { get; set; }
+        public int? PreSelectedOrganizationId { get; set; }
 
         public async Task OnGetAsync()
         {
@@ -272,32 +273,67 @@ namespace TAB.Web.Pages.Modules.SimManagement.Requests
                 })
                 .ToListAsync();
 
-            // Load Active Users as Supervisors (excluding current user)
-            var currentUserId = _userManager.GetUserId(User) ?? string.Empty;
-            Supervisors = await _context.Users
-                .Where(u => u.Status == UserStatus.Active && u.Id != currentUserId)
-                .Select(u => new SelectListItem
-                {
-                    Value = u.Email ?? string.Empty,
-                    Text = $"{u.FirstName ?? ""} {u.LastName ?? ""} ({u.Email ?? ""})".Trim()
-                })
-                .ToListAsync();
+            // Note: Supervisors are now loaded via Azure AD live search
+            // This list is kept for backward compatibility but can be empty
+            Supervisors = new List<SelectListItem>();
         }
 
         private async Task PopulateUserInfoAsync()
         {
-            var currentUser = await _context.Users
+            var currentUser = await _userManager.GetUserAsync(User);
+            if (currentUser == null) return;
+
+            // Get user from ApplicationUser
+            var user = await _context.Users
                 .Include(u => u.Organization)
                 .Include(u => u.Office)
-                .FirstOrDefaultAsync(u => u.Id == (_userManager.GetUserId(User) ?? string.Empty));
+                .FirstOrDefaultAsync(u => u.Id == currentUser.Id);
 
-            if (currentUser != null)
+            if (user != null)
             {
-                SimRequest.FirstName = currentUser.FirstName;
-                SimRequest.LastName = currentUser.LastName;
-                SimRequest.Organization = currentUser.Organization?.Name;
-                SimRequest.Office = currentUser.Office?.Name;
-                SimRequest.OfficialEmail = currentUser.Email ?? string.Empty;
+                // Auto-populate name
+                SimRequest.FirstName = user.FirstName;
+                SimRequest.LastName = user.LastName;
+
+                // Auto-populate organization
+                if (user.Organization != null)
+                {
+                    SimRequest.Organization = user.Organization.Name ?? string.Empty;
+                    PreSelectedOrganizationId = user.OrganizationId;
+                }
+
+                // Auto-populate office
+                if (user.Office != null)
+                {
+                    SimRequest.Office = user.Office.Name ?? string.Empty;
+                }
+
+                // Auto-populate official email
+                SimRequest.OfficialEmail = user.Email ?? string.Empty;
+            }
+
+            // Get additional info from EbillUser
+            var ebillUser = await _context.EbillUsers
+                .FirstOrDefaultAsync(u => u.Email == currentUser.Email);
+
+            if (ebillUser != null)
+            {
+                // Auto-populate index number
+                if (!string.IsNullOrEmpty(ebillUser.IndexNumber))
+                {
+                    SimRequest.IndexNo = ebillUser.IndexNumber;
+                }
+
+                // Auto-populate supervisor details
+                if (!string.IsNullOrEmpty(ebillUser.SupervisorEmail))
+                {
+                    SimRequest.Supervisor = ebillUser.SupervisorEmail;
+                }
+
+                if (!string.IsNullOrEmpty(ebillUser.SupervisorName))
+                {
+                    SimRequest.SupervisorName = ebillUser.SupervisorName;
+                }
             }
         }
 

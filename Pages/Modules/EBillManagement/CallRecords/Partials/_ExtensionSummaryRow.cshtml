@@ -1,4 +1,4 @@
-@model (string GroupId, string Extension, string MonthName, int Year, int CallCount, decimal TotalCostUSD, decimal TotalCostKSH, decimal TotalRecovered)
+@model (string GroupId, string Extension, string MonthName, int Year, int CallCount, decimal TotalCostUSD, decimal TotalCostKSH, decimal TotalRecoveredUSD, decimal TotalRecoveredKSH, bool IsPrivateWirePrimary, decimal OfficialUSD, decimal OfficialKSH, decimal PersonalUSD, decimal PersonalKSH)
 
 @* Extension Summary Row (Level 1) - Always visible *@
 <tr class="extension-summary-row" style="background-color: #f8f9fa; font-weight: 600;">
@@ -21,10 +21,82 @@
         }
     </td>
     <td class="px-3 py-2" onclick="toggleCallDetails('@Model.GroupId')" style="cursor: pointer;"><strong>KSh @Model.TotalCostKSH.ToString("N2")</strong></td>
+
+    @* Official Totals Column *@
     <td class="px-3 py-2" onclick="toggleCallDetails('@Model.GroupId')" style="cursor: pointer;">
-        @if (Model.TotalRecovered > 0)
+        @if (Model.OfficialUSD > 0 || Model.OfficialKSH > 0)
         {
-            <span class="text-danger">$@Model.TotalRecovered.ToString("N2")</span>
+            <div class="d-flex flex-column gap-1" style="line-height: 1.3;">
+                @if (Model.OfficialUSD > 0)
+                {
+                    <div>
+                        <span class="badge bg-success bg-opacity-10 text-success" style="font-size: 0.75rem; padding: 0.25rem 0.5rem;">
+                            <i class="bi bi-currency-dollar me-1"></i>USD: $@Model.OfficialUSD.ToString("N2")
+                        </span>
+                    </div>
+                }
+                @if (Model.OfficialKSH > 0)
+                {
+                    <div>
+                        <span class="badge bg-success bg-opacity-10 text-success" style="font-size: 0.75rem; padding: 0.25rem 0.5rem;">
+                            <i class="bi bi-cash me-1"></i>KSh: @Model.OfficialKSH.ToString("N2")
+                        </span>
+                    </div>
+                }
+            </div>
+        }
+        else
+        {
+            <span class="text-muted" style="font-size: 0.875rem;">-</span>
+        }
+    </td>
+
+    @* Personal Totals Column *@
+    <td class="px-3 py-2" onclick="toggleCallDetails('@Model.GroupId')" style="cursor: pointer;">
+        @if (Model.PersonalUSD > 0 || Model.PersonalKSH > 0)
+        {
+            <div class="d-flex flex-column gap-1" style="line-height: 1.3;">
+                @if (Model.PersonalUSD > 0)
+                {
+                    <div>
+                        <span class="badge bg-warning bg-opacity-10 text-warning" style="font-size: 0.75rem; padding: 0.25rem 0.5rem;">
+                            <i class="bi bi-currency-dollar me-1"></i>USD: $@Model.PersonalUSD.ToString("N2")
+                        </span>
+                    </div>
+                }
+                @if (Model.PersonalKSH > 0)
+                {
+                    <div>
+                        <span class="badge bg-warning bg-opacity-10 text-warning" style="font-size: 0.75rem; padding: 0.25rem 0.5rem;">
+                            <i class="bi bi-cash me-1"></i>KSh: @Model.PersonalKSH.ToString("N2")
+                        </span>
+                    </div>
+                }
+            </div>
+        }
+        else
+        {
+            <span class="text-muted" style="font-size: 0.875rem;">-</span>
+        }
+    </td>
+
+    <td class="px-3 py-2" onclick="toggleCallDetails('@Model.GroupId')" style="cursor: pointer;">
+        @if (Model.TotalRecoveredUSD > 0 || Model.TotalRecoveredKSH > 0)
+        {
+            @if (Model.IsPrivateWirePrimary)
+            {
+                @* PrivateWire primary - show USD amount *@
+                <span class="text-danger">
+                    <i class="bi bi-currency-dollar me-1"></i>$@Model.TotalRecoveredUSD.ToString("N2")
+                </span>
+            }
+            else
+            {
+                @* KSH-based sources (Safaricom/Airtel/PSTN) - show KSH amount *@
+                <span class="text-danger">
+                    <i class="bi bi-cash me-1"></i>KSh @Model.TotalRecoveredKSH.ToString("N2")
+                </span>
+            }
         }
         else
         {

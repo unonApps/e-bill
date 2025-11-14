@@ -134,7 +134,7 @@ namespace TAB.Web.Services
                 // Create new ApplicationUser
                 var applicationUser = new ApplicationUser
                 {
-                    UserName = ebillUser.Email,
+                    UserName = SanitizeUsername(ebillUser.Email), // Sanitize username to avoid invalid characters
                     Email = ebillUser.Email,
                     FirstName = ebillUser.FirstName,
                     LastName = ebillUser.LastName,
@@ -322,6 +322,32 @@ namespace TAB.Web.Services
         {
             var ebillUser = await _context.EbillUsers.FindAsync(ebillUserId);
             return ebillUser?.HasLoginAccount ?? false;
+        }
+
+        private string SanitizeUsername(string email)
+        {
+            // ASP.NET Core Identity username validator only allows letters, digits, and these special chars: @.-_
+            // Replace any invalid characters with underscore
+            var sanitized = new System.Text.StringBuilder();
+
+            foreach (char c in email)
+            {
+                if (char.IsLetterOrDigit(c) || c == '@' || c == '.' || c == '-' || c == '_')
+                {
+                    sanitized.Append(c);
+                }
+                else
+                {
+                    // Replace invalid characters (like apostrophe) with underscore
+                    sanitized.Append('_');
+                }
+            }
+
+            var username = sanitized.ToString();
+
+            _logger.LogInformation("Sanitized username from '{Email}' to '{Username}'", email, username);
+
+            return username;
         }
 
         private string GenerateTemporaryPassword()
