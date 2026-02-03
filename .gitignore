@@ -1,5 +1,27 @@
+# IDE
 .vs/
-.claude/
-.github/
+.vscode/
+*.user
+
+# Build outputs
 obj/
 bin/
+publish/
+
+# Deployment artifacts
+deploy-to-iis*.zip
+deploy-to-iis*.tar.gz
+*.zip
+
+# Logs and temp files
+*.log
+nul
+
+# App data
+App_Data/
+
+# User uploads (keep structure, ignore content)
+wwwroot/uploads/**/
+
+# Development Team
+.claude/

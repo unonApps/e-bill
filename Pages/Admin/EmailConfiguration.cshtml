@@ -516,12 +516,13 @@
 
                     <div class="row mb-3">
                         <div class="col-md-6">
-                            <label asp-for="Configuration.Username" class="form-label-modern">Username <span class="text-danger">*</span></label>
-                            <input asp-for="Configuration.Username" class="form-control-modern" placeholder="your-email@example.com" required />
+                            <label asp-for="Configuration.Username" class="form-label-modern">Username</label>
+                            <input asp-for="Configuration.Username" class="form-control-modern" placeholder="your-email@example.com (optional)" />
                             <span asp-validation-for="Configuration.Username" class="text-danger"></span>
+                            <small class="help-text">Leave empty if using Default Credentials</small>
                         </div>
                         <div class="col-md-6">
-                            <label asp-for="Configuration.Password" class="form-label-modern">Password <span class="text-danger">*</span></label>
+                            <label asp-for="Configuration.Password" class="form-label-modern">Password</label>
                             @if (Model.Configuration.Id > 0 && !string.IsNullOrEmpty(Model.Configuration.Password))
                             {
                                 <input asp-for="Configuration.Password" class="form-control-modern" type="password" placeholder="Leave empty to keep current password" />
@@ -529,10 +530,10 @@
                             }
                             else
                             {
-                                <input asp-for="Configuration.Password" class="form-control-modern" type="password" placeholder="Enter password" required />
+                                <input asp-for="Configuration.Password" class="form-control-modern" type="password" placeholder="Enter password (optional)" />
                             }
                             <span asp-validation-for="Configuration.Password" class="text-danger"></span>
-                            <small class="help-text">For Gmail, use an <a href="https://support.google.com/accounts/answer/185833" target="_blank">app password</a></small>
+                            <small class="help-text">Leave empty for internal SMTP relays. For Gmail, use an <a href="https://support.google.com/accounts/answer/185833" target="_blank">app password</a></small>
                         </div>
                     </div>
 

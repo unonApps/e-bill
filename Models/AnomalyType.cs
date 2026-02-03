@@ -64,7 +64,6 @@ namespace TAB.Web.Models
     {
         public const string NoUser = "NO_USER";
         public const string InactiveUser = "INACTIVE_USER";
-        public const string HighCost = "HIGH_COST";
         public const string Duplicate = "DUPLICATE";
         public const string InvalidNumber = "INVALID_NUMBER";
         public const string FutureDate = "FUTURE_DATE";

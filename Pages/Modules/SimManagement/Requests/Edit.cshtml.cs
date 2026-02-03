@@ -88,7 +88,10 @@ namespace TAB.Web.Pages.Modules.SimManagement.Requests
                 return Page();
             }
 
-            if (!ModelState.IsValid)
+            // Skip validation for drafts - allow saving incomplete forms
+            bool isDraft = action == "draft";
+
+            if (!isDraft && !ModelState.IsValid)
             {
                 StatusMessage = "Please correct the errors below.";
                 StatusMessageClass = "danger";
@@ -96,22 +99,49 @@ namespace TAB.Web.Pages.Modules.SimManagement.Requests
                 return Page();
             }
 
+            // Validate required fields only when submitting (not for drafts)
+            if (!isDraft)
+            {
+                if (string.IsNullOrWhiteSpace(SimRequest.IndexNo) ||
+                    string.IsNullOrWhiteSpace(SimRequest.FirstName) ||
+                    string.IsNullOrWhiteSpace(SimRequest.LastName) ||
+                    string.IsNullOrWhiteSpace(SimRequest.Organization) ||
+                    string.IsNullOrWhiteSpace(SimRequest.Office) ||
+                    string.IsNullOrWhiteSpace(SimRequest.Grade) ||
+                    string.IsNullOrWhiteSpace(SimRequest.FunctionalTitle) ||
+                    string.IsNullOrWhiteSpace(SimRequest.OfficialEmail) ||
+                    string.IsNullOrWhiteSpace(SimRequest.Supervisor) ||
+                    !SimRequest.ServiceProviderId.HasValue || SimRequest.ServiceProviderId.Value == 0)
+                {
+                    StatusMessage = "Please fill in all required fields marked with *.";
+                    StatusMessageClass = "danger";
+                    SimRequest = existingRequest;
+                    return Page();
+                }
+            }
+
+            // For drafts, ensure ServiceProviderId is null if not selected (to avoid FK constraint)
+            if (isDraft && (!SimRequest.ServiceProviderId.HasValue || SimRequest.ServiceProviderId.Value == 0))
+            {
+                SimRequest.ServiceProviderId = null;
+            }
+
             // Note: Multiple SIM requests are allowed for the same Index Number
             // as one staff member can have multiple SIM cards (e.g., personal, official)
 
-            // Update request properties
-            existingRequest.IndexNo = SimRequest.IndexNo?.Trim();
-            existingRequest.FirstName = SimRequest.FirstName?.Trim();
-            existingRequest.LastName = SimRequest.LastName?.Trim();
-            existingRequest.Organization = SimRequest.Organization?.Trim();
-            existingRequest.Office = SimRequest.Office?.Trim();
-            existingRequest.Grade = SimRequest.Grade?.Trim();
-            existingRequest.FunctionalTitle = SimRequest.FunctionalTitle?.Trim();
+            // Update request properties - provide default empty values for drafts to avoid NULL constraints
+            existingRequest.IndexNo = string.IsNullOrWhiteSpace(SimRequest.IndexNo) ? (isDraft ? "" : SimRequest.IndexNo) : SimRequest.IndexNo.Trim();
+            existingRequest.FirstName = string.IsNullOrWhiteSpace(SimRequest.FirstName) ? (isDraft ? "" : SimRequest.FirstName) : SimRequest.FirstName.Trim();
+            existingRequest.LastName = string.IsNullOrWhiteSpace(SimRequest.LastName) ? (isDraft ? "" : SimRequest.LastName) : SimRequest.LastName.Trim();
+            existingRequest.Organization = string.IsNullOrWhiteSpace(SimRequest.Organization) ? (isDraft ? "" : SimRequest.Organization) : SimRequest.Organization.Trim();
+            existingRequest.Office = string.IsNullOrWhiteSpace(SimRequest.Office) ? (isDraft ? "" : SimRequest.Office) : SimRequest.Office.Trim();
+            existingRequest.Grade = string.IsNullOrWhiteSpace(SimRequest.Grade) ? (isDraft ? "" : SimRequest.Grade) : SimRequest.Grade.Trim();
+            existingRequest.FunctionalTitle = string.IsNullOrWhiteSpace(SimRequest.FunctionalTitle) ? (isDraft ? "" : SimRequest.FunctionalTitle) : SimRequest.FunctionalTitle.Trim();
             existingRequest.OfficeExtension = SimRequest.OfficeExtension?.Trim();
-            existingRequest.OfficialEmail = SimRequest.OfficialEmail?.Trim();
+            existingRequest.OfficialEmail = string.IsNullOrWhiteSpace(SimRequest.OfficialEmail) ? (isDraft ? "" : SimRequest.OfficialEmail) : SimRequest.OfficialEmail.Trim();
             existingRequest.SimType = SimRequest.SimType;
             existingRequest.ServiceProviderId = SimRequest.ServiceProviderId;
-            existingRequest.Supervisor = SimRequest.Supervisor?.Trim();
+            existingRequest.Supervisor = string.IsNullOrWhiteSpace(SimRequest.Supervisor) ? (isDraft ? "" : SimRequest.Supervisor) : SimRequest.Supervisor.Trim();
             existingRequest.PreviouslyAssignedLines = SimRequest.PreviouslyAssignedLines?.Trim();
             existingRequest.Remarks = SimRequest.Remarks?.Trim();
 
@@ -167,22 +197,23 @@ namespace TAB.Web.Pages.Modules.SimManagement.Requests
                 })
                 .ToListAsync();
 
-            // Load Organizations
+            // Load Organizations with abbreviations
             Organizations = await _context.Organizations
                 .Select(o => new SelectListItem
                 {
                     Value = o.Name,
-                    Text = o.Name ?? "Unknown Organization"
+                    Text = !string.IsNullOrEmpty(o.Code) ? $"{o.Code} - {o.Name}" : o.Name ?? "Unknown Organization"
                 })
                 .ToListAsync();
 
-            // Load Offices
+            // Load Offices with Organization relationship
             Offices = await _context.Offices
                 .Include(o => o.Organization)
                 .Select(o => new SelectListItem
                 {
                     Value = o.Name,
-                    Text = o.Name ?? "Unknown Office"
+                    Text = o.Name ?? "Unknown Office",
+                    Group = new SelectListGroup { Name = o.Organization.Name ?? "Unknown" }
                 })
                 .ToListAsync();
 

@@ -57,7 +57,7 @@
     }
 
     .btn-export {
-        background: linear-gradient(135deg, #f59e0b 0%, #d97706 100%);
+        background: #f59e0b;
         border: none;
         color: white;
         padding: 0.625rem 1.25rem;
@@ -85,7 +85,7 @@
     }
 
     .modern-card-header {
-        background: linear-gradient(135deg, #f8f9fa 0%, #e9ecef 100%);
+        background: #f8f9fa;
         border: none;
         padding: 1.25rem 1.5rem;
         border-bottom: 2px solid #e5e7eb;
@@ -198,6 +198,87 @@
     .empty-hint {
         color: #9ca3af;
         font-size: 0.938rem;
+    }
+
+    .pagination-container {
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        padding: 1rem 0;
+        border-top: 1px solid #e5e7eb;
+        margin-top: 1rem;
+        flex-wrap: wrap;
+        gap: 1rem;
+    }
+
+    .pagination-info {
+        color: #6b7280;
+        font-size: 0.875rem;
+    }
+
+    .pagination-info strong {
+        color: #1f2937;
+    }
+
+    .pagination-controls {
+        display: flex;
+        align-items: center;
+        gap: 0.5rem;
+    }
+
+    .pagination-btn {
+        display: inline-flex;
+        align-items: center;
+        justify-content: center;
+        min-width: 36px;
+        height: 36px;
+        padding: 0 0.75rem;
+        border: 1px solid #e5e7eb;
+        background: white;
+        color: #374151;
+        border-radius: 8px;
+        font-size: 0.875rem;
+        font-weight: 500;
+        text-decoration: none;
+        transition: all 0.15s;
+    }
+
+    .pagination-btn:hover:not(.disabled):not(.active) {
+        background: #f3f4f6;
+        border-color: #d1d5db;
+        color: #1f2937;
+    }
+
+    .pagination-btn.active {
+        background: #009edb;
+        border-color: #009edb;
+        color: white;
+    }
+
+    .pagination-btn.disabled {
+        opacity: 0.5;
+        cursor: not-allowed;
+        pointer-events: none;
+    }
+
+    .page-size-selector {
+        display: flex;
+        align-items: center;
+        gap: 0.5rem;
+    }
+
+    .page-size-selector label {
+        color: #6b7280;
+        font-size: 0.875rem;
+        margin: 0;
+    }
+
+    .page-size-selector select {
+        border: 1px solid #e5e7eb;
+        border-radius: 8px;
+        padding: 0.375rem 0.75rem;
+        font-size: 0.875rem;
+        background: white;
     }
 </style>
 
@@ -372,14 +453,14 @@
                     <div class="info-alert">
                         <i class="bi bi-info-circle" style="font-size: 1.25rem; color: #3b82f6;"></i>
                         <div style="flex: 1;">
-                            <strong>Total Recoverable:</strong>
-                            @foreach (var currencyGroup in Model.FinanceRecoveryDetails.GroupBy(f => f.Currency).OrderBy(g => g.Key))
+                            <strong>Total Recoverable (All Pages):</strong>
+                            @foreach (var currencyTotal in Model.FinanceTotalsByCurrency.OrderBy(c => c.Key))
                             {
                                 <span class="currency-badge">
-                                    @currencyGroup.Key: @currencyGroup.Sum(f => f.Amount).ToString("N2")
+                                    @currencyTotal.Key: @currencyTotal.Value.ToString("N2")
                                 </span>
                             }
-                            <strong style="margin-left: 1rem; color: #1e40af;">Total Staff: @Model.FinanceRecoveryDetails.Count</strong>
+                            <strong style="margin-left: 1rem; color: #1e40af;">Total Staff: @Model.FinanceTotalRecords</strong>
                         </div>
                     </div>
 
@@ -462,7 +543,7 @@
                             </tbody>
                             <tfoot>
                                 <tr>
-                                    <td colspan="3" class="text-end"><strong>Total:</strong></td>
+                                    <td colspan="3" class="text-end"><strong>Page Total:</strong></td>
                                     <td class="text-end">
                                         <strong style="color: #dc2626; font-size: 1.1rem;">@Model.FinanceRecoveryDetails.Sum(f => f.Amount).ToString("N2")</strong>
                                     </td>
@@ -471,6 +552,66 @@
                             </tfoot>
                         </table>
                     </div>
+
+                    <!-- Pagination Controls -->
+                    @if (Model.FinanceTotalPages > 1)
+                    {
+                        <div class="pagination-container">
+                            <div class="pagination-info">
+                                Showing <strong>@(((Model.FinancePage - 1) * Model.FinancePageSize) + 1)</strong> to
+                                <strong>@Math.Min(Model.FinancePage * Model.FinancePageSize, Model.FinanceTotalRecords)</strong>
+                                of <strong>@Model.FinanceTotalRecords</strong> records
+                            </div>
+                            <div class="pagination-controls">
+                                @{
+                                    var baseUrl = $"?StartDate={Model.StartDate?.ToString("yyyy-MM-dd")}&EndDate={Model.EndDate?.ToString("yyyy-MM-dd")}&BatchId={Model.BatchId}&RecoveryType={Model.RecoveryType}&FilterYear={Model.FilterYear}&FilterMonth={Model.FilterMonth}&FilterOrganizationId={Model.FilterOrganizationId}&FilterOfficeId={Model.FilterOfficeId}&FilterSubOfficeId={Model.FilterSubOfficeId}&SearchText={Model.SearchText}";
+                                }
+
+                                <!-- First Page -->
+                                <a href="@(baseUrl)&FinancePage=1" class="pagination-btn @(Model.FinancePage == 1 ? "disabled" : "")" title="First Page">
+                                    <i class="bi bi-chevron-double-left"></i>
+                                </a>
+
+                                <!-- Previous Page -->
+                                <a href="@(baseUrl)&FinancePage=@(Model.FinancePage - 1)" class="pagination-btn @(Model.FinancePage == 1 ? "disabled" : "")" title="Previous Page">
+                                    <i class="bi bi-chevron-left"></i>
+                                </a>
+
+                                <!-- Page Numbers -->
+                                @{
+                                    var startPage = Math.Max(1, Model.FinancePage - 2);
+                                    var endPage = Math.Min(Model.FinanceTotalPages, startPage + 4);
+                                    if (endPage - startPage < 4)
+                                    {
+                                        startPage = Math.Max(1, endPage - 4);
+                                    }
+                                }
+
+                                @for (int i = startPage; i <= endPage; i++)
+                                {
+                                    <a href="@(baseUrl)&FinancePage=@i" class="pagination-btn @(i == Model.FinancePage ? "active" : "")">@i</a>
+                                }
+
+                                <!-- Next Page -->
+                                <a href="@(baseUrl)&FinancePage=@(Model.FinancePage + 1)" class="pagination-btn @(Model.FinancePage == Model.FinanceTotalPages ? "disabled" : "")" title="Next Page">
+                                    <i class="bi bi-chevron-right"></i>
+                                </a>
+
+                                <!-- Last Page -->
+                                <a href="@(baseUrl)&FinancePage=@Model.FinanceTotalPages" class="pagination-btn @(Model.FinancePage == Model.FinanceTotalPages ? "disabled" : "")" title="Last Page">
+                                    <i class="bi bi-chevron-double-right"></i>
+                                </a>
+                            </div>
+                        </div>
+                    }
+                    else if (Model.FinanceTotalRecords > 0)
+                    {
+                        <div class="pagination-container">
+                            <div class="pagination-info">
+                                Showing <strong>@Model.FinanceTotalRecords</strong> record@(Model.FinanceTotalRecords == 1 ? "" : "s")
+                            </div>
+                        </div>
+                    }
 
                     <div class="mt-4">
                         <button type="button" class="btn-export" onclick="document.getElementById('exportFinanceForm').submit()">
@@ -496,6 +637,13 @@
     <input type="hidden" name="EndDate" value="@Model.EndDate?.ToString("yyyy-MM-dd")" />
     <input type="hidden" name="BatchId" value="@Model.BatchId" />
     <input type="hidden" name="RecoveryType" value="@Model.RecoveryType" />
+    <input type="hidden" name="FilterYear" value="@Model.FilterYear" />
+    <input type="hidden" name="FilterMonth" value="@Model.FilterMonth" />
+    <input type="hidden" name="FilterOrganizationId" value="@Model.FilterOrganizationId" />
+    <input type="hidden" name="FilterOfficeId" value="@Model.FilterOfficeId" />
+    <input type="hidden" name="FilterSubOfficeId" value="@Model.FilterSubOfficeId" />
+    <input type="hidden" name="SearchText" value="@Model.SearchText" />
+    <!-- Note: Export always exports ALL records regardless of pagination -->
 </form>
 
 @section Scripts {

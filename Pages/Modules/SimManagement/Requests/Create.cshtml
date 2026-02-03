@@ -8,6 +8,10 @@
     ViewData["Breadcrumb"] = "Services / SIM Card Requests / Create";
 }
 
+<!-- Select2 CSS -->
+<link href="https://cdn.jsdelivr.net/npm/select2@4.1.0-rc.0/dist/css/select2.min.css" rel="stylesheet" />
+<link href="https://cdn.jsdelivr.net/npm/select2-bootstrap-5-theme@1.3.0/dist/select2-bootstrap-5-theme.min.css" rel="stylesheet" />
+
 <style>
     /* Container and Layout */
     .form-container {
@@ -559,9 +563,30 @@
     .back-button:hover {
         background: #f9fafb;
         color: #374151;
-        transform: translateY(-2px);
-        box-shadow: 0 8px 20px rgba(0,0,0,0.15);
-        text-decoration: none;
+    }
+
+    /* Select2 Custom Styling */
+    .select2-container--bootstrap-5 .select2-selection {
+        height: calc(3.5rem + 2px);
+        padding: 1rem 0.75rem 0.25rem;
+        font-size: 1rem;
+        border: 1px solid #e2e8f0;
+        border-radius: 8px;
+    }
+
+    .select2-container--bootstrap-5 .select2-selection--single .select2-selection__rendered {
+        padding: 0;
+        line-height: normal;
+    }
+
+    .org-code-bold {
+        font-weight: 700;
+        color: #1a202c;
+        margin-right: 0.25rem;
+    }
+
+    .select2-results__option {
+        padding: 0.5rem 0.75rem;
     }
     
     /* Responsive Design for Laptops and Smaller Screens */
@@ -712,7 +737,7 @@
                         <div class="row g-3">
                             <div class="col-12 col-md-4">
                                 <div class="form-floating">
-                                    <input asp-for="SimRequest.IndexNo" class="form-control" placeholder="Index No" required />
+                                    <input asp-for="SimRequest.IndexNo" class="form-control" placeholder="Index No" data-val-required-on-submit="true" />
                                     <label asp-for="SimRequest.IndexNo">
                                         <span class="text-danger">*</span> Index No
                                     </label>
@@ -721,7 +746,7 @@
                             </div>
                             <div class="col-12 col-md-4">
                                 <div class="form-floating">
-                                    <input asp-for="SimRequest.FirstName" class="form-control" placeholder="First Name" required />
+                                    <input asp-for="SimRequest.FirstName" class="form-control" placeholder="First Name" data-val-required-on-submit="true" />
                                     <label asp-for="SimRequest.FirstName">
                                         <span class="text-danger">*</span> First Name
                                     </label>
@@ -730,7 +755,7 @@
                             </div>
                             <div class="col-12 col-md-4">
                                 <div class="form-floating">
-                                    <input asp-for="SimRequest.LastName" class="form-control" placeholder="Last Name" required />
+                                    <input asp-for="SimRequest.LastName" class="form-control" placeholder="Last Name" data-val-required-on-submit="true" />
                                     <label asp-for="SimRequest.LastName">
                                         <span class="text-danger">*</span> Last Name
                                     </label>
@@ -748,7 +773,7 @@
                         <div class="row g-3">
                             <div class="col-12 col-md-6">
                                 <div class="form-floating dropdown-field">
-                                    <select asp-for="SimRequest.Organization" class="form-select" required>
+                                    <select asp-for="SimRequest.Organization" class="form-select" data-val-required-on-submit="true">
                                         <option value="">Select Organization</option>
                                         @foreach (var org in Model.Organizations)
                                         {
@@ -763,7 +788,7 @@
                             </div>
                             <div class="col-12 col-md-6">
                                 <div class="form-floating dropdown-field">
-                                    <select asp-for="SimRequest.Office" class="form-select" required>
+                                    <select asp-for="SimRequest.Office" class="form-select" data-val-required-on-submit="true">
                                         <option value="">Select Office</option>
                                         @foreach (var office in Model.Offices)
                                         {
@@ -787,7 +812,7 @@
                         <div class="row g-3">
                             <div class="col-12 col-md-6">
                                 <div class="form-floating">
-                                    <input asp-for="SimRequest.Grade" class="form-control" placeholder="Grade" required />
+                                    <input asp-for="SimRequest.Grade" class="form-control" placeholder="Grade" data-val-required-on-submit="true" />
                                     <label asp-for="SimRequest.Grade">
                                         <span class="text-danger">*</span> Grade
                                     </label>
@@ -796,7 +821,7 @@
                             </div>
                             <div class="col-12 col-md-6">
                                 <div class="form-floating">
-                                    <input asp-for="SimRequest.FunctionalTitle" class="form-control" placeholder="Functional Title" required />
+                                    <input asp-for="SimRequest.FunctionalTitle" class="form-control" placeholder="Functional Title" data-val-required-on-submit="true" />
                                     <label asp-for="SimRequest.FunctionalTitle">
                                         <span class="text-danger">*</span> Functional Title
                                     </label>
@@ -821,7 +846,7 @@
                             </div>
                             <div class="col-12 col-md-6">
                                 <div class="form-floating">
-                                    <input asp-for="SimRequest.OfficialEmail" type="email" class="form-control" placeholder="Official Email" required />
+                                    <input asp-for="SimRequest.OfficialEmail" type="email" class="form-control" placeholder="Official Email" data-val-required-on-submit="true" />
                                     <label asp-for="SimRequest.OfficialEmail">
                                         <span class="text-danger">*</span> Official Email
                                     </label>
@@ -830,11 +855,94 @@
                             </div>
                         </div>
                     </div>
+
+                    <!-- Supervisor Details Section -->
+                    <div class="form-section">
+                        <h6 class="section-header">
+                            <i class="bi bi-person-badge section-icon"></i>Supervisor Details
+                        </h6>
+                        <div class="row g-3">
+                            <div class="col-12 col-md-6">
+                                <div class="form-floating">
+                                    <input asp-for="SimRequest.Supervisor" type="email" class="form-control" placeholder="Supervisor Email" data-val-required-on-submit="true" />
+                                    <label asp-for="SimRequest.Supervisor">
+                                        <span class="text-danger">*</span> Supervisor Email
+                                    </label>
+                                    <span asp-validation-for="SimRequest.Supervisor" class="text-danger"></span>
+                                </div>
+                            </div>
+                            <div class="col-12 col-md-6">
+                                <div class="form-floating">
+                                    <input asp-for="SimRequest.SupervisorName" class="form-control" placeholder="Supervisor Name" />
+                                    <label asp-for="SimRequest.SupervisorName">
+                                        Supervisor Name
+                                    </label>
+                                    <span asp-validation-for="SimRequest.SupervisorName" class="text-danger"></span>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
                 </div>
 
                 <!-- SIM Configuration Tab -->
                 <div class="tab-pane fade" id="sim-config" role="tabpanel" aria-labelledby="sim-config-tab">
-                    <!-- SIM Type Section -->
+                    <!-- Line Request Type Section - FIRST -->
+                    <div class="form-section">
+                        <h6 class="section-header">
+                            <i class="bi bi-telephone section-icon"></i>Line Request Type
+                        </h6>
+                        <div class="row g-3">
+                            <div class="col-12">
+                                <label class="form-label fw-semibold mb-3">
+                                    <span class="text-danger">*</span> Is this for a New Line or Existing Line?
+                                </label>
+                                <div class="row g-3">
+                                    <div class="col-6 col-md-3">
+                                        <input class="form-check-input d-none" type="radio" asp-for="SimRequest.LineRequestType"
+                                                   value="@LineRequestType.NewLine" id="newLine" checked />
+                                        <label class="sim-type-card w-100" for="newLine" id="newLineCard">
+                                            <i class="bi bi-plus-circle text-success sim-icon"></i>
+                                            <div class="sim-label">New Line</div>
+                                        </label>
+                                    </div>
+                                    <div class="col-6 col-md-3">
+                                        <input class="form-check-input d-none" type="radio" asp-for="SimRequest.LineRequestType"
+                                                   value="@LineRequestType.ExistingLine" id="existingLine" />
+                                        <label class="sim-type-card w-100" for="existingLine" id="existingLineCard">
+                                            <i class="bi bi-phone-vibrate text-warning sim-icon"></i>
+                                            <div class="sim-label">Existing Line</div>
+                                        </label>
+                                    </div>
+                                </div>
+                                <span asp-validation-for="SimRequest.LineRequestType" class="text-danger"></span>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Existing Phone Number Section (for Existing Line only) -->
+                    <div class="form-section" id="existingPhoneSection" style="display: none;">
+                        <h6 class="section-header">
+                            <i class="bi bi-telephone-fill section-icon"></i>Existing Phone Number
+                        </h6>
+                        <div class="row g-3">
+                            <div class="col-12 col-md-8">
+                                <div class="form-floating">
+                                    <input type="text" asp-for="SimRequest.ExistingPhoneNumber" class="form-control"
+                                           id="existingPhoneNumberInput" placeholder="Enter existing phone number"
+                                           data-val-required-on-submit="false" />
+                                    <label asp-for="SimRequest.ExistingPhoneNumber">
+                                        <span class="text-danger">*</span> Phone Number
+                                    </label>
+                                    <span asp-validation-for="SimRequest.ExistingPhoneNumber" class="text-danger"></span>
+                                </div>
+                                <div class="form-text mt-2">
+                                    <i class="bi bi-info-circle"></i> Enter the phone number you currently have (e.g., +254712345678)
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- SIM Type Section - SECOND (visible for both New and Existing) -->
                     <div class="form-section">
                         <h6 class="section-header">
                             <i class="bi bi-sim section-icon"></i>SIM Type Selection
@@ -846,7 +954,7 @@
                                 </label>
                                 <div class="row g-3">
                                     <div class="col-6 col-md-3">
-                                        <input class="form-check-input d-none" type="radio" asp-for="SimRequest.SimType" 
+                                        <input class="form-check-input d-none" type="radio" asp-for="SimRequest.SimType"
                                                    value="@SimType.Physical" id="physicalSim" />
                                         <label class="sim-type-card w-100" for="physicalSim" id="physicalCard">
                                             <i class="bi bi-sim text-primary sim-icon"></i>
@@ -854,7 +962,7 @@
                                         </label>
                                     </div>
                                     <div class="col-6 col-md-3">
-                                        <input class="form-check-input d-none" type="radio" asp-for="SimRequest.SimType" 
+                                        <input class="form-check-input d-none" type="radio" asp-for="SimRequest.SimType"
                                                    value="@SimType.ESim" id="esim" />
                                         <label class="sim-type-card w-100" for="esim" id="esimCard">
                                             <i class="bi bi-phone text-info sim-icon"></i>
@@ -867,15 +975,15 @@
                         </div>
                     </div>
 
-                    <!-- Service Provider Section -->
-                    <div class="form-section">
+                    <!-- Service Provider Section (for New Line only) -->
+                    <div class="form-section" id="serviceProviderSection">
                         <h6 class="section-header">
                             <i class="bi bi-broadcast section-icon"></i>Service Provider
                         </h6>
                         <div class="row g-3">
                             <div class="col-12 col-md-8">
                                 <div class="form-floating dropdown-field">
-                                    <select asp-for="SimRequest.ServiceProviderId" class="form-select" id="serviceProviderSelect" required>
+                                    <select asp-for="SimRequest.ServiceProviderId" class="form-select" id="serviceProviderSelect" data-val-required-on-submit="true">
                                         <option value="">-- Select Service Provider --</option>
                                         @foreach (var provider in Model.ServiceProviders)
                                         {
@@ -899,35 +1007,61 @@
                         <div class="row g-3">
                             <div class="col-12 col-md-6">
                                 <div class="form-floating">
-                                    <input asp-for="SimRequest.Supervisor" type="email" class="form-control" placeholder="Supervisor Email" required />
-                                    <label asp-for="SimRequest.Supervisor">
-                                        <span class="text-danger">*</span> Supervisor Email
-                                    </label>
-                                    <span asp-validation-for="SimRequest.Supervisor" class="text-danger"></span>
-                                </div>
-                            </div>
-                            <div class="col-12 col-md-6">
-                                <div class="form-floating">
-                                    <input asp-for="SimRequest.SupervisorName" class="form-control" placeholder="Supervisor Name" />
-                                    <label asp-for="SimRequest.SupervisorName">
-                                        Supervisor Name
-                                    </label>
-                                    <span asp-validation-for="SimRequest.SupervisorName" class="text-danger"></span>
-                                </div>
-                            </div>
-                            <div class="col-12 col-md-6">
-                                <div class="form-floating dropdown-field">
-                                    <select asp-for="SimRequest.PreviouslyAssignedLines" class="form-select" title="Indicate whether you have been previously assigned any mobile phone lines">
-                                        <option value="">Select Option</option>
-                                        <option value="Yes">Yes</option>
-                                        <option value="No">No</option>
-                                    </select>
+                                    <input type="text" asp-for="SimRequest.PreviouslyAssignedLines" class="form-control"
+                                           readonly style="background-color: #f3f4f6; cursor: not-allowed;" />
                                     <label asp-for="SimRequest.PreviouslyAssignedLines">
                                         Previously Assigned Lines
                                     </label>
-                                    <span asp-validation-for="SimRequest.PreviouslyAssignedLines" class="text-danger"></span>
+                                </div>
+                                <div class="form-text mt-2">
+                                    <i class="bi bi-info-circle"></i> Auto-computed based on your phone records
                                 </div>
                             </div>
+
+                            @if (Model.HasExistingLines && Model.ExistingPhones.Any())
+                            {
+                                <div class="col-12">
+                                    <div class="alert alert-info">
+                                        <h6 class="alert-heading mb-3">
+                                            <i class="bi bi-phone-fill me-2"></i>Your Currently Assigned Phone Numbers
+                                        </h6>
+                                        <div class="table-responsive">
+                                            <table class="table table-sm table-bordered mb-0">
+                                                <thead>
+                                                    <tr>
+                                                        <th>Phone Number</th>
+                                                        <th>Type</th>
+                                                        <th>Line Type</th>
+                                                        <th>Class of Service</th>
+                                                        <th>Assigned Date</th>
+                                                    </tr>
+                                                </thead>
+                                                <tbody>
+                                                    @foreach (var phone in Model.ExistingPhones)
+                                                    {
+                                                        <tr>
+                                                            <td>
+                                                                <strong>@phone.PhoneNumber</strong>
+                                                                @if (phone.IsPrimary)
+                                                                {
+                                                                    <span class="badge bg-success ms-2">Primary</span>
+                                                                }
+                                                            </td>
+                                                            <td>@phone.PhoneType</td>
+                                                            <td>
+                                                                <span class="badge bg-@phone.LineTypeBadgeColor">@phone.LineTypeDisplay</span>
+                                                            </td>
+                                                            <td>@(phone.ClassOfService?.Service ?? "N/A")</td>
+                                                            <td>@phone.AssignedDate.ToString("MMM dd, yyyy")</td>
+                                                        </tr>
+                                                    }
+                                                </tbody>
+                                            </table>
+                                        </div>
+                                    </div>
+                                </div>
+                            }
+
                             <div class="col-12">
                                 <div class="form-floating">
                                     <textarea asp-for="SimRequest.Remarks" class="form-control" placeholder="Remarks / Justification" rows="4" style="min-height: 100px;"></textarea>
@@ -943,22 +1077,22 @@
             <!-- Form Actions -->
             <div class="form-actions">
                 <div class="d-flex gap-3 justify-content-between flex-wrap">
-                    <button type="button" class="btn btn-modern btn-nav-tab" onclick="switchToTab('personal')">
+                    <button type="button" class="btn btn-modern btn-nav-tab" id="prevBtn" onclick="switchToTab('personal')">
                         <i class="bi bi-arrow-left me-2"></i>Previous
                     </button>
                     <div class="d-flex gap-2">
                         <a asp-page="Index" class="btn btn-modern btn-cancel">
                             <i class="bi bi-x-circle me-2"></i>Cancel
                         </a>
-                        <button type="submit" name="action" value="draft" class="btn btn-modern btn-draft">
+                        <button type="submit" name="action" value="draft" class="btn btn-modern btn-draft" formnovalidate>
                             <i class="bi bi-file-earmark me-2"></i>Save as Draft
                         </button>
-                        <button type="submit" name="action" value="submit" class="btn btn-modern btn-submit">
+                        <button type="submit" name="action" value="submit" class="btn btn-modern btn-submit" id="submitBtn">
                             <i class="bi bi-send me-2"></i>Submit Request
                         </button>
                     </div>
-                    <button type="button" class="btn btn-modern btn-nav-tab" onclick="switchToTab('sim-config')">
-                        Next<i class="bi bi-arrow-right ms-2"></i>
+                    <button type="button" class="btn btn-modern btn-nav-tab" id="nextBtn" onclick="switchToTab('sim-config')">
+                        SIM Configuration<i class="bi bi-arrow-right ms-2"></i>
                     </button>
                 </div>
             </div>
@@ -986,16 +1120,19 @@
     // Update navigation buttons based on active tab
     function updateNavigationButtons() {
         var activeTab = document.querySelector('.nav-link.active');
-        var prevBtn = document.querySelector('.btn-nav-tab:first-child');
-        var nextBtn = document.querySelector('.btn-nav-tab:last-child');
-        
+        var prevBtn = document.getElementById('prevBtn');
+        var nextBtn = document.getElementById('nextBtn');
+        var submitBtn = document.getElementById('submitBtn');
+
         if (activeTab) {
             if (activeTab.id === 'personal-tab') {
                 prevBtn.style.display = 'none';
                 nextBtn.style.display = 'inline-flex';
+                submitBtn.style.display = 'none';
             } else if (activeTab.id === 'sim-config-tab') {
                 prevBtn.style.display = 'inline-flex';
                 nextBtn.style.display = 'none';
+                submitBtn.style.display = 'inline-flex';
             }
         }
     }
@@ -1026,13 +1163,93 @@
     document.addEventListener('DOMContentLoaded', function() {
         // Initialize navigation buttons visibility
         updateNavigationButtons();
-        
+
         // Update navigation buttons when tabs change
         document.querySelectorAll('button[data-bs-toggle="tab"]').forEach(function(tabEl) {
             tabEl.addEventListener('shown.bs.tab', function() {
                 updateNavigationButtons();
             });
         });
+
+        // Handle Line Request Type toggle (New Line vs Existing Line)
+        const newLineRadio = document.getElementById('newLine');
+        const existingLineRadio = document.getElementById('existingLine');
+        const newLineCard = document.getElementById('newLineCard');
+        const existingLineCard = document.getElementById('existingLineCard');
+        const serviceProviderSection = document.getElementById('serviceProviderSection');
+        const existingPhoneSection = document.getElementById('existingPhoneSection');
+        const serviceProviderSelect = document.getElementById('serviceProviderSelect');
+        const existingPhoneNumberInput = document.getElementById('existingPhoneNumberInput');
+
+        function toggleLineRequestSections() {
+            if (existingLineRadio && existingLineRadio.checked) {
+                // Show existing phone section, hide service provider section
+                if (serviceProviderSection) serviceProviderSection.style.display = 'none';
+                if (existingPhoneSection) existingPhoneSection.style.display = 'block';
+
+                // Make service provider optional, make existing phone required
+                if (serviceProviderSelect) {
+                    serviceProviderSelect.removeAttribute('data-val-required-on-submit');
+                    serviceProviderSelect.required = false;
+                }
+                if (existingPhoneNumberInput) {
+                    existingPhoneNumberInput.setAttribute('data-val-required-on-submit', 'true');
+                    existingPhoneNumberInput.required = true;
+                }
+
+                // Update card styling
+                if (newLineCard) newLineCard.classList.remove('selected');
+                if (existingLineCard) existingLineCard.classList.add('selected');
+            } else {
+                // Show service provider section, hide existing phone section
+                if (serviceProviderSection) serviceProviderSection.style.display = 'block';
+                if (existingPhoneSection) existingPhoneSection.style.display = 'none';
+
+                // Make service provider required, make existing phone optional
+                if (serviceProviderSelect) {
+                    serviceProviderSelect.setAttribute('data-val-required-on-submit', 'true');
+                    serviceProviderSelect.required = true;
+                }
+                if (existingPhoneNumberInput) {
+                    existingPhoneNumberInput.removeAttribute('data-val-required-on-submit');
+                    existingPhoneNumberInput.required = false;
+                    existingPhoneNumberInput.value = ''; // Clear the value
+                }
+
+                // Update card styling
+                if (newLineCard) newLineCard.classList.add('selected');
+                if (existingLineCard) existingLineCard.classList.remove('selected');
+            }
+        }
+
+        // Initialize on page load
+        toggleLineRequestSections();
+
+        // Add event listeners for the radio buttons
+        if (newLineRadio) {
+            newLineRadio.addEventListener('change', toggleLineRequestSections);
+        }
+        if (existingLineRadio) {
+            existingLineRadio.addEventListener('change', toggleLineRequestSections);
+        }
+
+        // Add click listeners to the labels as well to ensure it works
+        if (newLineCard) {
+            newLineCard.addEventListener('click', function() {
+                if (newLineRadio) {
+                    newLineRadio.checked = true;
+                    toggleLineRequestSections();
+                }
+            });
+        }
+        if (existingLineCard) {
+            existingLineCard.addEventListener('click', function() {
+                if (existingLineRadio) {
+                    existingLineRadio.checked = true;
+                    toggleLineRequestSections();
+                }
+            });
+        }
         // Filter offices based on selected organization
         const organizationSelect = document.querySelector('select[name="SimRequest.Organization"]');
         const officeSelect = document.querySelector('select[name="SimRequest.Office"]');
@@ -1090,23 +1307,22 @@
                 filterOffices();
             }
 
-            // Filter when organization changes
-            organizationSelect.addEventListener('change', function() {
+            // Filter when organization changes (using Select2 event)
+            $('select[name="SimRequest.Organization"]').on('select2:select', function(e) {
                 filterOffices(false);
             });
         }
 
-        // Ensure Service Provider dropdown works
-        const serviceProviderSelect = document.getElementById('serviceProviderSelect');
+        // Ensure Service Provider dropdown works (reusing variable declared above)
         if (serviceProviderSelect) {
             // Remove any disabled state
             serviceProviderSelect.disabled = false;
-            
+
             // Log selection for debugging
             serviceProviderSelect.addEventListener('change', function() {
                 console.log('Service Provider selected:', this.value);
             });
-            
+
             // Ensure dropdown is clickable
             serviceProviderSelect.addEventListener('click', function(e) {
                 e.stopPropagation();
@@ -1156,9 +1372,124 @@
         });
 
         // Supervisor fields are now simple text inputs - no special JavaScript needed
+
+        // Client-side validation for Submit button only
+        const submitBtn = document.getElementById('submitBtn');
+        if (submitBtn) {
+            submitBtn.addEventListener('click', function(e) {
+                const requiredFields = document.querySelectorAll('[data-val-required-on-submit="true"]');
+                const missingFields = [];
+
+                requiredFields.forEach(function(field) {
+                    const value = field.value ? field.value.trim() : '';
+                    if (!value) {
+                        const label = field.closest('.form-floating')?.querySelector('label');
+                        let fieldName = label ? label.textContent.replace('*', '').trim() : field.name;
+                        missingFields.push(fieldName);
+                        field.classList.add('is-invalid');
+                    } else {
+                        field.classList.remove('is-invalid');
+                    }
+                });
+
+                // Check SIM Type radio button
+                const simTypeInputs = document.querySelectorAll('input[name="SimRequest.SimType"]');
+                let simTypeSelected = false;
+                simTypeInputs.forEach(function(input) {
+                    if (input.checked) simTypeSelected = true;
+                });
+
+                if (!simTypeSelected) {
+                    missingFields.push('SIM Type');
+                }
+
+                if (missingFields.length > 0) {
+                    e.preventDefault();
+
+                    // Show validation summary
+                    const validationSummary = document.querySelector('.validation-summary');
+                    if (validationSummary) {
+                        validationSummary.innerHTML = '<strong>Please fill in the following required fields:</strong><ul class="mb-0 mt-2">' +
+                            missingFields.map(f => '<li>' + f + '</li>').join('') + '</ul>';
+                        validationSummary.style.display = 'block';
+                    }
+
+                    // Scroll to top to show validation message
+                    window.scrollTo({ top: 0, behavior: 'smooth' });
+
+                    // Check tab validation and show indicator
+                    checkTabValidation();
+
+                    return false;
+                }
+            });
+        }
+
+        // Clear validation on field change
+        document.querySelectorAll('[data-val-required-on-submit="true"]').forEach(function(field) {
+            field.addEventListener('change', function() {
+                if (this.value && this.value.trim()) {
+                    this.classList.remove('is-invalid');
+                }
+            });
+            field.addEventListener('input', function() {
+                if (this.value && this.value.trim()) {
+                    this.classList.remove('is-invalid');
+                }
+            });
+        });
     });
 </script>
 
 @section Scripts {
     <partial name="_ValidationScriptsPartial" />
+
+    <!-- Select2 JS -->
+    <script src="https://cdn.jsdelivr.net/npm/select2@4.1.0-rc.0/dist/js/select2.min.js"></script>
+
+    <script>
+        // Initialize Select2 for organization dropdown with bold abbreviation
+        $(document).ready(function() {
+            $('select[name="SimRequest.Organization"]').select2({
+                theme: 'bootstrap-5',
+                width: '100%',
+                placeholder: 'Select Organization',
+                allowClear: false,
+                templateResult: formatOrganization,
+                templateSelection: formatOrganizationSelection
+            });
+
+            function formatOrganization(org) {
+                if (!org.id) {
+                    return org.text;
+                }
+
+                // Check if text contains " - " pattern (CODE - Name)
+                if (org.text.includes(' - ')) {
+                    var parts = org.text.split(' - ');
+                    var code = parts[0];
+                    var name = parts.slice(1).join(' - ');
+                    return $('<span><strong class="org-code-bold">' + code + '</strong> ' + name + '</span>');
+                }
+
+                return org.text;
+            }
+
+            function formatOrganizationSelection(org) {
+                if (!org.id) {
+                    return org.text;
+                }
+
+                // Check if text contains " - " pattern (CODE - Name)
+                if (org.text.includes(' - ')) {
+                    var parts = org.text.split(' - ');
+                    var code = parts[0];
+                    var name = parts.slice(1).join(' - ');
+                    return $('<span><strong class="org-code-bold">' + code + '</strong> ' + name + '</span>');
+                }
+
+                return org.text;
+            }
+        });
+    </script>
 }

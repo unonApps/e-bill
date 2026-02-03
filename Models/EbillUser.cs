@@ -24,20 +24,18 @@ namespace TAB.Web.Models
         [Display(Name = "Index Number")]
         public string IndexNumber { get; set; } = string.Empty;
 
-        [Required]
         [StringLength(20)]
         [Display(Name = "Official Mobile Number")]
         [Phone]
-        public string OfficialMobileNumber { get; set; } = string.Empty;
+        public string? OfficialMobileNumber { get; set; }
 
         [StringLength(100)]
         [Display(Name = "Issued Device ID")]
         public string? IssuedDeviceID { get; set; }
 
-        [Required]
         [EmailAddress]
         [StringLength(256)]
-        public string Email { get; set; } = string.Empty;
+        public string? Email { get; set; }
 
         [StringLength(200)]
         [Display(Name = "Location")]
@@ -82,6 +80,13 @@ namespace TAB.Web.Models
 
         [Display(Name = "Login Enabled")]
         public bool LoginEnabled { get; set; } = false;
+
+        // Auto-creation tracking
+        [Display(Name = "Auto Created")]
+        public bool IsAutoCreated { get; set; } = false;
+
+        [Display(Name = "Auto Created From Import Job")]
+        public Guid? AutoCreatedFromImportJobId { get; set; }
 
         // Computed property for full name
         public string FullName => $"{FirstName} {LastName}";

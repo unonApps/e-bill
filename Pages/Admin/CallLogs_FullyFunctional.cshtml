@@ -641,9 +641,9 @@
         <div class="card-header bg-light border-0 py-3">
             <h6 class="mb-0 fw-bold">
                 <i class="bi bi-clock-history me-2"></i>Recent Imports
-                @if (Model.SelectedImportAudit != null)
+                @if (Model.SelectedImportJob != null)
                 {
-                    <span class="badge bg-primary ms-2">Viewing Import #@Model.SelectedImportAudit.Id</span>
+                    <span class="badge bg-primary ms-2">Viewing Import #@Model.SelectedImportJob.Id</span>
                 }
             </h6>
         </div>
@@ -664,16 +664,16 @@
                     <tbody>
                         @foreach (var import in Model.RecentImports)
                         {
-                            <tr class="@(Model.ImportAuditId == import.Id ? "table-primary" : "")">
-                                <td>@import.ImportDate.ToString("MM/dd/yyyy HH:mm")</td>
-                                <td><span class="badge bg-secondary">@import.ImportType</span></td>
-                                <td title="@import.FileName">@(import.FileName.Length > 30 ? import.FileName.Substring(0, 27) + "..." : import.FileName)</td>
-                                <td>@import.TotalRecords</td>
-                                <td><span class="text-success">@import.SuccessCount</span></td>
+                            <tr class="@(Model.ImportJobId == import.Id ? "table-primary" : "")">
+                                <td>@import.CreatedDate.ToString("MM/dd/yyyy HH:mm")</td>
+                                <td><span class="badge bg-secondary">@import.CallLogType</span></td>
+                                <td title="@import.FileName">@(import.FileName != null && import.FileName.Length > 30 ? import.FileName.Substring(0, 27) + "..." : import.FileName ?? "N/A")</td>
+                                <td>@(import.RecordsProcessed ?? 0)</td>
+                                <td><span class="text-success">@(import.RecordsSuccess ?? 0)</span></td>
                                 <td>
-                                    @if (import.ErrorCount > 0)
+                                    @if ((import.RecordsError ?? 0) > 0)
                                     {
-                                        <span class="text-danger">@import.ErrorCount</span>
+                                        <span class="text-danger">@import.RecordsError</span>
                                     }
                                     else
                                     {
@@ -682,9 +682,9 @@
                                 </td>
                                 <td>
                                     <div class="btn-group btn-group-sm" role="group">
-                                        @if (Model.ImportAuditId != import.Id)
+                                        @if (Model.ImportJobId != import.Id)
                                         {
-                                            <a href="?ImportAuditId=@import.Id" class="btn btn-outline-primary" title="View Import">
+                                            <a href="?ImportJobId=@import.Id" class="btn btn-outline-primary" title="View Import">
                                                 <i class="bi bi-eye"></i>
                                             </a>
                                         }
@@ -694,7 +694,7 @@
                                                 <i class="bi bi-x-circle"></i>
                                             </a>
                                         }
-                                        <button type="button" class="btn btn-outline-info" onclick="viewImportDetails(@import.Id)" title="View Details">
+                                        <button type="button" class="btn btn-outline-info" onclick="viewImportDetails('@import.Id')" title="View Details">
                                             <i class="bi bi-info-circle"></i>
                                         </button>
                                     </div>

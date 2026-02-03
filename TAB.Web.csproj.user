@@ -2,6 +2,6 @@
 <Project ToolsVersion="Current" xmlns="http://schemas.microsoft.com/developer/msbuild/2003">
   <PropertyGroup>
     <ActiveDebugProfile>https</ActiveDebugProfile>
-    <NameOfLastUsedPublishProfile>C:\Users\dxmic\Desktop\Do Net Template\DoNetTemplate.Web\Properties\PublishProfiles\TABWeb20250926123812 - Zip Deploy.pubxml</NameOfLastUsedPublishProfile>
+    <NameOfLastUsedPublishProfile>C:\Users\dxmic\Desktop\2026 Development\1 ebill\DoNetTemplate.Web\.github\workflows\unoneBill.yml</NameOfLastUsedPublishProfile>
   </PropertyGroup>
 </Project>

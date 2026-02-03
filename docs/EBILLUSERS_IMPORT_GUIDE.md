@@ -36,7 +36,7 @@ The CSV must have these columns:
 - **OfficialMobileNumber** - User's mobile number
 - **FirstName** - User's first name
 - **LastName** - User's last name
-- **IndexNumber** - Unique employee ID
+- **IndexNumber** - Unique Staff ID
 - **Location** - Physical location/building
 - **Org** - Organization code (e.g., WHO, UNIC, UNON)
 - **Office** - Office code (e.g., KCO, SOM, VS)

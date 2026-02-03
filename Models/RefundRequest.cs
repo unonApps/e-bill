@@ -251,6 +251,9 @@ namespace TAB.Web.Models
         [StringLength(450)]
         [Display(Name = "Processed By")]
         public string? ProcessedBy { get; set; }
+
+        // Navigation property for history tracking
+        public virtual ICollection<RefundRequestHistory> History { get; set; } = new List<RefundRequestHistory>();
     }
 
     public enum RefundRequestStatus

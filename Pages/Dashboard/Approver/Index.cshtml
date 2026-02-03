@@ -102,8 +102,8 @@
 
 </div>
 
-<!-- Pending Items -->
-@if (Model.UrgentRequests.Any())
+<!-- All Pending Items (Combined Table) -->
+@if (Model.AllPendingRequests.Any() || Model.PendingCallLogStaff.Any())
 {
     <div class="pending-section">
         <div class="content-card pending-card">
@@ -112,7 +112,7 @@
                     <i class="bi bi-clock-history"></i>
                     <h3>Pending Items</h3>
                 </div>
-                <div class="pending-count-badge">@Model.UrgentRequests.Count</div>
+                <div class="pending-count-badge">@(Model.AllPendingRequests.Count(r => r.RequestType != TAB.Web.Models.RequestType.EBill) + Model.PendingCallLogStaff.Count) items</div>
             </div>
             <div class="card-content p-0">
                 <div class="table-responsive">
@@ -120,47 +120,65 @@
                         <thead>
                             <tr>
                                 <th style="width: 50px;">Type</th>
-                                <th>Request</th>
-                                <th style="width: 200px;">Staff</th>
-                                <th style="width: 120px;">Date</th>
-                                <th style="width: 120px;">Days Pending</th>
+                                <th>Request / Staff</th>
+                                <th style="width: 120px;">Details</th>
+                                <th style="width: 150px;">Date</th>
                                 <th style="width: 100px;">Action</th>
                             </tr>
                         </thead>
                         <tbody>
-                            @foreach (var urgent in Model.UrgentRequests)
+                            @* SIM and Refund Requests *@
+                            @foreach (var request in Model.AllPendingRequests.Where(r => r.RequestType != TAB.Web.Models.RequestType.EBill))
                             {
-                                <tr class="pending-row" style="cursor: pointer;" onclick="window.location.href='@GetDetailsUrl(urgent)'">
+                                <tr class="pending-row" style="cursor: pointer;" onclick="window.location.href='@GetDetailsUrl(request)'">
                                     <td>
-                                        <div class="urgent-icon-sm">
-                                            <i class="bi bi-@(urgent.RequestType == TAB.Web.Models.RequestType.SimCard ? "sim" :
-                                                             urgent.RequestType == TAB.Web.Models.RequestType.DeviceRefund ? "arrow-return-left" :
-                                                             "receipt-cutoff")"></i>
+                                        <div class="urgent-icon-sm @(request.RequestType == TAB.Web.Models.RequestType.SimCard ? "sim-type" : "refund-type")">
+                                            <i class="bi bi-@(request.RequestType == TAB.Web.Models.RequestType.SimCard ? "sim" : "arrow-return-left")"></i>
                                         </div>
                                     </td>
                                     <td>
-                                        <div class="urgent-title-sm">@urgent.RequestTitle</div>
-                                        <div class="urgent-status-sm">
-                                            <span class="badge badge-sm @Model.GetStatusBadgeClass(urgent.Status)">
-                                                @urgent.Status.Replace("Pending", "")
-                                            </span>
-                                        </div>
+                                        <div class="urgent-title-sm">@request.RequestTitle</div>
+                                        <div class="text-muted small">@request.StaffName</div>
                                     </td>
                                     <td>
-                                        <span class="staff-name-sm">@urgent.StaffName</span>
-                                    </td>
-                                    <td>
-                                        <span class="request-date-sm">@urgent.RequestDate.ToString("MMM dd, yyyy")</span>
-                                        <div class="request-time-sm">@urgent.RequestDate.ToString("hh:mm tt")</div>
-                                    </td>
-                                    <td>
-                                        <span class="days-pending-badge @(((DateTime.Now - urgent.RequestDate).Days > 7) ? "severe" : "warning")">
-                                            <i class="bi bi-clock-history me-1"></i>
-                                            @((DateTime.Now - urgent.RequestDate).Days) days
+                                        <span class="badge badge-sm @Model.GetStatusBadgeClass(request.Status)">
+                                            @request.Status.Replace("Pending", "")
                                         </span>
                                     </td>
                                     <td>
-                                        <button class="btn btn-sm btn-urgent-action" onclick="event.stopPropagation(); window.location.href='@GetDetailsUrl(urgent)'">
+                                        <span class="request-date-sm">@request.RequestDate.ToString("MMM dd, yyyy")</span>
+                                        <div class="request-time-sm">@request.RequestDate.ToString("hh:mm tt")</div>
+                                    </td>
+                                    <td>
+                                        <button class="btn btn-sm btn-urgent-action" onclick="event.stopPropagation(); window.location.href='@GetDetailsUrl(request)'">
+                                            <i class="bi bi-eye me-1"></i>Review
+                                        </button>
+                                    </td>
+                                </tr>
+                            }
+                            @* Call Log Approvals (grouped by staff) *@
+                            @foreach (var staff in Model.PendingCallLogStaff)
+                            {
+                                <tr class="pending-row" style="cursor: pointer;" onclick="window.location.href='/Modules/EBillManagement/CallRecords/SupervisorApprovals?filterUser=@staff.IndexNumber'">
+                                    <td>
+                                        <div class="urgent-icon-sm ebill-type">
+                                            <i class="bi bi-telephone-fill"></i>
+                                        </div>
+                                    </td>
+                                    <td>
+                                        <div class="urgent-title-sm">Call Log Verification</div>
+                                        <div class="text-muted small">@staff.StaffName (@staff.IndexNumber)</div>
+                                    </td>
+                                    <td>
+                                        <span class="badge bg-primary">@staff.TotalRecords records</span>
+                                        <div class="text-success small fw-bold">$@staff.TotalAmount.ToString("N2")</div>
+                                    </td>
+                                    <td>
+                                        <span class="request-date-sm">@staff.SubmittedDate.ToString("MMM dd, yyyy")</span>
+                                        <div class="request-time-sm">@staff.SubmittedDate.ToString("hh:mm tt")</div>
+                                    </td>
+                                    <td>
+                                        <button class="btn btn-sm btn-urgent-action" onclick="event.stopPropagation(); window.location.href='/Modules/EBillManagement/CallRecords/SupervisorApprovals?filterUser=@staff.IndexNumber'">
                                             <i class="bi bi-eye me-1"></i>Review
                                         </button>
                                     </td>
@@ -717,6 +735,18 @@
     font-size: 1rem;
 }
 
+.urgent-icon-sm.sim-type {
+    background: linear-gradient(135deg, #009EDB, #0084c7);
+}
+
+.urgent-icon-sm.refund-type {
+    background: linear-gradient(135deg, #10b981, #34d399);
+}
+
+.urgent-icon-sm.ebill-type {
+    background: linear-gradient(135deg, #f59e0b, #fbbf24);
+}
+
 .urgent-title-sm {
     font-weight: 600;
     color: #1f2937;
@@ -740,6 +770,23 @@
 .staff-name-sm {
     font-weight: 500;
     color: #374151;
+}
+
+.staff-avatar {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    width: 36px;
+    height: 36px;
+    border-radius: 50%;
+    background: linear-gradient(135deg, #009EDB, #0084c7);
+    color: white;
+    font-size: 1rem;
+}
+
+.days-pending-badge.normal {
+    background: #d1fae5;
+    color: #059669;
 }
 
 .request-date-sm {

@@ -19,6 +19,7 @@ namespace TAB.Web.Data
         public DbSet<SimRequest> SimRequests { get; set; }
         public DbSet<SimRequestHistory> SimRequestHistories { get; set; }
         public DbSet<RefundRequest> RefundRequests { get; set; }
+        public DbSet<RefundRequestHistory> RefundRequestHistories { get; set; }
         public DbSet<Ebill> Ebills { get; set; }
         public DbSet<EbillUser> EbillUsers { get; set; }
 
@@ -291,8 +292,8 @@ namespace TAB.Web.Data
                 entity.Property(e => e.FirstName).IsRequired().HasMaxLength(100);
                 entity.Property(e => e.LastName).IsRequired().HasMaxLength(100);
                 entity.Property(e => e.IndexNumber).IsRequired().HasMaxLength(50);
-                entity.Property(e => e.OfficialMobileNumber).IsRequired().HasMaxLength(20);
-                entity.Property(e => e.Email).IsRequired().HasMaxLength(256);
+                entity.Property(e => e.OfficialMobileNumber).HasMaxLength(20);
+                entity.Property(e => e.Email).HasMaxLength(256);
                 entity.HasIndex(e => e.IndexNumber).IsUnique();
                 entity.HasIndex(e => e.Email).IsUnique();
             });
@@ -303,7 +304,7 @@ namespace TAB.Web.Data
                 entity.HasKey(e => e.Id);
                 entity.Property(e => e.IndexNumber).IsRequired().HasMaxLength(50);
                 entity.Property(e => e.PhoneNumber).IsRequired().HasMaxLength(20);
-                entity.Property(e => e.PhoneType).IsRequired().HasMaxLength(50);
+                entity.Property(e => e.PhoneType).HasMaxLength(50);
                 entity.Property(e => e.Location).HasMaxLength(200);
                 entity.Property(e => e.Notes).HasMaxLength(500);
                 entity.Property(e => e.CreatedBy).HasMaxLength(100);
@@ -444,6 +445,7 @@ namespace TAB.Web.Data
                 entity.Property(e => e.VerifiedBy).IsRequired().HasMaxLength(50);
                 entity.Property(e => e.ApprovalStatus).IsRequired().HasMaxLength(20);
                 entity.Property(e => e.SupervisorIndexNumber).HasMaxLength(50);
+                entity.Property(e => e.SupervisorEmail).HasMaxLength(256);
                 entity.Property(e => e.SupervisorApprovalStatus).HasMaxLength(20);
                 entity.Property(e => e.SupervisorApprovedBy).HasMaxLength(50);
                 entity.Property(e => e.SupervisorComments).HasMaxLength(500);
@@ -453,6 +455,7 @@ namespace TAB.Web.Data
                 entity.HasIndex(e => e.VerifiedBy);
                 entity.HasIndex(e => e.ApprovalStatus);
                 entity.HasIndex(e => e.SupervisorIndexNumber);
+                entity.HasIndex(e => e.SupervisorEmail);
                 entity.HasIndex(e => new { e.CallRecordId, e.VerifiedBy });
 
                 // Relationships

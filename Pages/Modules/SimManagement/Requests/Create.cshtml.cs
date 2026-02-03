@@ -51,6 +51,8 @@ namespace TAB.Web.Pages.Modules.SimManagement.Requests
         public string? StatusMessage { get; set; }
         public string? StatusMessageClass { get; set; }
         public int? PreSelectedOrganizationId { get; set; }
+        public List<UserPhone> ExistingPhones { get; set; } = new();
+        public bool HasExistingLines { get; set; } = false;
 
         public async Task OnGetAsync()
         {
@@ -62,20 +64,23 @@ namespace TAB.Web.Pages.Modules.SimManagement.Requests
         {
             await LoadDropdownDataAsync();
 
-            if (!ModelState.IsValid)
+            // Skip validation for drafts - allow saving incomplete forms
+            bool isDraft = action == "draft";
+
+            if (!isDraft && !ModelState.IsValid)
             {
                 // Build detailed error message
                 var errors = ModelState
                     .Where(x => x.Value.Errors.Count > 0)
-                    .Select(x => new { 
-                        Field = x.Key.Replace("SimRequest.", ""), 
-                        Errors = x.Value.Errors.Select(e => e.ErrorMessage) 
+                    .Select(x => new {
+                        Field = x.Key.Replace("SimRequest.", ""),
+                        Errors = x.Value.Errors.Select(e => e.ErrorMessage)
                     })
                     .ToList();
-                
+
                 if (errors.Any())
                 {
-                    var errorMessages = string.Join("; ", 
+                    var errorMessages = string.Join("; ",
                         errors.SelectMany(e => e.Errors.Select(err => $"{e.Field}: {err}")));
                     StatusMessage = $"Please correct the following errors: {errorMessages}";
                 }
@@ -83,7 +88,7 @@ namespace TAB.Web.Pages.Modules.SimManagement.Requests
                 {
                     StatusMessage = "Please correct the errors below.";
                 }
-                
+
                 StatusMessageClass = "danger";
                 return Page();
             }
@@ -118,33 +123,70 @@ namespace TAB.Web.Pages.Modules.SimManagement.Requests
                 SimRequest.Supervisor = supervisorUser.Email ?? string.Empty;
             }
 
-            // Validate and trim required string properties
-            if (string.IsNullOrWhiteSpace(SimRequest.IndexNo) ||
-                string.IsNullOrWhiteSpace(SimRequest.FirstName) ||
-                string.IsNullOrWhiteSpace(SimRequest.LastName) ||
-                string.IsNullOrWhiteSpace(SimRequest.Organization) ||
-                string.IsNullOrWhiteSpace(SimRequest.Office) ||
-                string.IsNullOrWhiteSpace(SimRequest.Grade) ||
-                string.IsNullOrWhiteSpace(SimRequest.FunctionalTitle) ||
-                string.IsNullOrWhiteSpace(SimRequest.OfficialEmail))
+            // Validate required fields only when submitting (not for drafts)
+            if (!isDraft)
             {
-                StatusMessage = "Please fill in all required fields marked with *.";
-                StatusMessageClass = "danger";
-                await LoadDropdownDataAsync();
-                return Page();
+                // Check if LineRequestType is for Existing Line
+                bool isExistingLine = SimRequest.LineRequestType == LineRequestType.ExistingLine;
+
+                if (string.IsNullOrWhiteSpace(SimRequest.IndexNo) ||
+                    string.IsNullOrWhiteSpace(SimRequest.FirstName) ||
+                    string.IsNullOrWhiteSpace(SimRequest.LastName) ||
+                    string.IsNullOrWhiteSpace(SimRequest.Organization) ||
+                    string.IsNullOrWhiteSpace(SimRequest.Office) ||
+                    string.IsNullOrWhiteSpace(SimRequest.Grade) ||
+                    string.IsNullOrWhiteSpace(SimRequest.FunctionalTitle) ||
+                    string.IsNullOrWhiteSpace(SimRequest.OfficialEmail) ||
+                    string.IsNullOrWhiteSpace(SimRequest.Supervisor))
+                {
+                    StatusMessage = "Please fill in all required fields marked with *.";
+                    StatusMessageClass = "danger";
+                    await LoadDropdownDataAsync();
+                    return Page();
+                }
+
+                // Validate based on Line Request Type
+                if (isExistingLine)
+                {
+                    // For existing lines, ExistingPhoneNumber is required
+                    if (string.IsNullOrWhiteSpace(SimRequest.ExistingPhoneNumber))
+                    {
+                        StatusMessage = "Please enter the existing phone number.";
+                        StatusMessageClass = "danger";
+                        await LoadDropdownDataAsync();
+                        return Page();
+                    }
+                }
+                else
+                {
+                    // For new lines, ServiceProviderId is required
+                    if (!SimRequest.ServiceProviderId.HasValue || SimRequest.ServiceProviderId.Value == 0)
+                    {
+                        StatusMessage = "Please select a service provider.";
+                        StatusMessageClass = "danger";
+                        await LoadDropdownDataAsync();
+                        return Page();
+                    }
+                }
             }
 
-            // Trim string properties
-            SimRequest.IndexNo = SimRequest.IndexNo?.Trim() ?? string.Empty;
-            SimRequest.FirstName = SimRequest.FirstName?.Trim() ?? string.Empty;
-            SimRequest.LastName = SimRequest.LastName?.Trim() ?? string.Empty;
-            SimRequest.Organization = SimRequest.Organization?.Trim() ?? string.Empty;
-            SimRequest.Office = SimRequest.Office?.Trim() ?? string.Empty;
-            SimRequest.Grade = SimRequest.Grade?.Trim() ?? string.Empty;
-            SimRequest.FunctionalTitle = SimRequest.FunctionalTitle?.Trim() ?? string.Empty;
+            // For drafts, ensure ServiceProviderId is null if not selected (to avoid FK constraint)
+            if (isDraft && (!SimRequest.ServiceProviderId.HasValue || SimRequest.ServiceProviderId.Value == 0))
+            {
+                SimRequest.ServiceProviderId = null;
+            }
+
+            // Trim string properties and ensure required fields have default values for database NOT NULL constraints
+            SimRequest.IndexNo = string.IsNullOrWhiteSpace(SimRequest.IndexNo) ? (isDraft ? "" : SimRequest.IndexNo) : SimRequest.IndexNo.Trim();
+            SimRequest.FirstName = string.IsNullOrWhiteSpace(SimRequest.FirstName) ? (isDraft ? "" : SimRequest.FirstName) : SimRequest.FirstName.Trim();
+            SimRequest.LastName = string.IsNullOrWhiteSpace(SimRequest.LastName) ? (isDraft ? "" : SimRequest.LastName) : SimRequest.LastName.Trim();
+            SimRequest.Organization = string.IsNullOrWhiteSpace(SimRequest.Organization) ? (isDraft ? "" : SimRequest.Organization) : SimRequest.Organization.Trim();
+            SimRequest.Office = string.IsNullOrWhiteSpace(SimRequest.Office) ? (isDraft ? "" : SimRequest.Office) : SimRequest.Office.Trim();
+            SimRequest.Grade = string.IsNullOrWhiteSpace(SimRequest.Grade) ? (isDraft ? "" : SimRequest.Grade) : SimRequest.Grade.Trim();
+            SimRequest.FunctionalTitle = string.IsNullOrWhiteSpace(SimRequest.FunctionalTitle) ? (isDraft ? "" : SimRequest.FunctionalTitle) : SimRequest.FunctionalTitle.Trim();
             SimRequest.OfficeExtension = SimRequest.OfficeExtension?.Trim();
-            SimRequest.OfficialEmail = SimRequest.OfficialEmail?.Trim() ?? string.Empty;
-            SimRequest.Supervisor = SimRequest.Supervisor?.Trim();
+            SimRequest.OfficialEmail = string.IsNullOrWhiteSpace(SimRequest.OfficialEmail) ? (isDraft ? "" : SimRequest.OfficialEmail) : SimRequest.OfficialEmail.Trim();
+            SimRequest.Supervisor = string.IsNullOrWhiteSpace(SimRequest.Supervisor) ? (isDraft ? "" : SimRequest.Supervisor) : SimRequest.Supervisor.Trim();
             SimRequest.PreviouslyAssignedLines = SimRequest.PreviouslyAssignedLines?.Trim();
             SimRequest.Remarks = SimRequest.Remarks?.Trim();
 
@@ -253,12 +295,12 @@ namespace TAB.Web.Pages.Modules.SimManagement.Requests
                 })
                 .ToListAsync();
 
-            // Load Organizations
+            // Load Organizations with abbreviations
             Organizations = await _context.Organizations
                 .Select(o => new SelectListItem
                 {
                     Value = o.Name,
-                    Text = o.Name ?? "Unknown Organization"
+                    Text = !string.IsNullOrEmpty(o.Code) ? $"{o.Code} - {o.Name}" : o.Name ?? "Unknown Organization"
                 })
                 .ToListAsync();
 
@@ -322,6 +364,18 @@ namespace TAB.Web.Pages.Modules.SimManagement.Requests
                 if (!string.IsNullOrEmpty(ebillUser.IndexNumber))
                 {
                     SimRequest.IndexNo = ebillUser.IndexNumber;
+
+                    // Query existing phone numbers for this user
+                    ExistingPhones = await _context.UserPhones
+                        .Include(p => p.ClassOfService)
+                        .Where(p => p.IndexNumber == ebillUser.IndexNumber && p.IsActive)
+                        .OrderByDescending(p => p.IsPrimary)
+                        .ThenBy(p => p.AssignedDate)
+                        .ToListAsync();
+
+                    // Auto-compute Previously Assigned Lines
+                    HasExistingLines = ExistingPhones.Any();
+                    SimRequest.PreviouslyAssignedLines = HasExistingLines ? "Yes" : "No";
                 }
 
                 // Auto-populate supervisor details

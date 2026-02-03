@@ -767,11 +767,11 @@
                          !string.IsNullOrEmpty(Model.RefundRequest.SupervisorNotes))
                     {
                         <div class="detail-section">
-                            <div class="section-header">
-                                <i class="bi bi-person-check"></i>
-                                <h5>Supervisor Information</h5>
-                            </div>
-                            <div class="detail-grid">
+                            <h6 class="section-header">
+                                <i class="bi bi-person-check section-icon"></i>
+                                Supervisor Information
+                            </h6>
+                            <div class="detail-row">
                                 @if (!string.IsNullOrEmpty(Model.RefundRequest.SupervisorName))
                                 {
                                     <div class="detail-item">
@@ -799,11 +799,11 @@
                         @if (!string.IsNullOrEmpty(Model.RefundRequest.SupervisorRemarks))
                         {
                             <div class="detail-section">
-                                <div class="section-header">
-                                    <i class="bi bi-chat-square-text"></i>
-                                    <h5>Supervisor Remarks</h5>
-                                </div>
-                                <div class="remarks-content">
+                                <h6 class="section-header">
+                                    <i class="bi bi-chat-square-text section-icon"></i>
+                                    Supervisor Remarks
+                                </h6>
+                                <div class="detail-value" style="background: white; padding: 12px; border-radius: 6px; border: 1px solid #e2e8f0;">
                                     @Model.RefundRequest.SupervisorRemarks
                                 </div>
                             </div>
@@ -812,11 +812,11 @@
                         @if (!string.IsNullOrEmpty(Model.RefundRequest.SupervisorNotes))
                         {
                             <div class="detail-section">
-                                <div class="section-header">
-                                    <i class="bi bi-sticky"></i>
-                                    <h5>Supervisor Notes</h5>
-                                </div>
-                                <div class="remarks-content">
+                                <h6 class="section-header">
+                                    <i class="bi bi-sticky section-icon"></i>
+                                    Supervisor Notes
+                                </h6>
+                                <div class="detail-value" style="background: white; padding: 12px; border-radius: 6px; border: 1px solid #e2e8f0;">
                                     @Model.RefundRequest.SupervisorNotes
                                 </div>
                             </div>
@@ -844,11 +844,11 @@
                              !string.IsNullOrEmpty(Model.RefundRequest.BudgetOfficerEmail))
                         {
                             <div class="detail-section">
-                                <div class="section-header">
-                                    <i class="bi bi-person-check"></i>
-                                    <h5>Budget Officer Information</h5>
-                                </div>
-                                <div class="detail-grid">
+                                <h6 class="section-header">
+                                    <i class="bi bi-person-check section-icon"></i>
+                                    Budget Officer Information
+                                </h6>
+                                <div class="detail-row">
                                     @if (!string.IsNullOrEmpty(Model.RefundRequest.BudgetOfficerName))
                                     {
                                         <div class="detail-item">
@@ -879,11 +879,11 @@
                              !string.IsNullOrEmpty(Model.RefundRequest.FundCommitment))
                         {
                             <div class="detail-section">
-                                <div class="section-header">
-                                    <i class="bi bi-calculator"></i>
-                                    <h5>Cost Accounting</h5>
-                                </div>
-                                <div class="detail-grid">
+                                <h6 class="section-header">
+                                    <i class="bi bi-calculator section-icon"></i>
+                                    Cost Accounting
+                                </h6>
+                                <div class="detail-row">
                                     @if (!string.IsNullOrEmpty(Model.RefundRequest.CostObject))
                                     {
                                         <div class="detail-item">
@@ -912,11 +912,11 @@
                         @if (!string.IsNullOrEmpty(Model.RefundRequest.BudgetOfficerRemarks))
                         {
                             <div class="detail-section">
-                                <div class="section-header">
-                                    <i class="bi bi-chat-square-text"></i>
-                                    <h5>Budget Officer Remarks</h5>
-                                </div>
-                                <div class="remarks-content">
+                                <h6 class="section-header">
+                                    <i class="bi bi-chat-square-text section-icon"></i>
+                                    Budget Officer Remarks
+                                </h6>
+                                <div class="detail-value" style="background: white; padding: 12px; border-radius: 6px; border: 1px solid #e2e8f0;">
                                     @Model.RefundRequest.BudgetOfficerRemarks
                                 </div>
                             </div>
@@ -925,11 +925,11 @@
                         @if (!string.IsNullOrEmpty(Model.RefundRequest.BudgetOfficerNotes))
                         {
                             <div class="detail-section">
-                                <div class="section-header">
-                                    <i class="bi bi-sticky"></i>
-                                    <h5>Budget Officer Notes</h5>
-                                </div>
-                                <div class="remarks-content">
+                                <h6 class="section-header">
+                                    <i class="bi bi-sticky section-icon"></i>
+                                    Budget Officer Notes
+                                </h6>
+                                <div class="detail-value" style="background: white; padding: 12px; border-radius: 6px; border: 1px solid #e2e8f0;">
                                     @Model.RefundRequest.BudgetOfficerNotes
                                 </div>
                             </div>
@@ -957,11 +957,11 @@
                              !string.IsNullOrEmpty(Model.RefundRequest.StaffClaimsOfficerEmail))
                         {
                             <div class="detail-section">
-                                <div class="section-header">
-                                    <i class="bi bi-person-check"></i>
-                                    <h5>Claims Officer Information</h5>
-                                </div>
-                                <div class="detail-grid">
+                                <h6 class="section-header">
+                                    <i class="bi bi-person-check section-icon"></i>
+                                    Claims Officer Information
+                                </h6>
+                                <div class="detail-row">
                                     @if (!string.IsNullOrEmpty(Model.RefundRequest.StaffClaimsOfficerName))
                                     {
                                         <div class="detail-item">
@@ -991,11 +991,11 @@
                              Model.RefundRequest.RefundUsdAmount.HasValue)
                         {
                             <div class="detail-section">
-                                <div class="section-header">
-                                    <i class="bi bi-receipt"></i>
-                                    <h5>Payment Details</h5>
-                                </div>
-                                <div class="detail-grid">
+                                <h6 class="section-header">
+                                    <i class="bi bi-receipt section-icon"></i>
+                                    Payment Details
+                                </h6>
+                                <div class="detail-row">
                                     @if (!string.IsNullOrEmpty(Model.RefundRequest.UmojaPaymentDocumentId))
                                     {
                                         <div class="detail-item">
@@ -1007,7 +1007,7 @@
                                     {
                                         <div class="detail-item">
                                             <div class="detail-label">Refund Amount (USD)</div>
-                                            <div class="detail-value">$@Model.RefundRequest.RefundUsdAmount.Value.ToString("N2")</div>
+                                            <div class="detail-value amount">$@Model.RefundRequest.RefundUsdAmount.Value.ToString("N2")</div>
                                         </div>
                                     }
                                 </div>
@@ -1017,11 +1017,11 @@
                         @if (!string.IsNullOrEmpty(Model.RefundRequest.StaffClaimsRemarks))
                         {
                             <div class="detail-section">
-                                <div class="section-header">
-                                    <i class="bi bi-chat-square-text"></i>
-                                    <h5>Claims Unit Remarks</h5>
-                                </div>
-                                <div class="remarks-content">
+                                <h6 class="section-header">
+                                    <i class="bi bi-chat-square-text section-icon"></i>
+                                    Claims Unit Remarks
+                                </h6>
+                                <div class="detail-value" style="background: white; padding: 12px; border-radius: 6px; border: 1px solid #e2e8f0;">
                                     @Model.RefundRequest.StaffClaimsRemarks
                                 </div>
                             </div>
@@ -1030,11 +1030,11 @@
                         @if (!string.IsNullOrEmpty(Model.RefundRequest.StaffClaimsNotes))
                         {
                             <div class="detail-section">
-                                <div class="section-header">
-                                    <i class="bi bi-sticky"></i>
-                                    <h5>Claims Unit Notes</h5>
-                                </div>
-                                <div class="remarks-content">
+                                <h6 class="section-header">
+                                    <i class="bi bi-sticky section-icon"></i>
+                                    Claims Unit Notes
+                                </h6>
+                                <div class="detail-value" style="background: white; padding: 12px; border-radius: 6px; border: 1px solid #e2e8f0;">
                                     @Model.RefundRequest.StaffClaimsNotes
                                 </div>
                             </div>

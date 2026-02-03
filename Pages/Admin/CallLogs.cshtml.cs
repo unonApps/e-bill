@@ -29,8 +29,8 @@ namespace TAB.Web.Pages.Admin
 
         public List<CallLog> CallLogs { get; set; } = new();
         public List<dynamic> AllTelecomRecords { get; set; } = new();
-        public List<ImportAudit> RecentImports { get; set; } = new();
-        public ImportAudit? SelectedImportAudit { get; set; }
+        public List<ImportJob> RecentImports { get; set; } = new();
+        public ImportJob? SelectedImportJob { get; set; }
         public string CurrentUserName { get; set; } = string.Empty;
         
         [TempData]
@@ -61,7 +61,7 @@ namespace TAB.Web.Pages.Admin
         public DateTime? EndDate { get; set; }
 
         [BindProperty(SupportsGet = true)]
-        public int? ImportAuditId { get; set; }
+        public Guid? ImportJobId { get; set; }
 
         [BindProperty(SupportsGet = true)]
         public int PageNumber { get; set; } = 1;
@@ -85,7 +85,25 @@ namespace TAB.Web.Pages.Admin
                     : currentUser.UserName ?? "Administrator";
             }
 
-            // First get regular CallLogs
+            // =============================================
+            // OPTIMIZED APPROACH v2:
+            // 1. Pre-load registered phone numbers (avoid correlated subqueries)
+            // 2. Only load records needed for current page
+            // 3. Use single COUNT query per table
+            // =============================================
+
+            // Pre-load registered phone numbers to avoid N+1 queries
+            var registeredPhones = await _context.UserPhones
+                .Where(up => up.IsActive)
+                .Select(up => up.PhoneNumber)
+                .ToListAsync();
+            var registeredPhoneSet = new HashSet<string>(registeredPhones ?? new List<string>(), StringComparer.OrdinalIgnoreCase);
+
+            // Calculate how many records to load per table for pagination
+            // We need enough records to fill the page after combining and sorting
+            var recordsToLoad = PageSize * 2; // Load 2x page size per table to ensure we have enough after merge
+
+            // First get regular CallLogs query
             var query = _context.CallLogs
                 .Include(c => c.EbillUser)
                 .AsQueryable();
@@ -131,8 +149,21 @@ namespace TAB.Web.Pages.Admin
                     break;
             }
 
-            // Instead of storing in CallLogs, convert to dynamic format for AllTelecomRecords
+            // =============================================
+            // Step 1: Calculate statistics using efficient single query
+            // =============================================
+
+            // Get count for CallLogs (simplified - one query)
+            var callLogCount = await query.CountAsync();
+            var callLogLinkedCount = FilterType?.ToLower() == "unlinked" ? 0 :
+                (FilterType?.ToLower() == "linked" ? callLogCount : await query.CountAsync(c => c.EbillUserId.HasValue));
+            var callLogUnlinkedCount = FilterType?.ToLower() == "linked" ? 0 :
+                (FilterType?.ToLower() == "unlinked" ? callLogCount : callLogCount - callLogLinkedCount);
+
             var callLogRecords = await query
+                .OrderByDescending(c => c.InvoiceDate)
+                .ThenBy(c => c.AccountNo)
+                .Take(recordsToLoad)
                 .Select(c => new {
                     Id = c.Id,
                     Type = "CallLog",
@@ -159,38 +190,38 @@ namespace TAB.Web.Pages.Admin
                     CallYear = 0,
                     Extension = (string?)null,
                     UserPhoneId = (int?)null,
-                    IsExtensionRegistered = false
+                    IsExtensionRegistered = false,
+                    ProcessingStatus = ProcessingStatus.Staged
                 })
-                .OrderByDescending(c => c.InvoiceDate)
-                .ThenBy(c => c.AccountNo)
                 .ToListAsync();
 
             // Clear CallLogs since we're not using it
             CallLogs = new List<CallLog>();
 
-            // Load recent imports for display
-            RecentImports = await _context.ImportAudits
-                .Where(a => a.ImportType == "PSTN" || a.ImportType == "PrivateWire" ||
-                           a.ImportType == "Safaricom" || a.ImportType == "Airtel")
-                .OrderByDescending(a => a.ImportDate)
+            // Load recent import jobs for display
+            RecentImports = await _context.ImportJobs
+                .Where(j => j.CallLogType == "PSTN" || j.CallLogType == "PrivateWire" ||
+                           j.CallLogType == "Safaricom" || j.CallLogType == "Airtel")
+                .Where(j => j.Status == "Completed")
+                .OrderByDescending(j => j.CreatedDate)
                 .Take(20)
                 .ToListAsync();
 
-            // If a specific import audit is selected, load its data
-            if (ImportAuditId.HasValue)
+            // If a specific import job is selected, load its data
+            if (ImportJobId.HasValue)
             {
-                SelectedImportAudit = await _context.ImportAudits
-                    .FirstOrDefaultAsync(a => a.Id == ImportAuditId.Value);
+                SelectedImportJob = await _context.ImportJobs
+                    .FirstOrDefaultAsync(j => j.Id == ImportJobId.Value);
             }
 
-            // Build query for other telecom tables with optional import audit filter
+            // Build query for other telecom tables with optional import job filter
             var pstnQuery = _context.PSTNs
                 .Include(p => p.EbillUser)
                 .AsQueryable();
 
-            if (ImportAuditId.HasValue && SelectedImportAudit?.ImportType == "PSTN")
+            if (ImportJobId.HasValue && SelectedImportJob?.CallLogType == "PSTN")
             {
-                pstnQuery = pstnQuery.Where(p => p.ImportAuditId == ImportAuditId.Value);
+                pstnQuery = pstnQuery.Where(p => p.ImportJobId == ImportJobId.Value);
             }
 
             // Apply search filter to PSTN
@@ -210,6 +241,16 @@ namespace TAB.Web.Pages.Admin
                     )));
             }
 
+            // Apply date range filter to PSTN
+            if (StartDate.HasValue)
+            {
+                pstnQuery = pstnQuery.Where(p => p.CallDate >= StartDate.Value);
+            }
+            if (EndDate.HasValue)
+            {
+                pstnQuery = pstnQuery.Where(p => p.CallDate <= EndDate.Value);
+            }
+
             // Apply link status filter to PSTN
             switch (FilterType?.ToLower())
             {
@@ -221,17 +262,25 @@ namespace TAB.Web.Pages.Admin
                     break;
             }
 
-            // Now get data from other telecom tables
+            // Calculate PSTN statistics (optimized)
+            var pstnCount = await pstnQuery.CountAsync();
+            var pstnLinkedCount = FilterType?.ToLower() == "unlinked" ? 0 :
+                (FilterType?.ToLower() == "linked" ? pstnCount : await pstnQuery.CountAsync(p => p.EbillUserId.HasValue));
+            var pstnUnlinkedCount = FilterType?.ToLower() == "linked" ? 0 :
+                (FilterType?.ToLower() == "unlinked" ? pstnCount : pstnCount - pstnLinkedCount);
+
+            // Load limited window of PSTN records (NO correlated subquery)
             var pstnRecords = await pstnQuery
+                .OrderByDescending(p => p.CallDate)
+                .Take(recordsToLoad)
                 .Select(p => new {
                     Id = p.Id,
                     Type = "PSTN",
                     AccountNo = p.IndexNumber ?? "N/A",
                     SubAccountNo = "PSTN-" + p.Id,
-                    SubAccountName = p.EbillUser != null ? p.EbillUser.FirstName + " " + p.EbillUser.LastName : "Unknown",
+                    SubAccountName = p.EbillUser != null ? (p.EbillUser.FirstName ?? "") + " " + (p.EbillUser.LastName ?? "") : "Unknown",
                     MSISDN = p.DialedNumber ?? "N/A",
-                    InvoiceNo = "PSTN-" + (p.CallDate.HasValue ? p.CallDate.Value.ToString("yyyyMM") : "000000") + "-" + p.Id,
-                    InvoiceDate = p.CallDate ?? DateTime.MinValue,
+                    InvoiceDate = p.CallDate.HasValue ? p.CallDate.Value : DateTime.MinValue,
                     CallType = "PSTN",
                     GrossTotal = p.AmountKSH ?? 0,
                     AmountUSD = p.AmountUSD,
@@ -247,7 +296,6 @@ namespace TAB.Web.Pages.Admin
                     CallYear = p.CallYear,
                     Extension = p.Extension,
                     UserPhoneId = p.UserPhoneId,
-                    IsExtensionRegistered = p.Extension != null && _context.UserPhones.Any(up => up.PhoneNumber == p.Extension && up.IsActive),
                     ProcessingStatus = p.ProcessingStatus
                 })
                 .ToListAsync();
@@ -256,9 +304,9 @@ namespace TAB.Web.Pages.Admin
                 .Include(p => p.EbillUser)
                 .AsQueryable();
 
-            if (ImportAuditId.HasValue && SelectedImportAudit?.ImportType == "PrivateWire")
+            if (ImportJobId.HasValue && SelectedImportJob?.CallLogType == "PrivateWire")
             {
-                privateWireQuery = privateWireQuery.Where(p => p.ImportAuditId == ImportAuditId.Value);
+                privateWireQuery = privateWireQuery.Where(p => p.ImportJobId == ImportJobId.Value);
             }
 
             // Apply search filter to PrivateWire
@@ -278,6 +326,16 @@ namespace TAB.Web.Pages.Admin
                     )));
             }
 
+            // Apply date range filter to PrivateWire
+            if (StartDate.HasValue)
+            {
+                privateWireQuery = privateWireQuery.Where(p => p.CallDate >= StartDate.Value);
+            }
+            if (EndDate.HasValue)
+            {
+                privateWireQuery = privateWireQuery.Where(p => p.CallDate <= EndDate.Value);
+            }
+
             // Apply link status filter to PrivateWire
             switch (FilterType?.ToLower())
             {
@@ -289,18 +347,27 @@ namespace TAB.Web.Pages.Admin
                     break;
             }
 
+            // Calculate PrivateWire statistics (optimized)
+            var privateWireCount = await privateWireQuery.CountAsync();
+            var privateWireLinkedCount = FilterType?.ToLower() == "unlinked" ? 0 :
+                (FilterType?.ToLower() == "linked" ? privateWireCount : await privateWireQuery.CountAsync(p => p.EbillUserId.HasValue));
+            var privateWireUnlinkedCount = FilterType?.ToLower() == "linked" ? 0 :
+                (FilterType?.ToLower() == "unlinked" ? privateWireCount : privateWireCount - privateWireLinkedCount);
+
+            // Load limited window of PrivateWire records (NO correlated subquery)
             var privateWireRecords = await privateWireQuery
+                .OrderByDescending(p => p.CallDate)
+                .Take(recordsToLoad)
                 .Select(p => new {
                     Id = p.Id,
                     Type = "Private Wire",
                     AccountNo = p.IndexNumber ?? "N/A",
                     SubAccountNo = "PW-" + p.Id,
-                    SubAccountName = p.EbillUser != null ? p.EbillUser.FirstName + " " + p.EbillUser.LastName : "Unknown",
+                    SubAccountName = p.EbillUser != null ? (p.EbillUser.FirstName ?? "") + " " + (p.EbillUser.LastName ?? "") : "Unknown",
                     MSISDN = p.DialedNumber ?? "N/A",
-                    InvoiceNo = "PW-" + (p.CallDate.HasValue ? p.CallDate.Value.ToString("yyyyMM") : "000000") + "-" + p.Id,
-                    InvoiceDate = p.CallDate ?? DateTime.MinValue,
+                    InvoiceDate = p.CallDate.HasValue ? p.CallDate.Value : DateTime.MinValue,
                     CallType = "Private Wire",
-                    GrossTotal = p.AmountKSH ?? ((p.AmountUSD ?? 0) * 150), // Use AmountKSH if available, otherwise approximate
+                    GrossTotal = p.AmountKSH ?? ((p.AmountUSD ?? 0) * 150),
                     AmountUSD = p.AmountUSD,
                     AmountKSH = p.AmountKSH,
                     NetAccessFee = 0m,
@@ -314,7 +381,6 @@ namespace TAB.Web.Pages.Admin
                     CallYear = p.CallYear,
                     Extension = p.Extension,
                     UserPhoneId = p.UserPhoneId,
-                    IsExtensionRegistered = p.Extension != null && _context.UserPhones.Any(up => up.PhoneNumber == p.Extension && up.IsActive),
                     ProcessingStatus = p.ProcessingStatus
                 })
                 .ToListAsync();
@@ -323,9 +389,9 @@ namespace TAB.Web.Pages.Admin
                 .Include(s => s.EbillUser)
                 .AsQueryable();
 
-            if (ImportAuditId.HasValue && SelectedImportAudit?.ImportType == "Safaricom")
+            if (ImportJobId.HasValue && SelectedImportJob?.CallLogType == "Safaricom")
             {
-                safaricomQuery = safaricomQuery.Where(s => s.ImportAuditId == ImportAuditId.Value);
+                safaricomQuery = safaricomQuery.Where(s => s.ImportJobId == ImportJobId.Value);
             }
 
             // Apply search filter to Safaricom
@@ -345,6 +411,16 @@ namespace TAB.Web.Pages.Admin
                     )));
             }
 
+            // Apply date range filter to Safaricom
+            if (StartDate.HasValue)
+            {
+                safaricomQuery = safaricomQuery.Where(s => s.CallDate >= StartDate.Value);
+            }
+            if (EndDate.HasValue)
+            {
+                safaricomQuery = safaricomQuery.Where(s => s.CallDate <= EndDate.Value);
+            }
+
             // Apply link status filter to Safaricom
             switch (FilterType?.ToLower())
             {
@@ -356,16 +432,25 @@ namespace TAB.Web.Pages.Admin
                     break;
             }
 
+            // Calculate Safaricom statistics (optimized)
+            var safaricomCount = await safaricomQuery.CountAsync();
+            var safaricomLinkedCount = FilterType?.ToLower() == "unlinked" ? 0 :
+                (FilterType?.ToLower() == "linked" ? safaricomCount : await safaricomQuery.CountAsync(s => s.EbillUserId.HasValue));
+            var safaricomUnlinkedCount = FilterType?.ToLower() == "linked" ? 0 :
+                (FilterType?.ToLower() == "unlinked" ? safaricomCount : safaricomCount - safaricomLinkedCount);
+
+            // Load limited window of Safaricom records (NO correlated subquery - this was causing 53+ second queries!)
             var safaricomRecords = await safaricomQuery
+                .OrderByDescending(s => s.CallDate)
+                .Take(recordsToLoad)
                 .Select(s => new {
                     Id = s.Id,
                     Type = "Safaricom",
                     AccountNo = s.IndexNumber ?? "N/A",
                     SubAccountNo = "SAF-" + s.Id,
-                    SubAccountName = s.EbillUser != null ? s.EbillUser.FirstName + " " + s.EbillUser.LastName : "Unknown",
+                    SubAccountName = s.EbillUser != null ? (s.EbillUser.FirstName ?? "") + " " + (s.EbillUser.LastName ?? "") : "Unknown",
                     MSISDN = s.Dialed ?? "N/A",
-                    InvoiceNo = "SAF-" + (s.CallDate.HasValue ? s.CallDate.Value.ToString("yyyyMM") : "000000") + "-" + s.Id,
-                    InvoiceDate = s.CallDate ?? DateTime.MinValue,
+                    InvoiceDate = s.CallDate.HasValue ? s.CallDate.Value : DateTime.MinValue,
                     CallType = s.CallType ?? "N/A",
                     GrossTotal = s.Cost ?? 0,
                     AmountUSD = s.AmountUSD,
@@ -381,7 +466,6 @@ namespace TAB.Web.Pages.Admin
                     CallYear = s.CallYear,
                     Extension = s.Ext,
                     UserPhoneId = s.UserPhoneId,
-                    IsExtensionRegistered = s.Ext != null && _context.UserPhones.Any(up => up.PhoneNumber == s.Ext && up.IsActive),
                     ProcessingStatus = s.ProcessingStatus
                 })
                 .ToListAsync();
@@ -390,9 +474,9 @@ namespace TAB.Web.Pages.Admin
                 .Include(a => a.EbillUser)
                 .AsQueryable();
 
-            if (ImportAuditId.HasValue && SelectedImportAudit?.ImportType == "Airtel")
+            if (ImportJobId.HasValue && SelectedImportJob?.CallLogType == "Airtel")
             {
-                airtelQuery = airtelQuery.Where(a => a.ImportAuditId == ImportAuditId.Value);
+                airtelQuery = airtelQuery.Where(a => a.ImportJobId == ImportJobId.Value);
             }
 
             // Apply search filter to Airtel
@@ -412,6 +496,16 @@ namespace TAB.Web.Pages.Admin
                     )));
             }
 
+            // Apply date range filter to Airtel
+            if (StartDate.HasValue)
+            {
+                airtelQuery = airtelQuery.Where(a => a.CallDate >= StartDate.Value);
+            }
+            if (EndDate.HasValue)
+            {
+                airtelQuery = airtelQuery.Where(a => a.CallDate <= EndDate.Value);
+            }
+
             // Apply link status filter to Airtel
             switch (FilterType?.ToLower())
             {
@@ -423,16 +517,25 @@ namespace TAB.Web.Pages.Admin
                     break;
             }
 
+            // Calculate Airtel statistics (optimized)
+            var airtelCount = await airtelQuery.CountAsync();
+            var airtelLinkedCount = FilterType?.ToLower() == "unlinked" ? 0 :
+                (FilterType?.ToLower() == "linked" ? airtelCount : await airtelQuery.CountAsync(a => a.EbillUserId.HasValue));
+            var airtelUnlinkedCount = FilterType?.ToLower() == "linked" ? 0 :
+                (FilterType?.ToLower() == "unlinked" ? airtelCount : airtelCount - airtelLinkedCount);
+
+            // Load limited window of Airtel records (NO correlated subquery)
             var airtelRecords = await airtelQuery
+                .OrderByDescending(a => a.CallDate)
+                .Take(recordsToLoad)
                 .Select(a => new {
                     Id = a.Id,
                     Type = "Airtel",
                     AccountNo = a.IndexNumber ?? "N/A",
                     SubAccountNo = "AIR-" + a.Id,
-                    SubAccountName = a.EbillUser != null ? a.EbillUser.FirstName + " " + a.EbillUser.LastName : "Unknown",
+                    SubAccountName = a.EbillUser != null ? (a.EbillUser.FirstName ?? "") + " " + (a.EbillUser.LastName ?? "") : "Unknown",
                     MSISDN = a.Dialed ?? "N/A",
-                    InvoiceNo = "AIR-" + (a.CallDate.HasValue ? a.CallDate.Value.ToString("yyyyMM") : "000000") + "-" + a.Id,
-                    InvoiceDate = a.CallDate ?? DateTime.MinValue,
+                    InvoiceDate = a.CallDate.HasValue ? a.CallDate.Value : DateTime.MinValue,
                     CallType = a.CallType ?? "N/A",
                     GrossTotal = a.Cost ?? 0,
                     AmountUSD = a.AmountUSD,
@@ -448,61 +551,101 @@ namespace TAB.Web.Pages.Admin
                     CallYear = a.CallYear,
                     Extension = a.Ext,
                     UserPhoneId = a.UserPhoneId,
-                    IsExtensionRegistered = a.Ext != null && _context.UserPhones.Any(up => up.PhoneNumber == a.Ext && up.IsActive),
                     ProcessingStatus = a.ProcessingStatus
                 })
                 .ToListAsync();
 
-            // Combine all records - if filtering by import, only add records from that type
-            if (ImportAuditId.HasValue && SelectedImportAudit != null)
+            // Combine all records - if filtering by import job, only add records from that type
+            // Transform to include IsExtensionRegistered (calculated in-memory using pre-loaded set)
+            var transformPstn = pstnRecords.Select(r => new {
+                r.Id, r.Type, r.AccountNo, r.SubAccountNo, r.SubAccountName, r.MSISDN, r.InvoiceDate,
+                r.CallType, r.GrossTotal, r.AmountUSD, r.AmountKSH, r.NetAccessFee, r.EbillUserId, r.EbillUser,
+                r.Carrier, r.Destination, r.StagingBatchId, r.BillingPeriod, r.CallMonth, r.CallYear,
+                r.Extension, r.UserPhoneId, r.ProcessingStatus,
+                IsExtensionRegistered = !string.IsNullOrEmpty(r.Extension) && registeredPhoneSet.Contains(r.Extension)
+            }).Cast<dynamic>().ToList();
+
+            var transformPrivateWire = privateWireRecords.Select(r => new {
+                r.Id, r.Type, r.AccountNo, r.SubAccountNo, r.SubAccountName, r.MSISDN, r.InvoiceDate,
+                r.CallType, r.GrossTotal, r.AmountUSD, r.AmountKSH, r.NetAccessFee, r.EbillUserId, r.EbillUser,
+                r.Carrier, r.Destination, r.StagingBatchId, r.BillingPeriod, r.CallMonth, r.CallYear,
+                r.Extension, r.UserPhoneId, r.ProcessingStatus,
+                IsExtensionRegistered = !string.IsNullOrEmpty(r.Extension) && registeredPhoneSet.Contains(r.Extension)
+            }).Cast<dynamic>().ToList();
+
+            var transformSafaricom = safaricomRecords.Select(r => new {
+                r.Id, r.Type, r.AccountNo, r.SubAccountNo, r.SubAccountName, r.MSISDN, r.InvoiceDate,
+                r.CallType, r.GrossTotal, r.AmountUSD, r.AmountKSH, r.NetAccessFee, r.EbillUserId, r.EbillUser,
+                r.Carrier, r.Destination, r.StagingBatchId, r.BillingPeriod, r.CallMonth, r.CallYear,
+                r.Extension, r.UserPhoneId, r.ProcessingStatus,
+                IsExtensionRegistered = !string.IsNullOrEmpty(r.Extension) && registeredPhoneSet.Contains(r.Extension)
+            }).Cast<dynamic>().ToList();
+
+            var transformAirtel = airtelRecords.Select(r => new {
+                r.Id, r.Type, r.AccountNo, r.SubAccountNo, r.SubAccountName, r.MSISDN, r.InvoiceDate,
+                r.CallType, r.GrossTotal, r.AmountUSD, r.AmountKSH, r.NetAccessFee, r.EbillUserId, r.EbillUser,
+                r.Carrier, r.Destination, r.StagingBatchId, r.BillingPeriod, r.CallMonth, r.CallYear,
+                r.Extension, r.UserPhoneId, r.ProcessingStatus,
+                IsExtensionRegistered = !string.IsNullOrEmpty(r.Extension) && registeredPhoneSet.Contains(r.Extension)
+            }).Cast<dynamic>().ToList();
+
+            // CallLogs already have IsExtensionRegistered set correctly
+            var transformCallLog = callLogRecords.Cast<dynamic>().ToList();
+
+            if (ImportJobId.HasValue && SelectedImportJob != null)
             {
-                // Only add records from the selected import type
-                switch (SelectedImportAudit.ImportType)
+                // Only add records from the selected import job type
+                switch (SelectedImportJob.CallLogType)
                 {
                     case "PSTN":
-                        AllTelecomRecords.AddRange(pstnRecords.Cast<dynamic>());
+                        AllTelecomRecords.AddRange(transformPstn);
                         break;
                     case "PrivateWire":
-                        AllTelecomRecords.AddRange(privateWireRecords.Cast<dynamic>());
+                        AllTelecomRecords.AddRange(transformPrivateWire);
                         break;
                     case "Safaricom":
-                        AllTelecomRecords.AddRange(safaricomRecords.Cast<dynamic>());
+                        AllTelecomRecords.AddRange(transformSafaricom);
                         break;
                     case "Airtel":
-                        AllTelecomRecords.AddRange(airtelRecords.Cast<dynamic>());
+                        AllTelecomRecords.AddRange(transformAirtel);
                         break;
                     default:
                         // If import type doesn't match, add all (fallback)
-                        AllTelecomRecords.AddRange(callLogRecords.Cast<dynamic>());
-                        AllTelecomRecords.AddRange(pstnRecords.Cast<dynamic>());
-                        AllTelecomRecords.AddRange(privateWireRecords.Cast<dynamic>());
-                        AllTelecomRecords.AddRange(safaricomRecords.Cast<dynamic>());
-                        AllTelecomRecords.AddRange(airtelRecords.Cast<dynamic>());
+                        AllTelecomRecords.AddRange(transformCallLog);
+                        AllTelecomRecords.AddRange(transformPstn);
+                        AllTelecomRecords.AddRange(transformPrivateWire);
+                        AllTelecomRecords.AddRange(transformSafaricom);
+                        AllTelecomRecords.AddRange(transformAirtel);
                         break;
                 }
             }
             else
             {
                 // No import filter - add all records
-                AllTelecomRecords.AddRange(callLogRecords.Cast<dynamic>());
-                AllTelecomRecords.AddRange(pstnRecords.Cast<dynamic>());
-                AllTelecomRecords.AddRange(privateWireRecords.Cast<dynamic>());
-                AllTelecomRecords.AddRange(safaricomRecords.Cast<dynamic>());
-                AllTelecomRecords.AddRange(airtelRecords.Cast<dynamic>());
+                AllTelecomRecords.AddRange(transformCallLog);
+                AllTelecomRecords.AddRange(transformPstn);
+                AllTelecomRecords.AddRange(transformPrivateWire);
+                AllTelecomRecords.AddRange(transformSafaricom);
+                AllTelecomRecords.AddRange(transformAirtel);
             }
 
-            // Sort all records by date
+            // =============================================
+            // Step 2: Sort combined records by date
+            // =============================================
             AllTelecomRecords = AllTelecomRecords
                 .OrderByDescending(r => r.InvoiceDate != null ? (DateTime)r.InvoiceDate : DateTime.MinValue)
                 .ToList();
 
-            // Store total count for pagination info
-            TotalRecords = AllTelecomRecords.Count;
-
-            // Calculate statistics from ALL records (before pagination)
+            // =============================================
+            // Step 3: Calculate statistics from COUNT queries (much faster!)
+            // =============================================
+            TotalRecords = callLogCount + pstnCount + privateWireCount + safaricomCount + airtelCount;
             TotalLogs = TotalRecords;
-            LinkedLogs = AllTelecomRecords.Count(r => r.EbillUserId != null);
-            UnlinkedLogs = AllTelecomRecords.Count(r => r.EbillUserId == null);
+            LinkedLogs = callLogLinkedCount + pstnLinkedCount + privateWireLinkedCount + safaricomLinkedCount + airtelLinkedCount;
+            UnlinkedLogs = callLogUnlinkedCount + pstnUnlinkedCount + privateWireUnlinkedCount + safaricomUnlinkedCount + airtelUnlinkedCount;
+
+            // Calculate amounts from the loaded window (approximate, but fast)
+            // For exact amounts across ALL records, would need separate SUM queries
             TotalAmount = AllTelecomRecords.Sum(r => r.GrossTotal != null ? (decimal)r.GrossTotal : 0m);
             TotalAmountUSD = AllTelecomRecords.Sum(r => {
                 var amountUSD = r.AmountUSD as decimal?;
@@ -514,11 +657,16 @@ namespace TAB.Web.Pages.Admin
                 return amountKSH ?? grossTotal ?? 0m;
             });
 
-            // Apply pagination AFTER calculating statistics
+            // =============================================
+            // Step 4: Apply pagination AFTER calculating statistics
+            // =============================================
             AllTelecomRecords = AllTelecomRecords
                 .Skip((PageNumber - 1) * PageSize)
                 .Take(PageSize)
                 .ToList();
+
+            _logger.LogInformation("CallLogs page loaded: {TotalRecords} total records, showing page {PageNumber} of {TotalPages} ({PageSize} per page)",
+                TotalRecords, PageNumber, TotalPages, PageSize);
         }
 
         public async Task<IActionResult> OnPostDeleteAsync(int id)
@@ -865,7 +1013,7 @@ namespace TAB.Web.Pages.Admin
             }
         }
 
-        public async Task<IActionResult> OnPostLinkTelecomAsync(string type, int id, int userId)
+        public async Task<IActionResult> OnPostLinkTelecomAsync(string type, int id, int userId, string extension)
         {
             try
             {
@@ -875,78 +1023,146 @@ namespace TAB.Web.Pages.Admin
                     return new JsonResult(new { success = false, message = "User not found" });
                 }
 
-                bool updated = false;
-                string recordInfo = "";
+                int linkedCount = 0;
+                var modifiedBy = User.Identity?.Name;
+                var modifiedDate = DateTime.UtcNow;
 
                 switch (type?.ToLower())
                 {
                     case "pstn":
-                        var pstn = await _context.PSTNs.FindAsync(id);
-                        if (pstn != null)
+                        // Link ALL unlinked PSTN records with the same extension
+                        if (!string.IsNullOrEmpty(extension))
                         {
-                            pstn.EbillUserId = userId;
-                            pstn.IndexNumber = user.IndexNumber; // Update IndexNumber to match user
-                            pstn.ModifiedDate = DateTime.UtcNow;
-                            pstn.ModifiedBy = User.Identity?.Name;
-                            _context.Update(pstn);
-                            updated = true;
-                            recordInfo = $"PSTN #{id} (updated IndexNumber to {user.IndexNumber})";
+                            var pstnRecords = await _context.PSTNs
+                                .Where(p => p.Extension == extension && p.EbillUserId == null)
+                                .ToListAsync();
+
+                            foreach (var pstn in pstnRecords)
+                            {
+                                pstn.EbillUserId = userId;
+                                pstn.IndexNumber = user.IndexNumber;
+                                pstn.ModifiedDate = modifiedDate;
+                                pstn.ModifiedBy = modifiedBy;
+                            }
+                            linkedCount = pstnRecords.Count;
+                        }
+                        else
+                        {
+                            // Fallback: link single record if no extension provided
+                            var pstn = await _context.PSTNs.FindAsync(id);
+                            if (pstn != null)
+                            {
+                                pstn.EbillUserId = userId;
+                                pstn.IndexNumber = user.IndexNumber;
+                                pstn.ModifiedDate = modifiedDate;
+                                pstn.ModifiedBy = modifiedBy;
+                                linkedCount = 1;
+                            }
                         }
                         break;
 
                     case "privatewire":
                     case "private wire":
-                        var privateWire = await _context.PrivateWires.FindAsync(id);
-                        if (privateWire != null)
+                        // Link ALL unlinked PrivateWire records with the same extension
+                        if (!string.IsNullOrEmpty(extension))
                         {
-                            privateWire.EbillUserId = userId;
-                            privateWire.IndexNumber = user.IndexNumber; // Update IndexNumber to match user
-                            privateWire.ModifiedDate = DateTime.UtcNow;
-                            privateWire.ModifiedBy = User.Identity?.Name;
-                            _context.Update(privateWire);
-                            updated = true;
-                            recordInfo = $"Private Wire #{id} (updated IndexNumber to {user.IndexNumber})";
+                            var pwRecords = await _context.PrivateWires
+                                .Where(p => p.Extension == extension && p.EbillUserId == null)
+                                .ToListAsync();
+
+                            foreach (var pw in pwRecords)
+                            {
+                                pw.EbillUserId = userId;
+                                pw.IndexNumber = user.IndexNumber;
+                                pw.ModifiedDate = modifiedDate;
+                                pw.ModifiedBy = modifiedBy;
+                            }
+                            linkedCount = pwRecords.Count;
+                        }
+                        else
+                        {
+                            var privateWire = await _context.PrivateWires.FindAsync(id);
+                            if (privateWire != null)
+                            {
+                                privateWire.EbillUserId = userId;
+                                privateWire.IndexNumber = user.IndexNumber;
+                                privateWire.ModifiedDate = modifiedDate;
+                                privateWire.ModifiedBy = modifiedBy;
+                                linkedCount = 1;
+                            }
                         }
                         break;
 
                     case "safaricom":
-                        var safaricom = await _context.Safaricoms.FindAsync(id);
-                        if (safaricom != null)
+                        // Link ALL unlinked Safaricom records with the same extension
+                        if (!string.IsNullOrEmpty(extension))
                         {
-                            safaricom.EbillUserId = userId;
-                            safaricom.IndexNumber = user.IndexNumber; // Update IndexNumber to match user
-                            safaricom.ModifiedDate = DateTime.UtcNow;
-                            safaricom.ModifiedBy = User.Identity?.Name;
-                            _context.Update(safaricom);
-                            updated = true;
-                            recordInfo = $"Safaricom #{id} (updated IndexNumber to {user.IndexNumber})";
+                            var safRecords = await _context.Safaricoms
+                                .Where(s => s.Ext == extension && s.EbillUserId == null)
+                                .ToListAsync();
+
+                            foreach (var saf in safRecords)
+                            {
+                                saf.EbillUserId = userId;
+                                saf.IndexNumber = user.IndexNumber;
+                                saf.ModifiedDate = modifiedDate;
+                                saf.ModifiedBy = modifiedBy;
+                            }
+                            linkedCount = safRecords.Count;
+                        }
+                        else
+                        {
+                            var safaricom = await _context.Safaricoms.FindAsync(id);
+                            if (safaricom != null)
+                            {
+                                safaricom.EbillUserId = userId;
+                                safaricom.IndexNumber = user.IndexNumber;
+                                safaricom.ModifiedDate = modifiedDate;
+                                safaricom.ModifiedBy = modifiedBy;
+                                linkedCount = 1;
+                            }
                         }
                         break;
 
                     case "airtel":
-                        var airtel = await _context.Airtels.FindAsync(id);
-                        if (airtel != null)
+                        // Link ALL unlinked Airtel records with the same extension
+                        if (!string.IsNullOrEmpty(extension))
                         {
-                            airtel.EbillUserId = userId;
-                            airtel.IndexNumber = user.IndexNumber; // Update IndexNumber to match user
-                            airtel.ModifiedDate = DateTime.UtcNow;
-                            airtel.ModifiedBy = User.Identity?.Name;
-                            _context.Update(airtel);
-                            updated = true;
-                            recordInfo = $"Airtel #{id} (updated IndexNumber to {user.IndexNumber})";
+                            var airtelRecords = await _context.Airtels
+                                .Where(a => a.Ext == extension && a.EbillUserId == null)
+                                .ToListAsync();
+
+                            foreach (var air in airtelRecords)
+                            {
+                                air.EbillUserId = userId;
+                                air.IndexNumber = user.IndexNumber;
+                                air.ModifiedDate = modifiedDate;
+                                air.ModifiedBy = modifiedBy;
+                            }
+                            linkedCount = airtelRecords.Count;
+                        }
+                        else
+                        {
+                            var airtel = await _context.Airtels.FindAsync(id);
+                            if (airtel != null)
+                            {
+                                airtel.EbillUserId = userId;
+                                airtel.IndexNumber = user.IndexNumber;
+                                airtel.ModifiedDate = modifiedDate;
+                                airtel.ModifiedBy = modifiedBy;
+                                linkedCount = 1;
+                            }
                         }
                         break;
 
                     case "calllog":
+                        // Link single CallLog record (legacy, no extension-based bulk link)
                         var callLog = await _context.CallLogs.FindAsync(id);
                         if (callLog != null)
                         {
                             callLog.EbillUserId = userId;
-                            callLog.AccountNo = user.IndexNumber; // Update AccountNo to match user's IndexNumber
-                            // CallLog doesn't have ModifiedDate/ModifiedBy fields
-                            _context.Update(callLog);
-                            updated = true;
-                            recordInfo = $"CallLog #{id} (updated AccountNo to {user.IndexNumber})";
+                            callLog.AccountNo = user.IndexNumber;
+                            linkedCount = 1;
                         }
                         break;
 
@@ -954,29 +1170,30 @@ namespace TAB.Web.Pages.Admin
                         return new JsonResult(new { success = false, message = $"Unknown record type: {type}" });
                 }
 
-                if (updated)
+                if (linkedCount > 0)
                 {
                     await _context.SaveChangesAsync();
-                    _logger.LogInformation("Linked {RecordInfo} to user {FirstName} {LastName} (ID: {UserId})",
-                        recordInfo, user.FirstName, user.LastName, userId);
+                    _logger.LogInformation("Linked {Count} {Type} records with extension '{Extension}' to user {FirstName} {LastName} (ID: {UserId})",
+                        linkedCount, type, extension ?? "N/A", user.FirstName, user.LastName, userId);
 
                     return new JsonResult(new
                     {
                         success = true,
-                        message = $"Successfully linked to {user.FirstName} {user.LastName}",
+                        message = $"Successfully linked {linkedCount} record(s) to {user.FirstName} {user.LastName}",
                         userName = $"{user.FirstName} {user.LastName}",
-                        userIndex = user.IndexNumber
+                        userIndex = user.IndexNumber,
+                        linkedCount = linkedCount
                     });
                 }
                 else
                 {
-                    return new JsonResult(new { success = false, message = "Record not found" });
+                    return new JsonResult(new { success = false, message = "No records found to link" });
                 }
             }
             catch (Exception ex)
             {
-                _logger.LogError(ex, "Error linking {Type} record {Id} to user {UserId}", type, id, userId);
-                return new JsonResult(new { success = false, message = "An error occurred while linking the record" });
+                _logger.LogError(ex, "Error linking {Type} records with extension '{Extension}' to user {UserId}", type, extension, userId);
+                return new JsonResult(new { success = false, message = "An error occurred while linking the records" });
             }
         }
 
@@ -3914,5 +4131,394 @@ namespace TAB.Web.Pages.Admin
             // Example: 15000 KES / 150 = 100 USD
             return Math.Round(kesAmount.Value / exchangeRate.Rate, 4);
         }
+
+        #region Unlinked Extension Manager
+
+        /// <summary>
+        /// Get aggregated summary of unlinked extensions across all telecom tables
+        /// </summary>
+        public async Task<IActionResult> OnGetUnlinkedExtensionsSummaryAsync()
+        {
+            try
+            {
+                // PSTN - uses "Extension" field
+                var pstnUnlinked = await _context.PSTNs
+                    .Where(p => p.EbillUserId == null && !string.IsNullOrEmpty(p.Extension))
+                    .GroupBy(p => p.Extension)
+                    .Select(g => new
+                    {
+                        Extension = g.Key,
+                        Count = g.Count(),
+                        Provider = "PSTN",
+                        MinDate = g.Min(x => x.CallDate),
+                        MaxDate = g.Max(x => x.CallDate)
+                    }).ToListAsync();
+
+                // PrivateWire - uses "Extension" field
+                var privateWireUnlinked = await _context.PrivateWires
+                    .Where(p => p.EbillUserId == null && !string.IsNullOrEmpty(p.Extension))
+                    .GroupBy(p => p.Extension)
+                    .Select(g => new
+                    {
+                        Extension = g.Key,
+                        Count = g.Count(),
+                        Provider = "Private Wire",
+                        MinDate = g.Min(x => x.CallDate),
+                        MaxDate = g.Max(x => x.CallDate)
+                    }).ToListAsync();
+
+                // Safaricom - uses "Ext" field
+                var safaricomUnlinked = await _context.Safaricoms
+                    .Where(s => s.EbillUserId == null && !string.IsNullOrEmpty(s.Ext))
+                    .GroupBy(s => s.Ext)
+                    .Select(g => new
+                    {
+                        Extension = g.Key,
+                        Count = g.Count(),
+                        Provider = "Safaricom",
+                        MinDate = g.Min(x => x.CallDate),
+                        MaxDate = g.Max(x => x.CallDate)
+                    }).ToListAsync();
+
+                // Airtel - uses "Ext" field
+                var airtelUnlinked = await _context.Airtels
+                    .Where(a => a.EbillUserId == null && !string.IsNullOrEmpty(a.Ext))
+                    .GroupBy(a => a.Ext)
+                    .Select(g => new
+                    {
+                        Extension = g.Key,
+                        Count = g.Count(),
+                        Provider = "Airtel",
+                        MinDate = g.Min(x => x.CallDate),
+                        MaxDate = g.Max(x => x.CallDate)
+                    }).ToListAsync();
+
+                // Combine all results into a single list for aggregation
+                var allUnlinked = pstnUnlinked
+                    .Select(x => new { x.Extension, x.Count, x.Provider, x.MinDate, x.MaxDate })
+                    .Concat(privateWireUnlinked.Select(x => new { x.Extension, x.Count, x.Provider, x.MinDate, x.MaxDate }))
+                    .Concat(safaricomUnlinked.Select(x => new { x.Extension, x.Count, x.Provider, x.MinDate, x.MaxDate }))
+                    .Concat(airtelUnlinked.Select(x => new { x.Extension, x.Count, x.Provider, x.MinDate, x.MaxDate }))
+                    .ToList();
+
+                // Aggregate by extension across all providers
+                var combined = allUnlinked
+                    .GroupBy(x => x.Extension)
+                    .Select(g => new
+                    {
+                        extension = g.Key,
+                        totalRecords = g.Sum(x => x.Count),
+                        providers = g.Select(x => x.Provider).Distinct().ToList(),
+                        minDate = g.Min(x => x.MinDate),
+                        maxDate = g.Max(x => x.MaxDate),
+                        dateRange = $"{g.Min(x => x.MinDate):yyyy-MM-dd} to {g.Max(x => x.MaxDate):yyyy-MM-dd}"
+                    })
+                    .OrderByDescending(x => x.totalRecords)
+                    .ToList();
+
+                return new JsonResult(combined);
+            }
+            catch (Exception ex)
+            {
+                _logger.LogError(ex, "Error fetching unlinked extensions summary");
+                return new JsonResult(new { success = false, message = ex.Message });
+            }
+        }
+
+        /// <summary>
+        /// Search users for linking - supports name, email, index number search
+        /// </summary>
+        public async Task<IActionResult> OnGetSearchUsersForLinkingAsync(string term)
+        {
+            if (string.IsNullOrWhiteSpace(term) || term.Length < 2)
+            {
+                return new JsonResult(new List<object>());
+            }
+
+            var searchLower = term.ToLower();
+
+            var users = await _context.EbillUsers
+                .Include(u => u.OrganizationEntity)
+                .Include(u => u.OfficeEntity)
+                .Where(u =>
+                    u.FirstName.ToLower().Contains(searchLower) ||
+                    u.LastName.ToLower().Contains(searchLower) ||
+                    u.IndexNumber.ToLower().Contains(searchLower) ||
+                    (u.Email != null && u.Email.ToLower().Contains(searchLower)) ||
+                    (u.OfficialMobileNumber != null && u.OfficialMobileNumber.Contains(term)))
+                .Take(15)
+                .Select(u => new
+                {
+                    id = u.Id,
+                    fullName = u.FirstName + " " + u.LastName,
+                    indexNumber = u.IndexNumber,
+                    email = u.Email ?? "",
+                    phone = u.OfficialMobileNumber ?? "",
+                    organizationName = u.OrganizationEntity != null ? u.OrganizationEntity.Name : "N/A",
+                    officeName = u.OfficeEntity != null ? u.OfficeEntity.Name : "N/A"
+                })
+                .ToListAsync();
+
+            return new JsonResult(users);
+        }
+
+        /// <summary>
+        /// Check if user has an existing primary phone
+        /// </summary>
+        public async Task<IActionResult> OnGetCheckExistingPrimaryPhoneAsync(string indexNumber)
+        {
+            try
+            {
+                var existingPrimary = await _context.UserPhones
+                    .Where(up => up.IndexNumber == indexNumber && up.IsPrimary && up.IsActive)
+                    .Select(up => new
+                    {
+                        hasPrimary = true,
+                        phoneNumber = up.PhoneNumber,
+                        phoneType = up.PhoneType
+                    })
+                    .FirstOrDefaultAsync();
+
+                if (existingPrimary != null)
+                {
+                    return new JsonResult(existingPrimary);
+                }
+
+                return new JsonResult(new { hasPrimary = false });
+            }
+            catch (Exception ex)
+            {
+                _logger.LogError(ex, "Error checking existing primary phone for {IndexNumber}", indexNumber);
+                return new JsonResult(new { hasPrimary = false });
+            }
+        }
+
+        /// <summary>
+        /// Get Class of Service options for the extension registration dropdown
+        /// </summary>
+        public async Task<IActionResult> OnGetClassOfServiceOptionsAsync()
+        {
+            try
+            {
+                var options = await _context.ClassOfServices
+                    .Where(c => c.ServiceStatus == ServiceStatus.Active)
+                    .OrderBy(c => c.Class)
+                    .ThenBy(c => c.Service)
+                    .Select(c => new
+                    {
+                        id = c.Id,
+                        name = $"{c.Class} - {c.Service}"
+                    })
+                    .ToListAsync();
+
+                return new JsonResult(options);
+            }
+            catch (Exception ex)
+            {
+                _logger.LogError(ex, "Error fetching class of service options");
+                return new JsonResult(new List<object>());
+            }
+        }
+
+        /// <summary>
+        /// Bulk register extension as UserPhone and link all unlinked records with that extension to the user
+        /// </summary>
+        public async Task<IActionResult> OnPostBulkRegisterAndLinkAsync(
+            string extension,
+            int userId,
+            string? indexNumber,
+            string lineType,
+            string phoneType,
+            string ownershipType,
+            int? classOfServiceId,
+            string? location,
+            string? notes)
+        {
+            // Use execution strategy to support SqlServerRetryingExecutionStrategy with transactions
+            var strategy = _context.Database.CreateExecutionStrategy();
+
+            try
+            {
+                var result = await strategy.ExecuteAsync(async () =>
+                {
+                    using var transaction = await _context.Database.BeginTransactionAsync();
+                    try
+                    {
+                        var user = await _context.EbillUsers.FindAsync(userId);
+                        if (user == null)
+                        {
+                            throw new InvalidOperationException("User not found");
+                        }
+
+                        // Use user's index number if not provided
+                        var effectiveIndexNumber = string.IsNullOrWhiteSpace(indexNumber) ? user.IndexNumber : indexNumber;
+
+                        // 1. Check if extension is already registered
+                        var existingPhone = await _context.UserPhones
+                            .FirstOrDefaultAsync(up => up.PhoneNumber == extension);
+
+                        int userPhoneId;
+                        bool isNewRegistration = false;
+
+                        if (existingPhone == null)
+                        {
+                            // Parse enums
+                            if (!Enum.TryParse<LineType>(lineType, out var parsedLineType))
+                                parsedLineType = LineType.Secondary;
+
+                            if (!Enum.TryParse<PhoneOwnershipType>(ownershipType, out var parsedOwnershipType))
+                                parsedOwnershipType = PhoneOwnershipType.Personal;
+
+                            // Determine if this is a primary line
+                            bool isPrimary = parsedLineType == LineType.Primary;
+
+                            // If setting as primary, unset other primary phones for this user
+                            if (isPrimary)
+                            {
+                                var existingPrimaryPhones = await _context.UserPhones
+                                    .Where(up => up.IndexNumber == user.IndexNumber && up.IsPrimary)
+                                    .ToListAsync();
+
+                                foreach (var phone in existingPrimaryPhones)
+                                {
+                                    phone.IsPrimary = false;
+                                    phone.LineType = LineType.Secondary;
+                                }
+                            }
+
+                            // Create new UserPhone record
+                            var userPhone = new UserPhone
+                            {
+                                IndexNumber = user.IndexNumber,
+                                PhoneNumber = extension,
+                                PhoneType = phoneType ?? "Extension",
+                                LineType = parsedLineType,
+                                OwnershipType = parsedOwnershipType,
+                                IsPrimary = isPrimary,
+                                IsActive = true,
+                                Status = PhoneStatus.Active,
+                                ClassOfServiceId = classOfServiceId,
+                                Location = location,
+                                Notes = notes,
+                                AssignedDate = DateTime.UtcNow,
+                                CreatedDate = DateTime.UtcNow,
+                                CreatedBy = User.Identity?.Name
+                            };
+
+                            _context.UserPhones.Add(userPhone);
+                            await _context.SaveChangesAsync();
+                            userPhoneId = userPhone.Id;
+                            isNewRegistration = true;
+
+                            _logger.LogInformation("Created new UserPhone registration for extension {Extension} linked to user {UserId}", extension, userId);
+                        }
+                        else
+                        {
+                            userPhoneId = existingPhone.Id;
+                            _logger.LogInformation("Extension {Extension} already registered as UserPhoneId {UserPhoneId}", extension, userPhoneId);
+                        }
+
+                        // 2. Link all unlinked records across all tables
+                        int linkedCount = 0;
+                        var modifiedBy = User.Identity?.Name;
+                        var modifiedDate = DateTime.UtcNow;
+
+                        // PSTN
+                        var pstnRecords = await _context.PSTNs
+                            .Where(p => p.Extension == extension && p.EbillUserId == null)
+                            .ToListAsync();
+                        foreach (var record in pstnRecords)
+                        {
+                            record.EbillUserId = userId;
+                            record.UserPhoneId = userPhoneId;
+                            record.IndexNumber = user.IndexNumber;
+                            record.ModifiedDate = modifiedDate;
+                            record.ModifiedBy = modifiedBy;
+                        }
+                        linkedCount += pstnRecords.Count;
+
+                        // PrivateWire
+                        var privateWireRecords = await _context.PrivateWires
+                            .Where(p => p.Extension == extension && p.EbillUserId == null)
+                            .ToListAsync();
+                        foreach (var record in privateWireRecords)
+                        {
+                            record.EbillUserId = userId;
+                            record.UserPhoneId = userPhoneId;
+                            record.IndexNumber = user.IndexNumber;
+                            record.ModifiedDate = modifiedDate;
+                            record.ModifiedBy = modifiedBy;
+                        }
+                        linkedCount += privateWireRecords.Count;
+
+                        // Safaricom (uses Ext field)
+                        var safaricomRecords = await _context.Safaricoms
+                            .Where(s => s.Ext == extension && s.EbillUserId == null)
+                            .ToListAsync();
+                        foreach (var record in safaricomRecords)
+                        {
+                            record.EbillUserId = userId;
+                            record.UserPhoneId = userPhoneId;
+                            record.IndexNumber = user.IndexNumber;
+                            record.ModifiedDate = modifiedDate;
+                            record.ModifiedBy = modifiedBy;
+                        }
+                        linkedCount += safaricomRecords.Count;
+
+                        // Airtel (uses Ext field)
+                        var airtelRecords = await _context.Airtels
+                            .Where(a => a.Ext == extension && a.EbillUserId == null)
+                            .ToListAsync();
+                        foreach (var record in airtelRecords)
+                        {
+                            record.EbillUserId = userId;
+                            record.UserPhoneId = userPhoneId;
+                            record.IndexNumber = user.IndexNumber;
+                            record.ModifiedDate = modifiedDate;
+                            record.ModifiedBy = modifiedBy;
+                        }
+                        linkedCount += airtelRecords.Count;
+
+                        await _context.SaveChangesAsync();
+                        await transaction.CommitAsync();
+
+                        var message = isNewRegistration
+                            ? $"Successfully registered extension {extension} and linked {linkedCount} record(s) to {user.FirstName} {user.LastName}"
+                            : $"Extension was already registered. Linked {linkedCount} record(s) to {user.FirstName} {user.LastName}";
+
+                        _logger.LogInformation("BulkRegisterAndLink completed: Extension={Extension}, UserId={UserId}, LinkedCount={LinkedCount}, NewRegistration={NewRegistration}",
+                            extension, userId, linkedCount, isNewRegistration);
+
+                        return new
+                        {
+                            success = true,
+                            message = message,
+                            linkedCount = linkedCount,
+                            isNewRegistration = isNewRegistration,
+                            userName = $"{user.FirstName} {user.LastName}",
+                            userIndex = user.IndexNumber
+                        };
+                    }
+                    catch
+                    {
+                        await transaction.RollbackAsync();
+                        throw;
+                    }
+                });
+
+                return new JsonResult(result);
+            }
+            catch (InvalidOperationException ex) when (ex.Message == "User not found")
+            {
+                return new JsonResult(new { success = false, message = "User not found" });
+            }
+            catch (Exception ex)
+            {
+                _logger.LogError(ex, "Error in BulkRegisterAndLink for extension {Extension}, userId {UserId}", extension, userId);
+                return new JsonResult(new { success = false, message = $"An error occurred: {ex.Message}" });
+            }
+        }
+
+        #endregion
     }
 }

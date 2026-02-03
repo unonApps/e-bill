@@ -1,9 +1,26 @@
-@model (string GroupId, string Extension, string MonthName, int Year, int CallCount, decimal TotalCostUSD, decimal TotalCostKSH, decimal TotalRecoveredUSD, decimal TotalRecoveredKSH, bool IsPrivateWirePrimary, decimal OfficialUSD, decimal OfficialKSH, decimal PersonalUSD, decimal PersonalKSH)
+@model (string GroupId, string Extension, string MonthName, int Month, int Year, int CallCount, decimal TotalCostUSD, decimal TotalCostKSH, decimal TotalRecoveredUSD, decimal TotalRecoveredKSH, bool IsPrivateWirePrimary, decimal OfficialUSD, decimal OfficialKSH, decimal PersonalUSD, decimal PersonalKSH, int SubmittedCount, int PendingCount, int ApprovedCount, int RejectedCount, int RevertedCount, int PartiallyApprovedCount, int IncomingAssignmentCount, string? AssignedFromUser, int OutgoingPendingCount, string? AssignedToUser)
 
+@{
+    // Calculate if all calls are submitted and locked (pending or approved - can't resubmit)
+    var lockedSubmissionCount = Model.PendingCount + Model.ApprovedCount + Model.PartiallyApprovedCount;
+    var canResubmitCount = Model.RejectedCount + Model.RevertedCount;
+    var allSubmittedAndLocked = Model.SubmittedCount > 0 && lockedSubmissionCount == Model.CallCount;
+    var hasUnsubmittedCalls = Model.CallCount > Model.SubmittedCount || canResubmitCount > 0;
+}
 @* Extension Summary Row (Level 1) - Always visible *@
 <tr class="extension-summary-row" style="background-color: #f8f9fa; font-weight: 600;">
     <td class="text-center px-2" onclick="toggleCallDetails('@Model.GroupId')" style="cursor: pointer;">
-        <input type="checkbox" class="extension-checkbox" id="ext-check-@Model.GroupId" onclick="event.stopPropagation();" />
+        <input type="checkbox"
+               class="extension-checkbox"
+               id="ext-check-@Model.GroupId"
+               data-extension="@Model.Extension"
+               data-group-id="@Model.GroupId"
+               data-month="@Model.Month"
+               data-year="@Model.Year"
+               onclick="event.stopPropagation();"
+               onchange="toggleExtensionCalls(this);"
+               @(allSubmittedAndLocked ? "disabled" : "")
+               title="@(allSubmittedAndLocked ? "All calls already submitted to supervisor" : "Select calls for submission")" />
     </td>
     <td class="text-center px-2" onclick="toggleCallDetails('@Model.GroupId')" style="cursor: pointer;">
         <i class="bi bi-plus-circle text-primary toggle-icon" id="toggle-@Model.GroupId"></i>
@@ -107,15 +124,142 @@
         <span class="badge bg-info bg-opacity-10 text-info">@Model.CallCount calls</span>
     </td>
     <td class="text-end px-2" onclick="event.stopPropagation();">
-        <div class="d-flex gap-2 align-items-center justify-content-end">
+        @{
+            // Calculate verification status
+            var hasOfficial = Model.OfficialUSD > 0 || Model.OfficialKSH > 0;
+            var hasPersonal = Model.PersonalUSD > 0 || Model.PersonalKSH > 0;
+            var totalVerified = Model.OfficialUSD + Model.PersonalUSD;
+            var isFullyVerified = Math.Abs(totalVerified - Model.TotalCostUSD) < 0.01m; // Allow small rounding difference
+
+            string verificationStatus;
+            string statusBadgeClass;
+            string statusIcon;
+
+            if (hasOfficial && hasPersonal)
+            {
+                verificationStatus = "Mixed";
+                statusBadgeClass = "bg-success";
+                statusIcon = "bi-shuffle";
+            }
+            else if (hasOfficial && !hasPersonal && isFullyVerified)
+            {
+                verificationStatus = "All Official";
+                statusBadgeClass = "bg-success";
+                statusIcon = "bi-check-circle-fill";
+            }
+            else if (hasPersonal && !hasOfficial && isFullyVerified)
+            {
+                verificationStatus = "All Personal";
+                statusBadgeClass = "bg-warning text-dark";
+                statusIcon = "bi-check-circle-fill";
+            }
+            else if (hasOfficial && !hasPersonal)
+            {
+                verificationStatus = "Official (partial)";
+                statusBadgeClass = "bg-success bg-opacity-50";
+                statusIcon = "bi-circle-half";
+            }
+            else if (hasPersonal && !hasOfficial)
+            {
+                verificationStatus = "Personal (partial)";
+                statusBadgeClass = "bg-warning bg-opacity-50 text-dark";
+                statusIcon = "bi-circle-half";
+            }
+            else
+            {
+                // Default to Official for unverified calls
+                verificationStatus = "Official";
+                statusBadgeClass = "bg-success";
+                statusIcon = "bi-briefcase";
+            }
+
+            // Determine dropdown selection based on actual status
+            // If ALL calls are Personal (no official), select Personal; otherwise select Official
+            var dropdownDefault = (hasPersonal && !hasOfficial) ? "Personal" : "Official";
+        }
+        <div class="d-flex gap-2 align-items-center justify-content-end flex-wrap">
+            @* Submitted Badge *@
+            @if (Model.SubmittedCount > 0)
+            {
+                <span class="badge bg-primary" style="font-size: 0.7rem; padding: 0.25rem 0.5rem;" title="Submitted to supervisor for approval">
+                    <i class="bi bi-send-check me-1"></i>@Model.SubmittedCount Submitted
+                </span>
+            }
+
+            @* Incoming Assignment Badge *@
+            @if (Model.IncomingAssignmentCount > 0)
+            {
+                <span class="badge bg-info" style="font-size: 0.7rem; padding: 0.25rem 0.5rem;" title="Calls assigned to you pending acceptance">
+                    <i class="bi bi-arrow-left me-1"></i>@Model.IncomingAssignmentCount Assigned to you
+                </span>
+            }
+
+            @* Outgoing Pending Reassignment Badge *@
+            @if (Model.OutgoingPendingCount > 0)
+            {
+                <span class="badge bg-warning text-dark" style="font-size: 0.7rem; padding: 0.25rem 0.5rem;" title="@Model.OutgoingPendingCount calls pending acceptance by @(Model.AssignedToUser ?? "others")">
+                    <i class="bi bi-hourglass-split me-1"></i>@Model.OutgoingPendingCount Pending with @(Model.AssignedToUser ?? "others")
+                </span>
+            }
+
+            @* Verification Status Badge *@
+            <span class="badge @statusBadgeClass" style="font-size: 0.7rem; padding: 0.25rem 0.5rem;" title="Current verification status">
+                <i class="bi @statusIcon me-1"></i>@verificationStatus
+            </span>
+
+            @* Dropdown to change verification - reflects current status *@
             <select class="form-select form-select-sm"
-                    style="width: 140px; border-radius: 8px; font-size: 0.875rem;"
-                    onchange="verifyAllCallsInGroup('@Model.GroupId', this.value)"
-                    onclick="event.stopPropagation();">
-                <option value="" selected>Verify All as...</option>
-                <option value="Official" style="color: #10b981;">✓ All Official</option>
-                <option value="Personal" style="color: #f59e0b;">✓ All Personal</option>
-            </select>
+                style="width: 130px; border-radius: 8px; font-size: 0.8rem;"
+                onchange="verifyAllCallsForExtensionMonth('@Model.Extension', @Model.Month, @Model.Year, this.value, @Model.CallCount)"
+                onclick="event.stopPropagation();">
+                @if (dropdownDefault == "Official")
+                {
+                    <option value="Official" selected style="color: #10b981;">Official</option>
+                    <option value="Personal" style="color: #f59e0b;">Personal</option>
+                }
+                else
+                {
+                    <option value="Official" style="color: #10b981;">Official</option>
+                    <option value="Personal" selected style="color: #f59e0b;">Personal</option>
+                }
+        </select>
+            @* Reassign Button *@
+            <button type="button" class="btn btn-outline-secondary btn-sm"
+                    onclick="openReassignDialogForExtension('@Model.Extension', @Model.Month, @Model.Year, @Model.CallCount)"
+                    title="Reassign all calls in this extension"
+                    style="font-size: 0.7rem; padding: 0.25rem 0.5rem;">
+                <i class="bi bi-person-plus"></i>
+            </button>
+
+            @* Accept/Reject Buttons for Incoming Assignments *@
+            @if (Model.IncomingAssignmentCount > 0)
+            {
+                <div class="btn-group btn-group-sm" onclick="event.stopPropagation();">
+                    <button type="button" class="btn btn-success btn-sm"
+                            onclick="showAcceptBulkModal('extension', '@Model.Extension', @Model.Month, @Model.Year, '', @Model.IncomingAssignmentCount, @Model.TotalCostUSD, '@(Model.AssignedFromUser ?? "")')"
+                            title="Accept all @Model.IncomingAssignmentCount assignments"
+                            style="font-size: 0.7rem; padding: 0.25rem 0.5rem;">
+                        <i class="bi bi-check-lg"></i> Accept
+                    </button>
+                    <button type="button" class="btn btn-danger btn-sm"
+                            onclick="showRejectBulkModal('extension', '@Model.Extension', @Model.Month, @Model.Year, '', @Model.IncomingAssignmentCount, @Model.TotalCostUSD, '@(Model.AssignedFromUser ?? "")')"
+                            title="Reject all @Model.IncomingAssignmentCount assignments"
+                            style="font-size: 0.7rem; padding: 0.25rem 0.5rem;">
+                        <i class="bi bi-x-lg"></i> Reject
+                    </button>
+                </div>
+            }
+
+            @* Recall Button for Outgoing Pending Reassignments *@
+            @if (Model.OutgoingPendingCount > 0)
+            {
+                <button type="button" class="btn btn-outline-warning btn-sm"
+                        onclick="event.stopPropagation(); showRecallBulkModal('extension', '@Model.Extension', @Model.Month, @Model.Year, '', @Model.OutgoingPendingCount, @Model.TotalCostUSD, '@(Model.AssignedToUser ?? "")')"
+                        title="Recall all @Model.OutgoingPendingCount pending reassignments"
+                        style="font-size: 0.7rem; padding: 0.25rem 0.5rem;">
+                    <i class="bi bi-arrow-return-left me-1"></i>Recall
+                </button>
+            }
         </div>
     </td>
 </tr>

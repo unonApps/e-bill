@@ -9,13 +9,16 @@ namespace TAB.Web.Services
     {
         private readonly ApplicationDbContext _context;
         private readonly ILogger<ClassOfServiceCalculationService> _logger;
+        private readonly IClassOfServiceVersioningService _versioningService;
 
         public ClassOfServiceCalculationService(
             ApplicationDbContext context,
-            ILogger<ClassOfServiceCalculationService> logger)
+            ILogger<ClassOfServiceCalculationService> logger,
+            IClassOfServiceVersioningService versioningService)
         {
             _context = context;
             _logger = logger;
+            _versioningService = versioningService;
         }
 
         public async Task<bool> IsWithinAllowanceAsync(string indexNumber, decimal amount, int month, int year)
@@ -80,9 +83,20 @@ namespace TAB.Web.Services
                 .Include(up => up.ClassOfService)
                 .FirstOrDefaultAsync(up => up.IndexNumber == indexNumber && up.IsActive);
 
+            // Get the Class of Service version that was effective during the billing period
+            ClassOfService? effectiveClassOfService = null;
+            if (userPhone?.ClassOfServiceId != null)
+            {
+                // Use the first day of the billing month as the effective date
+                var billingPeriodDate = new DateTime(year, month, 1);
+                effectiveClassOfService = await _versioningService.GetEffectiveVersionAsync(
+                    userPhone.ClassOfServiceId.Value,
+                    billingPeriodDate);
+            }
+
             // AirtimeAllowanceAmount represents the total monthly allowance (includes airtime AND data)
             // NULL means Unlimited
-            var allowanceLimit = userPhone?.ClassOfService?.AirtimeAllowanceAmount ?? 0;
+            var allowanceLimit = effectiveClassOfService?.AirtimeAllowanceAmount ?? 0;
             var totalUsage = await GetMonthlyUsageAsync(indexNumber, month, year);
 
             // Include calls where user is responsible OR calls assigned to them (accepted)
@@ -117,7 +131,7 @@ namespace TAB.Web.Services
                 PersonalCalls = calls.Count(c => c.VerificationType == VerificationType.Personal.ToString()),
                 HasJustification = verifications.Any(v => v.IsOverage && !string.IsNullOrWhiteSpace(v.JustificationText)),
                 SupervisorApproved = verifications.Any(v => v.ApprovalStatus == "Approved" || v.ApprovalStatus == "PartiallyApproved"),
-                ClassOfService = userPhone?.ClassOfService?.Class ?? "N/A",
+                ClassOfService = effectiveClassOfService?.Class ?? "N/A",
                 Office = user?.Location ?? "N/A"
             };
         }

@@ -341,7 +341,7 @@ namespace TAB.Web.Services
                     "New SIM Request Pending",
                     "A new SIM card request is pending your approval.",
                     NotificationType.Action,
-                    "/Modules/SimManagement/Approvals/Supervisor/Index",
+                    $"/Modules/SimManagement/Approvals/Supervisor?requestId={requestId}",
                     "bi-bell-fill",
                     "SimRequest",
                     requestId.ToString()
@@ -429,7 +429,7 @@ namespace TAB.Web.Services
                     "New SIM Request",
                     "A new SIM card request requires your attention.",
                     NotificationType.Action,
-                    "/Modules/SimManagement/Approvals/ICTS/Index",
+                    $"/Modules/SimManagement/Approvals/ICTS?requestId={requestId}",
                     "bi-bell-fill",
                     "SimRequest",
                     requestId.ToString()
@@ -590,7 +590,7 @@ namespace TAB.Web.Services
                     "New Refund Request Pending",
                     "A new refund request is pending your approval.",
                     NotificationType.Action,
-                    "/Modules/RefundManagement/Approvals/Supervisor/Index",
+                    $"/Modules/RefundManagement/Approvals/Supervisor?requestId={requestId}&tab=supervisor",
                     "bi-bell-fill",
                     "RefundRequest",
                     requestId.ToString()
@@ -885,7 +885,7 @@ namespace TAB.Web.Services
                     "New SIM Request",
                     $"{requesterName} has submitted a SIM card request that requires your approval.",
                     NotificationType.Action,
-                    "/Modules/SimManagement/Approvals/Supervisor/Index",
+                    $"/Modules/SimManagement/Approvals/Supervisor?requestId={requestId}",
                     "bi-bell-fill",
                     "SimRequest",
                     requestId.ToString()
@@ -903,11 +903,11 @@ namespace TAB.Web.Services
             {
                 var link = approverRole switch
                 {
-                    "Supervisor" => "/Modules/RefundManagement/Approvals/Supervisor/Index",
-                    "Budget Officer" => "/Modules/RefundManagement/Approvals/BudgetOfficer/Index",
-                    "Staff Claims Unit" => "/Modules/RefundManagement/Approvals/ClaimsUnit/Index",
-                    "Payment Approver" => "/Modules/RefundManagement/Approvals/PaymentApprover/Index",
-                    _ => "/Modules/RefundManagement/Approvals/Index"
+                    "Supervisor" => $"/Modules/RefundManagement/Approvals/Supervisor?requestId={requestId}&tab=supervisor",
+                    "Budget Officer" => $"/Modules/RefundManagement/Approvals/BudgetOfficer?requestId={requestId}&tab=budget",
+                    "Staff Claims Unit" => $"/Modules/RefundManagement/Approvals/ClaimsUnit?requestId={requestId}&tab=claims",
+                    "Payment Approver" => $"/Modules/RefundManagement/Approvals/PaymentApprover?requestId={requestId}&tab=payment",
+                    _ => $"/Modules/RefundManagement/Approvals?requestId={requestId}"
                 };
 
                 await CreateNotificationAsync(

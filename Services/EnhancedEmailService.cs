@@ -15,6 +15,12 @@ namespace TAB.Web.Services
         private readonly IConfiguration _configuration;
         private readonly IWebHostEnvironment _environment;
 
+        // Static cache to prevent repeated DB queries when email is not configured
+        private static DateTime _lastEmailConfigCheck = DateTime.MinValue;
+        private static bool _hasEmailConfig = false;
+        private static readonly TimeSpan _configCacheDuration = TimeSpan.FromMinutes(5);
+        private static readonly object _cacheLock = new object();
+
         public EnhancedEmailService(
             ApplicationDbContext context,
             IEmailTemplateService templateService,
@@ -224,6 +230,57 @@ namespace TAB.Web.Services
 
         public async Task ProcessQueueAsync(int maxEmails = 50)
         {
+            // Check cache first to avoid DB hit when email is not configured
+            bool shouldCheckDb = false;
+            lock (_cacheLock)
+            {
+                if (DateTime.UtcNow - _lastEmailConfigCheck > _configCacheDuration)
+                {
+                    shouldCheckDb = true;
+                }
+                else if (!_hasEmailConfig)
+                {
+                    // Email was not configured last time we checked, and cache is still valid
+                    _logger.LogDebug("Email configuration not available (cached). Skipping queue processing.");
+                    return;
+                }
+            }
+
+            // Check for email configuration first (before querying emails)
+            EmailConfiguration? config = null;
+            if (shouldCheckDb || _hasEmailConfig)
+            {
+                config = await GetActiveEmailConfigurationAsync();
+
+                lock (_cacheLock)
+                {
+                    _lastEmailConfigCheck = DateTime.UtcNow;
+                    _hasEmailConfig = config != null;
+                }
+
+                if (config == null)
+                {
+                    _logger.LogWarning("No active email configuration found. Cannot process queue.");
+                    return;
+                }
+            }
+            else
+            {
+                // Use cached config status - if we got here, config exists
+                config = await GetActiveEmailConfigurationAsync();
+                if (config == null)
+                {
+                    lock (_cacheLock)
+                    {
+                        _hasEmailConfig = false;
+                        _lastEmailConfigCheck = DateTime.UtcNow;
+                    }
+                    _logger.LogWarning("No active email configuration found. Cannot process queue.");
+                    return;
+                }
+            }
+
+            // Now query for queued emails (only if we have a valid config)
             var queuedEmails = await _context.EmailLogs
                 .Where(e => e.Status == "Queued" &&
                            (e.ScheduledSendDate == null || e.ScheduledSendDate <= DateTime.UtcNow))
@@ -232,10 +289,9 @@ namespace TAB.Web.Services
                 .Take(maxEmails)
                 .ToListAsync();
 
-            var config = await GetActiveEmailConfigurationAsync();
-            if (config == null)
+            if (!queuedEmails.Any())
             {
-                _logger.LogWarning("No active email configuration found. Cannot process queue.");
+                _logger.LogDebug("No queued emails to process.");
                 return;
             }
 

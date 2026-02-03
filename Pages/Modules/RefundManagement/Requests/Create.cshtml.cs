@@ -11,7 +11,7 @@ using TAB.Web.Services;
 namespace TAB.Web.Pages.Modules.RefundManagement.Requests
 {
     [Authorize]
-    public class CreateModel : PageModel
+    public class CreateModel : RefundRequestFormModel
     {
         private readonly ApplicationDbContext _context;
         private readonly UserManager<ApplicationUser> _userManager;
@@ -39,21 +39,8 @@ namespace TAB.Web.Pages.Modules.RefundManagement.Requests
             _emailService = emailService;
         }
 
-        [BindProperty]
-        public RefundRequest RefundRequest { get; set; } = new RefundRequest();
-
         public List<SelectListItem> Supervisors { get; set; } = new List<SelectListItem>();
         public List<SelectListItem> ClassOfServices { get; set; } = new List<SelectListItem>();
-
-        // Add these properties for the form dropdowns
-        public List<Organization> Organizations { get; set; } = new List<Organization>();
-        public List<ClassOfService> ClassesOfService { get; set; } = new List<ClassOfService>();
-
-        // Pre-populated organization ID for office loading
-        public int? PreSelectedOrganizationId { get; set; }
-
-        [TempData]
-        public string? StatusMessage { get; set; }
 
         public async Task<IActionResult> OnGetAsync()
         {
@@ -148,9 +135,17 @@ namespace TAB.Web.Pages.Modules.RefundManagement.Requests
             // Handle file upload - Store in database
             if (receiptFile != null && receiptFile.Length > 0)
             {
-                if (receiptFile.ContentType != "application/pdf")
+                // Allow PDF and common image formats
+                var allowedContentTypes = new[] {
+                    "application/pdf",
+                    "image/jpeg",
+                    "image/jpg",
+                    "image/png"
+                };
+
+                if (!allowedContentTypes.Contains(receiptFile.ContentType.ToLower()))
                 {
-                    ModelState.AddModelError("ReceiptFile", "Only PDF files are allowed.");
+                    ModelState.AddModelError("ReceiptFile", "Only PDF, JPG, and PNG files are allowed.");
                 }
                 else if (receiptFile.Length > 10 * 1024 * 1024) // 10MB limit
                 {
@@ -176,20 +171,49 @@ namespace TAB.Web.Pages.Modules.RefundManagement.Requests
                         receiptFile.FileName, RefundRequest.PurchaseReceiptData.Length);
                 }
             }
+            // Handle validation based on action type
+            if (action == "draft")
+            {
+                // For drafts, clear all validation errors to allow partial saves
+                ModelState.Clear();
+
+                // Set default values for required database fields to prevent NULL constraint violations
+                if (string.IsNullOrEmpty(RefundRequest.PrimaryMobileNumber))
+                    RefundRequest.PrimaryMobileNumber = "";
+                if (string.IsNullOrEmpty(RefundRequest.IndexNo))
+                    RefundRequest.IndexNo = "";
+                if (string.IsNullOrEmpty(RefundRequest.MobileNumberAssignedTo))
+                    RefundRequest.MobileNumberAssignedTo = "";
+                if (string.IsNullOrEmpty(RefundRequest.Office))
+                    RefundRequest.Office = "";
+                if (string.IsNullOrEmpty(RefundRequest.MobileService))
+                    RefundRequest.MobileService = "";
+                if (string.IsNullOrEmpty(RefundRequest.ClassOfService))
+                    RefundRequest.ClassOfService = "";
+                if (string.IsNullOrEmpty(RefundRequest.DevicePurchaseCurrency))
+                    RefundRequest.DevicePurchaseCurrency = "";
+                if (string.IsNullOrEmpty(RefundRequest.Organization))
+                    RefundRequest.Organization = "";
+                if (string.IsNullOrEmpty(RefundRequest.UmojaBankName))
+                    RefundRequest.UmojaBankName = "";
+                if (string.IsNullOrEmpty(RefundRequest.Supervisor))
+                    RefundRequest.Supervisor = "";
+                if (string.IsNullOrEmpty(RefundRequest.PurchaseReceiptPath))
+                    RefundRequest.PurchaseReceiptPath = "";
+
+                // Set default values for numeric fields
+                if (RefundRequest.DeviceAllowance == 0)
+                    RefundRequest.DeviceAllowance = 0.01m;
+                if (RefundRequest.DevicePurchaseAmount == 0)
+                    RefundRequest.DevicePurchaseAmount = 0.01m;
+            }
             else if (action == "submit")
             {
-                // For submit, receipt is required but we'll handle it as a warning, not a hard error
-                if (string.IsNullOrEmpty(RefundRequest.PurchaseReceiptPath))
+                // For submit, validate required fields
+                if (receiptFile == null && string.IsNullOrEmpty(RefundRequest.PurchaseReceiptPath))
                 {
-                    RefundRequest.PurchaseReceiptPath = ""; // Set to empty string to pass validation
-                    ModelState.AddModelError("ReceiptFile", "Purchase receipt is recommended but not required.");
+                    ModelState.AddModelError("ReceiptFile", "Purchase receipt is required for submission.");
                 }
-            }
-            else if (action == "save")
-            {
-                // For drafts, remove the PurchaseReceiptPath validation
-                ModelState.Remove("RefundRequest.PurchaseReceiptPath");
-                RefundRequest.PurchaseReceiptPath = ""; // Set empty for drafts
             }
 
             if (!ModelState.IsValid)
@@ -201,11 +225,23 @@ namespace TAB.Web.Pages.Modules.RefundManagement.Requests
                     {
                         foreach (var error in modelState.Value.Errors)
                         {
-                            _logger.LogWarning("Validation error for field {Field}: {Error}", 
+                            _logger.LogWarning("Validation error for field {Field}: {Error}",
                                 modelState.Key, error.ErrorMessage);
                         }
                     }
                 }
+
+                // Preserve the organization ID for office dropdown on error
+                if (!string.IsNullOrEmpty(RefundRequest.Organization))
+                {
+                    var organization = await _context.Organizations
+                        .FirstOrDefaultAsync(o => o.Name == RefundRequest.Organization);
+                    if (organization != null)
+                    {
+                        PreSelectedOrganizationId = organization.Id;
+                    }
+                }
+
                 await LoadSupervisorsAsync();
                 await LoadClassOfServicesAsync();
                 // await LoadOfficesAsync(); // Removed - Office table no longer exists
@@ -306,6 +342,18 @@ namespace TAB.Web.Pages.Modules.RefundManagement.Requests
             catch (Exception)
             {
                 ModelState.AddModelError("", "An error occurred while saving your request. Please try again.");
+
+                // Preserve the organization ID for office dropdown on error
+                if (!string.IsNullOrEmpty(RefundRequest.Organization))
+                {
+                    var organization = await _context.Organizations
+                        .FirstOrDefaultAsync(o => o.Name == RefundRequest.Organization);
+                    if (organization != null)
+                    {
+                        PreSelectedOrganizationId = organization.Id;
+                    }
+                }
+
                 await LoadSupervisorsAsync();
                 await LoadClassOfServicesAsync();
                 // await LoadOfficesAsync(); // Removed - Office table no longer exists

@@ -582,15 +582,15 @@
                     </div>
 
                     <div class="col-md-3">
-                        <label class="form-label text-muted small" for="importBatchFilter">Import Batch</label>
-                        <select name="ImportAuditId" id="importBatchFilter"
+                        <label class="form-label text-muted small" for="importBatchFilter">Import Job</label>
+                        <select name="ImportJobId" id="importBatchFilter"
                                 class="form-select border-0 bg-light"
                                 style="border-radius: 12px;">
-                            <option value="">All Imports</option>
+                            <option value="">All Import Jobs</option>
                             @foreach (var import in Model.RecentImports)
                             {
-                                var importLabel = $"{import.ImportType} - {import.ImportDate:MMM dd, yyyy HH:mm} ({import.SuccessCount}/{import.TotalRecords})";
-                                <option value="@import.Id" selected="@(Model.ImportAuditId == import.Id)">@importLabel</option>
+                                var importLabel = $"{import.CallLogType} - {import.CreatedDate:MMM dd, yyyy HH:mm} ({import.RecordsSuccess ?? 0}/{import.RecordsProcessed ?? 0})";
+                                <option value="@import.Id" selected="@(Model.ImportJobId == import.Id)">@importLabel</option>
                             }
                         </select>
                     </div>
@@ -698,7 +698,7 @@
             });
 
             // Check if any filters are active and show the filter section
-            const hasActiveFilters = @Html.Raw((!string.IsNullOrEmpty(Model.SearchTerm) || Model.FilterType != "all" || Model.StartDate.HasValue || Model.EndDate.HasValue || Model.ImportAuditId.HasValue).ToString().ToLower());
+            const hasActiveFilters = @Html.Raw((!string.IsNullOrEmpty(Model.SearchTerm) || Model.FilterType != "all" || Model.StartDate.HasValue || Model.EndDate.HasValue || Model.ImportJobId.HasValue).ToString().ToLower());
             if (hasActiveFilters) {
                 filterCollapse.classList.add('show');
                 if (chevronIcon) {
@@ -729,13 +729,13 @@
 <!-- Recent Imports Section - Timeline Style (Collapsible) -->
 <div class="row">
     <div class="col-md-12">
-        @if (Model.ImportAuditId.HasValue && Model.SelectedImportAudit != null)
+        @if (Model.ImportJobId.HasValue && Model.SelectedImportJob != null)
         {
             <div class="alert alert-info d-flex align-items-center" role="alert">
                 <i class="bi bi-funnel-fill me-2"></i>
                 <div class="flex-grow-1">
-                    <strong>Filtered by Import:</strong> @Model.SelectedImportAudit.ImportType - @Model.SelectedImportAudit.ImportDate.ToString("MMM dd, yyyy HH:mm")
-                    (@Model.SelectedImportAudit.SuccessCount/@Model.SelectedImportAudit.TotalRecords records)
+                    <strong>Filtered by Import Job:</strong> @Model.SelectedImportJob.CallLogType - @Model.SelectedImportJob.CreatedDate.ToString("MMM dd, yyyy HH:mm")
+                    (@(Model.SelectedImportJob.RecordsSuccess ?? 0)/@(Model.SelectedImportJob.RecordsProcessed ?? 0) records)
                 </div>
                 <a href="/Admin/CallLogs" class="btn btn-sm btn-outline-secondary ms-2">
                     <i class="bi bi-x-circle me-1"></i>Clear Filter
@@ -761,8 +761,11 @@
                     </button>
                 </div>
             </div>
-            <div>
-                <a href="/Admin/CallLogsUpload" class="btn btn-success">
+            <div class="d-flex gap-2">
+                <button type="button" class="btn btn-warning" onclick="openUnlinkedExtensionManager()">
+                    <i class="bi bi-link-45deg"></i> Manage Unlinked Extensions
+                </button>
+                <a href="/Admin/SmartUpload" class="btn btn-success">
                     <i class="bi bi-cloud-upload"></i> Upload Call Logs
                 </a>
             </div>
@@ -778,7 +781,7 @@
                     </div>
                     <h5 class="text-muted mb-3">No Call Logs Found</h5>
                     <p class="text-muted mb-4">Import call logs to start tracking phone usage and billing.</p>
-                    <a href="/Admin/CallLogsUpload" class="btn btn-success">
+                    <a href="/Admin/SmartUpload" class="btn btn-success">
                         <i class="bi bi-cloud-upload"></i> Upload Call Logs
                     </a>
                 </div>
@@ -1017,6 +1020,11 @@
                                                             <i class="bi bi-x-circle me-1"></i>Failed
                                                         </span>
                                                         break;
+                                                    case TAB.Web.Models.ProcessingStatus.Verified:
+                                                        <span class="badge bg-primary bg-opacity-10 text-primary" title="Verified and ready for production">
+                                                            <i class="bi bi-check2-circle me-1"></i>Verified
+                                                        </span>
+                                                        break;
                                                     case TAB.Web.Models.ProcessingStatus.Staged:
                                                     default:
                                                         if (stagingBatchId.HasValue)
@@ -1078,7 +1086,7 @@
                                                 @if (record.EbillUserId == null)
                                                 {
                                                     <button type="button" class="btn btn-sm btn-light border-0"
-                                                            onclick="linkTelecomToUser('@(record.Type ?? "")', @(record.Id ?? 0), '@(record.AccountNo ?? "")')"
+                                                            onclick="linkTelecomToUser('@(record.Type ?? "")', @(record.Id ?? 0), '@(record.AccountNo ?? "")', '@(record.Extension ?? "")')"
                                                             title="Link to User" style="border-radius: 8px;">
                                                         <i class="bi bi-link text-success"></i>
                                                     </button>
@@ -2037,13 +2045,8 @@
                             <div class="col-md-6 mb-3">
                                 <label class="form-label fw-semibold">Phone Type</label>
                                 <select class="form-select" id="extensionTypeSelect">
-                                    <option value="Extension">Extension</option>
-                                    <option value="Desk">Desk Phone</option>
-                                    <option value="Mobile">Mobile</option>
-                                    <option value="Home">Home</option>
-                                    <option value="Temporary">Temporary</option>
-                                    <option value="Conference">Conference</option>
-                                    <option value="Fax">Fax</option>
+                                    <option value="Mobile" selected>Mobile</option>
+                                    <option value="FixedLine">Fixed Line</option>
                                 </select>
                             </div>
                         </div>
@@ -2147,6 +2150,204 @@
                 <button type="button" class="btn btn-success px-4" id="confirmPrimaryButton" disabled
                         style="background: linear-gradient(135deg, #10b981, #059669); border: none; border-radius: 8px; font-weight: 500;">
                     <i class="bi bi-check-circle me-2"></i>Confirm Primary Line
+                </button>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Unlinked Extension Manager Modal -->
+<div class="modal fade" id="unlinkedExtensionModal" tabindex="-1" aria-labelledby="unlinkedExtensionModalLabel" aria-hidden="true">
+    <div class="modal-dialog modal-lg modal-dialog-centered modal-dialog-scrollable">
+        <div class="modal-content border-0 shadow-lg" style="border-radius: 20px;">
+            <div class="modal-header border-0 pb-0" style="padding: 2rem 2rem 1rem 2rem;">
+                <div class="w-100">
+                    <h5 class="modal-title fw-bold text-dark mb-1" id="unlinkedExtensionModalLabel">
+                        <i class="bi bi-link-45deg text-warning me-2"></i>Manage Unlinked Extensions
+                    </h5>
+                    <p class="text-muted mb-0">Register extensions and link all associated call records in one step</p>
+                </div>
+                <button type="button" class="btn-close position-absolute" data-bs-dismiss="modal" aria-label="Close" style="top: 1rem; right: 1rem;"></button>
+            </div>
+            <div class="modal-body" style="padding: 1rem 2rem 2rem 2rem;">
+                <!-- Step Indicator -->
+                <div class="d-flex justify-content-center align-items-center mb-4">
+                    <div class="d-flex align-items-center">
+                        <div class="step-indicator active" id="uem-step1-indicator">
+                            <div class="step-number">1</div>
+                            <span class="step-label">Select Extension</span>
+                        </div>
+                        <div class="step-line"></div>
+                        <div class="step-indicator" id="uem-step2-indicator">
+                            <div class="step-number">2</div>
+                            <span class="step-label">Select User</span>
+                        </div>
+                        <div class="step-line"></div>
+                        <div class="step-indicator" id="uem-step3-indicator">
+                            <div class="step-number">3</div>
+                            <span class="step-label">Register & Link</span>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Step 1: Extension List -->
+                <div id="uem-step1" class="wizard-step">
+                    <div class="mb-3">
+                        <div class="input-group">
+                            <span class="input-group-text bg-light border-end-0">
+                                <i class="bi bi-search"></i>
+                            </span>
+                            <input type="text" class="form-control border-start-0" id="uem-extensionSearch"
+                                   placeholder="Search extensions...">
+                        </div>
+                    </div>
+                    <div id="uem-extensionListContainer" style="max-height: 400px; overflow-y: auto;">
+                        <div class="text-center py-4">
+                            <div class="spinner-border text-primary" role="status">
+                                <span class="visually-hidden">Loading...</span>
+                            </div>
+                            <p class="text-muted mt-2">Loading unlinked extensions...</p>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Step 2: User Selection -->
+                <div id="uem-step2" class="wizard-step d-none">
+                    <div class="alert alert-info border-0 mb-3" style="border-radius: 12px;">
+                        <div class="d-flex align-items-center">
+                            <i class="bi bi-telephone-fill me-2"></i>
+                            <div>
+                                <strong>Selected Extension:</strong> <span id="uem-selectedExtensionDisplay"></span>
+                                <span class="badge bg-info ms-2" id="uem-selectedRecordCount"></span>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="mb-3">
+                        <label class="form-label fw-semibold">Search for User</label>
+                        <div class="input-group">
+                            <span class="input-group-text bg-light border-end-0">
+                                <i class="bi bi-search"></i>
+                            </span>
+                            <input type="text" class="form-control border-start-0" id="uem-userSearchInput"
+                                   placeholder="Enter name, email, or index number...">
+                        </div>
+                    </div>
+                    <div id="uem-userSearchResults" style="max-height: 300px; overflow-y: auto;">
+                        <div class="text-center py-3 text-muted">
+                            <i class="bi bi-person-plus" style="font-size: 32px;"></i>
+                            <p class="mt-2 mb-0">Search for a user to assign this extension</p>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Step 3: Registration Form -->
+                <div id="uem-step3" class="wizard-step d-none">
+                    <div class="alert alert-success border-0 mb-3" style="border-radius: 12px;">
+                        <div class="d-flex align-items-start">
+                            <i class="bi bi-check-circle-fill me-2 mt-1"></i>
+                            <div>
+                                <strong>Ready to Register</strong>
+                                <div class="mt-1">
+                                    <span class="badge bg-warning text-dark me-2" id="uem-finalExtension"></span>
+                                    <span class="badge bg-primary" id="uem-finalUser"></span>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+
+                    <div class="card border-0 shadow-sm mb-3">
+                        <div class="card-body">
+                            <h6 class="card-title fw-semibold mb-3">
+                                <i class="bi bi-telephone-plus me-2 text-warning"></i>New Extension Details
+                            </h6>
+                            <div class="row">
+                                <div class="col-md-6 mb-3">
+                                    <label class="form-label fw-semibold">Extension Number</label>
+                                    <input type="text" class="form-control" id="uem-extensionNumber" readonly>
+                                </div>
+                                <div class="col-md-6 mb-3">
+                                    <label class="form-label fw-semibold">Phone Type</label>
+                                    <select class="form-select" id="uem-phoneType">
+                                        <option value="Mobile" selected>Mobile</option>
+                                        <option value="FixedLine">Fixed Line</option>
+                                    </select>
+                                </div>
+                            </div>
+                            <div class="row">
+                                <div class="col-md-6 mb-3">
+                                    <label class="form-label fw-semibold">Class of Service</label>
+                                    <select class="form-select" id="uem-classOfService">
+                                        <option value="">Select Class of Service</option>
+                                    </select>
+                                </div>
+                                <div class="col-md-6 mb-3">
+                                    <label class="form-label fw-semibold">Location</label>
+                                    <input type="text" class="form-control" id="uem-location" placeholder="e.g., Office 301, Building A">
+                                </div>
+                            </div>
+                            <div class="mb-3">
+                                <label class="form-label fw-semibold">Notes</label>
+                                <textarea class="form-control" id="uem-notes" rows="2" placeholder="Additional information about this phone line..."></textarea>
+                            </div>
+                            <div class="row">
+                                <div class="col-md-6 mb-3">
+                                    <label class="form-label fw-semibold">
+                                        <i class="bi bi-tag me-1"></i>Line Type
+                                    </label>
+                                    <select class="form-select" id="uem-lineType" onchange="uemUpdatePrimaryCheckbox()">
+                                        <option value="Secondary" selected>Secondary</option>
+                                        <option value="Primary">Primary</option>
+                                        <option value="Reserved">Reserved</option>
+                                        <option value="Data">Data</option>
+                                    </select>
+                                </div>
+                                <div class="col-md-6 mb-3">
+                                    <label class="form-label fw-semibold">Ownership Type</label>
+                                    <select class="form-select" id="uem-ownershipType">
+                                        <option value="Personal" selected>Personal</option>
+                                        <option value="Shared">Shared</option>
+                                        <option value="Department">Department</option>
+                                        <option value="Infrastructure">Infrastructure</option>
+                                        <option value="Emergency">Emergency</option>
+                                    </select>
+                                </div>
+                            </div>
+                            <div class="form-check">
+                                <input class="form-check-input" type="checkbox" id="uem-primaryCheckbox" onchange="uemUpdateLineType()">
+                                <label class="form-check-label" for="uem-primaryCheckbox">
+                                    Set as Primary Phone
+                                </label>
+                                <div class="form-text">
+                                    <i class="bi bi-info-circle"></i> Automatically controlled by Line Type selection
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+
+                    <div class="alert alert-warning border-0" style="border-radius: 12px;">
+                        <div class="d-flex align-items-start">
+                            <i class="bi bi-exclamation-triangle me-2 mt-1"></i>
+                            <div>
+                                <strong>What will happen:</strong>
+                                <ul class="mb-0 mt-1 ps-3">
+                                    <li>A new phone registration will be created for this extension</li>
+                                    <li>All <span id="uem-recordCountSummary">0</span> unlinked call records will be linked to the selected user</li>
+                                    <li>The phone will be assigned to the user's profile</li>
+                                </ul>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+            <div class="modal-footer border-0" style="padding: 1rem 2rem 2rem 2rem;">
+                <button type="button" class="btn btn-secondary px-4" id="uem-backBtn" disabled onclick="uemGoBack()">
+                    <i class="bi bi-arrow-left me-1"></i>Back
+                </button>
+                <button type="button" class="btn btn-primary px-4" id="uem-nextBtn" style="display: none;">
+                    Next<i class="bi bi-arrow-right ms-1"></i>
+                </button>
+                <button type="button" class="btn btn-success px-4" id="uem-completeBtn" style="display: none;" onclick="uemCompleteRegistration()">
+                    <i class="bi bi-check-circle me-1"></i>Register & Link All
                 </button>
             </div>
         </div>
@@ -3596,12 +3797,12 @@ Note:
         let selectedUserId = null;
         let currentRegisteringRecord = null;
 
-        function linkTelecomToUser(type, id, accountNo) {
-            currentLinkingRecord = { type, id, accountNo };
+        function linkTelecomToUser(type, id, accountNo, extension) {
+            currentLinkingRecord = { type, id, accountNo, extension };
             selectedUserId = null;
 
             // Update modal info
-            document.getElementById('linkRecordInfo').textContent = `${type} Record #${id} - Account: ${accountNo}`;
+            document.getElementById('linkRecordInfo').textContent = `${type} Record - Extension: ${extension || 'N/A'}`;
             document.getElementById('userSearchInput').value = '';
             document.getElementById('userSearchResults').innerHTML = '';
             document.getElementById('selectedUserPreview').classList.add('d-none');
@@ -3945,6 +4146,7 @@ Note:
                         formData.append('type', currentLinkingRecord.type);
                         formData.append('id', currentLinkingRecord.id);
                         formData.append('userId', selectedUserId);
+                        formData.append('extension', currentLinkingRecord.extension || '');
 
                         const response = await fetch('/Admin/CallLogs?handler=LinkTelecom', {
                             method: 'POST',
@@ -3960,8 +4162,9 @@ Note:
                             // Close modal
                             bootstrap.Modal.getInstance(document.getElementById('linkUserModal')).hide();
 
-                            // Show success message
-                            alert(`Success! Record linked to ${result.userName}`);
+                            // Show success message with count of linked records
+                            const countMsg = result.linkedCount > 1 ? ` (${result.linkedCount} records with same extension)` : '';
+                            alert(`Success! Linked to ${result.userName}${countMsg}`);
 
                             // Reload page to show updated data
                             window.location.reload();
@@ -4377,11 +4580,833 @@ Note:
                             </a>`;
             
             document.getElementById('downloadButtons').innerHTML = buttonsHtml;
-            
+
             // Show the modal
             var importModal = new bootstrap.Modal(document.getElementById('importResultsModal'));
             importModal.show();
             </text>
         }
+
+        // =====================================================
+        // Unlinked Extension Manager (UEM) Functions
+        // =====================================================
+
+        let uemSelectedExtension = null;
+        let uemSelectedUser = null;
+        let uemCurrentStep = 1;
+        let uemExtensionData = [];
+        let uemSearchTimeout;
+        let uemModal = null;
+
+        function openUnlinkedExtensionManager() {
+            uemCurrentStep = 1;
+            uemSelectedExtension = null;
+            uemSelectedUser = null;
+            uemUpdateWizardStep(1);
+            uemLoadUnlinkedExtensions();
+
+            const modalEl = document.getElementById('unlinkedExtensionModal');
+            uemModal = new bootstrap.Modal(modalEl);
+            uemModal.show();
+        }
+
+        async function uemLoadUnlinkedExtensions() {
+            const container = document.getElementById('uem-extensionListContainer');
+            container.innerHTML = `
+                <div class="text-center py-4">
+                    <div class="spinner-border text-primary" role="status">
+                        <span class="visually-hidden">Loading...</span>
+                    </div>
+                    <p class="text-muted mt-2">Loading unlinked extensions...</p>
+                </div>`;
+
+            try {
+                const response = await fetch('/Admin/CallLogs?handler=UnlinkedExtensionsSummary');
+                if (!response.ok) throw new Error('Failed to load data');
+
+                uemExtensionData = await response.json();
+                uemRenderExtensionList(uemExtensionData);
+            } catch (error) {
+                console.error('Error loading unlinked extensions:', error);
+                container.innerHTML = `
+                    <div class="text-center py-4 text-danger">
+                        <i class="bi bi-exclamation-triangle" style="font-size: 32px;"></i>
+                        <p class="mt-2 mb-0">Failed to load unlinked extensions</p>
+                        <button class="btn btn-sm btn-outline-primary mt-2" onclick="uemLoadUnlinkedExtensions()">
+                            <i class="bi bi-arrow-clockwise me-1"></i>Retry
+                        </button>
+                    </div>`;
+            }
+        }
+
+        function uemRenderExtensionList(data) {
+            const container = document.getElementById('uem-extensionListContainer');
+
+            if (!data || data.length === 0) {
+                container.innerHTML = `
+                    <div class="text-center py-4 text-success">
+                        <i class="bi bi-check-circle" style="font-size: 48px;"></i>
+                        <h5 class="mt-3">No Unlinked Extensions</h5>
+                        <p class="text-muted mb-0">All extensions have been linked to users.</p>
+                    </div>`;
+                return;
+            }
+
+            let html = `
+                <table class="table table-hover mb-0">
+                    <thead class="table-light sticky-top">
+                        <tr>
+                            <th>Extension</th>
+                            <th class="text-center">Records</th>
+                            <th>Providers</th>
+                            <th>Date Range</th>
+                            <th class="text-center">Action</th>
+                        </tr>
+                    </thead>
+                    <tbody>`;
+
+            data.forEach(ext => {
+                const providers = ext.providers.join(', ');
+                html += `
+                    <tr>
+                        <td>
+                            <strong class="text-primary">${ext.extension}</strong>
+                        </td>
+                        <td class="text-center">
+                            <span class="badge bg-info">${ext.totalRecords}</span>
+                        </td>
+                        <td>
+                            <small class="text-muted">${providers}</small>
+                        </td>
+                        <td>
+                            <small class="text-muted">${ext.dateRange}</small>
+                        </td>
+                        <td class="text-center">
+                            <button class="btn btn-sm btn-primary" onclick="uemSelectExtension('${ext.extension}', ${ext.totalRecords}, '${providers}')">
+                                <i class="bi bi-arrow-right"></i> Select
+                            </button>
+                        </td>
+                    </tr>`;
+            });
+
+            html += '</tbody></table>';
+            container.innerHTML = html;
+        }
+
+        // Extension search filter
+        document.addEventListener('DOMContentLoaded', function() {
+            const searchInput = document.getElementById('uem-extensionSearch');
+            if (searchInput) {
+                searchInput.addEventListener('input', function(e) {
+                    const term = e.target.value.toLowerCase();
+                    const filtered = uemExtensionData.filter(ext =>
+                        ext.extension.toLowerCase().includes(term) ||
+                        ext.providers.some(p => p.toLowerCase().includes(term))
+                    );
+                    uemRenderExtensionList(filtered);
+                });
+            }
+
+            // User search input
+            const userSearchInput = document.getElementById('uem-userSearchInput');
+            if (userSearchInput) {
+                userSearchInput.addEventListener('input', function(e) {
+                    clearTimeout(uemSearchTimeout);
+                    uemSearchTimeout = setTimeout(() => uemSearchUsers(e.target.value), 300);
+                });
+            }
+        });
+
+        function uemSelectExtension(extension, count, providers) {
+            uemSelectedExtension = { extension, count, providers };
+            uemGoToStep(2);
+        }
+
+        async function uemSearchUsers(term) {
+            const resultsContainer = document.getElementById('uem-userSearchResults');
+
+            if (!term || term.length < 2) {
+                resultsContainer.innerHTML = `
+                    <div class="text-center py-3 text-muted">
+                        <i class="bi bi-person-plus" style="font-size: 32px;"></i>
+                        <p class="mt-2 mb-0">Enter at least 2 characters to search</p>
+                    </div>`;
+                return;
+            }
+
+            resultsContainer.innerHTML = `
+                <div class="text-center py-3">
+                    <div class="spinner-border spinner-border-sm text-primary" role="status">
+                        <span class="visually-hidden">Searching...</span>
+                    </div>
+                    <span class="ms-2 text-muted">Searching...</span>
+                </div>`;
+
+            try {
+                const response = await fetch(`/Admin/CallLogs?handler=SearchUsersForLinking&term=${encodeURIComponent(term)}`);
+                if (!response.ok) throw new Error('Search failed');
+
+                const users = await response.json();
+                uemRenderUserResults(users);
+            } catch (error) {
+                console.error('Error searching users:', error);
+                resultsContainer.innerHTML = `
+                    <div class="text-center py-3 text-danger">
+                        <p class="mb-0">Search failed. Please try again.</p>
+                    </div>`;
+            }
+        }
+
+        function uemRenderUserResults(users) {
+            const container = document.getElementById('uem-userSearchResults');
+
+            if (!users || users.length === 0) {
+                container.innerHTML = `
+                    <div class="text-center py-3 text-muted">
+                        <i class="bi bi-search" style="font-size: 32px;"></i>
+                        <p class="mt-2 mb-0">No users found</p>
+                    </div>`;
+                return;
+            }
+
+            let html = '<div class="list-group list-group-flush">';
+            users.forEach(user => {
+                html += `
+                    <a href="#" class="list-group-item list-group-item-action py-3" onclick="uemSelectUser(${user.id}, '${user.fullName.replace(/'/g, "\\'")}', '${user.indexNumber}', '${user.officeName.replace(/'/g, "\\'")}'); return false;">
+                        <div class="d-flex justify-content-between align-items-start">
+                            <div>
+                                <h6 class="mb-1 fw-semibold">${user.fullName}</h6>
+                                <small class="text-muted">
+                                    <i class="bi bi-person-badge me-1"></i>${user.indexNumber}
+                                    <span class="mx-2">|</span>
+                                    <i class="bi bi-building me-1"></i>${user.officeName}
+                                </small>
+                                ${user.phone ? `<br><small class="text-muted"><i class="bi bi-telephone me-1"></i>${user.phone}</small>` : ''}
+                            </div>
+                            <i class="bi bi-chevron-right text-muted"></i>
+                        </div>
+                    </a>`;
+            });
+            html += '</div>';
+            container.innerHTML = html;
+        }
+
+        function uemSelectUser(id, name, indexNumber, officeName) {
+            uemSelectedUser = { id, name, indexNumber, officeName };
+            uemGoToStep(3);
+        }
+
+        function uemGoToStep(step) {
+            uemCurrentStep = step;
+            uemUpdateWizardStep(step);
+        }
+
+        function uemGoBack() {
+            if (uemCurrentStep > 1) {
+                uemCurrentStep--;
+                uemUpdateWizardStep(uemCurrentStep);
+            }
+        }
+
+        function uemUpdateWizardStep(step) {
+            // Hide all steps
+            document.getElementById('uem-step1').classList.add('d-none');
+            document.getElementById('uem-step2').classList.add('d-none');
+            document.getElementById('uem-step3').classList.add('d-none');
+
+            // Show current step
+            document.getElementById(`uem-step${step}`).classList.remove('d-none');
+
+            // Update step indicators
+            for (let i = 1; i <= 3; i++) {
+                const indicator = document.getElementById(`uem-step${i}-indicator`);
+                indicator.classList.remove('active', 'completed');
+                if (i < step) {
+                    indicator.classList.add('completed');
+                } else if (i === step) {
+                    indicator.classList.add('active');
+                }
+            }
+
+            // Update buttons
+            document.getElementById('uem-backBtn').disabled = step === 1;
+            document.getElementById('uem-nextBtn').style.display = 'none';
+            document.getElementById('uem-completeBtn').style.display = step === 3 ? 'inline-block' : 'none';
+
+            // Update step-specific content
+            if (step === 2 && uemSelectedExtension) {
+                document.getElementById('uem-selectedExtensionDisplay').textContent = uemSelectedExtension.extension;
+                document.getElementById('uem-selectedRecordCount').textContent = `${uemSelectedExtension.count} records`;
+                document.getElementById('uem-userSearchInput').value = '';
+                document.getElementById('uem-userSearchResults').innerHTML = `
+                    <div class="text-center py-3 text-muted">
+                        <i class="bi bi-person-plus" style="font-size: 32px;"></i>
+                        <p class="mt-2 mb-0">Search for a user to assign this extension</p>
+                    </div>`;
+            }
+
+            if (step === 3 && uemSelectedExtension && uemSelectedUser) {
+                document.getElementById('uem-finalExtension').textContent = `Extension: ${uemSelectedExtension.extension}`;
+                document.getElementById('uem-finalUser').textContent = `${uemSelectedUser.name} (${uemSelectedUser.indexNumber})`;
+                document.getElementById('uem-recordCountSummary').textContent = uemSelectedExtension.count;
+                // Populate extension number field
+                document.getElementById('uem-extensionNumber').value = uemSelectedExtension.extension;
+                // Reset form fields to defaults
+                document.getElementById('uem-phoneType').value = 'Mobile';
+                document.getElementById('uem-lineType').value = 'Secondary';
+                document.getElementById('uem-ownershipType').value = 'Personal';
+                document.getElementById('uem-location').value = '';
+                document.getElementById('uem-notes').value = '';
+                document.getElementById('uem-primaryCheckbox').checked = false;
+                // Reset primary confirmation state
+                uemPrimaryConfirmed = false;
+                uemExistingPrimaryPhone = null;
+                // Load class of service options
+                uemLoadClassOfService();
+                // Check for existing primary phone
+                uemCheckExistingPrimaryPhone();
+            }
+        }
+
+        let uemPrimaryConfirmed = false;
+        let uemExistingPrimaryPhone = null;
+
+        // Check if user has existing primary phone
+        async function uemCheckExistingPrimaryPhone() {
+            if (!uemSelectedUser) return null;
+
+            try {
+                const response = await fetch(`/Admin/CallLogs?handler=CheckExistingPrimaryPhone&indexNumber=${encodeURIComponent(uemSelectedUser.indexNumber)}`);
+                if (response.ok) {
+                    const result = await response.json();
+                    uemExistingPrimaryPhone = result.hasPrimary ? result : null;
+                    return result;
+                }
+            } catch (error) {
+                console.error('Error checking existing primary phone:', error);
+            }
+            return null;
+        }
+
+        // Sync primary checkbox with line type selection
+        function uemUpdatePrimaryCheckbox() {
+            const lineType = document.getElementById('uem-lineType').value;
+            const checkbox = document.getElementById('uem-primaryCheckbox');
+
+            if (lineType === 'Primary') {
+                if (!uemPrimaryConfirmed && uemExistingPrimaryPhone && uemExistingPrimaryPhone.hasPrimary) {
+                    uemShowPrimaryConfirmation();
+                } else {
+                    checkbox.checked = true;
+                }
+            } else {
+                checkbox.checked = false;
+                uemPrimaryConfirmed = false;
+            }
+        }
+
+        // Sync line type with primary checkbox
+        function uemUpdateLineType() {
+            const checkbox = document.getElementById('uem-primaryCheckbox');
+            const lineType = document.getElementById('uem-lineType');
+
+            if (checkbox.checked) {
+                if (!uemPrimaryConfirmed && uemExistingPrimaryPhone && uemExistingPrimaryPhone.hasPrimary) {
+                    checkbox.checked = false;
+                    uemShowPrimaryConfirmation();
+                } else {
+                    lineType.value = 'Primary';
+                }
+            } else if (lineType.value === 'Primary') {
+                lineType.value = 'Secondary';
+                uemPrimaryConfirmed = false;
+            }
+        }
+
+        // Show primary line confirmation modal
+        function uemShowPrimaryConfirmation() {
+            const existing = uemExistingPrimaryPhone;
+            const confirmHtml = `
+                <div class="modal fade" id="uemPrimaryConfirmModal" tabindex="-1" data-bs-backdrop="static">
+                    <div class="modal-dialog modal-dialog-centered">
+                        <div class="modal-content border-0 shadow-lg" style="border-radius: 16px;">
+                            <div class="modal-header border-0 pb-0">
+                                <h5 class="modal-title">
+                                    <i class="bi bi-exclamation-triangle text-warning me-2"></i>Change Primary Phone
+                                </h5>
+                            </div>
+                            <div class="modal-body">
+                                <div class="alert alert-warning border-0" style="border-radius: 12px;">
+                                    <p class="mb-2"><strong>${uemSelectedUser.name}</strong> already has a primary phone:</p>
+                                    <div class="d-flex align-items-center mb-2">
+                                        <i class="bi bi-telephone-fill text-primary me-2"></i>
+                                        <strong>${existing.phoneNumber}</strong>
+                                    </div>
+                                    <p class="mb-0 text-muted small">This phone will be changed to <strong>Secondary</strong> if you proceed.</p>
+                                </div>
+                                <p class="text-muted">Are you sure you want to set <strong>${uemSelectedExtension.extension}</strong> as the new primary phone?</p>
+                            </div>
+                            <div class="modal-footer border-0">
+                                <button type="button" class="btn btn-secondary" onclick="uemCancelPrimaryChange()">Cancel</button>
+                                <button type="button" class="btn btn-warning" onclick="uemConfirmPrimaryChange()">
+                                    <i class="bi bi-check-circle me-1"></i>Yes, Set as Primary
+                                </button>
+                            </div>
+                        </div>
+                    </div>
+                </div>`;
+
+            // Remove existing modal if any
+            const existingModal = document.getElementById('uemPrimaryConfirmModal');
+            if (existingModal) existingModal.remove();
+
+            document.body.insertAdjacentHTML('beforeend', confirmHtml);
+            const modal = new bootstrap.Modal(document.getElementById('uemPrimaryConfirmModal'));
+            modal.show();
+        }
+
+        function uemCancelPrimaryChange() {
+            const modal = bootstrap.Modal.getInstance(document.getElementById('uemPrimaryConfirmModal'));
+            modal.hide();
+            document.getElementById('uemPrimaryConfirmModal').remove();
+
+            // Reset to secondary
+            document.getElementById('uem-lineType').value = 'Secondary';
+            document.getElementById('uem-primaryCheckbox').checked = false;
+        }
+
+        function uemConfirmPrimaryChange() {
+            const modal = bootstrap.Modal.getInstance(document.getElementById('uemPrimaryConfirmModal'));
+            modal.hide();
+            document.getElementById('uemPrimaryConfirmModal').remove();
+
+            // Set as primary
+            uemPrimaryConfirmed = true;
+            document.getElementById('uem-lineType').value = 'Primary';
+            document.getElementById('uem-primaryCheckbox').checked = true;
+        }
+
+        // Load class of service options from server
+        async function uemLoadClassOfService() {
+            const select = document.getElementById('uem-classOfService');
+            select.innerHTML = '<option value="">Loading...</option>';
+
+            try {
+                const response = await fetch('/Admin/CallLogs?handler=ClassOfServiceOptions');
+                if (response.ok) {
+                    const options = await response.json();
+                    select.innerHTML = '<option value="">Select Class of Service</option>';
+                    options.forEach(opt => {
+                        select.innerHTML += `<option value="${opt.id}">${opt.name}</option>`;
+                    });
+                } else {
+                    select.innerHTML = '<option value="">Select Class of Service</option>';
+                }
+            } catch (error) {
+                console.error('Error loading class of service options:', error);
+                select.innerHTML = '<option value="">Select Class of Service</option>';
+            }
+        }
+
+        async function uemCompleteRegistration() {
+            if (!uemSelectedExtension || !uemSelectedUser) {
+                alert('Please select both an extension and a user');
+                return;
+            }
+
+            const completeBtn = document.getElementById('uem-completeBtn');
+            const originalText = completeBtn.innerHTML;
+            completeBtn.innerHTML = '<span class="spinner-border spinner-border-sm me-1"></span>Processing...';
+            completeBtn.disabled = true;
+
+            try {
+                const formData = new FormData();
+                formData.append('extension', uemSelectedExtension.extension);
+                formData.append('userId', uemSelectedUser.id);
+                formData.append('indexNumber', uemSelectedUser.indexNumber);
+                formData.append('lineType', document.getElementById('uem-lineType').value);
+                formData.append('phoneType', document.getElementById('uem-phoneType').value);
+                formData.append('ownershipType', document.getElementById('uem-ownershipType').value);
+                formData.append('classOfServiceId', document.getElementById('uem-classOfService').value);
+                formData.append('location', document.getElementById('uem-location').value);
+                formData.append('notes', document.getElementById('uem-notes').value);
+
+                const response = await fetch('/Admin/CallLogs?handler=BulkRegisterAndLink', {
+                    method: 'POST',
+                    body: formData,
+                    headers: {
+                        'RequestVerificationToken': document.querySelector('input[name="__RequestVerificationToken"]').value
+                    }
+                });
+
+                const result = await response.json();
+
+                if (result.success) {
+                    // Show success message
+                    uemShowCompletionMessage(result);
+                } else {
+                    alert('Error: ' + result.message);
+                    completeBtn.innerHTML = originalText;
+                    completeBtn.disabled = false;
+                }
+            } catch (error) {
+                console.error('Error completing registration:', error);
+                alert('An error occurred. Please try again.');
+                completeBtn.innerHTML = originalText;
+                completeBtn.disabled = false;
+            }
+        }
+
+        function uemShowCompletionMessage(result) {
+            const modalBody = document.querySelector('#unlinkedExtensionModal .modal-body');
+            const modalFooter = document.querySelector('#unlinkedExtensionModal .modal-footer');
+
+            modalBody.innerHTML = `
+                <div class="text-center py-4">
+                    <div class="bg-success bg-opacity-10 rounded-circle d-inline-flex align-items-center justify-content-center mb-3"
+                         style="width: 80px; height: 80px;">
+                        <i class="bi bi-check-lg text-success" style="font-size: 40px;"></i>
+                    </div>
+                    <h4 class="text-success mb-3">Registration Complete!</h4>
+                    <p class="text-muted mb-4">${result.message}</p>
+
+                    <div class="row justify-content-center mb-4">
+                        <div class="col-md-4">
+                            <div class="bg-light rounded p-3">
+                                <h3 class="text-primary mb-1">${result.linkedCount}</h3>
+                                <small class="text-muted">Records Linked</small>
+                            </div>
+                        </div>
+                    </div>
+
+                    <div class="alert alert-info border-0 text-start" style="border-radius: 12px;">
+                        <div class="d-flex align-items-start">
+                            <i class="bi bi-info-circle me-2 mt-1"></i>
+                            <div>
+                                <strong>Next Steps:</strong>
+                                <ul class="mb-0 mt-1 ps-3">
+                                    <li>The extension is now registered to ${result.userName}</li>
+                                    <li>All ${result.linkedCount} call records have been linked</li>
+                                    <li>Users can now view these records in their call log reports</li>
+                                </ul>
+                            </div>
+                        </div>
+                    </div>
+                </div>`;
+
+            modalFooter.innerHTML = `
+                <button type="button" class="btn btn-success px-4" onclick="uemCloseAndRefresh()">
+                    <i class="bi bi-check-circle me-1"></i>Done
+                </button>
+                <button type="button" class="btn btn-primary px-4" onclick="uemContinueManaging()">
+                    <i class="bi bi-arrow-repeat me-1"></i>Manage More Extensions
+                </button>`;
+        }
+
+        function uemCloseAndRefresh() {
+            if (uemModal) {
+                uemModal.hide();
+            }
+            window.location.reload();
+        }
+
+        function uemContinueManaging() {
+            // Reset the modal to initial state
+            const modalBody = document.querySelector('#unlinkedExtensionModal .modal-body');
+            const modalFooter = document.querySelector('#unlinkedExtensionModal .modal-footer');
+
+            // Restore original content
+            modalBody.innerHTML = `
+                <!-- Step Indicator -->
+                <div class="d-flex justify-content-center align-items-center mb-4">
+                    <div class="d-flex align-items-center">
+                        <div class="step-indicator active" id="uem-step1-indicator">
+                            <div class="step-number">1</div>
+                            <span class="step-label">Select Extension</span>
+                        </div>
+                        <div class="step-line"></div>
+                        <div class="step-indicator" id="uem-step2-indicator">
+                            <div class="step-number">2</div>
+                            <span class="step-label">Select User</span>
+                        </div>
+                        <div class="step-line"></div>
+                        <div class="step-indicator" id="uem-step3-indicator">
+                            <div class="step-number">3</div>
+                            <span class="step-label">Register & Link</span>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Step 1: Extension List -->
+                <div id="uem-step1" class="wizard-step">
+                    <div class="mb-3">
+                        <div class="input-group">
+                            <span class="input-group-text bg-light border-end-0">
+                                <i class="bi bi-search"></i>
+                            </span>
+                            <input type="text" class="form-control border-start-0" id="uem-extensionSearch"
+                                   placeholder="Search extensions...">
+                        </div>
+                    </div>
+                    <div id="uem-extensionListContainer" style="max-height: 400px; overflow-y: auto;">
+                        <div class="text-center py-4">
+                            <div class="spinner-border text-primary" role="status">
+                                <span class="visually-hidden">Loading...</span>
+                            </div>
+                            <p class="text-muted mt-2">Loading unlinked extensions...</p>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Step 2: User Selection -->
+                <div id="uem-step2" class="wizard-step d-none">
+                    <div class="alert alert-info border-0 mb-3" style="border-radius: 12px;">
+                        <div class="d-flex align-items-center">
+                            <i class="bi bi-telephone-fill me-2"></i>
+                            <div>
+                                <strong>Selected Extension:</strong> <span id="uem-selectedExtensionDisplay"></span>
+                                <span class="badge bg-info ms-2" id="uem-selectedRecordCount"></span>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="mb-3">
+                        <label class="form-label fw-semibold">Search for User</label>
+                        <div class="input-group">
+                            <span class="input-group-text bg-light border-end-0">
+                                <i class="bi bi-search"></i>
+                            </span>
+                            <input type="text" class="form-control border-start-0" id="uem-userSearchInput"
+                                   placeholder="Enter name, email, or index number...">
+                        </div>
+                    </div>
+                    <div id="uem-userSearchResults" style="max-height: 300px; overflow-y: auto;">
+                        <div class="text-center py-3 text-muted">
+                            <i class="bi bi-person-plus" style="font-size: 32px;"></i>
+                            <p class="mt-2 mb-0">Search for a user to assign this extension</p>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Step 3: Registration Form -->
+                <div id="uem-step3" class="wizard-step d-none">
+                    <div class="alert alert-success border-0 mb-3" style="border-radius: 12px;">
+                        <div class="d-flex align-items-start">
+                            <i class="bi bi-check-circle-fill me-2 mt-1"></i>
+                            <div>
+                                <strong>Ready to Register</strong>
+                                <div class="mt-1">
+                                    <span class="badge bg-warning text-dark me-2" id="uem-finalExtension"></span>
+                                    <span class="badge bg-primary" id="uem-finalUser"></span>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+
+                    <div class="card border-0 shadow-sm mb-3">
+                        <div class="card-body">
+                            <h6 class="card-title fw-semibold mb-3">
+                                <i class="bi bi-telephone-plus me-2 text-warning"></i>New Extension Details
+                            </h6>
+                            <div class="row">
+                                <div class="col-md-6 mb-3">
+                                    <label class="form-label fw-semibold">Extension Number</label>
+                                    <input type="text" class="form-control" id="uem-extensionNumber" readonly>
+                                </div>
+                                <div class="col-md-6 mb-3">
+                                    <label class="form-label fw-semibold">Phone Type</label>
+                                    <select class="form-select" id="uem-phoneType">
+                                        <option value="Mobile" selected>Mobile</option>
+                                        <option value="FixedLine">Fixed Line</option>
+                                    </select>
+                                </div>
+                            </div>
+                            <div class="row">
+                                <div class="col-md-6 mb-3">
+                                    <label class="form-label fw-semibold">Class of Service</label>
+                                    <select class="form-select" id="uem-classOfService">
+                                        <option value="">Select Class of Service</option>
+                                    </select>
+                                </div>
+                                <div class="col-md-6 mb-3">
+                                    <label class="form-label fw-semibold">Location</label>
+                                    <input type="text" class="form-control" id="uem-location" placeholder="e.g., Office 301, Building A">
+                                </div>
+                            </div>
+                            <div class="mb-3">
+                                <label class="form-label fw-semibold">Notes</label>
+                                <textarea class="form-control" id="uem-notes" rows="2" placeholder="Additional information about this phone line..."></textarea>
+                            </div>
+                            <div class="row">
+                                <div class="col-md-6 mb-3">
+                                    <label class="form-label fw-semibold">
+                                        <i class="bi bi-tag me-1"></i>Line Type
+                                    </label>
+                                    <select class="form-select" id="uem-lineType" onchange="uemUpdatePrimaryCheckbox()">
+                                        <option value="Secondary" selected>Secondary</option>
+                                        <option value="Primary">Primary</option>
+                                        <option value="Reserved">Reserved</option>
+                                        <option value="Data">Data</option>
+                                    </select>
+                                </div>
+                                <div class="col-md-6 mb-3">
+                                    <label class="form-label fw-semibold">Ownership Type</label>
+                                    <select class="form-select" id="uem-ownershipType">
+                                        <option value="Personal" selected>Personal</option>
+                                        <option value="Shared">Shared</option>
+                                        <option value="Department">Department</option>
+                                        <option value="Infrastructure">Infrastructure</option>
+                                        <option value="Emergency">Emergency</option>
+                                    </select>
+                                </div>
+                            </div>
+                            <div class="form-check">
+                                <input class="form-check-input" type="checkbox" id="uem-primaryCheckbox" onchange="uemUpdateLineType()">
+                                <label class="form-check-label" for="uem-primaryCheckbox">
+                                    Set as Primary Phone
+                                </label>
+                                <div class="form-text">
+                                    <i class="bi bi-info-circle"></i> Automatically controlled by Line Type selection
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+
+                    <div class="alert alert-warning border-0" style="border-radius: 12px;">
+                        <div class="d-flex align-items-start">
+                            <i class="bi bi-exclamation-triangle me-2 mt-1"></i>
+                            <div>
+                                <strong>What will happen:</strong>
+                                <ul class="mb-0 mt-1 ps-3">
+                                    <li>A new phone registration will be created for this extension</li>
+                                    <li>All <span id="uem-recordCountSummary">0</span> unlinked call records will be linked to the selected user</li>
+                                    <li>The phone will be assigned to the user's profile</li>
+                                </ul>
+                            </div>
+                        </div>
+                    </div>
+                </div>`;
+
+            modalFooter.innerHTML = `
+                <button type="button" class="btn btn-secondary px-4" id="uem-backBtn" disabled onclick="uemGoBack()">
+                    <i class="bi bi-arrow-left me-1"></i>Back
+                </button>
+                <button type="button" class="btn btn-primary px-4" id="uem-nextBtn" style="display: none;">
+                    Next<i class="bi bi-arrow-right ms-1"></i>
+                </button>
+                <button type="button" class="btn btn-success px-4" id="uem-completeBtn" style="display: none;" onclick="uemCompleteRegistration()">
+                    <i class="bi bi-check-circle me-1"></i>Register & Link All
+                </button>`;
+
+            // Reset state and reload
+            uemCurrentStep = 1;
+            uemSelectedExtension = null;
+            uemSelectedUser = null;
+            uemPrimaryConfirmed = false;
+            uemExistingPrimaryPhone = null;
+
+            // Re-attach event listeners
+            const searchInput = document.getElementById('uem-extensionSearch');
+            if (searchInput) {
+                searchInput.addEventListener('input', function(e) {
+                    const term = e.target.value.toLowerCase();
+                    const filtered = uemExtensionData.filter(ext =>
+                        ext.extension.toLowerCase().includes(term) ||
+                        ext.providers.some(p => p.toLowerCase().includes(term))
+                    );
+                    uemRenderExtensionList(filtered);
+                });
+            }
+
+            const userSearchInput = document.getElementById('uem-userSearchInput');
+            if (userSearchInput) {
+                userSearchInput.addEventListener('input', function(e) {
+                    clearTimeout(uemSearchTimeout);
+                    uemSearchTimeout = setTimeout(() => uemSearchUsers(e.target.value), 300);
+                });
+            }
+
+            uemUpdateWizardStep(1);
+            uemLoadUnlinkedExtensions();
+        }
     </script>
+
+    <style>
+        /* Step Indicator Styles for Unlinked Extension Manager */
+        .step-indicator {
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            min-width: 100px;
+        }
+
+        .step-indicator .step-number {
+            width: 32px;
+            height: 32px;
+            border-radius: 50%;
+            background-color: #e9ecef;
+            color: #6c757d;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-weight: 600;
+            font-size: 14px;
+            transition: all 0.3s ease;
+        }
+
+        .step-indicator .step-label {
+            font-size: 12px;
+            color: #6c757d;
+            margin-top: 4px;
+            text-align: center;
+        }
+
+        .step-indicator.active .step-number {
+            background-color: #0d6efd;
+            color: white;
+        }
+
+        .step-indicator.active .step-label {
+            color: #0d6efd;
+            font-weight: 600;
+        }
+
+        .step-indicator.completed .step-number {
+            background-color: #198754;
+            color: white;
+        }
+
+        .step-indicator.completed .step-label {
+            color: #198754;
+        }
+
+        .step-line {
+            width: 60px;
+            height: 2px;
+            background-color: #e9ecef;
+            margin: 0 8px;
+            margin-top: -20px;
+        }
+
+        /* Table styles for extension list */
+        #uem-extensionListContainer table {
+            margin-bottom: 0;
+        }
+
+        #uem-extensionListContainer table th {
+            background-color: #f8f9fa;
+            border-bottom: 2px solid #dee2e6;
+            font-weight: 600;
+            font-size: 0.85rem;
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
+        }
+
+        #uem-extensionListContainer table td {
+            vertical-align: middle;
+        }
+
+        #uem-extensionListContainer table tbody tr:hover {
+            background-color: #f8f9fa;
+        }
+    </style>
 }

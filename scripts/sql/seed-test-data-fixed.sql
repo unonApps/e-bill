@@ -21,14 +21,14 @@ PRINT '1. Creating Class of Service entries...';
 IF NOT EXISTS (SELECT 1 FROM ClassOfService WHERE ServiceCode = 'BASIC')
 BEGIN
     INSERT INTO ClassOfService (ServiceCode, ServiceName, Description, MonthlyAllowance, InternationalCallsAllowed, DataAllowanceGB, HandsetAllowance, IsActive, CreatedDate)
-    VALUES ('BASIC', 'Basic Plan', 'Basic employee phone plan', 50.00, 0, 5, 0, 1, GETDATE());
+    VALUES ('BASIC', 'Basic Plan', 'Basic Staff phone plan', 50.00, 0, 5, 0, 1, GETDATE());
     PRINT '   Created BASIC Class of Service';
 END
 
 IF NOT EXISTS (SELECT 1 FROM ClassOfService WHERE ServiceCode = 'STANDARD')
 BEGIN
     INSERT INTO ClassOfService (ServiceCode, ServiceName, Description, MonthlyAllowance, InternationalCallsAllowed, DataAllowanceGB, HandsetAllowance, IsActive, CreatedDate)
-    VALUES ('STANDARD', 'Standard Plan', 'Standard employee phone plan with international', 150.00, 1, 15, 500.00, 1, GETDATE());
+    VALUES ('STANDARD', 'Standard Plan', 'Standard Staff phone plan with international', 150.00, 1, 15, 500.00, 1, GETDATE());
     PRINT '   Created STANDARD Class of Service';
 END
 

@@ -417,7 +417,7 @@
         top: 0;
         bottom: 0;
         width: 2px;
-        background: linear-gradient(to bottom, #e5e7eb, #f3f4f6);
+        background: #e5e7eb;
     }
 
     .timeline-item {
@@ -534,6 +534,44 @@
         border-bottom-color: #009EDB;
         font-weight: 600;
     }
+
+    /* Detail View Tab Styles - Neutral Colors */
+    .detail-view-tabs .nav-link {
+        color: #64748b !important;
+        background: transparent !important;
+        border: none !important;
+        border-bottom: 3px solid transparent !important;
+        padding: 0.75rem 1.5rem !important;
+        font-weight: 500 !important;
+        font-size: 0.875rem !important;
+        transition: all 0.2s ease !important;
+        border-radius: 0 !important;
+    }
+
+    .detail-view-tabs .nav-link:hover {
+        color: #475569 !important;
+        background: rgba(100, 116, 139, 0.08) !important;
+        border-bottom-color: rgba(100, 116, 139, 0.3) !important;
+    }
+
+    .detail-view-tabs .nav-link.active {
+        color: #1e293b !important;
+        background: white !important;
+        border-bottom-color: #64748b !important;
+        font-weight: 600 !important;
+    }
+
+    /* Highlight the Budget Officer tab (action tab) differently */
+    .detail-view-tabs .nav-link[data-bs-target="#detail-budget"].active {
+        color: #ca8a04 !important;
+        border-bottom-color: #eab308 !important;
+    }
+
+    .detail-view-tabs .nav-link[data-bs-target="#detail-budget"]:hover {
+        color: #ca8a04 !important;
+        background: rgba(234, 179, 8, 0.08) !important;
+        border-bottom-color: rgba(234, 179, 8, 0.3) !important;
+    }
 </style>
 
 <div class="container-fluid px-4">
@@ -552,8 +590,8 @@
 
     <!-- Back Button -->
     <div class="mb-3">
-        <a href="/Modules/RefundManagement/Approvals" class="btn btn-outline-secondary btn-sm">
-            <i class="bi bi-arrow-left me-2"></i>Back to Overview
+        <a href="/Dashboard/Approver" class="btn btn-outline-secondary btn-sm">
+            <i class="bi bi-arrow-left me-2"></i>Back to Dashboard
         </a>
     </div>
 
@@ -939,7 +977,7 @@
         <div class="modal-content" style="border: none; border-radius: 20px; box-shadow: 0 20px 60px rgba(0,0,0,0.1);">
             <div class="modal-header" style="border: none; padding: 32px 32px 0 32px;">
                 <div class="d-flex align-items-center">
-                    <div class="me-3" style="width: 48px; height: 48px; background: linear-gradient(135deg, #10b981, #059669); border-radius: 16px; display: flex; align-items: center; justify-content: center;">
+                    <div class="me-3" style="width: 48px; height: 48px; background: #10b981; border-radius: 16px; display: flex; align-items: center; justify-content: center;">
                         <i class="bi bi-check-circle text-white" style="font-size: 24px;"></i>
                     </div>
                     <div>
@@ -1034,7 +1072,7 @@
                     <button type="button" class="btn btn-outline-secondary" onclick="budgetRevertToSupervisor()" style="border-radius: 12px; padding: 12px 24px; font-weight: 500;">
                         <i class="bi bi-arrow-counterclockwise me-2"></i>Revert to Supervisor
                     </button>
-                    <button type="button" class="btn btn-success" onclick="budgetApproveAndSubmit()" style="background: linear-gradient(135deg, #10b981, #059669); border: none; border-radius: 12px; padding: 12px 24px; font-weight: 500;">
+                    <button type="button" class="btn btn-success" onclick="budgetApproveAndSubmit()" style="background: #10b981; border: none; border-radius: 12px; padding: 12px 24px; font-weight: 500;">
                         <i class="bi bi-check-circle me-2"></i>Approve & Submit to Staff Claims Unit
                     </button>
                 </div>
@@ -1070,7 +1108,7 @@
                 <input type="hidden" id="rejectRequestId" name="requestId" />
                 <div class="modal-header" style="border: none; padding: 32px 32px 0 32px;">
                     <div class="d-flex align-items-center">
-                        <div class="me-3" style="width: 48px; height: 48px; background: linear-gradient(135deg, #ef4444, #dc2626); border-radius: 16px; display: flex; align-items: center; justify-content: center;">
+                        <div class="me-3" style="width: 48px; height: 48px; background: #ef4444; border-radius: 16px; display: flex; align-items: center; justify-content: center;">
                             <i class="bi bi-x-circle text-white" style="font-size: 24px;"></i>
                         </div>
                         <div>
@@ -1087,7 +1125,7 @@
                     </div>
                     <div class="d-flex gap-3 justify-content-end">
                         <button type="button" class="btn btn-light" data-bs-dismiss="modal" style="border-radius: 12px; padding: 12px 24px; font-weight: 500;">Cancel</button>
-                        <button type="submit" class="btn btn-danger" style="background: linear-gradient(135deg, #ef4444, #dc2626); border: none; border-radius: 12px; padding: 12px 24px; font-weight: 500;">
+                        <button type="submit" class="btn btn-danger" style="background: #ef4444; border: none; border-radius: 12px; padding: 12px 24px; font-weight: 500;">
                             <i class="bi bi-x-circle me-2"></i>Reject Request
                         </button>
                     </div>
@@ -1114,46 +1152,41 @@
             </h2>
             <p class="mb-0" style="color: #6b7280;">@Model.CurrentRequest.MobileNumberAssignedTo</p>
         </div>
-        <a href="/Modules/RefundManagement/Approvals/BudgetOfficer" class="btn btn-outline-secondary">
-            <i class="bi bi-arrow-left me-2"></i>Back to Approvals
+        <a href="/Dashboard/Approver" class="btn btn-outline-secondary">
+            <i class="bi bi-arrow-left me-2"></i>Back to Dashboard
         </a>
     </div>
 
     <!-- Tab Navigation -->
-    <ul class="nav nav-tabs" style="background: #f8fafc; padding: 0.75rem 1.25rem 0; border-bottom: 2px solid #e2e8f0; margin-bottom: 0; border-radius: 12px 12px 0 0;">
+    <ul class="nav nav-tabs detail-view-tabs" style="background: #f8fafc; padding: 0.75rem 1.25rem 0; border-bottom: 2px solid #e2e8f0; margin-bottom: 0; border-radius: 12px 12px 0 0;">
         <li class="nav-item">
-            <button class="nav-link active" id="detail-overview-tab" data-bs-toggle="tab" data-bs-target="#detail-overview" type="button" style="color: #64748b; border: none; border-bottom: 3px solid transparent; padding: 0.75rem 1.5rem; font-weight: 500; font-size: 0.875rem;">
+            <button class="nav-link active" id="detail-overview-tab" data-bs-toggle="tab" data-bs-target="#detail-overview" type="button">
                 <i class="bi bi-info-circle me-2"></i>Overview
             </button>
         </li>
         <li class="nav-item">
-            <button class="nav-link" id="detail-financial-tab" data-bs-toggle="tab" data-bs-target="#detail-financial" type="button" style="color: #64748b; border: none; border-bottom: 3px solid transparent; padding: 0.75rem 1.5rem; font-weight: 500; font-size: 0.875rem;">
+            <button class="nav-link" id="detail-financial-tab" data-bs-toggle="tab" data-bs-target="#detail-financial" type="button">
                 <i class="bi bi-currency-dollar me-2"></i>Financial Details
             </button>
         </li>
         <li class="nav-item">
-            <button class="nav-link" id="detail-supervisor-tab" data-bs-toggle="tab" data-bs-target="#detail-supervisor" type="button" style="color: #64748b; border: none; border-bottom: 3px solid transparent; padding: 0.75rem 1.5rem; font-weight: 500; font-size: 0.875rem;">
+            <button class="nav-link" id="detail-supervisor-tab" data-bs-toggle="tab" data-bs-target="#detail-supervisor" type="button">
                 <i class="bi bi-check-circle me-2"></i>Supervisor Approval
             </button>
         </li>
         <li class="nav-item">
-            <button class="nav-link" id="detail-budget-tab" data-bs-toggle="tab" data-bs-target="#detail-budget" type="button" style="color: #64748b; border: none; border-bottom: 3px solid transparent; padding: 0.75rem 1.5rem; font-weight: 500; font-size: 0.875rem;">
+            <button class="nav-link" id="detail-budget-tab" data-bs-toggle="tab" data-bs-target="#detail-budget" type="button">
                 <i class="bi bi-calculator me-2"></i>Budget Officer
             </button>
         </li>
         <li class="nav-item">
-            <button class="nav-link" id="detail-claims-tab" data-bs-toggle="tab" data-bs-target="#detail-claims" type="button" style="color: #64748b; border: none; border-bottom: 3px solid transparent; padding: 0.75rem 1.5rem; font-weight: 500; font-size: 0.875rem;">
+            <button class="nav-link" id="detail-claims-tab" data-bs-toggle="tab" data-bs-target="#detail-claims" type="button">
                 <i class="bi bi-receipt me-2"></i>Claims Processing
             </button>
         </li>
         <li class="nav-item">
-            <button class="nav-link" id="detail-workflow-tab" data-bs-toggle="tab" data-bs-target="#detail-workflow" type="button" style="color: #64748b; border: none; border-bottom: 3px solid transparent; padding: 0.75rem 1.5rem; font-weight: 500; font-size: 0.875rem;">
+            <button class="nav-link" id="detail-workflow-tab" data-bs-toggle="tab" data-bs-target="#detail-workflow" type="button">
                 <i class="bi bi-diagram-3 me-2"></i>Workflow History
-            </button>
-        </li>
-        <li class="nav-item">
-            <button class="nav-link" id="detail-remarks-tab" data-bs-toggle="tab" data-bs-target="#detail-remarks" type="button" style="color: #64748b; border: none; border-bottom: 3px solid transparent; padding: 0.75rem 1.5rem; font-weight: 500; font-size: 0.875rem;">
-                <i class="bi bi-chat-square-text me-2"></i>Remarks
             </button>
         </li>
     </ul>
@@ -1163,10 +1196,10 @@
         <!-- Overview Tab -->
         <div class="tab-pane fade show active" id="detail-overview">
             <!-- Staff Information Section -->
-            <div class="mb-4" style="background: #eff6ff; border-radius: 16px; padding: 24px; border: 1px solid #bfdbfe;">
+            <div class="mb-4" style="background: #f8fafc; border-radius: 16px; padding: 24px; border: 1px solid #e2e8f0;">
                 <div class="d-flex align-items-center mb-3">
-                    <i class="bi bi-person-circle me-3" style="font-size: 20px; color: #2563eb;"></i>
-                    <h6 class="mb-0" style="font-weight: 600; color: #1e40af;">Staff Information</h6>
+                    <i class="bi bi-person-circle me-3" style="font-size: 20px; color: #64748b;"></i>
+                    <h6 class="mb-0" style="font-weight: 600; color: #475569;">Staff Information</h6>
                 </div>
                 <div class="row g-3">
                     <div class="col-md-4">
@@ -1193,8 +1226,8 @@
             <!-- Mobile Service Details Section -->
             <div class="mb-4" style="background: #f8fafc; border-radius: 16px; padding: 24px; border: 1px solid #e2e8f0;">
                 <div class="d-flex align-items-center mb-3">
-                    <i class="bi bi-phone me-3" style="font-size: 20px; color: #059669;"></i>
-                    <h6 class="mb-0" style="font-weight: 600; color: #047857;">Mobile Service Details</h6>
+                    <i class="bi bi-phone me-3" style="font-size: 20px; color: #64748b;"></i>
+                    <h6 class="mb-0" style="font-weight: 600; color: #475569;">Mobile Service Details</h6>
                 </div>
                 <div class="row g-3">
                     <div class="col-md-3">
@@ -1242,10 +1275,10 @@
         <!-- Financial Details Tab -->
         <div class="tab-pane fade" id="detail-financial">
             <!-- Financial Information Section -->
-            <div class="mb-4" style="background: #fefce8; border-radius: 16px; padding: 24px; border: 1px solid #fde047;">
+            <div class="mb-4" style="background: #f8fafc; border-radius: 16px; padding: 24px; border: 1px solid #e2e8f0;">
                 <div class="d-flex align-items-center mb-3">
-                    <i class="bi bi-currency-dollar me-3" style="font-size: 20px; color: #ca8a04;"></i>
-                    <h6 class="mb-0" style="font-weight: 600; color: #713f12;">Financial Information</h6>
+                    <i class="bi bi-currency-dollar me-3" style="font-size: 20px; color: #64748b;"></i>
+                    <h6 class="mb-0" style="font-weight: 600; color: #475569;">Financial Information</h6>
                 </div>
                 <div class="row g-3">
                     <div class="col-md-4">
@@ -1290,10 +1323,10 @@
             </div>
 
             <!-- Budget Information Section -->
-            <div class="mb-4" style="background: #f0f9ff; border-radius: 16px; padding: 24px; border: 1px solid #0ea5e9;">
+            <div class="mb-4" style="background: #f8fafc; border-radius: 16px; padding: 24px; border: 1px solid #e2e8f0;">
                 <div class="d-flex align-items-center mb-3">
-                    <i class="bi bi-calculator me-3" style="font-size: 20px; color: #0284c7;"></i>
-                    <h6 class="mb-0" style="font-weight: 600; color: #0369a1;">Budget Information</h6>
+                    <i class="bi bi-calculator me-3" style="font-size: 20px; color: #64748b;"></i>
+                    <h6 class="mb-0" style="font-weight: 600; color: #475569;">Budget Information</h6>
                 </div>
                 <div class="row g-3">
                     <div class="col-md-6">
@@ -1314,17 +1347,32 @@
             </div>
 
             <!-- Purchase Receipt Section -->
-            <div class="mb-4" style="background: #f0fdf4; border-radius: 16px; padding: 24px; border: 1px solid #bbf7d0;">
+            <div class="mb-4" style="background: #f8fafc; border-radius: 16px; padding: 24px; border: 1px solid #e2e8f0;">
                 <div class="d-flex align-items-center mb-3">
-                    <i class="bi bi-file-earmark-pdf me-3" style="font-size: 20px; color: #059669;"></i>
-                    <h6 class="mb-0" style="font-weight: 600; color: #047857;">Purchase Receipt</h6>
+                    <i class="bi bi-file-earmark-pdf me-3" style="font-size: 20px; color: #64748b;"></i>
+                    <h6 class="mb-0" style="font-weight: 600; color: #475569;">Purchase Receipt</h6>
                 </div>
                 <div class="row g-3">
                     <div class="col-md-8">
                         <div class="mb-2">
                             <span class="detail-label">Receipt File</span>
-                            @if (!string.IsNullOrEmpty(Model.CurrentRequest.PurchaseReceiptPath))
+                            @if (!string.IsNullOrEmpty(Model.CurrentRequest.PurchaseReceiptFileName))
                             {
+                                <div class="detail-value d-flex align-items-center justify-content-between">
+                                    <span>@Model.CurrentRequest.PurchaseReceiptFileName</span>
+                                    <div>
+                                        <a href="/Modules/RefundManagement/Requests/DownloadReceipt/@Model.CurrentRequest.Id" target="_blank" class="btn btn-sm btn-outline-success me-2" style="border-radius: 8px; font-size: 12px;">
+                                            <i class="bi bi-eye me-1"></i>View
+                                        </a>
+                                        <a href="/Modules/RefundManagement/Requests/DownloadReceipt/@Model.CurrentRequest.Id" download class="btn btn-sm btn-success" style="border-radius: 8px; font-size: 12px;">
+                                            <i class="bi bi-download me-1"></i>Download
+                                        </a>
+                                    </div>
+                                </div>
+                            }
+                            else if (!string.IsNullOrEmpty(Model.CurrentRequest.PurchaseReceiptPath) && !Model.CurrentRequest.PurchaseReceiptPath.StartsWith("database:"))
+                            {
+                                <!-- Legacy file path support -->
                                 <div class="detail-value d-flex align-items-center justify-content-between">
                                     <span>@System.IO.Path.GetFileName(Model.CurrentRequest.PurchaseReceiptPath)</span>
                                     <div>
@@ -1394,13 +1442,55 @@
 
         <!-- Budget Officer Tab -->
         <div class="tab-pane fade" id="detail-budget">
+            <!-- Request Summary Section -->
+            <div class="mb-4" style="background: #f8fafc; border-radius: 16px; padding: 24px; border: 1px solid #e2e8f0;">
+                <div class="d-flex align-items-center mb-3">
+                    <i class="bi bi-info-circle me-3" style="font-size: 20px; color: #64748b;"></i>
+                    <h6 class="mb-0" style="font-weight: 600; color: #475569;">Request Summary</h6>
+                </div>
+                <div class="row g-3">
+                    <div class="col-md-4">
+                        <div class="mb-2">
+                            <span class="detail-label">Class of Service</span>
+                            <div class="detail-value">@(Model.CurrentRequest.ClassOfService ?? "N/A")</div>
+                        </div>
+                    </div>
+                    <div class="col-md-4">
+                        <div class="mb-2">
+                            <span class="detail-label">Mobile Service</span>
+                            <div class="detail-value">@(Model.CurrentRequest.MobileService ?? "N/A")</div>
+                        </div>
+                    </div>
+                    <div class="col-md-4">
+                        <div class="mb-2">
+                            <span class="detail-label">Handset Allowance</span>
+                            <div class="detail-value" style="color: #059669; font-weight: 600;">$@Model.CurrentRequest.DeviceAllowance.ToString("N2")</div>
+                        </div>
+                    </div>
+                </div>
+                <div class="row g-3 mt-1">
+                    <div class="col-md-4">
+                        <div class="mb-2">
+                            <span class="detail-label">Device Purchase Currency</span>
+                            <div class="detail-value">@(Model.CurrentRequest.DevicePurchaseCurrency ?? "N/A")</div>
+                        </div>
+                    </div>
+                    <div class="col-md-4">
+                        <div class="mb-2">
+                            <span class="detail-label">Device Purchase Amount</span>
+                            <div class="detail-value" style="color: #059669; font-weight: 600;">@Model.CurrentRequest.DevicePurchaseCurrency @Model.CurrentRequest.DevicePurchaseAmount.ToString("N2")</div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
             @if (Model.CurrentRequest.Status == TAB.Web.Models.RefundRequestStatus.PendingBudgetOfficer)
             {
                 <!-- Approval Form -->
-                <div class="mb-4" style="background: #fefce8; border-radius: 16px; padding: 24px; border: 1px solid #fde047;">
+                <div class="mb-4" style="background: #f0fdf4; border-radius: 16px; padding: 24px; border: 1px solid #bbf7d0;">
                     <div class="d-flex align-items-center mb-3">
-                        <i class="bi bi-calculator me-3" style="font-size: 20px; color: #ca8a04;"></i>
-                        <h6 class="mb-0" style="font-weight: 600; color: #713f12;">Budget Officer Approval</h6>
+                        <i class="bi bi-calculator me-3" style="font-size: 20px; color: #059669;"></i>
+                        <h6 class="mb-0" style="font-weight: 600; color: #047857;">Budget Officer Approval</h6>
                     </div>
 
                     <form method="post" asp-page-handler="BudgetApprove">
@@ -1437,9 +1527,12 @@
                         </div>
 
                         <div class="d-flex gap-3 justify-content-end mt-4 pt-3" style="border-top: 1px solid #e5e7eb;">
-                            <a href="/Modules/RefundManagement/Approvals/BudgetOfficer" class="btn btn-light" style="border-radius: 12px; padding: 12px 24px; font-weight: 500;">
+                            <a href="/Dashboard/Approver" class="btn btn-light" style="border-radius: 12px; padding: 12px 24px; font-weight: 500;">
                                 Cancel
                             </a>
+                            <button type="button" class="btn btn-secondary" data-bs-toggle="modal" data-bs-target="#detailReassignModal" onclick="setDetailRequestId(@Model.CurrentRequest.Id)" style="border-radius: 12px; padding: 12px 24px; font-weight: 500;">
+                                <i class="bi bi-person-plus me-2"></i>Reassign
+                            </button>
                             <button type="button" class="btn btn-warning" data-bs-toggle="modal" data-bs-target="#detailRevertToRequestorModal" onclick="setDetailRequestId(@Model.CurrentRequest.Id)" style="border-radius: 12px; padding: 12px 24px; font-weight: 500;">
                                 <i class="bi bi-arrow-left me-2"></i>Revert to Requestor
                             </button>
@@ -1545,167 +1638,145 @@
 
         <!-- Workflow History Tab -->
         <div class="tab-pane fade" id="detail-workflow">
-            <div class="timeline">
-                <!-- Request Created -->
-                <div class="timeline-item">
-                    <div class="timeline-marker bg-primary">
-                        <i class="bi bi-file-earmark-plus"></i>
-                    </div>
-                    <div class="timeline-content">
-                        <h6 class="mb-1" style="font-weight: 600;">Request Created</h6>
-                        <p class="mb-0 text-muted" style="font-size: 0.875rem;">@Model.CurrentRequest.RequestDate.ToString("MMM dd, yyyy HH:mm")</p>
-                    </div>
+            <!-- Workflow History Section -->
+            <div class="mb-4" style="background: #f8fafc; border-radius: 16px; padding: 24px; border: 1px solid #e2e8f0;">
+                <div class="d-flex align-items-center mb-3">
+                    <i class="bi bi-diagram-3 me-3" style="font-size: 20px; color: #64748b;"></i>
+                    <h6 class="mb-0" style="font-weight: 600; color: #475569;">Workflow History</h6>
                 </div>
 
-                <!-- Supervisor Approval -->
-                @if (Model.CurrentRequest.SupervisorApprovalDate.HasValue)
-                {
+                <!-- Timeline Container -->
+                <div class="workflow-timeline">
+                    <!-- Request Submission -->
                     <div class="timeline-item">
-                        <div class="timeline-marker bg-success">
-                            <i class="bi bi-check-circle"></i>
+                        <div class="timeline-marker timeline-submitted">
+                            <i class="bi bi-file-plus"></i>
                         </div>
                         <div class="timeline-content">
-                            <h6 class="mb-1" style="font-weight: 600;">Supervisor Approved</h6>
-                            <p class="mb-0 text-muted" style="font-size: 0.875rem;">
-                                @Model.CurrentRequest.SupervisorApprovalDate.Value.ToString("MMM dd, yyyy HH:mm")
-                                - @(Model.CurrentRequest.SupervisorName ?? "N/A")
-                            </p>
+                            <div class="timeline-header">
+                                <h6 class="timeline-title">Request Submitted</h6>
+                                <span class="timeline-date">@Model.CurrentRequest.RequestDate.ToString("MMM dd, yyyy HH:mm")</span>
+                            </div>
+                            <p class="timeline-description">Refund request created and submitted for approval</p>
+                            <div class="timeline-details">
+                                <small class="text-muted">Submitted by: <span>@Model.CurrentRequest.MobileNumberAssignedTo</span></small>
+                            </div>
                         </div>
                     </div>
-                }
 
-                <!-- Budget Officer Approval -->
-                @if (Model.CurrentRequest.BudgetOfficerApprovalDate.HasValue)
-                {
+                    <!-- Supervisor Approval -->
                     <div class="timeline-item">
-                        <div class="timeline-marker bg-success">
-                            <i class="bi bi-calculator"></i>
+                        <div class="timeline-marker @(Model.CurrentRequest.SupervisorApprovalDate.HasValue ? "timeline-approved" : Model.CurrentRequest.Status >= TAB.Web.Models.RefundRequestStatus.PendingSupervisor ? "timeline-current" : "timeline-pending")">
+                            <i class="bi @(Model.CurrentRequest.SupervisorApprovalDate.HasValue ? "bi-check-circle" : "bi-clock")"></i>
                         </div>
                         <div class="timeline-content">
-                            <h6 class="mb-1" style="font-weight: 600;">Budget Officer Approved</h6>
-                            <p class="mb-0 text-muted" style="font-size: 0.875rem;">
-                                @Model.CurrentRequest.BudgetOfficerApprovalDate.Value.ToString("MMM dd, yyyy HH:mm")
-                                - @(Model.CurrentRequest.BudgetOfficerName ?? "N/A")
-                            </p>
+                            <div class="timeline-header">
+                                <h6 class="timeline-title">Supervisor Review</h6>
+                                <span class="timeline-date">@(Model.CurrentRequest.SupervisorApprovalDate.HasValue ? Model.CurrentRequest.SupervisorApprovalDate.Value.ToString("MMM dd, yyyy HH:mm") : "Pending")</span>
+                            </div>
+                            <p class="timeline-description">@(Model.CurrentRequest.SupervisorApprovalDate.HasValue ? "Approved by supervisor" : "Awaiting supervisor approval")</p>
+                            <div class="timeline-details">
+                                <small class="text-muted">Supervisor: <span>@(Model.CurrentRequest.SupervisorEmail ?? "N/A")</span></small>
+                                @if (!string.IsNullOrEmpty(Model.CurrentRequest.SupervisorRemarks))
+                                {
+                                    <div class="timeline-remarks mt-1">
+                                        <small class="text-muted"><strong>Remarks:</strong> <span>@Model.CurrentRequest.SupervisorRemarks</span></small>
+                                    </div>
+                                }
+                            </div>
                         </div>
                     </div>
-                }
 
-                <!-- Claims Processing -->
-                @if (Model.CurrentRequest.StaffClaimsApprovalDate.HasValue)
-                {
+                    <!-- Budget Officer Approval -->
                     <div class="timeline-item">
-                        <div class="timeline-marker bg-success">
-                            <i class="bi bi-receipt"></i>
+                        <div class="timeline-marker @(Model.CurrentRequest.BudgetOfficerApprovalDate.HasValue ? "timeline-approved" : Model.CurrentRequest.Status == TAB.Web.Models.RefundRequestStatus.PendingBudgetOfficer ? "timeline-current" : "timeline-pending")">
+                            <i class="bi @(Model.CurrentRequest.BudgetOfficerApprovalDate.HasValue ? "bi-calculator" : "bi-clock")"></i>
                         </div>
                         <div class="timeline-content">
-                            <h6 class="mb-1" style="font-weight: 600;">Claims Unit Processed</h6>
-                            <p class="mb-0 text-muted" style="font-size: 0.875rem;">
-                                @Model.CurrentRequest.StaffClaimsApprovalDate.Value.ToString("MMM dd, yyyy HH:mm")
-                                - @(Model.CurrentRequest.StaffClaimsOfficerName ?? "N/A")
-                            </p>
+                            <div class="timeline-header">
+                                <h6 class="timeline-title">Budget Officer Review</h6>
+                                <span class="timeline-date">@(Model.CurrentRequest.BudgetOfficerApprovalDate.HasValue ? Model.CurrentRequest.BudgetOfficerApprovalDate.Value.ToString("MMM dd, yyyy HH:mm") : Model.CurrentRequest.Status == TAB.Web.Models.RefundRequestStatus.PendingBudgetOfficer ? "Current Stage" : "Pending")</span>
+                            </div>
+                            <p class="timeline-description">@(Model.CurrentRequest.BudgetOfficerApprovalDate.HasValue ? "Approved by budget officer" : "Pending budget officer approval")</p>
+                            <div class="timeline-details">
+                                <small class="text-muted">Budget Officer: <span>@(Model.CurrentRequest.BudgetOfficerEmail ?? "Not assigned")</span></small>
+                                @if (!string.IsNullOrEmpty(Model.CurrentRequest.BudgetOfficerRemarks))
+                                {
+                                    <div class="timeline-remarks mt-1">
+                                        <small class="text-muted"><strong>Remarks:</strong> <span>@Model.CurrentRequest.BudgetOfficerRemarks</span></small>
+                                    </div>
+                                }
+                            </div>
                         </div>
                     </div>
-                }
 
-                <!-- Completion -->
-                @if (Model.CurrentRequest.CompletionDate.HasValue)
-                {
+                    <!-- Claims Processing -->
                     <div class="timeline-item">
-                        <div class="timeline-marker bg-success">
-                            <i class="bi bi-check-circle-fill"></i>
+                        <div class="timeline-marker @(Model.CurrentRequest.StaffClaimsApprovalDate.HasValue ? "timeline-approved" : Model.CurrentRequest.Status == TAB.Web.Models.RefundRequestStatus.PendingStaffClaimsUnit ? "timeline-current" : "timeline-pending")">
+                            <i class="bi @(Model.CurrentRequest.StaffClaimsApprovalDate.HasValue ? "bi-receipt" : "bi-clock")"></i>
                         </div>
                         <div class="timeline-content">
-                            <h6 class="mb-1" style="font-weight: 600;">Request Completed</h6>
-                            <p class="mb-0 text-muted" style="font-size: 0.875rem;">@Model.CurrentRequest.CompletionDate.Value.ToString("MMM dd, yyyy HH:mm")</p>
+                            <div class="timeline-header">
+                                <h6 class="timeline-title">Claims Unit Processing</h6>
+                                <span class="timeline-date">@(Model.CurrentRequest.StaffClaimsApprovalDate.HasValue ? Model.CurrentRequest.StaffClaimsApprovalDate.Value.ToString("MMM dd, yyyy HH:mm") : Model.CurrentRequest.Status == TAB.Web.Models.RefundRequestStatus.PendingStaffClaimsUnit ? "Current Stage" : "Pending")</span>
+                            </div>
+                            <p class="timeline-description">@(Model.CurrentRequest.StaffClaimsApprovalDate.HasValue ? "Processed by claims unit" : "Pending claims unit processing")</p>
+                            <div class="timeline-details">
+                                <small class="text-muted">Claims Officer: <span>@(Model.CurrentRequest.StaffClaimsOfficerName ?? "Not assigned")</span></small>
+                                @if (!string.IsNullOrEmpty(Model.CurrentRequest.StaffClaimsRemarks))
+                                {
+                                    <div class="timeline-remarks mt-1">
+                                        <small class="text-muted"><strong>Remarks:</strong> <span>@Model.CurrentRequest.StaffClaimsRemarks</span></small>
+                                    </div>
+                                }
+                            </div>
                         </div>
                     </div>
-                }
 
-                <!-- Cancellation -->
-                @if (Model.CurrentRequest.CancellationDate.HasValue)
-                {
-                    <div class="timeline-item">
-                        <div class="timeline-marker bg-danger">
-                            <i class="bi bi-x-circle"></i>
+                    <!-- Completion -->
+                    @if (Model.CurrentRequest.CompletionDate.HasValue)
+                    {
+                        <div class="timeline-item">
+                            <div class="timeline-marker timeline-approved">
+                                <i class="bi bi-check-circle-fill"></i>
+                            </div>
+                            <div class="timeline-content">
+                                <div class="timeline-header">
+                                    <h6 class="timeline-title">Request Completed</h6>
+                                    <span class="timeline-date">@Model.CurrentRequest.CompletionDate.Value.ToString("MMM dd, yyyy HH:mm")</span>
+                                </div>
+                                <p class="timeline-description">Refund request has been fully processed and completed</p>
+                            </div>
                         </div>
-                        <div class="timeline-content">
-                            <h6 class="mb-1" style="font-weight: 600;">Request Rejected</h6>
-                            <p class="mb-0 text-muted" style="font-size: 0.875rem;">
-                                @Model.CurrentRequest.CancellationDate.Value.ToString("MMM dd, yyyy HH:mm")
-                                - @(Model.CurrentRequest.CancelledBy ?? "N/A")
-                            </p>
-                            @if (!string.IsNullOrEmpty(Model.CurrentRequest.CancellationReason))
-                            {
-                                <p class="mb-0 mt-1" style="font-size: 0.875rem;">
-                                    <strong>Reason:</strong> @Model.CurrentRequest.CancellationReason
-                                </p>
-                            }
+                    }
+
+                    <!-- Cancellation -->
+                    @if (Model.CurrentRequest.CancellationDate.HasValue)
+                    {
+                        <div class="timeline-item">
+                            <div class="timeline-marker" style="background: #ef4444; color: white;">
+                                <i class="bi bi-x-circle"></i>
+                            </div>
+                            <div class="timeline-content">
+                                <div class="timeline-header">
+                                    <h6 class="timeline-title">Request Rejected</h6>
+                                    <span class="timeline-date">@Model.CurrentRequest.CancellationDate.Value.ToString("MMM dd, yyyy HH:mm")</span>
+                                </div>
+                                <p class="timeline-description">Request was rejected</p>
+                                <div class="timeline-details">
+                                    <small class="text-muted">Rejected by: <span>@(Model.CurrentRequest.CancelledBy ?? "N/A")</span></small>
+                                    @if (!string.IsNullOrEmpty(Model.CurrentRequest.CancellationReason))
+                                    {
+                                        <div class="timeline-remarks mt-1">
+                                            <small class="text-muted"><strong>Reason:</strong> <span>@Model.CurrentRequest.CancellationReason</span></small>
+                                        </div>
+                                    }
+                                </div>
+                            </div>
                         </div>
-                    </div>
-                }
+                    }
+                </div>
             </div>
-        </div>
-
-        <!-- Remarks Tab -->
-        <div class="tab-pane fade" id="detail-remarks">
-            @if (!string.IsNullOrEmpty(Model.CurrentRequest.Remarks) ||
-                 !string.IsNullOrEmpty(Model.CurrentRequest.SupervisorRemarks) ||
-                 !string.IsNullOrEmpty(Model.CurrentRequest.BudgetOfficerRemarks) ||
-                 !string.IsNullOrEmpty(Model.CurrentRequest.StaffClaimsRemarks))
-            {
-                @if (!string.IsNullOrEmpty(Model.CurrentRequest.Remarks))
-                {
-                    <div class="mb-4" style="background: #eff6ff; border-radius: 16px; padding: 24px; border: 1px solid #bfdbfe;">
-                        <div class="d-flex align-items-center mb-2">
-                            <i class="bi bi-person-circle me-3" style="font-size: 20px; color: #2563eb;"></i>
-                            <h6 class="mb-0" style="font-weight: 600; color: #1e40af;">Requestor Remarks</h6>
-                        </div>
-                        <p class="mb-0" style="color: #1e293b;">@Model.CurrentRequest.Remarks</p>
-                    </div>
-                }
-
-                @if (!string.IsNullOrEmpty(Model.CurrentRequest.SupervisorRemarks))
-                {
-                    <div class="mb-4" style="background: #f0fdf4; border-radius: 16px; padding: 24px; border: 1px solid #bbf7d0;">
-                        <div class="d-flex align-items-center mb-2">
-                            <i class="bi bi-check-circle me-3" style="font-size: 20px; color: #059669;"></i>
-                            <h6 class="mb-0" style="font-weight: 600; color: #047857;">Supervisor Remarks</h6>
-                        </div>
-                        <p class="mb-0" style="color: #1e293b;">@Model.CurrentRequest.SupervisorRemarks</p>
-                    </div>
-                }
-
-                @if (!string.IsNullOrEmpty(Model.CurrentRequest.BudgetOfficerRemarks))
-                {
-                    <div class="mb-4" style="background: #fefce8; border-radius: 16px; padding: 24px; border: 1px solid #fde047;">
-                        <div class="d-flex align-items-center mb-2">
-                            <i class="bi bi-calculator me-3" style="font-size: 20px; color: #ca8a04;"></i>
-                            <h6 class="mb-0" style="font-weight: 600; color: #713f12;">Budget Officer Remarks</h6>
-                        </div>
-                        <p class="mb-0" style="color: #1e293b;">@Model.CurrentRequest.BudgetOfficerRemarks</p>
-                    </div>
-                }
-
-                @if (!string.IsNullOrEmpty(Model.CurrentRequest.StaffClaimsRemarks))
-                {
-                    <div class="mb-4" style="background: #f5f3ff; border-radius: 16px; padding: 24px; border: 1px solid #c4b5fd;">
-                        <div class="d-flex align-items-center mb-2">
-                            <i class="bi bi-receipt me-3" style="font-size: 20px; color: #7c3aed;"></i>
-                            <h6 class="mb-0" style="font-weight: 600; color: #5b21b6;">Claims Unit Remarks</h6>
-                        </div>
-                        <p class="mb-0" style="color: #1e293b;">@Model.CurrentRequest.StaffClaimsRemarks</p>
-                    </div>
-                }
-            }
-            else
-            {
-                <div class="text-center py-5">
-                    <i class="bi bi-chat-square-text" style="font-size: 3rem; color: #cbd5e1;"></i>
-                    <h5 class="text-muted mt-3 mb-2">No Remarks</h5>
-                    <p class="text-muted" style="font-size: 0.875rem;">No additional remarks have been added to this request.</p>
-                </div>
-            }
         </div>
     </div>
 
@@ -2175,7 +2246,7 @@
         <div class="modal-content" style="border: none; border-radius: 20px; box-shadow: 0 20px 60px rgba(0,0,0,0.1);">
             <div class="modal-header" style="border: none; padding: 32px 32px 0 32px;">
                 <div class="d-flex align-items-center">
-                    <div class="me-3" style="width: 48px; height: 48px; background: linear-gradient(135deg, #f59e0b, #d97706); border-radius: 16px; display: flex; align-items: center; justify-content: center;">
+                    <div class="me-3" style="width: 48px; height: 48px; background: #f59e0b; border-radius: 16px; display: flex; align-items: center; justify-content: center;">
                         <i class="bi bi-arrow-left text-white" style="font-size: 24px;"></i>
                     </div>
                     <div>
@@ -2244,7 +2315,7 @@
                     <button type="button" class="btn btn-light" data-bs-dismiss="modal" style="border-radius: 12px; padding: 12px 24px; font-weight: 500;">
                         Cancel
                     </button>
-                    <button type="button" class="btn btn-warning" onclick="confirmRevertToRequestor()" style="background: linear-gradient(135deg, #f59e0b, #d97706); border: none; border-radius: 12px; padding: 12px 24px; font-weight: 500; color: white;">
+                    <button type="button" class="btn btn-warning" onclick="confirmRevertToRequestor()" style="background: #f59e0b; border: none; border-radius: 12px; padding: 12px 24px; font-weight: 500; color: white;">
                         <i class="bi bi-arrow-left me-2"></i>Revert to Requestor
                     </button>
                 </div>
@@ -2259,7 +2330,7 @@
         <div class="modal-content" style="border: none; border-radius: 20px; box-shadow: 0 20px 60px rgba(0,0,0,0.1);">
             <div class="modal-header" style="border: none; padding: 32px 32px 0 32px;">
                 <div class="d-flex align-items-center">
-                    <div class="me-3" style="width: 48px; height: 48px; background: linear-gradient(135deg, #6b7280, #4b5563); border-radius: 16px; display: flex; align-items: center; justify-content: center;">
+                    <div class="me-3" style="width: 48px; height: 48px; background: #6b7280; border-radius: 16px; display: flex; align-items: center; justify-content: center;">
                         <i class="bi bi-arrow-counterclockwise text-white" style="font-size: 24px;"></i>
                     </div>
                     <div>
@@ -2328,7 +2399,7 @@
                     <button type="button" class="btn btn-light" data-bs-dismiss="modal" style="border-radius: 12px; padding: 12px 24px; font-weight: 500;">
                         Cancel
                     </button>
-                    <button type="button" class="btn btn-secondary" onclick="confirmRevertToSupervisor()" style="background: linear-gradient(135deg, #6b7280, #4b5563); border: none; border-radius: 12px; padding: 12px 24px; font-weight: 500;">
+                    <button type="button" class="btn btn-secondary" onclick="confirmRevertToSupervisor()" style="background: #6b7280; border: none; border-radius: 12px; padding: 12px 24px; font-weight: 500;">
                         <i class="bi bi-arrow-counterclockwise me-2"></i>Revert to Supervisor
                     </button>
                 </div>
@@ -2343,7 +2414,7 @@
         <div class="modal-content" style="border: none; border-radius: 20px; box-shadow: 0 20px 60px rgba(0,0,0,0.1);">
             <form method="post" asp-page-handler="BudgetRevertToRequestor">
                 <input type="hidden" name="requestId" id="detailRevertRequestorRequestId" value="" />
-                <div class="modal-header" style="background: linear-gradient(135deg, #f59e0b, #d97706); color: white; border: none; padding: 1.5rem; border-radius: 20px 20px 0 0;">
+                <div class="modal-header" style="background: #f59e0b; color: white; border: none; padding: 1.5rem; border-radius: 20px 20px 0 0;">
                     <div>
                         <h5 class="modal-title mb-0" style="font-weight: 600;">
                             <i class="bi bi-arrow-left me-2"></i>Revert to Requestor
@@ -2358,7 +2429,7 @@
                     </div>
                     <div class="d-flex gap-3 justify-content-end">
                         <button type="button" class="btn btn-light" data-bs-dismiss="modal" style="border-radius: 12px; padding: 12px 24px; font-weight: 500;">Cancel</button>
-                        <button type="submit" class="btn btn-warning" style="background: linear-gradient(135deg, #f59e0b, #d97706); border: none; border-radius: 12px; padding: 12px 24px; font-weight: 500;">
+                        <button type="submit" class="btn btn-warning" style="background: #f59e0b; border: none; border-radius: 12px; padding: 12px 24px; font-weight: 500;">
                             <i class="bi bi-arrow-left me-2"></i>Revert to Requestor
                         </button>
                     </div>
@@ -2374,7 +2445,7 @@
         <div class="modal-content" style="border: none; border-radius: 20px; box-shadow: 0 20px 60px rgba(0,0,0,0.1);">
             <form method="post" asp-page-handler="BudgetRevertToSupervisor">
                 <input type="hidden" name="requestId" id="detailRevertSupervisorRequestId" value="" />
-                <div class="modal-header" style="background: linear-gradient(135deg, #0ea5e9, #0284c7); color: white; border: none; padding: 1.5rem; border-radius: 20px 20px 0 0;">
+                <div class="modal-header" style="background: #0ea5e9; color: white; border: none; padding: 1.5rem; border-radius: 20px 20px 0 0;">
                     <div>
                         <h5 class="modal-title mb-0" style="font-weight: 600;">
                             <i class="bi bi-arrow-counterclockwise me-2"></i>Revert to Supervisor
@@ -2389,7 +2460,7 @@
                     </div>
                     <div class="d-flex gap-3 justify-content-end">
                         <button type="button" class="btn btn-light" data-bs-dismiss="modal" style="border-radius: 12px; padding: 12px 24px; font-weight: 500;">Cancel</button>
-                        <button type="submit" class="btn btn-info" style="background: linear-gradient(135deg, #0ea5e9, #0284c7); border: none; border-radius: 12px; padding: 12px 24px; font-weight: 500;">
+                        <button type="submit" class="btn btn-info" style="background: #0ea5e9; border: none; border-radius: 12px; padding: 12px 24px; font-weight: 500;">
                             <i class="bi bi-arrow-counterclockwise me-2"></i>Revert to Supervisor
                         </button>
                     </div>
@@ -2399,13 +2470,88 @@
     </div>
 </div>
 
+<!-- Detail View Reassign Budget Officer Modal -->
+<div class="modal fade" id="detailReassignModal" tabindex="-1">
+    <div class="modal-dialog modal-dialog-centered">
+        <div class="modal-content" style="border: none; border-radius: 20px; box-shadow: 0 20px 60px rgba(0,0,0,0.1);">
+            <form method="post" asp-page-handler="ReassignBudgetOfficer">
+                <input type="hidden" name="requestId" id="detailReassignRequestId" value="" />
+                <div class="modal-header" style="background: #6366f1; color: white; border: none; padding: 1.5rem; border-radius: 20px 20px 0 0;">
+                    <div>
+                        <h5 class="modal-title mb-0" style="font-weight: 600;">
+                            <i class="bi bi-person-plus me-2"></i>Reassign to Another Budget Officer
+                        </h5>
+                    </div>
+                    <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal"></button>
+                </div>
+                <div class="modal-body" style="padding: 24px 32px 32px 32px;">
+                    <div class="mb-4">
+                        <label class="form-label" style="font-weight: 500; color: #374151; font-size: 14px; margin-bottom: 8px;">
+                            Select Budget Officer <span style="color: #ef4444;">*</span>
+                        </label>
+                        <select name="newBudgetOfficerEmail" class="form-select" required style="border: 1px solid #d1d5db; border-radius: 12px; padding: 12px 16px; font-size: 14px;">
+                            <option value="">-- Select Budget Officer --</option>
+                            @foreach (var officer in Model.BudgetOfficers.Where(o => o.Email != Model.CurrentUserEmail))
+                            {
+                                <option value="@officer.Email">@officer.FirstName @officer.LastName (@officer.Email)</option>
+                            }
+                        </select>
+                    </div>
+                    <div class="mb-4">
+                        <label class="form-label" style="font-weight: 500; color: #374151; font-size: 14px; margin-bottom: 8px;">
+                            Reason for Reassignment <span class="text-muted">(optional, max 200 characters)</span>
+                        </label>
+                        <textarea name="reassignmentReason" class="form-control" rows="3" maxlength="200" placeholder="Why are you reassigning this request?" style="border: 1px solid #d1d5db; border-radius: 12px; padding: 12px 16px; font-size: 14px;"></textarea>
+                    </div>
+                    <div class="d-flex gap-3 justify-content-end">
+                        <button type="button" class="btn btn-light" data-bs-dismiss="modal" style="border-radius: 12px; padding: 12px 24px; font-weight: 500;">Cancel</button>
+                        <button type="submit" class="btn btn-primary" style="background: #6366f1; border: none; border-radius: 12px; padding: 12px 24px; font-weight: 500;">
+                            <i class="bi bi-person-plus me-2"></i>Reassign Request
+                        </button>
+                    </div>
+                </div>
+            </form>
+        </div>
+    </div>
+</div>
+
 <script>
+    // Handle tab activation from URL parameter
+    document.addEventListener('DOMContentLoaded', function() {
+        const urlParams = new URLSearchParams(window.location.search);
+        const tabParam = urlParams.get('tab');
+        const requestId = urlParams.get('requestId');
+
+        // If requestId is provided and tab parameter exists, activate the correct tab
+        if (requestId && tabParam) {
+            const tabMap = {
+                'supervisor': 'detail-supervisor-tab',
+                'budget': 'detail-budget-tab',
+                'claims': 'detail-claims-tab',
+                'financial': 'detail-financial-tab',
+                'workflow': 'detail-workflow-tab',
+                'remarks': 'detail-remarks-tab'
+            };
+
+            const tabId = tabMap[tabParam];
+            if (tabId) {
+                const tabElement = document.getElementById(tabId);
+                if (tabElement) {
+                    // Activate the tab
+                    const tab = new bootstrap.Tab(tabElement);
+                    tab.show();
+                }
+            }
+        }
+    });
+
     let currentRequestId = null;
 
     // Helper function to set request ID in detail view modals
     function setDetailRequestId(requestId) {
         document.getElementById('detailRevertRequestorRequestId').value = requestId;
         document.getElementById('detailRevertSupervisorRequestId').value = requestId;
+        document.getElementById('detailReassignRequestId').value = requestId;
     }
 
     function viewRequest(requestId) {

@@ -196,7 +196,7 @@ END
 IF @OEDId IS NOT NULL AND NOT EXISTS (SELECT 1 FROM SubOffices WHERE Code = 'STAFF ASS' AND OfficeId = @OEDId)
 BEGIN
     INSERT INTO SubOffices (Name, Code, Description, OfficeId, CreatedDate)
-    VALUES ('Staff Association', 'STAFF ASS', 'UNEP/UNON staff association for employee representation', @OEDId, GETDATE());
+    VALUES ('Staff Association', 'STAFF ASS', 'UNEP/UNON staff association for Staff representation', @OEDId, GETDATE());
     PRINT 'Added: Staff Association (STAFF ASS) under OED';
 END
 

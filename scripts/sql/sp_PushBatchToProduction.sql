@@ -108,7 +108,7 @@ BEGIN
         -- STEP 2: Update CallLogStagings records as Completed
         -- =============================================
         UPDATE CallLogStagings
-        SET ProcessingStatus = 3, -- Completed
+        SET ProcessingStatus = 2, -- Completed (enum: 0=Staged, 1=Processing, 2=Completed, 3=Failed)
             ProcessedDate = @CurrentDateTime
         WHERE BatchId = @BatchId AND VerificationStatus = 1;
 
@@ -121,7 +121,7 @@ BEGIN
 
         -- Update Safaricom source records
         UPDATE s
-        SET s.ProcessingStatus = 3, -- Completed
+        SET s.ProcessingStatus = 2, -- Completed (enum: 0=Staged, 1=Processing, 2=Completed, 3=Failed)
             s.ProcessedDate = @CurrentDateTime
         FROM Safaricom s
         INNER JOIN CallLogStagings cls ON cls.SourceRecordId = CAST(s.Id AS NVARCHAR(50))
@@ -133,7 +133,7 @@ BEGIN
 
         -- Update Airtel source records
         UPDATE a
-        SET a.ProcessingStatus = 3, -- Completed
+        SET a.ProcessingStatus = 2, -- Completed (enum: 0=Staged, 1=Processing, 2=Completed, 3=Failed)
             a.ProcessedDate = @CurrentDateTime
         FROM Airtel a
         INNER JOIN CallLogStagings cls ON cls.SourceRecordId = CAST(a.Id AS NVARCHAR(50))
@@ -145,7 +145,7 @@ BEGIN
 
         -- Update PSTN source records
         UPDATE p
-        SET p.ProcessingStatus = 3, -- Completed
+        SET p.ProcessingStatus = 2, -- Completed (enum: 0=Staged, 1=Processing, 2=Completed, 3=Failed)
             p.ProcessedDate = @CurrentDateTime
         FROM PSTNs p
         INNER JOIN CallLogStagings cls ON cls.SourceRecordId = CAST(p.Id AS NVARCHAR(50))
@@ -157,7 +157,7 @@ BEGIN
 
         -- Update PrivateWire source records
         UPDATE pw
-        SET pw.ProcessingStatus = 3, -- Completed
+        SET pw.ProcessingStatus = 2, -- Completed (enum: 0=Staged, 1=Processing, 2=Completed, 3=Failed)
             pw.ProcessedDate = @CurrentDateTime
         FROM PrivateWires pw
         INNER JOIN CallLogStagings cls ON cls.SourceRecordId = CAST(pw.Id AS NVARCHAR(50))
@@ -174,7 +174,7 @@ BEGIN
         FROM CallLogStagings
         WHERE BatchId = @BatchId
           AND VerificationStatus != 1 -- Not Verified
-          AND ProcessingStatus != 3; -- Not Completed
+          AND ProcessingStatus != 2; -- Not Completed (enum: 2=Completed)
 
         -- =============================================
         -- STEP 5: Update batch status

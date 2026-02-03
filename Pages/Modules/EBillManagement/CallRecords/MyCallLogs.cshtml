@@ -316,6 +316,21 @@
         }
     }
 
+    /* Sortable table headers */
+    .sortable-header {
+        user-select: none;
+        transition: background-color 0.15s ease;
+    }
+
+    .sortable-header:hover {
+        background-color: #e2e8f0 !important;
+    }
+
+    .sortable-header i {
+        font-size: 0.7rem;
+        vertical-align: middle;
+    }
+
     /* Tablet Responsive Styles */
     @@media (min-width: 769px) and (max-width: 1024px) {
         .stats-grid {
@@ -843,204 +858,48 @@
                         </th>
                     </tr>
                 </thead>
-                <tbody>
-                    @if (Model.CallRecords.Any())
+                <tbody id="callRecordsTableBody">
+                    @if (Model.ExtensionGroups.Any())
                     {
-                        // First pass: Group calls by Extension+Month+Year and calculate totals
-                        var groupedCalls = new List<(string GroupKey, string Extension, int Month, int Year,
-                                                      int CallCount, decimal TotalCostUSD, decimal TotalCostKSH,
-                                                      decimal TotalRecoveredUSD, decimal TotalRecoveredKSH, bool IsPrivateWirePrimary,
-                                                      decimal OfficialUSD, decimal OfficialKSH,
-                                                      decimal PersonalUSD, decimal PersonalKSH,
-                                                      List<CallRecord> Calls)>();
-
-                        string currentGroupKey = null;
-                        string currentExtension = "";
-                        int currentMonth = 0;
-                        int currentYear = 0;
-                        int callCount = 0;
-                        decimal totalCostUSD = 0;
-                        decimal totalCostKSH = 0;
-                        decimal totalRecoveredUSD = 0;
-                        decimal totalRecoveredKSH = 0;
-                        int privateWireCount = 0;
-                        int kshSourceCount = 0;
-                        decimal officialUSD = 0;
-                        decimal officialKSH = 0;
-                        decimal personalUSD = 0;
-                        decimal personalKSH = 0;
-                        var currentCalls = new List<CallRecord>();
-
-                        foreach (var call in Model.CallRecords)
+                        // Render Extension Summary Rows (Level 1) - paginated from backend
+                        foreach (var group in Model.ExtensionGroups)
                         {
-                            var extension = call.UserPhone?.PhoneNumber ?? "Unknown";
-                            var groupKey = $"{extension}-{call.CallMonth}-{call.CallYear}";
-
-                            if (currentGroupKey != groupKey)
-                            {
-                                // Save previous group
-                                if (currentGroupKey != null)
-                                {
-                                    // Determine if PrivateWire is primary source (more calls from PrivateWire than KSH sources)
-                                    bool isPrivateWirePrimary = privateWireCount > kshSourceCount;
-
-                                    groupedCalls.Add((currentGroupKey, currentExtension, currentMonth, currentYear,
-                                                    callCount, totalCostUSD, totalCostKSH, totalRecoveredUSD, totalRecoveredKSH, isPrivateWirePrimary,
-                                                    officialUSD, officialKSH, personalUSD, personalKSH,
-                                                    new List<CallRecord>(currentCalls)));
-                                }
-
-                                // Start new group
-                                currentGroupKey = groupKey;
-                                currentExtension = extension;
-                                currentMonth = call.CallMonth;
-                                currentYear = call.CallYear;
-                                callCount = 0;
-                                totalCostUSD = 0;
-                                totalCostKSH = 0;
-                                totalRecoveredUSD = 0;
-                                totalRecoveredKSH = 0;
-                                privateWireCount = 0;
-                                kshSourceCount = 0;
-                                officialUSD = 0;
-                                officialKSH = 0;
-                                personalUSD = 0;
-                                personalKSH = 0;
-                                currentCalls.Clear();
-                            }
-
-                            // Accumulate totals
-                            callCount++;
-                            totalCostUSD += call.CallCostUSD;
-                            totalCostKSH += call.CallCostKSHS;
-
-                            // Track source system for currency determination
-                            var sourceSystem = call.SourceSystem?.ToLower() ?? "";
-                            if (sourceSystem.Contains("privatewire") || sourceSystem.Contains("private wire") || sourceSystem.Contains("pw"))
-                            {
-                                privateWireCount++;
-                            }
-                            else if (sourceSystem.Contains("safaricom") || sourceSystem.Contains("airtel") || sourceSystem.Contains("pstn"))
-                            {
-                                kshSourceCount++;
-                            }
-
-                            // Accumulate by verification type
-                            if (call.VerificationType == "Official")
-                            {
-                                officialUSD += call.CallCostUSD;
-                                officialKSH += call.CallCostKSHS;
-                            }
-                            else if (call.VerificationType == "Personal")
-                            {
-                                personalUSD += call.CallCostUSD;
-                                personalKSH += call.CallCostKSHS;
-                            }
-
-                            // Accumulate recovery amounts by currency based on source system
-                            if (call.RecoveryAmount.HasValue && call.RecoveryAmount.Value > 0)
-                            {
-                                // RecoveryAmount is stored in the source system's native currency
-                                if (sourceSystem.Contains("privatewire") || sourceSystem.Contains("private wire") || sourceSystem.Contains("pw"))
-                                {
-                                    // PrivateWire uses USD
-                                    totalRecoveredUSD += call.RecoveryAmount.Value;
-                                }
-                                else if (sourceSystem.Contains("safaricom") || sourceSystem.Contains("airtel") || sourceSystem.Contains("pstn"))
-                                {
-                                    // Safaricom/Airtel/PSTN use KSH
-                                    totalRecoveredKSH += call.RecoveryAmount.Value;
-                                }
-                            }
-                            currentCalls.Add(call);
-                        }
-
-                        // Save last group
-                        if (currentGroupKey != null)
-                        {
-                            // Determine if PrivateWire is primary source
-                            bool isPrivateWirePrimary = privateWireCount > kshSourceCount;
-
-                            groupedCalls.Add((currentGroupKey, currentExtension, currentMonth, currentYear,
-                                            callCount, totalCostUSD, totalCostKSH, totalRecoveredUSD, totalRecoveredKSH, isPrivateWirePrimary,
-                                            officialUSD, officialKSH, personalUSD, personalKSH,
-                                            new List<CallRecord>(currentCalls)));
-                        }
-
-                        // Second pass: Output HTML in correct order (Summary → Dialed Number Groups → Details)
-                        foreach (var group in groupedCalls)
-                        {
-                            var monthName = new DateTime(group.Year, group.Month, 1).ToString("MMMM");
-                            var groupId = group.GroupKey.Replace(" ", "_").Replace("-", "_");
-
-                            // 1. Extension Summary Row (Level 1) - Always visible
+                            // Extension Summary Row (Level 1) - Always visible
                             @await Html.PartialAsync("Partials/_ExtensionSummaryRow",
-                                (GroupId: groupId, Extension: group.Extension, MonthName: monthName, Year: group.Year,
+                                (GroupId: group.GroupId, Extension: group.Extension, MonthName: group.MonthName, Month: group.Month, Year: group.Year,
                                  CallCount: group.CallCount, TotalCostUSD: group.TotalCostUSD,
                                  TotalCostKSH: group.TotalCostKSH, TotalRecoveredUSD: group.TotalRecoveredUSD,
                                  TotalRecoveredKSH: group.TotalRecoveredKSH, IsPrivateWirePrimary: group.IsPrivateWirePrimary,
                                  OfficialUSD: group.OfficialUSD, OfficialKSH: group.OfficialKSH,
-                                 PersonalUSD: group.PersonalUSD, PersonalKSH: group.PersonalKSH))
+                                 PersonalUSD: group.PersonalUSD, PersonalKSH: group.PersonalKSH,
+                                 SubmittedCount: group.SubmittedCount, PendingCount: group.PendingApprovalCount,
+                                 ApprovedCount: group.ApprovedCount, RejectedCount: group.RejectedCount,
+                                 RevertedCount: group.RevertedCount, PartiallyApprovedCount: group.PartiallyApprovedCount,
+                                 IncomingAssignmentCount: group.IncomingAssignmentCount, AssignedFromUser: group.AssignedFromUser,
+                                 OutgoingPendingCount: group.OutgoingPendingCount, AssignedToUser: group.AssignedToUser))
 
-                            // Group calls by dialed number
-                            var dialedNumberGroups = group.Calls
-                                .GroupBy(c => c.CallNumber ?? "Unknown")
-                                .Select(dg => new
-                                {
-                                    DialedNumber = dg.Key,
-                                    Destination = dg.FirstOrDefault()?.CallDestination ?? "",
-                                    CallCount = dg.Count(),
-                                    TotalCostUSD = dg.Sum(c => c.CallCostUSD),
-                                    TotalCostKSH = dg.Sum(c => c.CallCostKSHS),
-                                    TotalDuration = (decimal)dg.Sum(c => c.CallDuration),
-                                    AssignmentStatus = dg.Select(c => c.VerificationType).Distinct().Count() > 1 ? "Mixed" :
-                                                      (dg.FirstOrDefault()?.VerificationType ?? "Unverified"),
-                                    Calls = dg.ToList()
-                                })
-                                .OrderByDescending(dg => dg.CallCount)
-                                .ToList();
-
-                            // 2. Dialed Number Summary Rows (Level 2) - Hidden by default, shown when extension expanded
-                            foreach (var dialedGroup in dialedNumberGroups)
-                            {
-                                var dialedGroupId = $"{groupId}_dialed_{dialedGroup.DialedNumber.Replace("+", "").Replace(" ", "_").Replace("-", "_")}";
-
-                                @await Html.PartialAsync("Partials/_DialedNumberSummaryRow",
-                                    (GroupId: groupId, DialedGroupId: dialedGroupId, DialedNumber: dialedGroup.DialedNumber,
-                                     Destination: dialedGroup.Destination, CallCount: dialedGroup.CallCount,
-                                     TotalCostUSD: dialedGroup.TotalCostUSD, TotalCostKSH: dialedGroup.TotalCostKSH,
-                                     TotalDuration: dialedGroup.TotalDuration, AssignmentStatus: dialedGroup.AssignmentStatus,
-                                     MonthName: monthName, Year: group.Year))
-
-                                // 3. Detail Header Row (Level 3) - Hidden by default, shown when dialed number expanded
-                                <tr class="call-detail-row call-detail-header" data-group="@dialedGroupId" style="display: none; background-color: #e9ecef; font-weight: 600;">
-                                    <th class="px-2 py-2 text-center" style="font-size: 11px;"><i class="bi bi-check-square"></i></th>
-                                    <th class="px-2 py-2" style="font-size: 11px;"></th>
-                                    <th class="px-2 py-2" style="font-size: 11px;">DIALLED NUMBER</th>
-                                    <th class="px-2 py-2" style="font-size: 11px;">ASSIGNMENT</th>
-                                    <th class="px-2 py-2" style="font-size: 11px;">DURATION</th>
-                                    <th class="px-2 py-2" style="font-size: 11px;">KSH</th>
-                                    <th class="px-2 py-2" style="font-size: 11px;">USD</th>
-                                    <th class="px-2 py-2" style="font-size: 11px;">DESTINATION</th>
-                                    <th class="px-2 py-2 text-center" style="font-size: 11px;">STATUS</th>
-                                    <th class="px-2 py-2 text-center" style="font-size: 11px;">ACTION</th>
-                                </tr>
-
-                                // 4. Detail Data Rows (Level 3) - Hidden by default, shown when dialed number expanded
-                                // We'll use a special marker in the row's data-group to identify dialed number rows
-                                foreach (var call in dialedGroup.Calls)
-                                {
-                                    @await Html.PartialAsync("Partials/_DetailRow",
-                                        (Call: call, GroupId: dialedGroupId, UserIndexNumber: Model.UserIndexNumber,
-                                         SubmittedCallIds: Model.SubmittedCallIds, VerificationStatuses: Model.VerificationStatuses))
-                                }
-                            }
+                            // Placeholder row for AJAX-loaded dialed numbers (Level 2)
+                            <tr class="dialed-numbers-container" id="dialed-container-@group.GroupId" style="display: none;">
+                                <td colspan="12" class="p-0">
+                                    <div class="dialed-numbers-content" id="dialed-content-@group.GroupId"
+                                         data-extension="@group.Extension" data-month="@group.Month" data-year="@group.Year"
+                                         data-group-id="@group.GroupId" data-loaded="false">
+                                        <!-- Loading indicator -->
+                                        <div class="text-center py-3">
+                                            <div class="spinner-border spinner-border-sm text-primary" role="status">
+                                                <span class="visually-hidden">Loading...</span>
+                                            </div>
+                                            <span class="ms-2 text-muted">Loading dialed numbers...</span>
+                                        </div>
+                                    </div>
+                                </td>
+                            </tr>
                         }
                     }
                     else
                     {
                         <tr>
-                            <td colspan="13" class="text-center py-5">
+                            <td colspan="12" class="text-center py-5">
                                 <i class="bi bi-inbox display-4 text-muted"></i>
                                 <p class="text-muted mt-3">No call records found for the selected filters.</p>
                             </td>
@@ -1055,21 +914,29 @@
     <div class="card-footer bg-white border-0 pt-3 pb-3">
         <div class="d-flex justify-content-between align-items-center mb-3">
             <div class="text-muted small">
-                Showing @((Model.PageNumber - 1) * Model.PageSize + 1) - @Math.Min(Model.PageNumber * Model.PageSize, Model.TotalRecords) of @Model.TotalRecords records
-                (Page @Model.PageNumber of @Model.TotalPages)
+                @if (Model.TotalRecords > 0)
+                {
+                    <span>Showing @((Model.PageNumber - 1) * Model.PageSize + 1) - @Math.Min(Model.PageNumber * Model.PageSize, Model.TotalRecords) of @Model.TotalRecords extension groups</span>
+                    <span class="ms-2 text-primary">(@Model.TotalCallRecords total calls)</span>
+                    <span class="ms-2">(Page @Model.PageNumber of @Model.TotalPages)</span>
+                }
+                else
+                {
+                    <span>No extension groups to display</span>
+                }
             </div>
             <div class="d-flex align-items-center gap-2">
-                <label class="text-muted small mb-0">Records per page:</label>
+                <label class="text-muted small mb-0">Extensions per page:</label>
                 <select class="form-select form-select-sm" style="width: auto;"
                         onchange="window.location.href = this.value;">
                     @{
-                        var pageSizes = new[] { 25, 50, 100, 200 };
+                        var pageSizes = new[] { 5, 10, 20, 50 };
                         foreach (var size in pageSizes)
                         {
                             var routeData = new Dictionary<string, string>
                             {
                                 ["PageSize"] = size.ToString(),
-                                ["PageNumber"] = "1", // Reset to page 1 when changing page size
+                                ["PageNumber"] = "1",
                                 ["filterStatus"] = Model.FilterStatus ?? "",
                                 ["filterMonth"] = Model.FilterMonth?.ToString() ?? "",
                                 ["filterYear"] = Model.FilterYear?.ToString() ?? "",
@@ -1322,6 +1189,173 @@
     </div>
 </div>
 
+@* Bulk Accept Assignment Modal *@
+<div class="modal fade" id="acceptBulkAssignmentModal" tabindex="-1" aria-labelledby="acceptBulkModalLabel" aria-hidden="true">
+    <div class="modal-dialog">
+        <div class="modal-content">
+            <div class="modal-header bg-success text-white">
+                <h5 class="modal-title" id="acceptBulkModalLabel">
+                    <i class="bi bi-check-circle me-2"></i>Accept All Payment Assignments
+                </h5>
+                <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal" aria-label="Close"></button>
+            </div>
+            <div class="modal-body">
+                <p class="lead">Are you sure you want to accept <strong id="acceptBulkCount"></strong> payment assignment(s)?</p>
+                <div class="alert alert-info">
+                    <i class="bi bi-info-circle me-2"></i>
+                    <strong>What this means:</strong>
+                    <ul class="mb-0 mt-2">
+                        <li>You will become responsible for paying these call charges</li>
+                        <li>The calls will appear in your monthly bill</li>
+                        <li>This action will be logged in the audit trail</li>
+                    </ul>
+                </div>
+                <div class="border-start border-4 border-success ps-3 py-2 bg-light">
+                    <p class="mb-1"><strong>Assignment Details:</strong></p>
+                    <p class="mb-0">Level: <strong id="acceptBulkLevel"></strong></p>
+                    <p class="mb-0" id="acceptBulkDialedNumberRow">Dialed Number: <strong id="acceptBulkDialedNumber"></strong></p>
+                    <p class="mb-0">Total Amount: <strong id="acceptBulkAmount"></strong></p>
+                    <p class="mb-0">From: <strong id="acceptBulkFromUser"></strong></p>
+                </div>
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">
+                    <i class="bi bi-x-lg me-1"></i>Cancel
+                </button>
+                <button type="button" class="btn btn-success" onclick="confirmAcceptBulkAssignment()">
+                    <i class="bi bi-check-lg me-1"></i>Yes, Accept All
+                </button>
+            </div>
+        </div>
+    </div>
+</div>
+
+@* Bulk Reject Assignment Modal *@
+<div class="modal fade" id="rejectBulkAssignmentModal" tabindex="-1" aria-labelledby="rejectBulkModalLabel" aria-hidden="true">
+    <div class="modal-dialog">
+        <div class="modal-content">
+            <div class="modal-header bg-danger text-white">
+                <h5 class="modal-title" id="rejectBulkModalLabel">
+                    <i class="bi bi-x-circle me-2"></i>Reject All Payment Assignments
+                </h5>
+                <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal" aria-label="Close"></button>
+            </div>
+            <div class="modal-body">
+                <p class="lead">You are about to reject <strong id="rejectBulkCount"></strong> payment assignment(s)</p>
+                <div class="alert alert-warning">
+                    <i class="bi bi-exclamation-triangle me-2"></i>
+                    <strong>Note:</strong> This will return the payment responsibility back to the original callers.
+                </div>
+                <div class="border-start border-4 border-warning ps-3 py-2 bg-light mb-3">
+                    <p class="mb-1"><strong>Assignment Details:</strong></p>
+                    <p class="mb-0">Level: <strong id="rejectBulkLevel"></strong></p>
+                    <p class="mb-0" id="rejectBulkDialedNumberRow">Dialed Number: <strong id="rejectBulkDialedNumber"></strong></p>
+                    <p class="mb-0">Total Amount: <strong id="rejectBulkAmount"></strong></p>
+                    <p class="mb-0">From: <strong id="rejectBulkFromUser"></strong></p>
+                </div>
+                <div class="mb-3">
+                    <label for="bulkRejectionReason" class="form-label fw-bold">Reason for Rejection <span class="text-danger">*</span></label>
+                    <textarea class="form-control" id="bulkRejectionReason" rows="3"
+                              placeholder="Please provide a clear reason for rejecting these assignments..." required></textarea>
+                    <div class="invalid-feedback">
+                        Please provide a reason for rejection.
+                    </div>
+                </div>
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">
+                    <i class="bi bi-x-lg me-1"></i>Cancel
+                </button>
+                <button type="button" class="btn btn-danger" onclick="confirmRejectBulkAssignment()">
+                    <i class="bi bi-check-lg me-1"></i>Confirm Rejection
+                </button>
+            </div>
+        </div>
+    </div>
+</div>
+
+@* Recall Single Assignment Modal *@
+<div class="modal fade" id="recallAssignmentModal" tabindex="-1" aria-labelledby="recallModalLabel" aria-hidden="true">
+    <div class="modal-dialog">
+        <div class="modal-content">
+            <div class="modal-header bg-warning text-dark">
+                <h5 class="modal-title" id="recallModalLabel">
+                    <i class="bi bi-arrow-return-left me-2"></i>Recall Reassignment
+                </h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+            </div>
+            <div class="modal-body">
+                <p class="lead">Are you sure you want to recall this reassignment?</p>
+                <div class="alert alert-info">
+                    <i class="bi bi-info-circle me-2"></i>
+                    <strong>What this means:</strong>
+                    <ul class="mb-0 mt-2">
+                        <li>The payment responsibility will return to you</li>
+                        <li>The other user will no longer see this call in their inbox</li>
+                        <li>You can reassign to someone else or verify the call yourself</li>
+                    </ul>
+                </div>
+                <div class="border-start border-4 border-warning ps-3 py-2 bg-light">
+                    <p class="mb-1"><strong>Call Details:</strong></p>
+                    <p class="mb-0">Phone Number: <strong id="recallCallNumber"></strong></p>
+                    <p class="mb-0">Amount: <strong id="recallCallAmount"></strong></p>
+                    <p class="mb-0">Assigned to: <strong id="recallToUser"></strong></p>
+                </div>
+                <input type="hidden" id="recallCallId" value="0">
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">
+                    <i class="bi bi-x-lg me-1"></i>Cancel
+                </button>
+                <button type="button" class="btn btn-warning" onclick="confirmRecallAssignment()">
+                    <i class="bi bi-arrow-return-left me-1"></i>Recall Assignment
+                </button>
+            </div>
+        </div>
+    </div>
+</div>
+
+@* Bulk Recall Assignment Modal *@
+<div class="modal fade" id="recallBulkAssignmentModal" tabindex="-1" aria-labelledby="recallBulkModalLabel" aria-hidden="true">
+    <div class="modal-dialog">
+        <div class="modal-content">
+            <div class="modal-header bg-warning text-dark">
+                <h5 class="modal-title" id="recallBulkModalLabel">
+                    <i class="bi bi-arrow-return-left me-2"></i>Recall All Reassignments
+                </h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+            </div>
+            <div class="modal-body">
+                <p class="lead">Are you sure you want to recall <strong id="recallBulkCount"></strong> reassignment(s)?</p>
+                <div class="alert alert-info">
+                    <i class="bi bi-info-circle me-2"></i>
+                    <strong>What this means:</strong>
+                    <ul class="mb-0 mt-2">
+                        <li>All payment responsibilities will return to you</li>
+                        <li>The other users will no longer see these calls in their inbox</li>
+                        <li>You can reassign to someone else or verify the calls yourself</li>
+                    </ul>
+                </div>
+                <div class="border-start border-4 border-warning ps-3 py-2 bg-light">
+                    <p class="mb-1"><strong>Reassignment Details:</strong></p>
+                    <p class="mb-0">Level: <strong id="recallBulkLevel"></strong></p>
+                    <p class="mb-0" id="recallBulkDialedNumberRow">Dialed Number: <strong id="recallBulkDialedNumber"></strong></p>
+                    <p class="mb-0">Total Amount: <strong id="recallBulkAmount"></strong></p>
+                    <p class="mb-0">Assigned to: <strong id="recallBulkToUser"></strong></p>
+                </div>
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">
+                    <i class="bi bi-x-lg me-1"></i>Cancel
+                </button>
+                <button type="button" class="btn btn-warning" onclick="confirmRecallBulkAssignment()">
+                    <i class="bi bi-arrow-return-left me-1"></i>Recall All
+                </button>
+            </div>
+        </div>
+    </div>
+</div>
+
 @* Reassign Payment Modal *@
 <div class="modal fade" id="reassignModal" tabindex="-1">
     <div class="modal-dialog modal-lg modal-dialog-centered">
@@ -1330,14 +1364,24 @@
                 <div class="w-100">
                     <h5 class="mb-1 fw-bold">
                         <i class="bi bi-arrow-left-right me-2"></i>
-                        <span>Reassign Payment</span>
+                        <span id="reassignModalTitle">Reassign Payment</span>
                     </h5>
-                    <p class="mb-0 opacity-75 small">Transfer payment responsibility to another user</p>
-                    <div class="mt-3 d-flex align-items-center gap-2">
+                    <p class="mb-0 opacity-75 small" id="reassignModalSubtitle">Transfer payment responsibility to another user</p>
+                    <div class="mt-3 d-flex align-items-center gap-2 flex-wrap" id="reassignModalInfo">
                         <div class="d-flex align-items-center bg-white rounded-3 px-3 py-2" style="border: 2px solid rgba(255,255,255,0.3);">
                             <i class="bi bi-telephone-fill me-2" style="color: #009EDB;"></i>
                             <span class="text-muted small me-1">Dialed:</span>
                             <strong id="reassignDialedNumber" style="color: #1f2937;"></strong>
+                        </div>
+                        <div class="d-flex align-items-center bg-white rounded-3 px-3 py-2" style="border: 2px solid rgba(255,255,255,0.3); display: none;" id="reassignExtensionInfo">
+                            <i class="bi bi-hash me-2" style="color: #009EDB;"></i>
+                            <span class="text-muted small me-1">Extension:</span>
+                            <strong id="reassignExtensionNumber" style="color: #1f2937;"></strong>
+                        </div>
+                        <div class="d-flex align-items-center bg-white rounded-3 px-3 py-2" style="border: 2px solid rgba(255,255,255,0.3); display: none;" id="reassignCallCountInfo">
+                            <i class="bi bi-collection me-2" style="color: #009EDB;"></i>
+                            <span class="text-muted small me-1">Calls:</span>
+                            <strong id="reassignCallCount" style="color: #1f2937;"></strong>
                         </div>
                     </div>
                 </div>
@@ -1347,6 +1391,11 @@
                 <form method="post" asp-page-handler="ReassignCalls" id="reassignForm">
                     <input type="hidden" name="callId" id="reassignCallId" />
                     <input type="hidden" name="dialedNumber" id="hiddenDialedNumber" />
+                    @* Hidden fields for bulk operations *@
+                    <input type="hidden" name="reassignLevel" id="reassignLevel" value="call" />
+                    <input type="hidden" name="reassignExtension" id="reassignExtension" />
+                    <input type="hidden" name="reassignMonth" id="reassignMonth" />
+                    <input type="hidden" name="reassignYear" id="reassignYear" />
 
                     <div class="mb-4">
                         <label class="form-label fw-semibold mb-3" style="color: #1f2937;">
@@ -1433,7 +1482,7 @@
                     </div>
                     <div>
                         <h5 class="modal-title fw-bold text-white mb-0" id="confirmOfficialLabel">Mark as Official</h5>
-                        <p class="text-white text-opacity-75 small mb-0">Work-related call verification</p>
+                        <p class="text-white text-opacity-75 small mb-0">Work-related call</p>
                     </div>
                 </div>
                 <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal" aria-label="Close"></button>
@@ -1480,7 +1529,7 @@
                     </div>
                     <div>
                         <h5 class="modal-title fw-bold text-white mb-0" id="confirmPersonalLabel">Mark as Personal</h5>
-                        <p class="text-white text-opacity-75 small mb-0">Personal call verification</p>
+                        <p class="text-white text-opacity-75 small mb-0">Personal call</p>
                     </div>
                 </div>
                 <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal" aria-label="Close"></button>
@@ -1522,7 +1571,7 @@
         <div class="modal-content" style="border-radius: 16px; border: none; box-shadow: 0 10px 40px rgba(0,0,0,0.15);">
             <div class="modal-header" id="quickVerifyModalHeader" style="border-bottom: 2px solid #e5e7eb; padding: 1.5rem; border-radius: 16px 16px 0 0;">
                 <h5 class="modal-title fw-bold" id="quickVerifyModalLabel">
-                    <i class="bi bi-check-circle me-2" id="quickVerifyIcon"></i><span id="quickVerifyTitle">Verify Call</span>
+                    <i class="bi bi-check-circle me-2" id="quickVerifyIcon"></i><span id="quickVerifyTitle">Mark Call</span>
                 </h5>
                 <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
             </div>
@@ -1593,11 +1642,161 @@
     </div>
 </div>
 
+<!-- Submit to Supervisor Modal -->
+<div class="modal fade" id="submitToSupervisorModal" tabindex="-1" aria-labelledby="submitToSupervisorModalLabel" aria-hidden="true">
+    <div class="modal-dialog modal-lg modal-dialog-scrollable">
+        <div class="modal-content" style="border-radius: 12px; border: none;">
+            <div class="modal-header bg-primary text-white" style="border-radius: 12px 12px 0 0; padding: 1rem 1.25rem;">
+                <h5 class="modal-title" id="submitToSupervisorModalLabel">
+                    <i class="bi bi-send me-2"></i>Submit to Supervisor
+                </h5>
+                <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal" aria-label="Close"></button>
+            </div>
+            <div class="modal-body" style="padding: 1.25rem; background-color: #f8f9fa;">
+                <!-- Loading State -->
+                <div id="submissionLoading" class="text-center py-4">
+                    <div class="spinner-border text-primary" role="status" style="width: 2.5rem; height: 2.5rem;">
+                        <span class="visually-hidden">Loading...</span>
+                    </div>
+                    <p class="mt-2 text-muted mb-0">Loading submission preview...</p>
+                </div>
+
+                <!-- Error State -->
+                <div id="submissionError" class="d-none">
+                    <div class="alert alert-danger mb-0">
+                        <i class="bi bi-exclamation-triangle-fill me-2"></i>
+                        <span id="submissionErrorMessage"></span>
+                    </div>
+                </div>
+
+                <!-- Content (hidden until loaded) -->
+                <div id="submissionContent" class="d-none">
+                    <!-- Summary Cards Row -->
+                    <div class="row g-2 mb-3" id="summaryCards">
+                        <div class="col-6 col-md-3">
+                            <div class="card border-0 shadow-sm h-100" style="border-radius: 10px;">
+                                <div class="card-body py-2 px-3">
+                                    <div class="d-flex align-items-center justify-content-between">
+                                        <i class="bi bi-list-check text-primary"></i>
+                                        <div class="text-end">
+                                            <h5 class="mb-0 fw-bold" id="summaryTotalCalls">0</h5>
+                                            <small class="text-muted" style="font-size: 0.75rem;">Calls</small>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                        <div class="col-6 col-md-3">
+                            <div class="card border-0 shadow-sm h-100" style="border-radius: 10px;">
+                                <div class="card-body py-2 px-3">
+                                    <div class="d-flex align-items-center justify-content-between">
+                                        <i class="bi bi-briefcase text-success"></i>
+                                        <div class="text-end">
+                                            <h5 class="mb-0 fw-bold" id="summaryOfficialCost">$0.00</h5>
+                                            <small class="text-muted" style="font-size: 0.75rem;" id="summaryAllowanceLabel">Official</small>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                        <div class="col-6 col-md-3">
+                            <div class="card border-0 shadow-sm h-100" style="border-radius: 10px;">
+                                <div class="card-body py-2 px-3">
+                                    <div class="d-flex align-items-center justify-content-between">
+                                        <i class="bi bi-person text-warning"></i>
+                                        <div class="text-end">
+                                            <h5 class="mb-0 fw-bold" id="summaryPersonalCost">$0.00</h5>
+                                            <small class="text-muted" style="font-size: 0.75rem;">Personal</small>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                        <div class="col-6 col-md-3">
+                            <div class="card border-0 shadow-sm h-100" id="summaryOverageCard" style="border-radius: 10px;">
+                                <div class="card-body py-2 px-3">
+                                    <div class="d-flex align-items-center justify-content-between">
+                                        <span id="summaryOverageIcon"><i class="bi bi-exclamation-triangle text-danger"></i></span>
+                                        <div class="text-end">
+                                            <h5 class="mb-0 fw-bold" id="summaryOverageAmount">$0.00</h5>
+                                            <small class="text-muted" style="font-size: 0.75rem;" id="summaryOverageLabel">Overage</small>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Overage Warning Banner (conditional) -->
+                    <div id="overageWarningBanner" class="alert alert-warning d-none mb-3 py-2" style="border-radius: 8px;">
+                        <div class="d-flex align-items-center">
+                            <i class="bi bi-exclamation-triangle-fill me-2"></i>
+                            <small id="overageWarningText"></small>
+                        </div>
+                    </div>
+
+                    <!-- Phone Overage Justifications (conditional) -->
+                    <div id="phoneOverageSection"></div>
+
+                    <!-- Supervisor Info -->
+                    <div id="supervisorInfo" class="card border-0 shadow-sm mb-0 py-2 px-3" style="border-radius: 10px;">
+                        <div class="d-flex align-items-center">
+                            <i class="bi bi-person-badge me-2 text-primary"></i>
+                            <small>
+                                <strong>Supervisor:</strong> <span id="supervisorName"></span>
+                                (<span id="supervisorEmail" class="text-muted"></span>)
+                            </small>
+                        </div>
+                    </div>
+                </div>
+            </div>
+            <div class="modal-footer" style="border-top: 2px solid #e5e7eb; padding: 1rem 1.5rem;">
+                <button type="button" class="btn btn-outline-secondary btn-sm" data-bs-dismiss="modal">
+                    Cancel
+                </button>
+                <button type="button" class="btn btn-primary btn-sm" id="btnConfirmSubmit" onclick="confirmSubmitToSupervisor()">
+                    <i class="bi bi-send me-1"></i>Submit
+                </button>
+            </div>
+        </div>
+    </div>
+</div>
+
 @section Scripts {
     <!-- Notification Container for Alerts -->
     <div id="notificationContainer" style="position: fixed; top: 80px; right: 20px; z-index: 9999; max-width: 400px;"></div>
 
+    <!-- Loading Overlay for Bulk Operations -->
+    <div id="loadingOverlay" style="display: none; position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0,0,0,0.5); z-index: 10000; justify-content: center; align-items: center;">
+        <div class="text-center bg-white p-4 rounded-4 shadow-lg" style="min-width: 300px;">
+            <div class="spinner-border text-primary mb-3" role="status" style="width: 3rem; height: 3rem;">
+                <span class="visually-hidden">Loading...</span>
+            </div>
+            <h5 class="mb-2" id="loadingTitle">Processing...</h5>
+            <p class="text-muted mb-0" id="loadingMessage">Please wait while we process your request.</p>
+            <div class="progress mt-3" style="height: 6px;">
+                <div class="progress-bar progress-bar-striped progress-bar-animated bg-primary" style="width: 100%"></div>
+            </div>
+        </div>
+    </div>
+
     <script>
+        // Loading overlay functions
+        function showLoadingOverlay(title, message) {
+            const overlay = document.getElementById('loadingOverlay');
+            const titleEl = document.getElementById('loadingTitle');
+            const messageEl = document.getElementById('loadingMessage');
+
+            if (title) titleEl.textContent = title;
+            if (message) messageEl.textContent = message;
+
+            overlay.style.display = 'flex';
+        }
+
+        function hideLoadingOverlay() {
+            document.getElementById('loadingOverlay').style.display = 'none';
+        }
+
         // Custom notification function
         function showNotification(type, title, message) {
             const container = document.getElementById('notificationContainer');
@@ -1642,50 +1841,738 @@
             }, 5000);
         }
 
-        // Two-level table: Toggle call details for an extension group
-        function toggleCallDetails(groupId) {
-            // Show/hide dialed number summary rows for this extension
-            const dialedSummaryRows = document.querySelectorAll(`tr.dialed-number-summary-row[data-group="${groupId}"]`);
+        // ========================
+        // AJAX LOADING FOR 3-LEVEL PAGINATION
+        // ========================
+
+        // Level 1 → Level 2: Toggle dialed numbers for an extension group
+        async function toggleCallDetails(groupId) {
+            const container = document.getElementById('dialed-container-' + groupId);
+            const content = document.getElementById('dialed-content-' + groupId);
             const toggle = document.getElementById('toggle-' + groupId);
 
-            if (dialedSummaryRows.length > 0) {
-                const isHidden = dialedSummaryRows[0].style.display === 'none';
+            if (!container || !content) return;
 
-                dialedSummaryRows.forEach(row => {
-                    row.style.display = isHidden ? '' : 'none';
-                });
+            const isHidden = container.style.display === 'none';
 
-                if (isHidden) {
+            if (isHidden) {
+                // Show container
+                container.style.display = '';
+                toggle.classList.remove('bi-plus-circle');
+                toggle.classList.add('bi-dash-circle');
+
+                // Load data if not already loaded
+                if (content.dataset.loaded === 'false') {
+                    await loadDialedNumbers(content, 1);
+                }
+            } else {
+                // Hide container
+                container.style.display = 'none';
+                toggle.classList.remove('bi-dash-circle');
+                toggle.classList.add('bi-plus-circle');
+            }
+        }
+
+        // Load dialed numbers for an extension (Level 2) via AJAX
+        async function loadDialedNumbers(contentDiv, page) {
+            const extension = contentDiv.dataset.extension;
+            const month = contentDiv.dataset.month;
+            const year = contentDiv.dataset.year;
+            const groupId = contentDiv.dataset.groupId;
+
+            // Show loading
+            contentDiv.innerHTML = `
+                <div class="text-center py-3">
+                    <div class="spinner-border spinner-border-sm text-primary" role="status">
+                        <span class="visually-hidden">Loading...</span>
+                    </div>
+                    <span class="ms-2 text-muted">Loading dialed numbers...</span>
+                </div>
+            `;
+
+            try {
+                const response = await fetch(`?handler=DialedNumbers&extension=${encodeURIComponent(extension)}&month=${month}&year=${year}&page=${page}&pageSize=20`);
+                const data = await response.json();
+
+                if (data.error) {
+                    contentDiv.innerHTML = `<div class="alert alert-danger m-2">${data.error}</div>`;
+                    return;
+                }
+
+                contentDiv.dataset.loaded = 'true';
+                renderDialedNumbers(contentDiv, data, groupId);
+            } catch (error) {
+                console.error('Error loading dialed numbers:', error);
+                contentDiv.innerHTML = `<div class="alert alert-danger m-2">Error loading dialed numbers. Please try again.</div>`;
+            }
+        }
+
+        // Render dialed numbers table (Level 2)
+        function renderDialedNumbers(contentDiv, data, groupId) {
+            if (!data.dialedNumbers || data.dialedNumbers.length === 0) {
+                contentDiv.innerHTML = `<div class="text-center py-3 text-muted">No dialed numbers found.</div>`;
+                return;
+            }
+
+            let html = `
+                <table class="table table-sm mb-0" style="background: #f8fafc;">
+                    <thead style="background: #e2e8f0;">
+                        <tr>
+                            <th style="width: 30px;"></th>
+                            <th style="width: 40px;"></th>
+                            <th>Dialed Number</th>
+                            <th>Status</th>
+                            <th class="text-center">Calls</th>
+                            <th>Cost (KSH)</th>
+                            <th>Cost (USD)</th>
+                            <th class="text-center">Actions</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+            `;
+
+            data.dialedNumbers.forEach(dn => {
+                let statusBadge = '';
+                let submissionBadge = '';
+
+                // Verification type badge - default to Official
+                if (dn.assignmentStatus === 'Mixed') {
+                    statusBadge = '<span class="badge bg-secondary">Mixed</span>';
+                } else if (dn.assignmentStatus === 'Personal') {
+                    statusBadge = '<span class="badge bg-warning text-dark">Personal</span>';
+                } else {
+                    // Default to Official for unverified or Official status
+                    statusBadge = '<span class="badge bg-success">Official</span>';
+                }
+
+                // Submission status badge
+                if (dn.approvedCount > 0 && dn.approvedCount === dn.callCount) {
+                    submissionBadge = '<span class="badge bg-secondary ms-1"><i class="bi bi-check-circle-fill"></i> Approved</span>';
+                } else if (dn.pendingApprovalCount > 0) {
+                    submissionBadge = `<span class="badge bg-info ms-1"><i class="bi bi-hourglass-split"></i> ${dn.pendingApprovalCount} Pending</span>`;
+                } else if (dn.submittedCount > 0) {
+                    submissionBadge = `<span class="badge bg-primary bg-opacity-75 ms-1"><i class="bi bi-send"></i> ${dn.submittedCount} Submitted</span>`;
+                }
+
+                // Incoming assignment badge (calls assigned TO current user)
+                let assignmentBadge = '';
+                if (dn.incomingAssignmentCount > 0) {
+                    assignmentBadge = `<span class="badge bg-info ms-1" style="font-size: 0.65rem;"><i class="bi bi-arrow-left me-1"></i>${dn.incomingAssignmentCount} Assigned to you</span>`;
+                }
+
+                // Outgoing pending reassignment badge
+                let outgoingBadge = '';
+                if (dn.outgoingPendingCount > 0) {
+                    const toUser = dn.assignedToUser || 'others';
+                    outgoingBadge = `<span class="badge bg-warning text-dark ms-1" style="font-size: 0.65rem;"><i class="bi bi-hourglass-split me-1"></i>${dn.outgoingPendingCount} Pending with ${escapeHtml(toUser)}</span>`;
+                }
+
+                html += `
+                    <tr class="dialed-number-row" data-dialed-group="${dn.dialedGroupId}">
+                        <td class="text-center">
+                            <input type="checkbox" class="form-check-input dialed-number-checkbox"
+                                   id="dn-check-${dn.dialedGroupId}"
+                                   data-dialed-group="${dn.dialedGroupId}"
+                                   data-extension="${escapeHtmlAttr(data.extension)}"
+                                   data-month="${data.month}"
+                                   data-year="${data.year}"
+                                   data-dialed-number="${escapeHtmlAttr(dn.dialedNumber)}"
+                                   onchange="toggleDialedNumberCalls(this);" />
+                        </td>
+                        <td class="text-center" style="cursor: pointer;" onclick="toggleCallLogs('${dn.dialedGroupId}', '${data.extension}', ${data.month}, ${data.year}, '${dn.dialedNumber}')">
+                            <i class="bi bi-plus-circle text-info toggle-icon-dialed" id="toggle-dialed-${dn.dialedGroupId}"></i>
+                        </td>
+                        <td style="cursor: pointer;" onclick="toggleCallLogs('${dn.dialedGroupId}', '${data.extension}', ${data.month}, ${data.year}, '${dn.dialedNumber}')">
+                            <strong style="color: #0066cc;">${dn.dialedNumber}</strong>
+                            ${dn.destination ? `<br><small class="text-muted">${dn.destination}</small>` : ''}
+                        </td>
+                        <td>${statusBadge}${submissionBadge}${assignmentBadge}${outgoingBadge}</td>
+                        <td class="text-center"><span class="badge bg-info bg-opacity-10 text-info">${dn.callCount} calls</span></td>
+                        <td><strong>KSh ${dn.totalCostKSH.toFixed(2)}</strong></td>
+                        <td><strong>$${dn.totalCostUSD.toFixed(2)}</strong></td>
+                        <td class="text-center">
+                            <div class="d-flex gap-1 justify-content-center flex-wrap">
+                                <button type="button" class="btn btn-success btn-sm" style="font-size: 0.7rem; padding: 0.15rem 0.4rem;"
+                                        onclick="verifyAllDialedNumberAjax('${dn.dialedGroupId}', '${dn.dialedNumber}', '${data.extension}', ${data.month}, ${data.year}, 'Official')">
+                                    <i class="bi bi-briefcase"></i> Official
+                                </button>
+                                <button type="button" class="btn btn-warning btn-sm" style="font-size: 0.7rem; padding: 0.15rem 0.4rem;"
+                                        onclick="verifyAllDialedNumberAjax('${dn.dialedGroupId}', '${dn.dialedNumber}', '${data.extension}', ${data.month}, ${data.year}, 'Personal')">
+                                    <i class="bi bi-person"></i> Personal
+                                </button>
+                                <button type="button" class="btn btn-outline-secondary btn-sm" style="font-size: 0.7rem; padding: 0.15rem 0.4rem;"
+                                        onclick="openReassignDialogForDialedNumber('${dn.dialedNumber}', '${data.extension}', ${data.month}, ${data.year}, ${dn.callCount})"
+                                        title="Reassign all calls to this number">
+                                    <i class="bi bi-person-plus"></i>
+                                </button>
+                                ${dn.incomingAssignmentCount > 0 ? `
+                                <div class="btn-group btn-group-sm">
+                                    <button type="button" class="btn btn-success btn-sm"
+                                            style="font-size: 0.7rem; padding: 0.15rem 0.4rem;"
+                                            onclick="showAcceptBulkModal('dialedNumber', '${escapeHtmlAttr(data.extension)}', ${data.month}, ${data.year}, '${escapeHtmlAttr(dn.dialedNumber)}', ${dn.incomingAssignmentCount}, ${dn.totalCostUSD.toFixed(2)}, '${escapeHtmlAttr(dn.assignedFromUser || '')}')"
+                                            title="Accept all ${dn.incomingAssignmentCount} assignments">
+                                        <i class="bi bi-check-lg"></i> Accept
+                                    </button>
+                                    <button type="button" class="btn btn-danger btn-sm"
+                                            style="font-size: 0.7rem; padding: 0.15rem 0.4rem;"
+                                            onclick="showRejectBulkModal('dialedNumber', '${escapeHtmlAttr(data.extension)}', ${data.month}, ${data.year}, '${escapeHtmlAttr(dn.dialedNumber)}', ${dn.incomingAssignmentCount}, ${dn.totalCostUSD.toFixed(2)}, '${escapeHtmlAttr(dn.assignedFromUser || '')}')"
+                                            title="Reject all ${dn.incomingAssignmentCount} assignments">
+                                        <i class="bi bi-x-lg"></i> Reject
+                                    </button>
+                                </div>
+                                ` : ''}
+                                ${dn.outgoingPendingCount > 0 ? `
+                                <button type="button" class="btn btn-outline-warning btn-sm"
+                                        style="font-size: 0.7rem; padding: 0.15rem 0.4rem;"
+                                        onclick="showRecallBulkModal('dialedNumber', '${escapeHtmlAttr(data.extension)}', ${data.month}, ${data.year}, '${escapeHtmlAttr(dn.dialedNumber)}', ${dn.outgoingPendingCount}, ${dn.totalCostUSD.toFixed(2)}, '${escapeHtmlAttr(dn.assignedToUser || '')}')"
+                                        title="Recall all ${dn.outgoingPendingCount} pending reassignments">
+                                    <i class="bi bi-arrow-return-left me-1"></i>Recall
+                                </button>
+                                ` : ''}
+                            </div>
+                        </td>
+                    </tr>
+                    <tr id="calllogs-container-${dn.dialedGroupId}" style="display: none;">
+                        <td colspan="8" class="p-0">
+                            <div class="calllogs-content" id="calllogs-content-${dn.dialedGroupId}"
+                                 data-extension="${escapeHtmlAttr(data.extension)}" data-month="${data.month}" data-year="${data.year}"
+                                 data-dialed-number="${escapeHtmlAttr(dn.dialedNumber)}" data-dialed-group-id="${escapeHtmlAttr(dn.dialedGroupId)}" data-loaded="false">
+                                <div class="text-center py-2">
+                                    <div class="spinner-border spinner-border-sm text-primary" role="status"></div>
+                                    <span class="ms-2 text-muted small">Loading call logs...</span>
+                                </div>
+                            </div>
+                        </td>
+                    </tr>
+                `;
+            });
+
+            html += `</tbody></table>`;
+
+            // Add pagination if needed
+            if (data.totalPages > 1) {
+                html += renderPagination(data, 'dialed', groupId);
+            }
+
+            contentDiv.innerHTML = html;
+
+            // Apply selection state to newly loaded dialed number checkboxes
+            applySelectionStateToDialedNumbers(data.extension, data.month, data.year);
+
+            // Update extension checkbox state
+            updateExtensionCheckbox(data.extension, data.month, data.year);
+        }
+
+        // Level 2 → Level 3: Toggle call logs for a dialed number
+        async function toggleCallLogs(dialedGroupId, extension, month, year, dialedNumber) {
+            const container = document.getElementById('calllogs-container-' + dialedGroupId);
+            const content = document.getElementById('calllogs-content-' + dialedGroupId);
+            const toggle = document.getElementById('toggle-dialed-' + dialedGroupId);
+
+            if (!container || !content) return;
+
+            const isHidden = container.style.display === 'none';
+
+            if (isHidden) {
+                container.style.display = '';
+                if (toggle) {
                     toggle.classList.remove('bi-plus-circle');
                     toggle.classList.add('bi-dash-circle');
-                } else {
+                }
+
+                // Load data if not already loaded
+                if (content.dataset.loaded === 'false') {
+                    await loadCallLogs(content, extension, month, year, dialedNumber, dialedGroupId, 1);
+                }
+            } else {
+                container.style.display = 'none';
+                if (toggle) {
                     toggle.classList.remove('bi-dash-circle');
                     toggle.classList.add('bi-plus-circle');
-
-                    // When collapsing extension, also collapse all dialed number details within it
-                    // Find all dialed group IDs that start with this groupId
-                    dialedSummaryRows.forEach(row => {
-                        const dialedGroupId = row.getAttribute('data-dialed-group');
-                        if (dialedGroupId) {
-                            const detailRows = document.querySelectorAll(`tr.call-detail-row[data-group="${dialedGroupId}"]`);
-                            detailRows.forEach(detailRow => {
-                                detailRow.style.display = 'none';
-                            });
-
-                            // Reset the toggle icon
-                            const dialedToggle = document.getElementById('toggle-dialed-' + dialedGroupId);
-                            if (dialedToggle) {
-                                dialedToggle.classList.remove('bi-dash-circle');
-                                dialedToggle.classList.add('bi-plus-circle');
-                            }
-                        }
-                    });
                 }
             }
         }
 
+        // Load call logs for a dialed number (Level 3) via AJAX
+        async function loadCallLogs(contentDiv, extension, month, year, dialedNumber, dialedGroupId, page, sortBy = 'CallDate', sortDesc = true) {
+            const url = `?handler=CallLogs&extension=${encodeURIComponent(extension)}&month=${month}&year=${year}&dialedNumber=${encodeURIComponent(dialedNumber)}&callLogPage=${page}&callLogPageSize=10&sortBy=${sortBy}&sortDesc=${sortDesc}`;
+            console.log('>>> FETCHING call logs - URL:', url);
+            console.log('>>> Requested page:', page, 'sortBy:', sortBy, 'sortDesc:', sortDesc);
+
+            contentDiv.innerHTML = `
+                <div class="text-center py-2">
+                    <div class="spinner-border spinner-border-sm text-primary" role="status"></div>
+                    <span class="ms-2 text-muted small">Loading call logs...</span>
+                </div>
+            `;
+
+            try {
+                const response = await fetch(url);
+                const data = await response.json();
+
+                console.log('>>> Response received - currentPage:', data.currentPage, 'totalPages:', data.totalPages, 'totalCount:', data.totalCount);
+                console.log('>>> Call logs count:', data.callLogs ? data.callLogs.length : 0);
+
+                if (data.error) {
+                    contentDiv.innerHTML = `<div class="alert alert-danger m-2">${data.error}</div>`;
+                    return;
+                }
+
+                contentDiv.dataset.loaded = 'true';
+                contentDiv.dataset.extension = extension;
+                contentDiv.dataset.month = month;
+                contentDiv.dataset.year = year;
+                contentDiv.dataset.dialedNumber = dialedNumber;
+                contentDiv.dataset.sortBy = data.sortBy || 'CallDate';
+                contentDiv.dataset.sortDesc = data.sortDesc !== false ? 'true' : 'false';
+                renderCallLogs(contentDiv, data, dialedGroupId);
+            } catch (error) {
+                console.error('Error loading call logs:', error);
+                contentDiv.innerHTML = `<div class="alert alert-danger m-2">Error loading call logs. Please try again.</div>`;
+            }
+        }
+
+        // Render call logs table (Level 3)
+        function renderCallLogs(contentDiv, data, dialedGroupId) {
+            if (!data.callLogs || data.callLogs.length === 0) {
+                contentDiv.innerHTML = `<div class="text-center py-2 text-muted small">No call logs found.</div>`;
+                return;
+            }
+
+            // Helper to render sort indicator
+            const sortIcon = (column) => {
+                if (data.sortBy?.toLowerCase() === column.toLowerCase()) {
+                    return data.sortDesc
+                        ? '<i class="bi bi-caret-down-fill ms-1"></i>'
+                        : '<i class="bi bi-caret-up-fill ms-1"></i>';
+                }
+                return '<i class="bi bi-caret-down text-muted ms-1" style="opacity: 0.3;"></i>';
+            };
+
+            let html = `
+                <table class="table table-sm table-hover mb-0" style="background: white; font-size: 0.85rem;">
+                    <thead style="background: #f1f5f9;">
+                        <tr>
+                            <th style="width: 30px;"><input type="checkbox" class="form-check-input" onclick="toggleAllCallsInDialedNumber('${dialedGroupId}', this)"></th>
+                            <th class="sortable-header" style="cursor: pointer;" data-sort="CallDate" data-dialed-group="${dialedGroupId}">
+                                Date/Time ${sortIcon('CallDate')}
+                            </th>
+                            <th class="sortable-header" style="cursor: pointer;" data-sort="Duration" data-dialed-group="${dialedGroupId}">
+                                Duration ${sortIcon('Duration')}
+                            </th>
+                            <th class="sortable-header" style="cursor: pointer;" data-sort="CostKSH" data-dialed-group="${dialedGroupId}">
+                                Cost (KSH) ${sortIcon('CostKSH')}
+                            </th>
+                            <th class="sortable-header" style="cursor: pointer;" data-sort="CostUSD" data-dialed-group="${dialedGroupId}">
+                                Cost (USD) ${sortIcon('CostUSD')}
+                            </th>
+                            <th class="sortable-header" style="cursor: pointer;" data-sort="Type" data-dialed-group="${dialedGroupId}">
+                                Type ${sortIcon('Type')}
+                            </th>
+                            <th class="sortable-header" style="cursor: pointer;" data-sort="Status" data-dialed-group="${dialedGroupId}">
+                                Status ${sortIcon('Status')}
+                            </th>
+                            <th class="text-center">Action</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+            `;
+
+            data.callLogs.forEach(call => {
+                const callDate = new Date(call.callDate);
+                const dateStr = callDate.toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' });
+                const timeStr = callDate.toLocaleTimeString('en-US', { hour: '2-digit', minute: '2-digit' });
+
+                // Check if this is a GPRS/data session (duration is in KB)
+                const isDataSession = call.callType && (
+                    call.callType.toLowerCase().includes('gprs') ||
+                    call.callType.toLowerCase().includes('data')
+                );
+
+                let durationStr;
+                if (isDataSession) {
+                    // Format as data size (KB → MB → GB)
+                    durationStr = formatDataSize(call.callDuration);
+                } else {
+                    // Format as time (minutes:seconds)
+                    const minutes = Math.floor(call.callDuration);
+                    const seconds = Math.round((call.callDuration - minutes) * 100);
+                    durationStr = `${minutes}:${seconds.toString().padStart(2, '0')}`;
+                }
+
+                let statusBadge = '';
+                // Build verification type badge - default to Official
+                let verificationBadge = '';
+                if (call.verificationType === 'Personal') {
+                    verificationBadge = '<span class="badge bg-warning text-dark">Personal</span>';
+                } else {
+                    // Default to Official for unverified calls or calls marked as Official
+                    verificationBadge = '<span class="badge bg-success">Official</span>';
+                }
+
+                // Build submission status badge
+                let submissionStatusBadge = '';
+                if (call.isLocked) {
+                    submissionStatusBadge = '<br><span class="badge bg-secondary" style="font-size: 0.65rem;"><i class="bi bi-lock-fill me-1"></i>Locked</span>';
+                } else if (call.isSubmittedToSupervisor) {
+                    if (call.supervisorApprovalStatus === 'Pending') {
+                        submissionStatusBadge = '<br><span class="badge bg-info" style="font-size: 0.65rem;"><i class="bi bi-hourglass-split me-1"></i>Pending Approval</span>';
+                    } else if (call.supervisorApprovalStatus === 'Approved') {
+                        submissionStatusBadge = '<br><span class="badge bg-secondary" style="font-size: 0.65rem;"><i class="bi bi-check-circle me-1"></i>Approved</span>';
+                    } else if (call.supervisorApprovalStatus === 'PartiallyApproved') {
+                        submissionStatusBadge = '<br><span class="badge bg-secondary" style="font-size: 0.65rem;"><i class="bi bi-check-circle me-1"></i>Partial Approved</span>';
+                    } else if (call.supervisorApprovalStatus === 'Rejected') {
+                        submissionStatusBadge = '<br><span class="badge bg-danger" style="font-size: 0.65rem;"><i class="bi bi-x-circle me-1"></i>Rejected</span>';
+                    } else if (call.supervisorApprovalStatus === 'Reverted') {
+                        submissionStatusBadge = '<br><span class="badge bg-warning text-dark" style="font-size: 0.65rem;"><i class="bi bi-arrow-return-left me-1"></i>Reverted</span>';
+                    } else {
+                        submissionStatusBadge = '<br><span class="badge bg-primary" style="font-size: 0.65rem;"><i class="bi bi-send-check me-1"></i>Submitted</span>';
+                    }
+                }
+
+                // Assignment status badge - show if call is assigned to current user or pending reassignment
+                let assignmentBadge = '';
+                const isPendingOutgoingReassignment = call.assignmentStatus === 'assigned_out_pending';
+                if (call.assignmentStatus === 'assigned') {
+                    assignmentBadge = '<br><span class="badge bg-info" style="font-size: 0.65rem;"><i class="bi bi-arrow-left me-1"></i>Assigned to you</span>';
+                } else if (isPendingOutgoingReassignment) {
+                    const assignedToDisplay = call.assignedTo ? escapeHtml(call.assignedTo) : 'another user';
+                    assignmentBadge = `<br><span class="badge bg-warning text-dark" style="font-size: 0.65rem;"><i class="bi bi-hourglass-split me-1"></i>Pending with ${assignedToDisplay}</span>`;
+                }
+
+                statusBadge = verificationBadge + submissionStatusBadge + assignmentBadge;
+
+                // Disable checkbox if locked (approved) OR if submitted and pending approval OR if pending outgoing reassignment
+                const isSubmittedPending = call.isSubmittedToSupervisor &&
+                    (call.supervisorApprovalStatus === 'Pending' || call.supervisorApprovalStatus === 'Approved' || call.supervisorApprovalStatus === 'PartiallyApproved');
+                const isSubmittedRejectedOrReverted = call.isSubmittedToSupervisor &&
+                    (call.supervisorApprovalStatus === 'Rejected' || call.supervisorApprovalStatus === 'Reverted');
+                const canModify = !call.isLocked && !isSubmittedPending && !isPendingOutgoingReassignment; // Can modify if not locked, not pending/approved, and not pending reassignment
+                const isDisabled = (call.isLocked || isSubmittedPending || isPendingOutgoingReassignment) ? 'disabled' : '';
+                const rowClass = call.isLocked ? 'table-secondary' : (isSubmittedPending ? 'table-info bg-opacity-25' : (isSubmittedRejectedOrReverted ? 'table-warning bg-opacity-25' : ''));
+
+                // Get extension, month, year from contentDiv for checkbox data attributes
+                const extension = contentDiv.dataset.extension || '';
+                const month = contentDiv.dataset.month || '';
+                const year = contentDiv.dataset.year || '';
+
+                html += `
+                    <tr class="${rowClass}">
+                        <td><input type="checkbox" class="form-check-input call-checkbox-ajax"
+                            value="${call.id}" data-dialed-group="${dialedGroupId}"
+                            data-extension="${escapeHtmlAttr(extension)}"
+                            data-month="${month}" data-year="${year}"
+                            data-verified="${call.isVerified}" data-locked="${call.isLocked}"
+                            data-expired="false"
+                            data-submitted="${call.isSubmittedToSupervisor || false}"
+                            data-approval-status="${call.supervisorApprovalStatus || ''}" ${isDisabled}></td>
+                        <td>
+                            <span>${dateStr}</span>
+                            <br><small class="text-muted">${timeStr}</small>
+                        </td>
+                        <td>${durationStr}</td>
+                        <td>KSh ${call.callCostKSH.toFixed(2)}</td>
+                        <td>$${call.callCostUSD.toFixed(2)}</td>
+                        <td><span class="badge bg-light text-dark">${call.callType || '-'}</span></td>
+                        <td>${statusBadge}</td>
+                        <td class="text-center">
+                            <div class="d-flex align-items-center justify-content-center gap-1">
+                            ${call.isLocked ? '<span class="text-muted small"><i class="bi bi-lock-fill"></i> Locked</span>' :
+                              isPendingOutgoingReassignment ? `
+                                <span class="text-muted small me-2"><i class="bi bi-hourglass-split"></i> Pending</span>
+                                <button type="button" class="btn btn-outline-warning btn-sm"
+                                        style="padding: 0.2rem 0.5rem; font-size: 0.7rem;"
+                                        onclick="showRecallModal(${call.id}, '${escapeHtmlAttr(call.dialedNumber)}', ${call.callCostUSD.toFixed(2)}, '${escapeHtmlAttr(call.assignedTo || '')}')"
+                                        title="Recall this reassignment">
+                                    <i class="bi bi-arrow-return-left me-1"></i>Recall
+                                </button>
+                              ` :
+                              !canModify ? '<span class="text-muted small"><i class="bi bi-hourglass-split"></i> Awaiting Approval</span>' : `
+                                <select class="form-select form-select-sm" style="width: 90px; font-size: 0.75rem;"
+                                        onchange="quickVerifyCallAjax(${call.id}, this.value)">
+                                    <option value="Official" ${call.verificationType !== 'Personal' ? 'selected' : ''}>Official</option>
+                                    <option value="Personal" ${call.verificationType === 'Personal' ? 'selected' : ''}>Personal</option>
+                                </select>
+                                ${!call.isSubmittedToSupervisor ? `
+                                <button type="button" class="btn btn-outline-secondary btn-sm"
+                                        style="padding: 0.2rem 0.4rem; font-size: 0.7rem;"
+                                        onclick="openReassignDialog(${call.id}, '${escapeHtmlAttr(call.callNumber)}', '${escapeHtmlAttr(call.callDestination || '')}', event)"
+                                        title="Reassign to another user">
+                                    <i class="bi bi-person-plus"></i>
+                                </button>
+                                ` : ''}
+                                ${call.assignmentStatus === 'assigned' ? `
+                                <div class="btn-group btn-group-sm ms-1">
+                                    <button type="button" class="btn btn-success btn-sm"
+                                            style="padding: 0.2rem 0.4rem; font-size: 0.7rem;"
+                                            onclick="showAcceptModal(${call.id}, '${escapeHtmlAttr(call.dialedNumber)}', ${call.callCostUSD.toFixed(2)}, '${escapeHtmlAttr(call.assignedFrom || '')}')"
+                                            title="Accept this assignment">
+                                        <i class="bi bi-check-lg"></i>
+                                    </button>
+                                    <button type="button" class="btn btn-danger btn-sm"
+                                            style="padding: 0.2rem 0.4rem; font-size: 0.7rem;"
+                                            onclick="showRejectModal(${call.id}, '${escapeHtmlAttr(call.dialedNumber)}', ${call.callCostUSD.toFixed(2)}, '${escapeHtmlAttr(call.assignedFrom || '')}')"
+                                            title="Reject this assignment">
+                                        <i class="bi bi-x-lg"></i>
+                                    </button>
+                                </div>
+                                ` : ''}
+                            `}
+                            </div>
+                        </td>
+                    </tr>
+                `;
+            });
+
+            html += `</tbody></table>`;
+
+            // Add pagination if needed
+            if (data.totalPages > 1) {
+                html += renderCallLogsPagination(data, dialedGroupId);
+            }
+
+            contentDiv.innerHTML = html;
+
+            // Apply selection state to newly loaded call checkboxes
+            const extension = contentDiv.dataset.extension;
+            const month = contentDiv.dataset.month;
+            const year = contentDiv.dataset.year;
+            applySelectionStateToCallLogs(extension, month, year, dialedGroupId);
+
+            // Also update the dialed number checkbox state and quick verify buttons
+            updateDialedNumberCheckbox(dialedGroupId);
+            updateQuickVerifyButtons();
+        }
+
+        // Render pagination for Level 2 (dialed numbers)
+        function renderPagination(data, type, groupId) {
+            // Escape the groupId for safe use in HTML attributes
+            const safeGroupId = escapeHtmlAttr(groupId);
+
+            let html = `
+                <div class="d-flex justify-content-between align-items-center p-2 border-top" style="background: #f8fafc;">
+                    <small class="text-muted">Showing ${(data.currentPage - 1) * data.pageSize + 1} - ${Math.min(data.currentPage * data.pageSize, data.totalCount)} of ${data.totalCount} dialed numbers</small>
+                    <nav>
+                        <ul class="pagination pagination-sm mb-0" data-group-id="${safeGroupId}">
+            `;
+
+            // Previous button
+            if (data.currentPage > 1) {
+                html += `<li class="page-item"><a class="page-link dialednumbers-page-link" href="#" data-page="${data.currentPage - 1}">«</a></li>`;
+            }
+
+            // Page numbers
+            for (let i = Math.max(1, data.currentPage - 2); i <= Math.min(data.totalPages, data.currentPage + 2); i++) {
+                html += `<li class="page-item ${i === data.currentPage ? 'active' : ''}">
+                    <a class="page-link dialednumbers-page-link" href="#" data-page="${i}">${i}</a>
+                </li>`;
+            }
+
+            // Next button
+            if (data.currentPage < data.totalPages) {
+                html += `<li class="page-item"><a class="page-link dialednumbers-page-link" href="#" data-page="${data.currentPage + 1}">»</a></li>`;
+            }
+
+            html += `</ul></nav></div>`;
+            return html;
+        }
+
+        // Render pagination for Level 3 (call logs)
+        function renderCallLogsPagination(data, dialedGroupId) {
+            // Escape the dialedGroupId for safe use in HTML attributes
+            const safeDialedGroupId = escapeHtmlAttr(dialedGroupId);
+
+            let html = `
+                <div class="d-flex justify-content-between align-items-center p-2 border-top" style="background: #f8fafc;">
+                    <small class="text-muted">Showing ${(data.currentPage - 1) * data.pageSize + 1} - ${Math.min(data.currentPage * data.pageSize, data.totalCount)} of ${data.totalCount} calls</small>
+                    <nav>
+                        <ul class="pagination pagination-sm mb-0" data-dialed-group-id="${safeDialedGroupId}">
+            `;
+
+            if (data.currentPage > 1) {
+                html += `<li class="page-item"><a class="page-link calllogs-page-link" href="#" data-page="${data.currentPage - 1}">«</a></li>`;
+            }
+
+            for (let i = Math.max(1, data.currentPage - 2); i <= Math.min(data.totalPages, data.currentPage + 2); i++) {
+                html += `<li class="page-item ${i === data.currentPage ? 'active' : ''}">
+                    <a class="page-link calllogs-page-link" href="#" data-page="${i}">${i}</a>
+                </li>`;
+            }
+
+            if (data.currentPage < data.totalPages) {
+                html += `<li class="page-item"><a class="page-link calllogs-page-link" href="#" data-page="${data.currentPage + 1}">»</a></li>`;
+            }
+
+            html += `</ul></nav></div>`;
+            return html;
+        }
+
+        // Escape string for use in HTML attributes
+        function escapeHtmlAttr(str) {
+            if (!str) return '';
+            return str.replace(/&/g, '&amp;')
+                      .replace(/'/g, '&#39;')
+                      .replace(/"/g, '&quot;')
+                      .replace(/</g, '&lt;')
+                      .replace(/>/g, '&gt;');
+        }
+
+        // Format data size from KB to appropriate unit (KB, MB, GB)
+        function formatDataSize(kb) {
+            if (kb === null || kb === undefined || isNaN(kb)) return '0 KB';
+
+            if (kb < 1024) {
+                return `${kb.toFixed(2)} KB`;
+            } else if (kb < 1024 * 1024) {
+                return `${(kb / 1024).toFixed(2)} MB`;
+            } else {
+                return `${(kb / (1024 * 1024)).toFixed(2)} GB`;
+            }
+        }
+
+        // Load dialed numbers page (for pagination)
+        async function loadDialedNumbersPage(groupId, page) {
+            const content = document.getElementById('dialed-content-' + groupId);
+            if (content) {
+                await loadDialedNumbers(content, page);
+            }
+        }
+
+        // Load call logs page (for pagination)
+        async function loadCallLogsPage(dialedGroupId, page) {
+            console.log('=== loadCallLogsPage START ===');
+            console.log('dialedGroupId:', dialedGroupId);
+            console.log('page:', page);
+
+            const elementId = 'calllogs-content-' + dialedGroupId;
+            console.log('Looking for element ID:', elementId);
+
+            const content = document.getElementById(elementId);
+            console.log('Found element:', content ? 'YES' : 'NO');
+
+            if (content) {
+                const extension = content.dataset.extension;
+                const month = content.dataset.month;
+                const year = content.dataset.year;
+                const dialedNumber = content.dataset.dialedNumber;
+                const sortBy = content.dataset.sortBy || 'CallDate';
+                const sortDesc = content.dataset.sortDesc !== 'false';
+
+                console.log('Data attributes from element:', { extension, month, year, dialedNumber, sortBy, sortDesc });
+
+                // Validate we have all required data
+                if (!extension || !month || !year || !dialedNumber) {
+                    console.error('Missing required data attributes!');
+                    console.error('extension:', extension);
+                    console.error('month:', month);
+                    console.error('year:', year);
+                    console.error('dialedNumber:', dialedNumber);
+                    return;
+                }
+
+                console.log('Calling loadCallLogs with page:', page, 'sortBy:', sortBy, 'sortDesc:', sortDesc);
+                await loadCallLogs(content, extension, month, year, dialedNumber, dialedGroupId, page, sortBy, sortDesc);
+                console.log('=== loadCallLogsPage END ===');
+            } else {
+                console.error('Content element not found for ID:', elementId);
+                // Try to find similar elements for debugging
+                const allCalllogsContents = document.querySelectorAll('[id^="calllogs-content-"]');
+                console.log('All calllogs-content elements:', Array.from(allCalllogsContents).map(el => ({
+                    id: el.id,
+                    extension: el.dataset.extension,
+                    month: el.dataset.month,
+                    year: el.dataset.year,
+                    dialedNumber: el.dataset.dialedNumber
+                })));
+            }
+        }
+
+        // Quick verify single call via AJAX
+        async function quickVerifyCallAjax(callId, verificationType) {
+            if (!verificationType) return;
+
+            const form = document.createElement('form');
+            form.method = 'POST';
+            form.action = '?handler=QuickVerify';
+
+            const tokenInput = document.createElement('input');
+            tokenInput.type = 'hidden';
+            tokenInput.name = '__RequestVerificationToken';
+            tokenInput.value = document.querySelector('input[name="__RequestVerificationToken"]').value;
+            form.appendChild(tokenInput);
+
+            const typeInput = document.createElement('input');
+            typeInput.type = 'hidden';
+            typeInput.name = 'verificationType';
+            typeInput.value = verificationType;
+            form.appendChild(typeInput);
+
+            const idInput = document.createElement('input');
+            idInput.type = 'hidden';
+            idInput.name = 'selectedIds';
+            idInput.value = callId;
+            form.appendChild(idInput);
+
+            // Show loading overlay
+            showLoadingOverlay('Marking Call...', `Marking call as ${verificationType}.`);
+
+            document.body.appendChild(form);
+            form.submit();
+        }
+
+        // Verify all calls for a dialed number via AJAX
+        function verifyAllDialedNumberAjax(dialedGroupId, dialedNumber, extension, month, year, verificationType) {
+            const typeLabel = verificationType === 'Official' ? 'Official (work-related)' : 'Personal';
+            const typeColor = verificationType === 'Official' ? 'success' : 'warning';
+
+            showConfirmation(
+                `Mark All Calls to ${dialedNumber}?`,
+                `You are about to mark <strong>ALL calls</strong> to <strong>${dialedNumber}</strong> as <span class="badge bg-${typeColor}">${typeLabel}</span>.`,
+                'Yes, Mark All',
+                () => {
+                    // Submit form to mark all by dialed number
+                    const form = document.createElement('form');
+                    form.method = 'POST';
+                    form.action = '?handler=VerifyAllByDialedNumber';
+
+                    const tokenInput = document.createElement('input');
+                    tokenInput.type = 'hidden';
+                    tokenInput.name = '__RequestVerificationToken';
+                    tokenInput.value = document.querySelector('input[name="__RequestVerificationToken"]').value;
+                    form.appendChild(tokenInput);
+
+                    [['extension', extension], ['month', month], ['year', year], ['dialedNumber', dialedNumber], ['verificationType', verificationType]].forEach(([name, value]) => {
+                        const input = document.createElement('input');
+                        input.type = 'hidden';
+                        input.name = name;
+                        input.value = value;
+                        form.appendChild(input);
+                    });
+
+                    // Show loading overlay before submit
+                    showLoadingOverlay(
+                        'Marking Calls...',
+                        `Marking all calls to ${dialedNumber} as ${verificationType}. This may take a moment.`
+                    );
+
+                    document.body.appendChild(form);
+                    form.submit();
+                }
+            );
+        }
+
+        // Toggle all checkboxes in a dialed number group
+        function toggleAllCallsInDialedNumber(dialedGroupId, masterCheckbox) {
+            const checkboxes = document.querySelectorAll(`.call-checkbox-ajax[data-dialed-group="${dialedGroupId}"]`);
+            checkboxes.forEach(cb => {
+                if (!cb.disabled) {
+                    cb.checked = masterCheckbox.checked;
+                }
+            });
+        }
+
+        // Legacy toggleDialedNumberDetails function (keeping for compatibility)
         function toggleDialedNumberDetails(dialedGroupId) {
-            // Find all rows that belong to this dialed number group (they have data-group = dialedGroupId)
             const subRows = document.querySelectorAll(`tr.call-detail-row[data-group="${dialedGroupId}"]`);
             const toggle = document.getElementById('toggle-dialed-' + dialedGroupId);
 
@@ -1750,27 +2637,133 @@
             });
         }
 
-        // Extension-level checkbox functions
-        function toggleExtensionCalls(extensionCheckbox) {
-            const extensionId = extensionCheckbox.getAttribute('data-extension');
-            const checkboxes = document.querySelectorAll(`.call-checkbox[data-extension="${extensionId}"]`);
+        // =====================================================
+        // Selection State Tracking
+        // =====================================================
+        // Track which extensions and dialed numbers are "fully selected"
+        // so we can apply selection to content that loads later (AJAX/pagination)
+        const selectionState = {
+            extensions: new Map(), // key: "extension_month_year", value: true/false
+            dialedNumbers: new Map() // key: "dialedGroupId", value: true/false
+        };
 
-            checkboxes.forEach(cb => {
+        function getExtensionKey(extension, month, year) {
+            return `${extension}_${month}_${year}`;
+        }
+
+        function setExtensionSelected(extension, month, year, selected) {
+            const key = getExtensionKey(extension, month, year);
+            if (selected) {
+                selectionState.extensions.set(key, true);
+            } else {
+                selectionState.extensions.delete(key);
+            }
+        }
+
+        function isExtensionSelected(extension, month, year) {
+            return selectionState.extensions.get(getExtensionKey(extension, month, year)) === true;
+        }
+
+        function setDialedNumberSelected(dialedGroupId, selected) {
+            if (selected) {
+                selectionState.dialedNumbers.set(dialedGroupId, true);
+            } else {
+                selectionState.dialedNumbers.delete(dialedGroupId);
+            }
+        }
+
+        function isDialedNumberSelected(dialedGroupId) {
+            return selectionState.dialedNumbers.get(dialedGroupId) === true;
+        }
+
+        // Apply selection state to newly loaded content
+        function applySelectionStateToDialedNumbers(extension, month, year) {
+            if (isExtensionSelected(extension, month, year)) {
+                // Parent extension is selected, select all dialed number checkboxes
+                const dialedCheckboxes = document.querySelectorAll(
+                    `.dialed-number-checkbox[data-extension="${extension}"][data-month="${month}"][data-year="${year}"]`
+                );
+                dialedCheckboxes.forEach(cb => {
+                    cb.checked = true;
+                    cb.indeterminate = false;
+                    // Also mark this dialed number as selected
+                    const dialedGroupId = cb.getAttribute('data-dialed-group');
+                    if (dialedGroupId) {
+                        setDialedNumberSelected(dialedGroupId, true);
+                    }
+                });
+            }
+        }
+
+        function applySelectionStateToCallLogs(extension, month, year, dialedGroupId) {
+            const isParentExtensionSelected = isExtensionSelected(extension, month, year);
+            const isParentDialedSelected = isDialedNumberSelected(dialedGroupId);
+
+            if (isParentExtensionSelected || isParentDialedSelected) {
+                // Parent is selected, select all call checkboxes for this dialed group
+                const callCheckboxes = document.querySelectorAll(
+                    `.call-checkbox-ajax[data-dialed-group="${dialedGroupId}"]`
+                );
+                callCheckboxes.forEach(cb => {
+                    if (cb.getAttribute('data-locked') === 'false') {
+                        cb.checked = true;
+                    }
+                });
+            }
+        }
+
+        // Extension-level checkbox functions (Level 1)
+        function toggleExtensionCalls(extensionCheckbox) {
+            const extension = extensionCheckbox.getAttribute('data-extension');
+            const month = extensionCheckbox.getAttribute('data-month');
+            const year = extensionCheckbox.getAttribute('data-year');
+            const isChecked = extensionCheckbox.checked;
+
+            // Store selection state for this extension
+            setExtensionSelected(extension, month, year, isChecked);
+
+            // Toggle Level 2 (dialed number) checkboxes that are currently loaded
+            const dialedNumberCheckboxes = document.querySelectorAll(
+                `.dialed-number-checkbox[data-extension="${extension}"][data-month="${month}"][data-year="${year}"]`
+            );
+            dialedNumberCheckboxes.forEach(cb => {
+                cb.checked = isChecked;
+                cb.indeterminate = false;
+                // Also update dialed number selection state
+                const dialedGroupId = cb.getAttribute('data-dialed-group');
+                if (dialedGroupId) {
+                    setDialedNumberSelected(dialedGroupId, isChecked);
+                }
+            });
+
+            // Toggle Level 3 (call) checkboxes that are currently loaded
+            const callCheckboxes = document.querySelectorAll(
+                `.call-checkbox[data-extension="${extension}"][data-month="${month}"][data-year="${year}"], ` +
+                `.call-checkbox-ajax[data-extension="${extension}"][data-month="${month}"][data-year="${year}"]`
+            );
+
+            callCheckboxes.forEach(cb => {
                 // Only toggle unlocked checkboxes
                 if (cb.getAttribute('data-locked') === 'false') {
-                    cb.checked = extensionCheckbox.checked;
+                    cb.checked = isChecked;
                 }
             });
 
             updateQuickVerifyButtons();
         }
 
-        function updateExtensionCheckbox(extensionId) {
-            const extensionCheckbox = document.getElementById('ext-check-' + extensionId);
+        function updateExtensionCheckbox(extension, month, year) {
+            // Find the extension checkbox by matching extension + month + year
+            const extensionCheckbox = document.querySelector(
+                `.extension-checkbox[data-extension="${extension}"][data-month="${month}"][data-year="${year}"]`
+            );
             if (!extensionCheckbox) return;
 
-            const checkboxes = Array.from(document.querySelectorAll(`.call-checkbox[data-extension="${extensionId}"]`))
-                .filter(cb => cb.getAttribute('data-locked') === 'false');
+            // Include both static and AJAX-loaded checkboxes matching extension + month + year
+            const checkboxes = Array.from(document.querySelectorAll(
+                `.call-checkbox[data-extension="${extension}"][data-month="${month}"][data-year="${year}"], ` +
+                `.call-checkbox-ajax[data-extension="${extension}"][data-month="${month}"][data-year="${year}"]`
+            )).filter(cb => cb.getAttribute('data-locked') === 'false');
 
             if (checkboxes.length === 0) return;
 
@@ -1788,27 +2781,104 @@
             }
         }
 
-        function toggleSelectAll(checkbox) {
-            const checkboxes = document.querySelectorAll('.call-checkbox');
+        // Level 2 (Dialed Number) checkbox functions
+        function toggleDialedNumberCalls(dialedNumberCheckbox) {
+            const dialedGroupId = dialedNumberCheckbox.getAttribute('data-dialed-group');
+            const extension = dialedNumberCheckbox.getAttribute('data-extension');
+            const month = dialedNumberCheckbox.getAttribute('data-month');
+            const year = dialedNumberCheckbox.getAttribute('data-year');
+            const isChecked = dialedNumberCheckbox.checked;
+
+            // Store selection state for this dialed number
+            setDialedNumberSelected(dialedGroupId, isChecked);
+
+            // If unchecking, also clear the parent extension selection
+            // (since not all children are selected anymore)
+            if (!isChecked) {
+                setExtensionSelected(extension, month, year, false);
+            }
+
+            // Select all Level 3 call checkboxes under this dialed number (currently loaded)
+            const checkboxes = document.querySelectorAll(
+                `.call-checkbox-ajax[data-dialed-group="${dialedGroupId}"]`
+            );
+
             checkboxes.forEach(cb => {
-                // Select all unlocked calls (both verified and unverified)
-                // Skip only locked calls (assigned out pending)
+                // Only toggle unlocked checkboxes
                 if (cb.getAttribute('data-locked') === 'false') {
-                    cb.checked = checkbox.checked;
+                    cb.checked = isChecked;
                 }
             });
 
-            // Update all extension checkboxes
+            // Update the parent extension checkbox
+            updateExtensionCheckbox(extension, month, year);
+            updateQuickVerifyButtons();
+        }
+
+        function updateDialedNumberCheckbox(dialedGroupId) {
+            const dialedNumberCheckbox = document.getElementById('dn-check-' + dialedGroupId);
+            if (!dialedNumberCheckbox) return;
+
+            // Get all Level 3 call checkboxes under this dialed number
+            const checkboxes = Array.from(document.querySelectorAll(
+                `.call-checkbox-ajax[data-dialed-group="${dialedGroupId}"]`
+            )).filter(cb => cb.getAttribute('data-locked') === 'false');
+
+            if (checkboxes.length === 0) return;
+
+            const checkedCount = checkboxes.filter(cb => cb.checked).length;
+
+            if (checkedCount === 0) {
+                dialedNumberCheckbox.checked = false;
+                dialedNumberCheckbox.indeterminate = false;
+            } else if (checkedCount === checkboxes.length) {
+                dialedNumberCheckbox.checked = true;
+                dialedNumberCheckbox.indeterminate = false;
+            } else {
+                dialedNumberCheckbox.checked = false;
+                dialedNumberCheckbox.indeterminate = true;
+            }
+        }
+
+        function toggleSelectAll(checkbox) {
+            const isChecked = checkbox.checked;
+
+            // Update selection state for all extensions
             document.querySelectorAll('.extension-checkbox').forEach(extCheck => {
-                const extensionId = extCheck.getAttribute('data-extension');
-                updateExtensionCheckbox(extensionId);
+                const extension = extCheck.getAttribute('data-extension');
+                const month = extCheck.getAttribute('data-month');
+                const year = extCheck.getAttribute('data-year');
+                setExtensionSelected(extension, month, year, isChecked);
+                extCheck.checked = isChecked;
+                extCheck.indeterminate = false;
+            });
+
+            // Toggle Level 2 (dialed number) checkboxes and track state
+            document.querySelectorAll('.dialed-number-checkbox').forEach(cb => {
+                cb.checked = isChecked;
+                cb.indeterminate = false;
+                const dialedGroupId = cb.getAttribute('data-dialed-group');
+                if (dialedGroupId) {
+                    setDialedNumberSelected(dialedGroupId, isChecked);
+                }
+            });
+
+            // Toggle Level 3 (call) checkboxes - both static and AJAX-loaded
+            const callCheckboxes = document.querySelectorAll('.call-checkbox, .call-checkbox-ajax');
+            callCheckboxes.forEach(cb => {
+                // Select all unlocked calls (both verified and unverified)
+                // Skip only locked calls (assigned out pending)
+                if (cb.getAttribute('data-locked') === 'false') {
+                    cb.checked = isChecked;
+                }
             });
 
             updateQuickVerifyButtons();
         }
 
         function updateQuickVerifyButtons() {
-            const selectedCheckboxes = document.querySelectorAll('.call-checkbox:checked');
+            // Get both static and AJAX-loaded checkboxes
+            const selectedCheckboxes = document.querySelectorAll('.call-checkbox:checked, .call-checkbox-ajax:checked');
             const selectedCount = selectedCheckboxes.length;
 
             // Count how many selected calls are unverified
@@ -1836,52 +2906,404 @@
             }
         }
 
-        function submitToSupervisor() {
-            const selectedCheckboxes = Array.from(document.querySelectorAll('.call-checkbox:checked'));
+        // Store submission data for the modal
+        let submissionCallIds = [];
+        let submissionData = null;
 
-            if (selectedCheckboxes.length === 0) {
-                alert('Please select at least one call to submit to supervisor.');
+        async function submitToSupervisor() {
+            // Get both static and AJAX-loaded checkboxes that are checked
+            const selectedCheckboxes = Array.from(document.querySelectorAll('.call-checkbox:checked, .call-checkbox-ajax:checked'));
+
+            // Also check for extension-level checkbox selections (content may not be expanded)
+            const selectedExtensions = Array.from(document.querySelectorAll('.extension-checkbox:checked'));
+
+            // Also check for dialed-number-level checkbox selections
+            const selectedDialedNumbers = Array.from(document.querySelectorAll('.dialed-number-checkbox:checked'));
+
+            // If we have no selections at any level, show error
+            if (selectedCheckboxes.length === 0 && selectedExtensions.length === 0 && selectedDialedNumbers.length === 0) {
+                showNotification('warning', 'No Selection', 'Please select at least one call to submit to supervisor.');
                 return;
             }
 
-            // Filter by different criteria
-            const expiredCalls = selectedCheckboxes.filter(cb => cb.getAttribute('data-expired') === 'true');
-            const alreadySubmittedCalls = selectedCheckboxes.filter(cb => {
-                const isSubmitted = cb.getAttribute('data-submitted') === 'true';
-                const approvalStatus = cb.getAttribute('data-approval-status');
-                // Call is already submitted if it's submitted AND has Pending/Approved/PartiallyApproved status
-                return isSubmitted && (approvalStatus === 'Pending' || approvalStatus === 'Approved' || approvalStatus === 'PartiallyApproved');
-            });
-            const validCalls = selectedCheckboxes
-                .filter(cb => cb.getAttribute('data-expired') === 'false')
-                .filter(cb => {
+            let allCallIds = [];
+            let skippedSubmittedCount = 0;
+
+            // Show loading indicator on button
+            const submitBtn = document.querySelector('button[onclick="submitToSupervisor()"]');
+            const originalText = submitBtn ? submitBtn.innerHTML : '';
+            if (submitBtn) {
+                submitBtn.innerHTML = '<span class="spinner-border spinner-border-sm me-1"></span> Loading...';
+                submitBtn.disabled = true;
+            }
+
+            try {
+                // If extension checkboxes are selected, fetch call IDs for those extensions
+                if (selectedExtensions.length > 0) {
+                    for (const extCheckbox of selectedExtensions) {
+                        const extension = extCheckbox.getAttribute('data-extension');
+                        const month = extCheckbox.getAttribute('data-month');
+                        const year = extCheckbox.getAttribute('data-year');
+
+                        const response = await fetch(`?handler=CallIdsForExtension&extension=${encodeURIComponent(extension)}&month=${month}&year=${year}`);
+                        if (response.ok) {
+                            const data = await response.json();
+                            if (data.callIds && data.callIds.length > 0) {
+                                allCallIds = allCallIds.concat(data.callIds);
+                            }
+                            if (data.skippedCount > 0) {
+                                skippedSubmittedCount += data.skippedCount;
+                            }
+                        }
+                    }
+                }
+
+                // If dialed number checkboxes are selected, fetch call IDs for those dialed numbers
+                if (selectedDialedNumbers.length > 0) {
+                    for (const dnCheckbox of selectedDialedNumbers) {
+                        const extension = dnCheckbox.getAttribute('data-extension');
+                        const month = dnCheckbox.getAttribute('data-month');
+                        const year = dnCheckbox.getAttribute('data-year');
+                        const dialedNumber = dnCheckbox.getAttribute('data-dialed-number');
+
+                        if (dialedNumber) {
+                            const response = await fetch(`?handler=CallIdsForDialedNumber&extension=${encodeURIComponent(extension)}&month=${month}&year=${year}&dialedNumber=${encodeURIComponent(dialedNumber)}`);
+                            if (response.ok) {
+                                const data = await response.json();
+                                if (data.callIds && data.callIds.length > 0) {
+                                    data.callIds.forEach(id => {
+                                        if (!allCallIds.includes(id)) {
+                                            allCallIds.push(id);
+                                        }
+                                    });
+                                }
+                                if (data.skippedCount > 0) {
+                                    skippedSubmittedCount += data.skippedCount;
+                                }
+                            }
+                        }
+                    }
+                }
+
+                // Also add any individually selected call checkboxes (excluding already submitted ones)
+                selectedCheckboxes.forEach(cb => {
+                    const callId = parseInt(cb.value);
                     const isSubmitted = cb.getAttribute('data-submitted') === 'true';
-                    const approvalStatus = cb.getAttribute('data-approval-status');
-                    return !(isSubmitted && (approvalStatus === 'Pending' || approvalStatus === 'Approved' || approvalStatus === 'PartiallyApproved'));
+                    const approvalStatus = cb.getAttribute('data-approval-status') || '';
+
+                    if (isSubmitted && (approvalStatus === 'Pending' || approvalStatus === 'Approved')) {
+                        skippedSubmittedCount++;
+                        return;
+                    }
+
+                    if (!allCallIds.includes(callId)) {
+                        allCallIds.push(callId);
+                    }
                 });
 
-            const selectedIds = validCalls.map(cb => cb.value);
+                if (allCallIds.length === 0) {
+                    if (skippedSubmittedCount > 0) {
+                        showNotification('warning', 'Already Submitted', `All ${skippedSubmittedCount} selected call(s) have already been submitted to supervisor and are pending approval.`);
+                    } else {
+                        showNotification('warning', 'No Calls Found', 'No calls found to submit. Please try selecting calls directly or expand the rows first.');
+                    }
+                    return;
+                }
 
-            // Build warning message
-            let warnings = [];
-            if (expiredCalls.length > 0) {
-                warnings.push(`${expiredCalls.length} expired call(s) cannot be submitted (will be auto-recovered)`);
+                // Notify user if some calls were skipped
+                if (skippedSubmittedCount > 0) {
+                    const proceed = confirm(`${skippedSubmittedCount} call(s) are already submitted and pending approval - they will be skipped.\n\nProceed with submitting the remaining ${allCallIds.length} call(s)?`);
+                    if (!proceed) return;
+                }
+
+                // Open the modal and load preview data
+                await openSubmitToSupervisorModal(allCallIds);
+
+            } catch (error) {
+                console.error('Error in submitToSupervisor:', error);
+                showNotification('error', 'Error', 'An error occurred while preparing submission. Please try again.');
+            } finally {
+                if (submitBtn) {
+                    submitBtn.innerHTML = originalText;
+                    submitBtn.disabled = false;
+                }
             }
-            if (alreadySubmittedCalls.length > 0) {
-                warnings.push(`${alreadySubmittedCalls.length} call(s) already submitted to supervisor`);
+        }
+
+        async function openSubmitToSupervisorModal(callIds) {
+            submissionCallIds = callIds;
+
+            // Show modal with loading state
+            const modal = new bootstrap.Modal(document.getElementById('submitToSupervisorModal'));
+            document.getElementById('submissionLoading').classList.remove('d-none');
+            document.getElementById('submissionContent').classList.add('d-none');
+            document.getElementById('submissionError').classList.add('d-none');
+            modal.show();
+
+            try {
+                // Load preview data
+                const response = await fetch(`?handler=SubmissionPreview&callIds=${callIds.join(',')}`);
+                submissionData = await response.json();
+
+                if (!submissionData.success) {
+                    document.getElementById('submissionLoading').classList.add('d-none');
+                    document.getElementById('submissionError').classList.remove('d-none');
+                    document.getElementById('submissionErrorMessage').textContent = submissionData.message;
+                    return;
+                }
+
+                // Populate modal content
+                renderSubmissionPreview(submissionData);
+
+                // Show content, hide loading
+                document.getElementById('submissionLoading').classList.add('d-none');
+                document.getElementById('submissionContent').classList.remove('d-none');
+
+            } catch (error) {
+                console.error('Error loading submission preview:', error);
+                document.getElementById('submissionLoading').classList.add('d-none');
+                document.getElementById('submissionError').classList.remove('d-none');
+                document.getElementById('submissionErrorMessage').textContent = 'Failed to load submission preview. Please try again.';
+            }
+        }
+
+        function renderSubmissionPreview(data) {
+            // Determine currency display based on service provider
+            // Safaricom, Airtel, PSTN = KSH; PrivateWire = USD
+            const isPrivateWire = data.isPrivateWire;
+            const currencySymbol = isPrivateWire ? '$' : 'KSh ';
+            const officialCost = isPrivateWire ? data.officialCostUSD : data.officialCostKSH;
+            const personalCost = isPrivateWire ? data.personalCostUSD : data.personalCostKSH;
+
+            // Update summary cards
+            document.getElementById('summaryTotalCalls').textContent = data.totalCalls;
+            document.getElementById('summaryOfficialCost').textContent = `${currencySymbol}${officialCost.toFixed(2)}`;
+            document.getElementById('summaryPersonalCost').textContent = `${currencySymbol}${personalCost.toFixed(2)}`;
+
+            // Update allowance label (allowance is in USD)
+            if (data.monthlyAllowance > 0) {
+                document.getElementById('summaryAllowanceLabel').textContent = `Limit: $${data.monthlyAllowance.toFixed(2)}`;
+            } else {
+                document.getElementById('summaryAllowanceLabel').textContent = 'Official';
             }
 
-            if (warnings.length > 0) {
-                alert('Warning:\n• ' + warnings.join('\n• '));
+            // Update overage card
+            if (data.hasOverage) {
+                document.getElementById('summaryOverageAmount').textContent = `$${data.overageAmountUSD.toFixed(2)}`;
+                document.getElementById('summaryOverageAmount').classList.add('text-danger');
+                document.getElementById('summaryOverageLabel').textContent = 'Overage';
+                document.getElementById('summaryOverageIcon').innerHTML = '<i class="bi bi-exclamation-triangle text-danger"></i>';
+                document.getElementById('overageWarningBanner').classList.remove('d-none');
+                document.getElementById('overageWarningText').textContent =
+                    `Calls exceeded allowance by $${data.overageAmountUSD.toFixed(2)}`;
+            } else {
+                document.getElementById('summaryOverageAmount').textContent = `${currencySymbol}${officialCost.toFixed(2)}`;
+                document.getElementById('summaryOverageAmount').classList.remove('text-danger');
+                document.getElementById('summaryOverageLabel').textContent = 'Total';
+                document.getElementById('summaryOverageIcon').innerHTML = '<i class="bi bi-check-circle text-success"></i>';
+                document.getElementById('overageWarningBanner').classList.add('d-none');
             }
 
-            if (selectedIds.length === 0) {
-                alert('No valid calls to submit. Please select calls that are:\n• Not expired\n• Not already submitted to supervisor\n• Verified as Official or Personal');
-                return;
+            // Render phone overage justification forms if needed
+            renderPhoneOverageSection(data.phoneOverages, data.callMonth, data.callYear);
+
+            // Render supervisor info
+            document.getElementById('supervisorName').textContent = data.supervisor.name;
+            document.getElementById('supervisorEmail').textContent = data.supervisor.email;
+        }
+
+        function renderPhoneOverageSection(phoneOverages, callMonth, callYear) {
+            const section = document.getElementById('phoneOverageSection');
+            section.innerHTML = '';
+
+            // Filter only phones with overage
+            const overagePhones = phoneOverages.filter(p => p.hasOverage);
+            if (overagePhones.length === 0) return;
+
+            overagePhones.forEach((phoneOverage, index) => {
+                const monthName = new Date(callYear, callMonth - 1, 1).toLocaleString('default', { month: 'long', year: 'numeric' });
+
+                const card = document.createElement('div');
+                card.className = 'card mb-3 border-0 shadow-sm';
+                card.style.cssText = 'border-radius: 10px;';
+
+                if (phoneOverage.hasExistingJustification) {
+                    // Show existing justification (read-only)
+                    card.innerHTML = `
+                        <div class="card-body p-3">
+                            <div class="d-flex justify-content-between align-items-center mb-2">
+                                <div>
+                                    <small class="fw-bold text-dark">
+                                        <i class="bi bi-telephone me-1"></i>${escapeHtml(phoneOverage.phoneNumber)}
+                                    </small>
+                                    <span class="badge bg-warning text-dark ms-2" style="font-size: 0.7rem;">Overage</span>
+                                </div>
+                                <small class="text-danger fw-bold">+$${phoneOverage.overageAmount.toFixed(2)}</small>
+                            </div>
+                            <div class="bg-light p-2 rounded" style="font-size: 0.85rem;">
+                                <i class="bi bi-check-circle text-success me-1"></i>
+                                <strong>Justification submitted</strong> on ${phoneOverage.existingJustificationDate}
+                                <span class="badge bg-${phoneOverage.existingJustificationStatus === 'Approved' ? 'success' : phoneOverage.existingJustificationStatus === 'Rejected' ? 'danger' : 'secondary'} ms-1" style="font-size: 0.65rem;">
+                                    ${phoneOverage.existingJustificationStatus}
+                                </span>
+                            </div>
+                        </div>
+                    `;
+                } else {
+                    // Collect new justification
+                    card.innerHTML = `
+                        <div class="card-body p-3">
+                            <div class="d-flex justify-content-between align-items-center mb-2">
+                                <div>
+                                    <small class="fw-bold text-dark">
+                                        <i class="bi bi-telephone me-1"></i>${escapeHtml(phoneOverage.phoneNumber)}
+                                    </small>
+                                    <span class="badge bg-danger ms-2" style="font-size: 0.7rem;">Justification Required</span>
+                                </div>
+                                <small class="text-danger fw-bold">+$${phoneOverage.overageAmount.toFixed(2)}</small>
+                            </div>
+                            <input type="hidden" name="phoneOverageJustifications[${index}].UserPhoneId" value="${phoneOverage.userPhoneId}" class="phone-overage-userphoneid">
+                            <div class="mb-2">
+                                <label class="form-label small mb-1">
+                                    Justification <span class="text-danger">*</span>
+                                </label>
+                                <textarea class="form-control form-control-sm phone-overage-justification"
+                                          name="phoneOverageJustifications[${index}].Justification"
+                                          rows="2"
+                                          required
+                                          data-userphone-id="${phoneOverage.userPhoneId}"
+                                          placeholder="Explain why calls exceeded the limit..."></textarea>
+                            </div>
+                            <div>
+                                <label class="form-label small mb-1">
+                                    Document <span class="text-danger">*</span>
+                                </label>
+                                <input type="file"
+                                       class="form-control form-control-sm phone-overage-document"
+                                       name="phoneOverageJustifications[${index}].Document"
+                                       data-userphone-id="${phoneOverage.userPhoneId}"
+                                       required
+                                       accept=".pdf,.doc,.docx,.jpg,.jpeg,.png">
+                            </div>
+                        </div>
+                    `;
+                }
+
+                section.appendChild(card);
+            });
+        }
+
+        function validateOverageJustifications() {
+            const justifications = document.querySelectorAll('.phone-overage-justification');
+            const documents = document.querySelectorAll('.phone-overage-document');
+
+            let valid = true;
+
+            justifications.forEach(textarea => {
+                if (textarea.required && !textarea.value.trim()) {
+                    textarea.classList.add('is-invalid');
+                    valid = false;
+                } else {
+                    textarea.classList.remove('is-invalid');
+                }
+            });
+
+            documents.forEach(input => {
+                if (input.required && input.files.length === 0) {
+                    input.classList.add('is-invalid');
+                    valid = false;
+                } else {
+                    input.classList.remove('is-invalid');
+                }
+            });
+
+            if (!valid) {
+                showNotification('warning', 'Validation Error', 'Please provide justification and supporting document for all overage extensions.');
             }
 
-            // Redirect to submit page with selected IDs
-            window.location.href = '/Modules/EBillManagement/CallRecords/SubmitToSupervisor?ids=' + selectedIds.join(',');
+            return valid;
+        }
+
+        async function confirmSubmitToSupervisor() {
+            // Validate overage justifications if required
+            if (submissionData && submissionData.hasAnyPhoneOverage) {
+                if (!validateOverageJustifications()) {
+                    return;
+                }
+            }
+
+            // Collect form data
+            const formData = new FormData();
+
+            // Add call record IDs
+            submissionData.callRecordIds.forEach(id => formData.append('callRecordIds', id));
+
+            // Add phone overage justifications
+            const justifications = document.querySelectorAll('.phone-overage-justification');
+            const documents = document.querySelectorAll('.phone-overage-document');
+            const userPhoneIds = document.querySelectorAll('.phone-overage-userphoneid');
+
+            let index = 0;
+            userPhoneIds.forEach((input) => {
+                const userPhoneId = input.value;
+                const justificationTextarea = document.querySelector(`.phone-overage-justification[data-userphone-id="${userPhoneId}"]`);
+                const documentInput = document.querySelector(`.phone-overage-document[data-userphone-id="${userPhoneId}"]`);
+
+                if (justificationTextarea && justificationTextarea.value.trim()) {
+                    formData.append(`phoneOverageJustifications[${index}].UserPhoneId`, userPhoneId);
+                    formData.append(`phoneOverageJustifications[${index}].Justification`, justificationTextarea.value.trim());
+
+                    if (documentInput && documentInput.files.length > 0) {
+                        formData.append(`phoneOverageJustifications[${index}].Document`, documentInput.files[0]);
+                    }
+                    index++;
+                }
+            });
+
+            // Add antiforgery token to form data
+            const token = document.querySelector('input[name="__RequestVerificationToken"]');
+            if (token) {
+                formData.append('__RequestVerificationToken', token.value);
+            }
+
+            // Show loading state on button
+            const btn = document.getElementById('btnConfirmSubmit');
+            const originalText = btn.innerHTML;
+            btn.disabled = true;
+            btn.innerHTML = '<span class="spinner-border spinner-border-sm me-2"></span>Submitting...';
+
+            try {
+                // Submit
+                const response = await fetch('?handler=SubmitToSupervisor', {
+                    method: 'POST',
+                    body: formData
+                });
+
+                const result = await response.json();
+
+                if (result.success) {
+                    bootstrap.Modal.getInstance(document.getElementById('submitToSupervisorModal')).hide();
+                    showNotification('success', 'Success', result.message);
+                    // Refresh page after a short delay to show updated status
+                    setTimeout(() => location.reload(), 1500);
+                } else {
+                    showNotification('error', 'Submission Failed', result.message);
+                    btn.disabled = false;
+                    btn.innerHTML = originalText;
+                }
+            } catch (error) {
+                console.error('Error submitting to supervisor:', error);
+                showNotification('error', 'Error', 'Failed to submit. Please try again.');
+                btn.disabled = false;
+                btn.innerHTML = originalText;
+            }
+        }
+
+        function escapeHtml(text) {
+            if (!text) return '';
+            const div = document.createElement('div');
+            div.textContent = text;
+            return div.innerHTML;
         }
 
         // Store current verification data
@@ -2018,11 +3440,92 @@
             idInput.value = callId;
             form.appendChild(idInput);
 
+            // Show loading overlay
+            showLoadingOverlay('Marking Call...', `Marking call as ${verificationType}.`);
+
             document.body.appendChild(form);
             form.submit();
         }
 
-        // Verify all calls in a group (extension + month + year)
+        // Verify ALL calls for an extension in a specific month/year (server-side)
+        // This verifies all records in the database, not just visible ones
+        function verifyAllCallsForExtensionMonth(extension, month, year, verificationType, totalCallCount) {
+            // Reset dropdown if no selection
+            if (!verificationType) {
+                return;
+            }
+
+            const monthNames = ['January', 'February', 'March', 'April', 'May', 'June',
+                              'July', 'August', 'September', 'October', 'November', 'December'];
+            const monthName = monthNames[month - 1];
+
+            // Prepare confirmation modal content
+            const typeLabel = verificationType === 'Official' ? 'Official (work-related)' : 'Personal';
+            const typeColor = verificationType === 'Official' ? 'success' : 'warning';
+
+            // Show custom confirmation modal
+            showConfirmation(
+                `Mark All Calls?`,
+                `You are about to mark <strong>ALL calls</strong> for extension <strong>${extension}</strong> in <strong>${monthName} ${year}</strong> as <span class="badge bg-${typeColor}">${typeLabel}</span>.`,
+                'Yes, Mark All',
+                () => {
+                    // User confirmed - submit form
+                    const form = document.createElement('form');
+                    form.method = 'POST';
+                    form.action = '?handler=VerifyAllByExtensionMonth';
+
+                    // Add anti-forgery token
+                    const tokenInput = document.createElement('input');
+                    tokenInput.type = 'hidden';
+                    tokenInput.name = '__RequestVerificationToken';
+                    tokenInput.value = document.querySelector('input[name="__RequestVerificationToken"]').value;
+                    form.appendChild(tokenInput);
+
+                    // Add extension
+                    const extInput = document.createElement('input');
+                    extInput.type = 'hidden';
+                    extInput.name = 'extension';
+                    extInput.value = extension;
+                    form.appendChild(extInput);
+
+                    // Add month
+                    const monthInput = document.createElement('input');
+                    monthInput.type = 'hidden';
+                    monthInput.name = 'month';
+                    monthInput.value = month;
+                    form.appendChild(monthInput);
+
+                    // Add year
+                    const yearInput = document.createElement('input');
+                    yearInput.type = 'hidden';
+                    yearInput.name = 'year';
+                    yearInput.value = year;
+                    form.appendChild(yearInput);
+
+                    // Add verification type
+                    const typeInput = document.createElement('input');
+                    typeInput.type = 'hidden';
+                    typeInput.name = 'verificationType';
+                    typeInput.value = verificationType;
+                    form.appendChild(typeInput);
+
+                    // Show loading overlay before submit
+                    showLoadingOverlay(
+                        'Marking Calls...',
+                        `Marking all calls for ${extension} as ${verificationType}. This may take a moment.`
+                    );
+
+                    document.body.appendChild(form);
+                    form.submit();
+                },
+                () => {
+                    // User cancelled - reset dropdown
+                    event.target.selectedIndex = 0;
+                }
+            );
+        }
+
+        // Verify all calls in a group (extension + month + year) - OLD VERSION (visible calls only)
         function verifyAllCallsInGroup(groupId, verificationType) {
             // Reset dropdown if no selection
             if (!verificationType) {
@@ -2081,7 +3584,7 @@
                     message = `All ${totalCalls} call(s) in this group cannot be verified at this time.`;
                 }
 
-                showNotification('info', 'No Calls to Verify', message);
+                showNotification('info', 'No Calls to Mark', message);
 
                 // Reset dropdown
                 event.target.selectedIndex = 0;
@@ -2104,9 +3607,9 @@
 
             // Show custom confirmation modal
             showConfirmation(
-                `Verify ${verifiableCallIds.length} ${callWord}?`,
-                `You are about to verify <strong>${verifiableCallIds.length} ${callWord}</strong> as <span class="badge bg-${typeColor}">${typeLabel}</span>.${noteHtml}`,
-                'Yes, Verify',
+                `Mark ${verifiableCallIds.length} ${callWord}?`,
+                `You are about to mark <strong>${verifiableCallIds.length} ${callWord}</strong> as <span class="badge bg-${typeColor}">${typeLabel}</span>.${noteHtml}`,
+                'Yes, Mark',
                 () => {
                     // User confirmed - submit form
                     const form = document.createElement('form');
@@ -2135,6 +3638,12 @@
                         idInput.value = callId;
                         form.appendChild(idInput);
                     });
+
+                    // Show loading overlay
+                    showLoadingOverlay(
+                        'Marking Calls...',
+                        `Marking ${verifiableCallIds.length} call(s) as ${verificationType}. This may take a moment.`
+                    );
 
                     document.body.appendChild(form);
                     form.submit();
@@ -2198,7 +3707,7 @@
                     message = `All ${totalCalls} call(s) to this number cannot be verified at this time.`;
                 }
 
-                showNotification('info', 'No Calls to Verify', message);
+                showNotification('info', 'No Calls to Mark', message);
                 return;
             }
 
@@ -2218,9 +3727,9 @@
 
             // Show custom confirmation modal
             showConfirmation(
-                `Verify ${verifiableCallIds.length} ${callWord} to this number?`,
-                `You are about to verify <strong>${verifiableCallIds.length} ${callWord}</strong> to this dialed number as <span class="badge bg-${typeColor}">${typeLabel}</span>.${noteHtml}`,
-                'Yes, Verify',
+                `Mark ${verifiableCallIds.length} ${callWord} to this number?`,
+                `You are about to mark <strong>${verifiableCallIds.length} ${callWord}</strong> to this dialed number as <span class="badge bg-${typeColor}">${typeLabel}</span>.${noteHtml}`,
+                'Yes, Mark',
                 () => {
                     // User confirmed - submit form
                     const form = document.createElement('form');
@@ -2249,6 +3758,12 @@
                         idInput.value = callId;
                         form.appendChild(idInput);
                     });
+
+                    // Show loading overlay
+                    showLoadingOverlay(
+                        'Marking Calls...',
+                        `Marking ${verifiableCallIds.length} call(s) as ${verificationType}. This may take a moment.`
+                    );
 
                     document.body.appendChild(form);
                     form.submit();
@@ -2332,8 +3847,8 @@
         let pendingVerificationType = '';
 
         function quickVerifySelected(verificationType) {
-            // Only get unverified, non-expired calls
-            const selectedCheckboxes = Array.from(document.querySelectorAll('.call-checkbox:checked'));
+            // Only get unverified, non-expired calls (both static and AJAX-loaded)
+            const selectedCheckboxes = Array.from(document.querySelectorAll('.call-checkbox:checked, .call-checkbox-ajax:checked'));
             const expiredCount = selectedCheckboxes.filter(cb => cb.getAttribute('data-expired') === 'true').length;
             const selectedIds = selectedCheckboxes
                 .filter(cb => cb.getAttribute('data-verified') === 'false' && cb.getAttribute('data-expired') === 'false')
@@ -2408,6 +3923,12 @@
                 idInput.value = id;
                 form.appendChild(idInput);
             });
+
+            // Show loading overlay before submit
+            showLoadingOverlay(
+                'Marking Calls...',
+                `Marking ${pendingVerificationIds.length} call(s) as ${verificationType}. This may take a moment.`
+            );
 
             document.body.appendChild(form);
             form.submit();
@@ -2518,21 +4039,341 @@
         }
 
         // ========================
+        // BULK ASSIGNMENT ACCEPT/REJECT FUNCTIONS
+        // ========================
+
+        let bulkAssignmentData = {
+            level: '',
+            extension: '',
+            month: 0,
+            year: 0,
+            dialedNumber: '',
+            count: 0,
+            amount: 0,
+            fromUser: ''
+        };
+
+        function showAcceptBulkModal(level, extension, month, year, dialedNumber, count, amount, fromUser) {
+            bulkAssignmentData = { level, extension, month, year, dialedNumber, count, amount, fromUser };
+
+            document.getElementById('acceptBulkCount').textContent = count;
+            document.getElementById('acceptBulkLevel').textContent = level === 'extension' ? `Extension ${extension} (${month}/${year})` : `Dialed Number`;
+            document.getElementById('acceptBulkAmount').textContent = '$' + parseFloat(amount).toFixed(2);
+            document.getElementById('acceptBulkFromUser').textContent = fromUser || 'Multiple users';
+
+            // Show/hide dialed number row
+            const dialedNumberRow = document.getElementById('acceptBulkDialedNumberRow');
+            if (level === 'dialedNumber' && dialedNumber) {
+                dialedNumberRow.style.display = '';
+                document.getElementById('acceptBulkDialedNumber').textContent = dialedNumber;
+            } else {
+                dialedNumberRow.style.display = 'none';
+            }
+
+            const modal = new bootstrap.Modal(document.getElementById('acceptBulkAssignmentModal'));
+            modal.show();
+        }
+
+        async function confirmAcceptBulkAssignment() {
+            try {
+                const response = await fetch('/Modules/EBillManagement/CallRecords/MyCallLogs?handler=AcceptAssignmentBulk', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                        'RequestVerificationToken': document.querySelector('input[name="__RequestVerificationToken"]').value
+                    },
+                    body: JSON.stringify({
+                        extension: bulkAssignmentData.extension,
+                        month: bulkAssignmentData.month,
+                        year: bulkAssignmentData.year,
+                        dialedNumber: bulkAssignmentData.dialedNumber || null
+                    })
+                });
+
+                const result = await response.json();
+
+                const modal = bootstrap.Modal.getInstance(document.getElementById('acceptBulkAssignmentModal'));
+                modal.hide();
+
+                if (result.success) {
+                    alert(`Successfully accepted ${result.acceptedCount} assignment(s)!`);
+                    location.reload();
+                } else {
+                    alert('Error: ' + result.message);
+                }
+            } catch (error) {
+                alert('Error accepting assignments: ' + error.message);
+            }
+        }
+
+        function showRejectBulkModal(level, extension, month, year, dialedNumber, count, amount, fromUser) {
+            bulkAssignmentData = { level, extension, month, year, dialedNumber, count, amount, fromUser };
+
+            document.getElementById('rejectBulkCount').textContent = count;
+            document.getElementById('rejectBulkLevel').textContent = level === 'extension' ? `Extension ${extension} (${month}/${year})` : `Dialed Number`;
+            document.getElementById('rejectBulkAmount').textContent = '$' + parseFloat(amount).toFixed(2);
+            document.getElementById('rejectBulkFromUser').textContent = fromUser || 'Multiple users';
+            document.getElementById('bulkRejectionReason').value = '';
+            document.getElementById('bulkRejectionReason').classList.remove('is-invalid');
+
+            // Show/hide dialed number row
+            const dialedNumberRow = document.getElementById('rejectBulkDialedNumberRow');
+            if (level === 'dialedNumber' && dialedNumber) {
+                dialedNumberRow.style.display = '';
+                document.getElementById('rejectBulkDialedNumber').textContent = dialedNumber;
+            } else {
+                dialedNumberRow.style.display = 'none';
+            }
+
+            const modal = new bootstrap.Modal(document.getElementById('rejectBulkAssignmentModal'));
+            modal.show();
+        }
+
+        async function confirmRejectBulkAssignment() {
+            const reason = document.getElementById('bulkRejectionReason').value.trim();
+            const reasonField = document.getElementById('bulkRejectionReason');
+
+            if (!reason) {
+                reasonField.classList.add('is-invalid');
+                return;
+            }
+
+            reasonField.classList.remove('is-invalid');
+
+            try {
+                const response = await fetch('/Modules/EBillManagement/CallRecords/MyCallLogs?handler=RejectAssignmentBulk', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                        'RequestVerificationToken': document.querySelector('input[name="__RequestVerificationToken"]').value
+                    },
+                    body: JSON.stringify({
+                        extension: bulkAssignmentData.extension,
+                        month: bulkAssignmentData.month,
+                        year: bulkAssignmentData.year,
+                        dialedNumber: bulkAssignmentData.dialedNumber || null,
+                        reason: reason
+                    })
+                });
+
+                const result = await response.json();
+
+                const modal = bootstrap.Modal.getInstance(document.getElementById('rejectBulkAssignmentModal'));
+                modal.hide();
+
+                if (result.success) {
+                    alert(`Successfully rejected ${result.rejectedCount} assignment(s)!`);
+                    location.reload();
+                } else {
+                    alert('Error: ' + result.message);
+                }
+            } catch (error) {
+                alert('Error rejecting assignments: ' + error.message);
+            }
+        }
+
+        // ========================
+        // RECALL FUNCTIONS
+        // ========================
+
+        let recallCallId = 0;
+        let recallBulkData = {};
+
+        // Show recall modal for single call
+        function showRecallModal(callId, dialedNumber, amount, assignedTo) {
+            recallCallId = callId;
+            document.getElementById('recallCallId').value = callId;
+            document.getElementById('recallCallNumber').textContent = dialedNumber;
+            document.getElementById('recallCallAmount').textContent = `$${amount.toFixed(2)}`;
+            document.getElementById('recallToUser').textContent = assignedTo || 'Unknown';
+
+            const modal = new bootstrap.Modal(document.getElementById('recallAssignmentModal'));
+            modal.show();
+        }
+
+        // Confirm single recall
+        async function confirmRecallAssignment() {
+            try {
+                const response = await fetch(`/Modules/EBillManagement/CallRecords/MyCallLogs?handler=RecallAssignment&callRecordId=${recallCallId}`, {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                        'RequestVerificationToken': document.querySelector('input[name="__RequestVerificationToken"]').value
+                    }
+                });
+
+                const result = await response.json();
+
+                const modal = bootstrap.Modal.getInstance(document.getElementById('recallAssignmentModal'));
+                modal.hide();
+
+                if (result.success) {
+                    alert('Reassignment recalled successfully!');
+                    location.reload();
+                } else {
+                    alert('Error: ' + result.message);
+                }
+            } catch (error) {
+                alert('Error recalling assignment: ' + error.message);
+            }
+        }
+
+        // Show bulk recall modal
+        function showRecallBulkModal(level, extension, month, year, dialedNumber, count, amount, assignedTo) {
+            recallBulkData = { extension, month, year, dialedNumber: dialedNumber || null };
+
+            document.getElementById('recallBulkCount').textContent = count;
+            document.getElementById('recallBulkLevel').textContent = level === 'extension' ? `Extension ${extension}` : `Dialed Number`;
+            document.getElementById('recallBulkAmount').textContent = `$${amount.toFixed(2)}`;
+            document.getElementById('recallBulkToUser').textContent = assignedTo || 'Multiple users';
+
+            // Show/hide dialed number row based on level
+            const dialedRow = document.getElementById('recallBulkDialedNumberRow');
+            if (dialedNumber) {
+                document.getElementById('recallBulkDialedNumber').textContent = dialedNumber;
+                dialedRow.style.display = 'block';
+            } else {
+                dialedRow.style.display = 'none';
+            }
+
+            const modal = new bootstrap.Modal(document.getElementById('recallBulkAssignmentModal'));
+            modal.show();
+        }
+
+        // Confirm bulk recall
+        async function confirmRecallBulkAssignment() {
+            try {
+                const response = await fetch('/Modules/EBillManagement/CallRecords/MyCallLogs?handler=RecallAssignmentBulk', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                        'RequestVerificationToken': document.querySelector('input[name="__RequestVerificationToken"]').value
+                    },
+                    body: JSON.stringify({
+                        extension: recallBulkData.extension,
+                        month: recallBulkData.month,
+                        year: recallBulkData.year,
+                        dialedNumber: recallBulkData.dialedNumber
+                    })
+                });
+
+                const result = await response.json();
+
+                const modal = bootstrap.Modal.getInstance(document.getElementById('recallBulkAssignmentModal'));
+                modal.hide();
+
+                if (result.success) {
+                    alert(`Successfully recalled ${result.recalledCount} reassignment(s)!`);
+                    location.reload();
+                } else {
+                    alert('Error: ' + result.message);
+                }
+            } catch (error) {
+                alert('Error recalling assignments: ' + error.message);
+            }
+        }
+
+        // ========================
         // REASSIGNMENT FUNCTIONS
         // ========================
 
-        // Open reassign dialog
+        // Open reassign dialog for single call
         function openReassignDialog(callId, callNumber, destination, event) {
             event.preventDefault();
             event.stopPropagation();
+
+            // Reset modal to single-call mode
+            resetReassignModal();
 
             // Set call information in modal
             document.getElementById('reassignCallId').value = callId;
             document.getElementById('reassignDialedNumber').textContent = callNumber;
             document.getElementById('hiddenDialedNumber').value = callNumber;
+            document.getElementById('reassignLevel').value = 'call';
+
+            // Update modal title
+            document.getElementById('reassignModalTitle').textContent = 'Reassign Payment';
+            document.getElementById('reassignModalSubtitle').textContent = 'Transfer payment responsibility to another user';
 
             const modal = new bootstrap.Modal(document.getElementById('reassignModal'));
             modal.show();
+        }
+
+        // Open reassign dialog for all calls in an extension (Level 1)
+        function openReassignDialogForExtension(extension, month, year, callCount) {
+            // Reset modal
+            resetReassignModal();
+
+            // Set extension-level reassignment data
+            document.getElementById('reassignLevel').value = 'extension';
+            document.getElementById('reassignExtension').value = extension;
+            document.getElementById('reassignMonth').value = month;
+            document.getElementById('reassignYear').value = year;
+            document.getElementById('reassignCallId').value = '0'; // Not used for extension level
+            document.getElementById('hiddenDialedNumber').value = ''; // Not used for extension level
+
+            // Update modal display
+            document.getElementById('reassignModalTitle').textContent = 'Reassign Extension Calls';
+            document.getElementById('reassignModalSubtitle').textContent = `Reassign all unsubmitted calls from extension ${extension}`;
+
+            // Hide dialed number info, show extension and call count info
+            document.getElementById('reassignDialedNumber').parentElement.style.display = 'none';
+            document.getElementById('reassignExtensionInfo').style.display = 'flex';
+            document.getElementById('reassignExtensionNumber').textContent = extension;
+            document.getElementById('reassignCallCountInfo').style.display = 'flex';
+            document.getElementById('reassignCallCount').textContent = callCount + ' calls';
+
+            const modal = new bootstrap.Modal(document.getElementById('reassignModal'));
+            modal.show();
+        }
+
+        // Open reassign dialog for all calls to a dialed number (Level 2)
+        function openReassignDialogForDialedNumber(dialedNumber, extension, month, year, callCount) {
+            // Reset modal
+            resetReassignModal();
+
+            // Set dialed-number-level reassignment data
+            document.getElementById('reassignLevel').value = 'dialed';
+            document.getElementById('reassignExtension').value = extension;
+            document.getElementById('reassignMonth').value = month;
+            document.getElementById('reassignYear').value = year;
+            document.getElementById('reassignCallId').value = '0'; // Not used for dialed level
+            document.getElementById('hiddenDialedNumber').value = dialedNumber;
+
+            // Update modal display
+            document.getElementById('reassignModalTitle').textContent = 'Reassign Dialed Number Calls';
+            document.getElementById('reassignModalSubtitle').textContent = `Reassign all unsubmitted calls to ${dialedNumber}`;
+
+            // Show dialed number info, also show extension and call count
+            document.getElementById('reassignDialedNumber').parentElement.style.display = 'flex';
+            document.getElementById('reassignDialedNumber').textContent = dialedNumber;
+            document.getElementById('reassignExtensionInfo').style.display = 'flex';
+            document.getElementById('reassignExtensionNumber').textContent = extension;
+            document.getElementById('reassignCallCountInfo').style.display = 'flex';
+            document.getElementById('reassignCallCount').textContent = callCount + ' calls';
+
+            const modal = new bootstrap.Modal(document.getElementById('reassignModal'));
+            modal.show();
+        }
+
+        // Reset reassign modal to default state
+        function resetReassignModal() {
+            // Reset hidden fields
+            document.getElementById('reassignCallId').value = '';
+            document.getElementById('hiddenDialedNumber').value = '';
+            document.getElementById('reassignLevel').value = 'call';
+            document.getElementById('reassignExtension').value = '';
+            document.getElementById('reassignMonth').value = '';
+            document.getElementById('reassignYear').value = '';
+
+            // Reset display elements
+            document.getElementById('reassignDialedNumber').textContent = '';
+            document.getElementById('reassignDialedNumber').parentElement.style.display = 'flex';
+            document.getElementById('reassignExtensionInfo').style.display = 'none';
+            document.getElementById('reassignCallCountInfo').style.display = 'none';
+
+            // Clear selected user
+            clearSelectedUser();
         }
 
         // Variables for reassignment
@@ -2675,8 +4516,138 @@
         document.addEventListener('DOMContentLoaded', function() {
             // Update all extension checkboxes to reflect their current state
             document.querySelectorAll('.extension-checkbox').forEach(extCheck => {
-                const extensionId = extCheck.getAttribute('data-extension');
-                updateExtensionCheckbox(extensionId);
+                const extension = extCheck.getAttribute('data-extension');
+                const month = extCheck.getAttribute('data-month');
+                const year = extCheck.getAttribute('data-year');
+                updateExtensionCheckbox(extension, month, year);
+            });
+
+            // Event delegation for Level 2 (dialed numbers) pagination
+            document.addEventListener('click', function(e) {
+                const pageLink = e.target.closest('.dialednumbers-page-link');
+                if (pageLink) {
+                    e.preventDefault();
+                    const page = parseInt(pageLink.dataset.page);
+                    const paginationContainer = pageLink.closest('ul.pagination');
+                    if (paginationContainer) {
+                        const groupId = paginationContainer.dataset.groupId;
+                        if (groupId && page) {
+                            loadDialedNumbersPage(groupId, page);
+                        }
+                    }
+                }
+            });
+
+            // Event delegation for Level 3 (call logs) pagination
+            document.addEventListener('click', function(e) {
+                const pageLink = e.target.closest('.calllogs-page-link');
+                if (pageLink) {
+                    e.preventDefault();
+                    e.stopPropagation();
+
+                    console.log('=== LEVEL 3 PAGINATION CLICK ===');
+                    console.log('Clicked element:', pageLink);
+                    console.log('data-page attribute:', pageLink.dataset.page);
+
+                    const page = parseInt(pageLink.dataset.page);
+                    console.log('Parsed page number:', page);
+
+                    const paginationContainer = pageLink.closest('ul.pagination');
+                    console.log('Pagination container:', paginationContainer);
+
+                    if (paginationContainer) {
+                        const dialedGroupId = paginationContainer.dataset.dialedGroupId;
+                        console.log('dialedGroupId from container:', dialedGroupId);
+
+                        // Check if page is valid (could be 0 which is falsy)
+                        if (dialedGroupId && !isNaN(page) && page >= 1) {
+                            console.log('>>> Calling loadCallLogsPage with:', { dialedGroupId, page });
+                            loadCallLogsPage(dialedGroupId, page);
+                        } else {
+                            console.error('Invalid pagination params!');
+                            console.error('page:', page, 'isNaN:', isNaN(page));
+                            console.error('dialedGroupId:', dialedGroupId);
+                        }
+                    } else {
+                        console.error('Pagination container (ul.pagination) not found!');
+                    }
+                }
+            });
+
+            // Event delegation for Level 3 (call logs) sorting
+            document.addEventListener('click', function(e) {
+                const sortHeader = e.target.closest('.sortable-header');
+                if (sortHeader) {
+                    e.preventDefault();
+                    e.stopPropagation();
+
+                    const sortBy = sortHeader.dataset.sort;
+                    const dialedGroupId = sortHeader.dataset.dialedGroup;
+
+                    if (!sortBy || !dialedGroupId) return;
+
+                    const contentDiv = document.getElementById('calllogs-content-' + dialedGroupId);
+                    if (!contentDiv) return;
+
+                    // Get current sort state
+                    const currentSortBy = contentDiv.dataset.sortBy || 'CallDate';
+                    const currentSortDesc = contentDiv.dataset.sortDesc !== 'false';
+
+                    // Determine new sort direction
+                    let newSortDesc;
+                    if (currentSortBy.toLowerCase() === sortBy.toLowerCase()) {
+                        // Toggle direction if same column
+                        newSortDesc = !currentSortDesc;
+                    } else {
+                        // Default to descending for new column
+                        newSortDesc = true;
+                    }
+
+                    // Get other data attributes
+                    const extension = contentDiv.dataset.extension;
+                    const month = contentDiv.dataset.month;
+                    const year = contentDiv.dataset.year;
+                    const dialedNumber = contentDiv.dataset.dialedNumber;
+
+                    console.log('Sorting by:', sortBy, 'desc:', newSortDesc);
+
+                    // Reload with new sort, starting at page 1
+                    loadCallLogs(contentDiv, extension, month, year, dialedNumber, dialedGroupId, 1, sortBy, newSortDesc);
+                }
+            });
+
+            // Event delegation for AJAX-loaded checkbox changes (Level 3)
+            document.addEventListener('change', function(e) {
+                if (e.target.classList.contains('call-checkbox-ajax')) {
+                    const extension = e.target.getAttribute('data-extension');
+                    const month = e.target.getAttribute('data-month');
+                    const year = e.target.getAttribute('data-year');
+                    const dialedGroup = e.target.getAttribute('data-dialed-group');
+                    const isChecked = e.target.checked;
+
+                    // If manually unchecking, clear parent selection states
+                    // (since not all children are selected anymore)
+                    if (!isChecked) {
+                        if (dialedGroup) {
+                            setDialedNumberSelected(dialedGroup, false);
+                        }
+                        if (extension && month && year) {
+                            setExtensionSelected(extension, month, year, false);
+                        }
+                    }
+
+                    // Update Level 2 (dialed number) checkbox
+                    if (dialedGroup) {
+                        updateDialedNumberCheckbox(dialedGroup);
+                    }
+
+                    // Update Level 1 (extension) checkbox
+                    if (extension && month && year) {
+                        updateExtensionCheckbox(extension, month, year);
+                    }
+
+                    updateQuickVerifyButtons();
+                }
             });
 
             // Initialize Bootstrap tooltips

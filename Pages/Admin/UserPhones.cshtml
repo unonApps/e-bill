@@ -24,7 +24,7 @@
         left: 0;
         right: 0;
         height: 4px;
-        background: linear-gradient(90deg, var(--gradient-start), var(--gradient-end));
+        background: var(--gradient-start);
     }
 
     .phone-card.phone-mobile::before {
@@ -58,7 +58,7 @@
     }
 
     .primary-indicator {
-        background: linear-gradient(135deg, #10b981, #059669);
+        background: #10b981;
         color: white;
         padding: 3px 10px;
         border-radius: 12px;
@@ -78,13 +78,13 @@
     }
 
     .card-header-gradient {
-        background: linear-gradient(135deg, #f8f9fa 0%, #e9ecef 100%);
+        background: #f8f9fa;
         border-bottom: 1px solid #e5e7eb;
         padding: 1.5rem;
     }
 
     .assign-card-header {
-        background: linear-gradient(135deg, #009EDB 0%, #0077B5 100%);
+        background: #009EDB;
         padding: 1.5rem;
         border: none;
     }
@@ -169,7 +169,7 @@
     .empty-state-icon {
         width: 80px;
         height: 80px;
-        background: linear-gradient(135deg, #f3f4f6, #e5e7eb);
+        background: #f3f4f6;
         border-radius: 50%;
         display: inline-flex;
         align-items: center;
@@ -262,9 +262,17 @@
                     </div>
                 }
             </div>
-            <a href="/Admin/EbillUsers" class="btn btn-outline-secondary btn-action">
-                <i class="bi bi-arrow-left me-2"></i>Back to Users
-            </a>
+            <div class="d-flex gap-2">
+                <button type="button" class="btn btn-primary btn-action" data-bs-toggle="modal" data-bs-target="#assignPhoneModal">
+                    <i class="bi bi-plus-circle me-2"></i>Assign Phone Number
+                </button>
+                <button type="button" class="btn btn-info btn-action" data-bs-toggle="modal" data-bs-target="#reassignPhoneModal">
+                    <i class="bi bi-arrow-left-right me-2"></i>Reassign Phone Number
+                </button>
+                <a href="/Admin/EbillUsers" class="btn btn-outline-secondary btn-action">
+                    <i class="bi bi-arrow-left me-2"></i>Back to Users
+                </a>
+            </div>
         </div>
     </div>
 
@@ -296,9 +304,9 @@
 
     <div class="row">
         <!-- Current Phones -->
-        <div class="col-lg-8 mb-4">
+        <div class="col-12 mb-4">
             <div class="main-card">
-                <div class="card-header-gradient">
+                <div class="card-header-gradient" style="background: #f8f9fa; border-bottom: 2px solid #e5e7eb;">
                     <h5 class="mb-0 d-flex align-items-center">
                         <i class="bi bi-telephone-fill text-primary me-2"></i>
                         Assigned Phone Numbers
@@ -339,6 +347,7 @@
                                                 </h6>
                                                 <div class="d-flex align-items-center gap-2 flex-wrap">
                                                     <span class="phone-type-badge badge bg-light text-dark">@phone.PhoneType</span>
+                                                    <span class="badge bg-@phone.OwnershipTypeBadgeColor">@phone.OwnershipTypeDisplay</span>
                                                     <span class="badge bg-@phone.LineTypeBadgeColor">@phone.LineTypeDisplay</span>
                                                     @if (phone.IsPrimary)
                                                     {
@@ -369,7 +378,9 @@
                                                                 data-phone-notes="@phone.Notes"
                                                                 data-phone-primary="@phone.IsPrimary"
                                                                 data-phone-classofservice="@phone.ClassOfServiceId"
-                                                                data-phone-status="@((int)phone.Status)">
+                                                                data-phone-status="@((int)phone.Status)"
+                                                                data-phone-ownershiptype="@((int)phone.OwnershipType)"
+                                                                data-phone-purpose="@phone.Purpose">
                                                             <i class="bi bi-pencil text-primary"></i>Edit
                                                         </button>
                                                     </li>
@@ -398,6 +409,14 @@
                                                 </ul>
                                             </div>
                                         </div>
+
+                                        @if (!string.IsNullOrEmpty(phone.Purpose))
+                                        {
+                                            <div class="phone-detail">
+                                                <i class="bi bi-journal-text"></i>
+                                                <span><strong>Purpose:</strong> @phone.Purpose</span>
+                                            </div>
+                                        }
 
                                         @if (!string.IsNullOrEmpty(phone.Location))
                                         {
@@ -445,125 +464,6 @@
                 </div>
             </div>
         </div>
-
-        <!-- Assign New Phone -->
-        <div class="col-lg-4 mb-4">
-            <div class="main-card">
-                <div class="assign-card-header">
-                    <h5 class="mb-0 text-white d-flex align-items-center">
-                        <i class="bi bi-telephone-plus me-2"></i>
-                        Assign New Phone
-                    </h5>
-                </div>
-                <div class="p-4">
-                    <form method="post" asp-page-handler="AssignPhone">
-                        @Html.AntiForgeryToken()
-                        <input type="hidden" name="IndexNumber" value="@Model.IndexNumber" />
-
-                        <div class="mb-3">
-                            <label for="Input_PhoneNumber" class="form-label">
-                                <i class="bi bi-telephone"></i>
-                                Phone Number
-                            </label>
-                            <input name="Input.PhoneNumber" id="Input_PhoneNumber" class="form-control"
-                                   placeholder="e.g., 21236 or 0722123456" required />
-                            <span asp-validation-for="Input.PhoneNumber" class="text-danger small"></span>
-                        </div>
-
-                        <div class="mb-3">
-                            <label for="Input_PhoneType" class="form-label">
-                                <i class="bi bi-diagram-3"></i>
-                                Phone Type
-                            </label>
-                            <select name="Input.PhoneType" id="Input_PhoneType" class="form-select" required>
-                                <option value="">Select Type</option>
-                                <option value="Mobile">Mobile</option>
-                                <option value="Desk">Desk Phone</option>
-                                <option value="Extension">Extension</option>
-                            </select>
-                            <span asp-validation-for="Input.PhoneType" class="text-danger small"></span>
-                        </div>
-
-                        <div class="mb-3">
-                            <label for="Input_LineType" class="form-label">
-                                <i class="bi bi-tag"></i>
-                                Line Type
-                            </label>
-                            <select name="Input.LineType" id="Input_LineType" class="form-select" required>
-                                <option value="1">Primary</option>
-                                <option value="2" selected>Secondary</option>
-                                <option value="3">Reserved</option>
-                                <option value="4">Data</option>
-                            </select>
-                            <span asp-validation-for="Input.LineType" class="text-danger small"></span>
-                        </div>
-
-                        <div class="mb-3">
-                            <label for="Input_ClassOfServiceId" class="form-label">
-                                <i class="bi bi-award"></i>
-                                Class of Service
-                            </label>
-                            <select name="Input.ClassOfServiceId" id="Input_ClassOfServiceId" class="form-select">
-                                <option value="">Select Class (Optional)</option>
-                                @foreach (var cos in Model.ClassesOfService)
-                                {
-                                    <option value="@cos.Id">@cos.Class - @cos.Service</option>
-                                }
-                            </select>
-                            <span asp-validation-for="Input.ClassOfServiceId" class="text-danger small"></span>
-                        </div>
-
-                        <div class="mb-3">
-                            <label for="Input_Status" class="form-label">
-                                <i class="bi bi-info-circle"></i>
-                                Status
-                            </label>
-                            <select name="Input.Status" id="Input_Status" class="form-select" required>
-                                <option value="1">Active</option>
-                                <option value="2">Suspended</option>
-                                <option value="3">Deactivated</option>
-                            </select>
-                            <span asp-validation-for="Input.Status" class="text-danger small"></span>
-                        </div>
-
-                        <div class="mb-3">
-                            <label for="Input_Location" class="form-label">
-                                <i class="bi bi-geo-alt"></i>
-                                Location
-                            </label>
-                            <input name="Input.Location" id="Input_Location" class="form-control"
-                                   placeholder="e.g., Building A, Floor 3" />
-                            <span asp-validation-for="Input.Location" class="text-danger small"></span>
-                        </div>
-
-                        <div class="mb-3">
-                            <label for="Input_Notes" class="form-label">
-                                <i class="bi bi-sticky"></i>
-                                Notes
-                            </label>
-                            <textarea name="Input.Notes" id="Input_Notes" class="form-control"
-                                      rows="3" placeholder="Additional notes..."></textarea>
-                            <span asp-validation-for="Input.Notes" class="text-danger small"></span>
-                        </div>
-
-                        <div class="form-check mb-3">
-                            <input name="Input.IsPrimary" id="Input_IsPrimary" type="checkbox"
-                                   class="form-check-input" value="true" />
-                            <label for="Input_IsPrimary" class="form-check-label">
-                                Set as Primary Phone
-                            </label>
-                            <div class="form-text">
-                                <i class="bi bi-info-circle"></i> Automatically controlled by Line Type selection
-                            </div>
-                        </div>
-
-                        <button type="submit" class="btn btn-primary w-100 btn-action">
-                            <i class="bi bi-plus-circle me-2"></i>Assign Phone Number
-                        </button>
-                    </form>
-                </div>
-            </div>
-        </div>
     </div>
 </div>
 
@@ -571,7 +471,7 @@
 <div class="modal fade" id="editPhoneModal" tabindex="-1">
     <div class="modal-dialog modal-dialog-centered">
         <div class="modal-content" style="border-radius: 12px; border: none; overflow: hidden;">
-            <div class="modal-header" style="background: linear-gradient(135deg, #009EDB 0%, #0077B5 100%); border: none; padding: 1.5rem;">
+            <div class="modal-header" style="background: #009EDB; border: none; padding: 1.5rem;">
                 <h5 class="modal-title text-white d-flex align-items-center">
                     <i class="bi bi-pencil-square me-2"></i>
                     Edit Phone Details
@@ -590,7 +490,10 @@
                             Phone Number
                         </label>
                         <input name="EditInput.PhoneNumber" id="edit_PhoneNumber" class="form-control"
-                               placeholder="Enter phone number" required />
+                               placeholder="Enter phone number" required readonly style="background-color: #f3f4f6; cursor: not-allowed;" />
+                        <div class="form-text mt-2">
+                            <i class="bi bi-info-circle"></i> Phone number cannot be changed after assignment
+                        </div>
                     </div>
 
                     <div class="mb-4">
@@ -600,12 +503,43 @@
                         </label>
                         <select name="EditInput.PhoneType" id="edit_PhoneType" class="form-select" required>
                             <option value="Mobile">Mobile</option>
-                            <option value="Desk">Desk Phone</option>
-                            <option value="Extension">Extension</option>
+                            <option value="Fixed">Fixed Line</option>
                         </select>
+                        <div class="form-text mt-2" id="edit_phoneTypeHint">
+                            <i class="bi bi-info-circle"></i> Mobile requires 9+ digits
+                        </div>
                     </div>
 
                     <div class="mb-4">
+                        <label for="edit_OwnershipType" class="form-label">
+                            <i class="bi bi-building"></i>
+                            Ownership Type
+                        </label>
+                        <select name="EditInput.OwnershipType" id="edit_OwnershipType" class="form-select" required>
+                            <option value="1">Personal</option>
+                            <option value="2">Shared</option>
+                            <option value="3">Department</option>
+                            <option value="4">Infrastructure</option>
+                            <option value="5">Emergency</option>
+                        </select>
+                        <div class="form-text mt-2">
+                            <i class="bi bi-info-circle"></i> Select "Personal" for Staff phones, or other types for corporate/shared phones
+                        </div>
+                    </div>
+
+                    <div class="mb-4" id="edit_purposeField" style="display: none;">
+                        <label for="edit_Purpose" class="form-label">
+                            <i class="bi bi-journal-text"></i>
+                            Purpose <span class="text-danger">*</span>
+                        </label>
+                        <input name="EditInput.Purpose" id="edit_Purpose" class="form-control"
+                               placeholder="e.g., Server Room Main Line, HR Reception" />
+                        <div class="form-text mt-2">
+                            <i class="bi bi-info-circle"></i> Describe the purpose of this corporate phone
+                        </div>
+                    </div>
+
+                    <div class="mb-4" id="edit_lineTypeGroup">
                         <label for="edit_LineType" class="form-label">
                             <i class="bi bi-tag"></i>
                             Line Type
@@ -616,9 +550,12 @@
                             <option value="3">Reserved</option>
                             <option value="4">Data</option>
                         </select>
+                        <div class="form-text mt-2" id="edit_lineTypeNotAvailable" style="display: none;">
+                            <i class="bi bi-info-circle"></i> Not applicable for Fixed Lines
+                        </div>
                     </div>
 
-                    <div class="mb-4">
+                    <div class="mb-4" id="edit_classOfServiceGroup">
                         <label for="edit_ClassOfServiceId" class="form-label">
                             <i class="bi bi-award"></i>
                             Class of Service
@@ -630,6 +567,9 @@
                                 <option value="@cos.Id">@cos.Class - @cos.Service</option>
                             }
                         </select>
+                        <div class="form-text mt-2" id="edit_cosNotAvailable" style="display: none;">
+                            <i class="bi bi-info-circle"></i> Not applicable for Fixed Lines
+                        </div>
                     </div>
 
                     <div class="mb-4">
@@ -680,7 +620,7 @@
                         Cancel
                     </button>
                     <button type="submit" class="btn btn-primary px-4"
-                            style="background: linear-gradient(135deg, #009EDB, #0077B5); border: none; border-radius: 8px; font-weight: 500;">
+                            style="border-radius: 8px; font-weight: 500;">
                         <i class="bi bi-check-circle me-2"></i>Save Changes
                     </button>
                 </div>
@@ -693,7 +633,7 @@
 <div class="modal fade" id="unassignConfirmModal" tabindex="-1">
     <div class="modal-dialog modal-dialog-centered">
         <div class="modal-content" style="border-radius: 12px; border: none; overflow: hidden;">
-            <div class="modal-header" style="background: linear-gradient(135deg, #ef4444, #dc2626); border: none; padding: 1.5rem;">
+            <div class="modal-header" style="background: #dc2626; border: none; padding: 1.5rem;">
                 <h5 class="modal-title text-white d-flex align-items-center">
                     <i class="bi bi-exclamation-triangle me-2"></i>
                     Confirm Unassign
@@ -743,7 +683,7 @@
                         Cancel
                     </button>
                     <button type="submit" class="btn btn-danger px-4"
-                            style="background: linear-gradient(135deg, #ef4444, #dc2626); border: none; border-radius: 8px; font-weight: 500;">
+                            style="border-radius: 8px; font-weight: 500;">
                         <i class="bi bi-x-circle me-2"></i>Unassign Phone
                     </button>
                 </div>
@@ -829,7 +769,7 @@
 <div class="modal fade" id="primaryLineConfirmModal" tabindex="-1" data-bs-backdrop="static">
     <div class="modal-dialog modal-dialog-centered">
         <div class="modal-content" style="border-radius: 12px; border: none; overflow: hidden;">
-            <div class="modal-header" style="background: linear-gradient(135deg, #10b981, #059669); border: none; padding: 1.5rem;">
+            <div class="modal-header" style="background: #10b981; border: none; padding: 1.5rem;">
                 <h5 class="modal-title text-white d-flex align-items-center">
                     <i class="bi bi-star-fill me-2"></i>
                     Set as Primary Line
@@ -869,7 +809,7 @@
                     Cancel
                 </button>
                 <button type="button" class="btn btn-success px-4" id="confirmPrimaryButton" disabled
-                        style="background: linear-gradient(135deg, #10b981, #059669); border: none; border-radius: 8px; font-weight: 500;">
+                        style="border-radius: 8px; font-weight: 500;">
                     <i class="bi bi-check-circle me-2"></i>Confirm Primary Line
                 </button>
             </div>
@@ -881,7 +821,7 @@
 <div class="modal fade" id="phoneHistoryModal" tabindex="-1">
     <div class="modal-dialog modal-lg modal-dialog-scrollable">
         <div class="modal-content" style="border-radius: 12px; border: none;">
-            <div class="modal-header" style="background: linear-gradient(135deg, #6366f1, #4f46e5); border: none; padding: 1.5rem;">
+            <div class="modal-header" style="background: #6366f1; border: none; padding: 1.5rem;">
                 <h5 class="modal-title text-white d-flex align-items-center">
                     <i class="bi bi-clock-history me-2"></i>
                     Phone Line History
@@ -903,8 +843,283 @@
     </div>
 </div>
 
+<!-- Assign Phone Modal -->
+<div class="modal fade" id="assignPhoneModal" tabindex="-1">
+    <div class="modal-dialog modal-dialog-centered">
+        <div class="modal-content" style="border-radius: 12px; border: none; overflow: hidden;">
+            <div class="modal-header" style="background: #009EDB; border: none; padding: 1.5rem;">
+                <h5 class="modal-title text-white d-flex align-items-center">
+                    <i class="bi bi-telephone-plus me-2"></i>
+                    Assign New Phone Number
+                </h5>
+                <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal"></button>
+            </div>
+            <form method="post" asp-page-handler="AssignPhone">
+                <div class="modal-body" style="padding: 2rem;">
+                    @Html.AntiForgeryToken()
+                    <input type="hidden" name="IndexNumber" value="@Model.IndexNumber" />
+
+                    <div class="mb-4">
+                        <label for="Input_PhoneNumber" class="form-label">
+                            <i class="bi bi-telephone"></i>
+                            Phone Number
+                        </label>
+                        <input name="Input.PhoneNumber" id="Input_PhoneNumber" class="form-control"
+                               placeholder="Enter phone number" required />
+                    </div>
+
+                    <div class="mb-4">
+                        <label for="Input_PhoneType" class="form-label">
+                            <i class="bi bi-diagram-3"></i>
+                            Phone Type
+                        </label>
+                        <select name="Input.PhoneType" id="Input_PhoneType" class="form-select" required>
+                            <option value="Mobile">Mobile</option>
+                            <option value="Fixed">Fixed Line</option>
+                        </select>
+                        <div class="form-text mt-2" id="Input_phoneTypeHint">
+                            <i class="bi bi-info-circle"></i> Mobile requires 9+ digits
+                        </div>
+                    </div>
+
+                    <div class="mb-4">
+                        <label for="Input_OwnershipType" class="form-label">
+                            <i class="bi bi-building"></i>
+                            Ownership Type
+                        </label>
+                        <select name="Input.OwnershipType" id="Input_OwnershipType" class="form-select" required>
+                            <option value="1" selected>Personal</option>
+                            <option value="2">Shared</option>
+                            <option value="3">Department</option>
+                            <option value="4">Infrastructure</option>
+                            <option value="5">Emergency</option>
+                        </select>
+                        <div class="form-text mt-2">
+                            <i class="bi bi-info-circle"></i> Select "Personal" for Staff phones, or other types for corporate/shared phones
+                        </div>
+                    </div>
+
+                    <div class="mb-4" id="purposeField" style="display: none;">
+                        <label for="Input_Purpose" class="form-label">
+                            <i class="bi bi-journal-text"></i>
+                            Purpose <span class="text-danger">*</span>
+                        </label>
+                        <input name="Input.Purpose" id="Input_Purpose" class="form-control"
+                               placeholder="e.g., Server Room Main Line, HR Reception" />
+                        <div class="form-text mt-2">
+                            <i class="bi bi-info-circle"></i> Describe the purpose of this corporate phone
+                        </div>
+                    </div>
+
+                    <div class="mb-4" id="Input_lineTypeGroup">
+                        <label for="Input_LineType" class="form-label">
+                            <i class="bi bi-tag"></i>
+                            Line Type
+                        </label>
+                        <select name="Input.LineType" id="Input_LineType" class="form-select" required>
+                            <option value="1">Primary</option>
+                            <option value="2" selected>Secondary</option>
+                            <option value="3">Reserved</option>
+                            <option value="4">Data</option>
+                        </select>
+                        <div class="form-text mt-2" id="Input_lineTypeNotAvailable" style="display: none;">
+                            <i class="bi bi-info-circle"></i> Not applicable for Fixed Lines
+                        </div>
+                    </div>
+
+                    <div class="mb-4" id="Input_classOfServiceGroup">
+                        <label for="Input_ClassOfServiceId" class="form-label">
+                            <i class="bi bi-award"></i>
+                            Class of Service
+                        </label>
+                        <select name="Input.ClassOfServiceId" id="Input_ClassOfServiceId" class="form-select">
+                            <option value="">Select Class (Optional)</option>
+                            @foreach (var cos in Model.ClassesOfService)
+                            {
+                                <option value="@cos.Id">@cos.Class - @cos.Service</option>
+                            }
+                        </select>
+                        <div class="form-text mt-2" id="Input_cosNotAvailable" style="display: none;">
+                            <i class="bi bi-info-circle"></i> Not applicable for Fixed Lines
+                        </div>
+                    </div>
+
+                    <div class="mb-4">
+                        <label for="Input_Status" class="form-label">
+                            <i class="bi bi-info-circle"></i>
+                            Status
+                        </label>
+                        <select name="Input.Status" id="Input_Status" class="form-select" required>
+                            <option value="1" selected>Active</option>
+                            <option value="2">Suspended</option>
+                            <option value="3">Deactivated</option>
+                        </select>
+                    </div>
+
+                    <div class="mb-4">
+                        <label for="Input_Location" class="form-label">
+                            <i class="bi bi-geo-alt"></i>
+                            Location
+                        </label>
+                        <input name="Input.Location" id="Input_Location" class="form-control"
+                               placeholder="e.g., Building A, Floor 3" />
+                    </div>
+
+                    <div class="mb-4">
+                        <label for="Input_Notes" class="form-label">
+                            <i class="bi bi-sticky"></i>
+                            Notes
+                        </label>
+                        <textarea name="Input.Notes" id="Input_Notes" class="form-control" rows="3"
+                                  placeholder="Additional notes..."></textarea>
+                    </div>
+
+                    <div class="form-check p-3 rounded" style="background-color: #f8f9fa;">
+                        <input name="Input.IsPrimary" id="Input_IsPrimary" type="checkbox"
+                               class="form-check-input" value="true" style="border-width: 2px;" />
+                        <label for="Input_IsPrimary" class="form-check-label fw-medium">
+                            <i class="bi bi-star text-warning me-1"></i>
+                            Set as Primary Phone
+                        </label>
+                        <div class="form-text mt-2">
+                            <i class="bi bi-info-circle"></i> Automatically controlled by Line Type selection
+                        </div>
+                    </div>
+                </div>
+                <div class="modal-footer" style="background-color: #f8f9fa; border: none; padding: 1.5rem;">
+                    <button type="button" class="btn btn-light px-4" data-bs-dismiss="modal"
+                            style="border-radius: 8px; font-weight: 500;">
+                        Cancel
+                    </button>
+                    <button type="submit" class="btn btn-primary px-4"
+                            style="border-radius: 8px; font-weight: 500;">
+                        <i class="bi bi-check-circle me-2"></i>Assign Phone
+                    </button>
+                </div>
+            </form>
+        </div>
+    </div>
+</div>
+
+<!-- Reassign Phone Modal -->
+<div class="modal fade" id="reassignPhoneModal" tabindex="-1">
+    <div class="modal-dialog modal-dialog-centered modal-lg">
+        <div class="modal-content" style="border-radius: 12px; border: none; overflow: hidden;">
+            <div class="modal-header" style="background: #0891b2; border: none; padding: 1.5rem;">
+                <h5 class="modal-title text-white d-flex align-items-center">
+                    Reassign Phone Numbers
+                    @if (Model.User != null)
+                    {
+                        <span class="ms-2" style="font-size: 0.9rem; opacity: 0.9;">
+                            - From @Model.User.FirstName @Model.User.LastName
+                        </span>
+                    }
+                </h5>
+                <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal"></button>
+            </div>
+            <form method="post" asp-page-handler="ReassignPhone">
+                <div class="modal-body" style="padding: 2rem;">
+                    @Html.AntiForgeryToken()
+
+                    <div class="mb-4">
+                        <label class="form-label fw-semibold">
+                            Select Phone Numbers to Reassign
+                            @if (Model.User != null)
+                            {
+                                <span class="text-muted">(from @Model.User.FirstName @Model.User.LastName)</span>
+                            }
+                            <span class="text-danger">*</span>
+                        </label>
+                        <div class="border rounded p-3" style="background-color: #f9fafb; max-height: 200px; overflow-y: auto;">
+                            @if (Model.UserPhones != null && Model.UserPhones.Any())
+                            {
+                                foreach (var phone in Model.UserPhones)
+                                {
+                                    <div class="form-check mb-2">
+                                        <input class="form-check-input reassign-phone-checkbox" type="checkbox"
+                                               name="PhoneIds" value="@phone.Id" id="reassign_phone_@phone.Id">
+                                        <label class="form-check-label" for="reassign_phone_@phone.Id">
+                                            <strong>@phone.PhoneNumber</strong> - @phone.PhoneType
+                                            @if (phone.IsPrimary)
+                                            {
+                                                <span class="badge bg-success ms-2">PRIMARY</span>
+                                            }
+                                        </label>
+                                    </div>
+                                }
+                            }
+                            else
+                            {
+                                <p class="text-muted mb-0">No phone numbers available to reassign</p>
+                            }
+                        </div>
+                        <div class="form-text">
+                            Select one or more phone numbers to reassign to another user
+                        </div>
+                    </div>
+
+                    <div class="mb-4">
+                        <label for="reassign_NewUser" class="form-label fw-semibold">
+                            Assign To User <span class="text-danger">*</span>
+                        </label>
+                        <select name="NewIndexNumber" id="reassign_NewUser" class="form-select" required>
+                            <option value="">-- Search and select user --</option>
+                            @if (Model.AllUsers != null)
+                            {
+                                foreach (var user in Model.AllUsers.OrderBy(u => u.FirstName))
+                                {
+                                    <option value="@user.IndexNumber"
+                                            data-name="@user.FirstName @user.LastName"
+                                            data-email="@user.Email">
+                                        @user.IndexNumber - @user.FirstName @user.LastName (@user.Email)
+                                    </option>
+                                }
+                            }
+                        </select>
+                        <div class="form-text">
+                            Search by Index Number, Name, or Email
+                        </div>
+                    </div>
+
+                    <div class="alert d-flex align-items-start"
+                         style="background-color: #fef3c7; border: 1px solid #fcd34d; color: #92400e;">
+                        <div>
+                            <strong>Warning:</strong> This will remove the selected phone numbers from
+                            @if (Model.User != null)
+                            {
+                                <strong>@Model.User.FirstName @Model.User.LastName (@Model.User.IndexNumber)</strong>
+                            }
+                            else
+                            {
+                                <strong>the current user</strong>
+                            }
+                            and assign them to the selected user. This action cannot be undone automatically.
+                        </div>
+                    </div>
+                </div>
+                <div class="modal-footer" style="background-color: #f8f9fa; border: none; padding: 1.5rem;">
+                    <button type="button" class="btn btn-light px-4" data-bs-dismiss="modal"
+                            style="border-radius: 8px; font-weight: 500;">
+                        Cancel
+                    </button>
+                    <button type="submit" class="btn btn-info px-4"
+                            style="border-radius: 8px; font-weight: 500;">
+                        Reassign Selected Phones
+                    </button>
+                </div>
+            </form>
+        </div>
+    </div>
+</div>
+
 @section Scripts {
     <partial name="_ValidationScriptsPartial" />
+
+    <!-- Select2 CSS and JS for searchable dropdowns -->
+    <link href="https://cdn.jsdelivr.net/npm/select2@4.1.0-rc.0/dist/css/select2.min.css" rel="stylesheet" />
+    <link href="https://cdn.jsdelivr.net/npm/select2-bootstrap-5-theme@1.3.0/dist/select2-bootstrap-5-theme.min.css" rel="stylesheet" />
+    <script src="https://cdn.jsdelivr.net/npm/select2@4.1.0-rc.0/dist/js/select2.min.js"></script>
+
     <script>
         // Global variables for primary line confirmation
         var pendingPrimaryAction = null; // 'assign', 'edit', or 'setPrimary'
@@ -912,6 +1127,51 @@
         var assignFormSubmitting = false;
         var editFormSubmitting = false;
         var setPrimaryFormSubmitting = false;
+
+        // ===== Phone Type Validation Helpers =====
+
+        // Helper function to count digits in a phone number
+        function countDigits(phoneNumber) {
+            return (phoneNumber.match(/\d/g) || []).length;
+        }
+
+        // Helper function to toggle fields based on phone type
+        function toggleFieldsForPhoneType(prefix, phoneType) {
+            var isFixed = (phoneType === 'Fixed');
+
+            // Line Type field
+            var lineTypeSelect = document.getElementById(prefix + '_LineType');
+            var lineTypeNotAvailable = document.getElementById(prefix + '_lineTypeNotAvailable');
+
+            if (lineTypeSelect) {
+                if (isFixed) {
+                    lineTypeSelect.disabled = true;
+                    lineTypeSelect.style.backgroundColor = '#e9ecef';
+                    if (lineTypeNotAvailable) lineTypeNotAvailable.style.display = 'block';
+                } else {
+                    lineTypeSelect.disabled = false;
+                    lineTypeSelect.style.backgroundColor = '';
+                    if (lineTypeNotAvailable) lineTypeNotAvailable.style.display = 'none';
+                }
+            }
+
+            // Class of Service field
+            var cosSelect = document.getElementById(prefix + '_ClassOfServiceId');
+            var cosNotAvailable = document.getElementById(prefix + '_cosNotAvailable');
+
+            if (cosSelect) {
+                if (isFixed) {
+                    cosSelect.disabled = true;
+                    cosSelect.value = '';
+                    cosSelect.style.backgroundColor = '#e9ecef';
+                    if (cosNotAvailable) cosNotAvailable.style.display = 'block';
+                } else {
+                    cosSelect.disabled = false;
+                    cosSelect.style.backgroundColor = '';
+                    if (cosNotAvailable) cosNotAvailable.style.display = 'none';
+                }
+            }
+        }
 
         // Primary Confirmation Modal - Enable/Disable confirm button
         document.getElementById('confirmPrimaryCheckbox').addEventListener('change', function() {
@@ -959,16 +1219,65 @@
             var isPrimary = button.getAttribute('data-phone-primary') === 'True';
             var classOfService = button.getAttribute('data-phone-classofservice');
             var status = button.getAttribute('data-phone-status');
+            var ownershipType = button.getAttribute('data-phone-ownershiptype') || '1';
+            var purpose = button.getAttribute('data-phone-purpose');
+
+            // Map old phone types to new ones (Desk/Extension -> Fixed)
+            if (phoneType === 'Desk' || phoneType === 'Extension') {
+                phoneType = 'Fixed';
+            }
 
             document.getElementById('edit_PhoneId').value = phoneId;
             document.getElementById('edit_PhoneNumber').value = phoneNumber;
             document.getElementById('edit_PhoneType').value = phoneType;
+            document.getElementById('edit_OwnershipType').value = ownershipType;
             document.getElementById('edit_LineType').value = lineType || '2';
             document.getElementById('edit_Location').value = location || '';
             document.getElementById('edit_Notes').value = notes || '';
+            document.getElementById('edit_Purpose').value = purpose || '';
             document.getElementById('edit_IsPrimary').checked = isPrimary;
             document.getElementById('edit_ClassOfServiceId').value = classOfService || '';
             document.getElementById('edit_Status').value = status || '1';
+
+            // Show/hide Purpose field based on OwnershipType
+            var editPurposeField = document.getElementById('edit_purposeField');
+            var editPurposeInput = document.getElementById('edit_Purpose');
+            if (ownershipType === '1') { // Personal
+                editPurposeField.style.display = 'none';
+                editPurposeInput.removeAttribute('required');
+            } else { // Corporate types
+                editPurposeField.style.display = 'block';
+                editPurposeInput.setAttribute('required', 'required');
+            }
+
+            // Apply phone type field toggling
+            toggleFieldsForPhoneType('edit', phoneType);
+
+            // Update hint for phone number
+            var digitCount = countDigits(phoneNumber || '');
+            var hintEl = document.getElementById('edit_phoneTypeHint');
+            if (hintEl) {
+                if (phoneType === 'Fixed' || digitCount < 9) {
+                    hintEl.innerHTML = '<i class="bi bi-info-circle"></i> Fixed Line - Line Type and Class of Service disabled';
+                } else {
+                    hintEl.innerHTML = '<i class="bi bi-check-circle text-success"></i> ' + digitCount + ' digits - valid for Mobile';
+                }
+            }
+        });
+
+        // Edit Phone Type change handler
+        document.getElementById('edit_PhoneType').addEventListener('change', function() {
+            var phoneType = this.value;
+            var digitCount = countDigits(document.getElementById('edit_PhoneNumber').value);
+
+            // Prevent selecting Mobile if less than 9 digits
+            if (phoneType === 'Mobile' && digitCount > 0 && digitCount < 9) {
+                alert('Mobile phone numbers must have at least 9 digits. This number has only ' + digitCount + ' digits.');
+                this.value = 'Fixed';
+                phoneType = 'Fixed';
+            }
+
+            toggleFieldsForPhoneType('edit', phoneType);
         });
 
         // Unassign Confirmation Modal
@@ -1010,11 +1319,66 @@
                 });
             });
 
-            // Intercept Assign Form submission for Primary confirmation
+            // ===== Assign Modal: Phone Type Logic =====
+
+            // Phone number input change - auto-detect type
+            var inputPhoneNumber = document.getElementById('Input_PhoneNumber');
+            if (inputPhoneNumber) {
+                inputPhoneNumber.addEventListener('input', function() {
+                    var digitCount = countDigits(this.value);
+                    var phoneTypeSelect = document.getElementById('Input_PhoneType');
+                    var hintEl = document.getElementById('Input_phoneTypeHint');
+
+                    // Update hint based on digit count
+                    if (hintEl) {
+                        if (digitCount > 0 && digitCount < 9) {
+                            hintEl.innerHTML = '<i class="bi bi-exclamation-circle text-warning"></i> ' + digitCount + ' digits detected - will be treated as Fixed Line';
+                            // Auto-switch to Fixed if currently Mobile
+                            if (phoneTypeSelect && phoneTypeSelect.value === 'Mobile') {
+                                phoneTypeSelect.value = 'Fixed';
+                                toggleFieldsForPhoneType('Input', 'Fixed');
+                            }
+                        } else if (digitCount >= 9) {
+                            hintEl.innerHTML = '<i class="bi bi-check-circle text-success"></i> ' + digitCount + ' digits - valid for Mobile';
+                        } else {
+                            hintEl.innerHTML = '<i class="bi bi-info-circle"></i> Mobile requires 9+ digits';
+                        }
+                    }
+                });
+            }
+
+            // Phone type change in Assign modal
+            var inputPhoneType = document.getElementById('Input_PhoneType');
+            if (inputPhoneType) {
+                inputPhoneType.addEventListener('change', function() {
+                    var phoneType = this.value;
+                    var digitCount = countDigits(document.getElementById('Input_PhoneNumber').value);
+
+                    // Prevent selecting Mobile if less than 9 digits
+                    if (phoneType === 'Mobile' && digitCount > 0 && digitCount < 9) {
+                        alert('Mobile phone numbers must have at least 9 digits. This number has only ' + digitCount + ' digits.');
+                        this.value = 'Fixed';
+                        phoneType = 'Fixed';
+                    }
+
+                    toggleFieldsForPhoneType('Input', phoneType);
+                });
+            }
+
+            // Intercept Assign Form submission for Primary confirmation and mobile validation
             var assignForm = document.querySelector('form[asp-page-handler="AssignPhone"]');
             if (assignForm) {
                 assignForm.addEventListener('submit', function(e) {
+                    var phoneType = document.getElementById('Input_PhoneType').value;
+                    var digitCount = countDigits(document.getElementById('Input_PhoneNumber').value);
                     var lineType = document.getElementById('Input_LineType').value;
+
+                    // Validate mobile number length
+                    if (phoneType === 'Mobile' && digitCount < 9) {
+                        e.preventDefault();
+                        alert('Mobile phone numbers must have at least 9 digits. Please enter a valid mobile number or select Fixed Line.');
+                        return false;
+                    }
 
                     // If LineType is Primary and we haven't confirmed yet, show modal
                     if (lineType === '1' && !assignFormSubmitting) {
@@ -1027,11 +1391,20 @@
                 });
             }
 
-            // Intercept Edit Form submission for Primary confirmation
+            // Intercept Edit Form submission for Primary confirmation and mobile validation
             var editForm = document.querySelector('form[asp-page-handler="EditPhone"]');
             if (editForm) {
                 editForm.addEventListener('submit', function(e) {
+                    var phoneType = document.getElementById('edit_PhoneType').value;
+                    var digitCount = countDigits(document.getElementById('edit_PhoneNumber').value);
                     var lineType = document.getElementById('edit_LineType').value;
+
+                    // Validate mobile number length
+                    if (phoneType === 'Mobile' && digitCount < 9) {
+                        e.preventDefault();
+                        alert('Mobile phone numbers must have at least 9 digits. Please enter a valid mobile number or select Fixed Line.');
+                        return false;
+                    }
 
                     // If LineType is Primary and we haven't confirmed yet, show modal
                     if (lineType === '1' && !editFormSubmitting) {
@@ -1115,6 +1488,51 @@
                 } else {
                     editIsPrimary.checked = false;
                 }
+            }
+
+            // Handle OwnershipType change to show/hide Purpose field (Assign Modal)
+            var ownershipTypeInput = document.getElementById('Input_OwnershipType');
+            var purposeField = document.getElementById('purposeField');
+            var purposeInput = document.getElementById('Input_Purpose');
+
+            if (ownershipTypeInput && purposeField && purposeInput) {
+                ownershipTypeInput.addEventListener('change', function() {
+                    if (this.value === '1') { // Personal
+                        purposeField.style.display = 'none';
+                        purposeInput.removeAttribute('required');
+                        purposeInput.value = '';
+                    } else { // Corporate types
+                        purposeField.style.display = 'block';
+                        purposeInput.setAttribute('required', 'required');
+                    }
+                });
+
+                // Set initial state
+                if (ownershipTypeInput.value === '1') {
+                    purposeField.style.display = 'none';
+                    purposeInput.removeAttribute('required');
+                } else {
+                    purposeField.style.display = 'block';
+                    purposeInput.setAttribute('required', 'required');
+                }
+            }
+
+            // Handle OwnershipType change to show/hide Purpose field (Edit Modal)
+            var editOwnershipTypeInput = document.getElementById('edit_OwnershipType');
+            var editPurposeField = document.getElementById('edit_purposeField');
+            var editPurposeInput = document.getElementById('edit_Purpose');
+
+            if (editOwnershipTypeInput && editPurposeField && editPurposeInput) {
+                editOwnershipTypeInput.addEventListener('change', function() {
+                    if (this.value === '1') { // Personal
+                        editPurposeField.style.display = 'none';
+                        editPurposeInput.removeAttribute('required');
+                        editPurposeInput.value = '';
+                    } else { // Corporate types
+                        editPurposeField.style.display = 'block';
+                        editPurposeInput.setAttribute('required', 'required');
+                    }
+                });
             }
         });
 
@@ -1230,5 +1648,23 @@
                 `;
             }
         }
+
+        // Initialize Select2 for searchable user dropdown in reassignment modal
+        $(document).ready(function() {
+            $('#reassign_NewUser').select2({
+                theme: 'bootstrap-5',
+                placeholder: 'Search by Index Number, Name, or Email',
+                allowClear: true,
+                width: '100%',
+                dropdownParent: $('#reassignPhoneModal')
+            });
+
+            // Reset Select2 when modal is closed
+            $('#reassignPhoneModal').on('hidden.bs.modal', function() {
+                $('#reassign_NewUser').val(null).trigger('change');
+                // Also uncheck all phone checkboxes
+                $('.reassign-phone-checkbox').prop('checked', false);
+            });
+        });
     </script>
 }

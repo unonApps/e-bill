@@ -1,0 +1,1538 @@
+@page
+@model TAB.Web.Pages.Admin.PhoneNumbersModel
+@{
+    ViewData["Title"] = "Phone Numbers Management";
+}
+
+<style>
+    /* Modern Form Styling */
+    .form-select-modern {
+        position: relative;
+        background-color: #f8f9fa;
+        border: 2px solid transparent;
+        border-radius: 12px;
+        height: 48px;
+        padding: 0 40px 0 16px;
+        font-size: 15px;
+        font-weight: 500;
+        color: #2d3748;
+        transition: all 0.3s ease;
+        background-image: url("data:image/svg+xml,%3csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 16 16'%3e%3cpath fill='none' stroke='%236b7280' stroke-linecap='round' stroke-linejoin='round' stroke-width='2' d='M2 5l6 6 6-6'/%3e%3c/svg%3e");
+        background-repeat: no-repeat;
+        background-position: right 12px center;
+        background-size: 16px 12px;
+        cursor: pointer;
+    }
+
+    .form-select-modern:hover {
+        background-color: #e2e8f0;
+        border-color: #cbd5e0;
+    }
+
+    .form-select-modern:focus {
+        background-color: #ffffff;
+        border-color: #3b82f6;
+        box-shadow: 0 0 0 4px rgba(59, 130, 246, 0.1);
+        outline: none;
+    }
+
+    /* Custom Label Styling */
+    .form-label-modern {
+        display: block;
+        font-size: 13px;
+        font-weight: 600;
+        color: #4a5568;
+        margin-bottom: 8px;
+        text-transform: uppercase;
+        letter-spacing: 0.05em;
+    }
+
+    /* Input Field Styling */
+    .form-control-modern {
+        background-color: #f8f9fa;
+        border: 2px solid transparent;
+        border-radius: 12px;
+        height: 48px;
+        padding: 0 16px;
+        font-size: 15px;
+        font-weight: 500;
+        color: #2d3748;
+        transition: all 0.3s ease;
+    }
+
+    .form-control-modern:hover {
+        background-color: #e2e8f0;
+        border-color: #cbd5e0;
+    }
+
+    .form-control-modern:focus {
+        background-color: #ffffff;
+        border-color: #3b82f6;
+        box-shadow: 0 0 0 4px rgba(59, 130, 246, 0.1);
+        outline: none;
+    }
+
+    .form-control-modern::placeholder {
+        color: #9ca3af;
+        font-weight: 400;
+    }
+
+    /* Table Row Hover Effects */
+    .user-row {
+        transition: all 0.2s ease;
+        border-bottom: 1px solid #f3f4f6;
+    }
+
+    .user-row:hover {
+        background-color: #f9fafb;
+        transform: translateX(2px);
+        box-shadow: 0 2px 4px rgba(0, 0, 0, 0.05);
+    }
+
+    /* Badge Hover Effects */
+    .badge {
+        transition: all 0.2s ease;
+    }
+
+    .badge:hover {
+        transform: translateY(-1px);
+        box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+    }
+
+    /* Dashboard Header Styles */
+    .dashboard-header {
+        background: #009EDB;
+        border-radius: 12px;
+        padding: 1.5rem 2rem;
+        margin-bottom: 2rem;
+        color: white;
+        box-shadow: 0 4px 20px rgba(0, 158, 219, 0.2);
+    }
+
+    .header-content {
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        flex-wrap: wrap;
+        gap: 1rem;
+    }
+
+    .welcome-section {
+        flex: 1;
+    }
+
+    .dashboard-title {
+        font-size: 1.75rem;
+        font-weight: 600;
+        margin-bottom: 0.3rem;
+        color: white;
+    }
+
+    .dashboard-subtitle {
+        font-size: 1rem;
+        opacity: 0.95;
+        margin: 0;
+    }
+
+    .header-actions {
+        display: flex;
+        align-items: center;
+        gap: 1rem;
+    }
+
+    .create-user-btn {
+        background: rgba(255, 255, 255, 0.95);
+        color: #009EDB;
+        border: 2px solid rgba(255, 255, 255, 0.3);
+        padding: 10px 20px;
+        border-radius: 8px;
+        text-decoration: none;
+        font-weight: 600;
+        font-size: 14px;
+        transition: all 0.3s ease;
+        display: inline-flex;
+        align-items: center;
+        gap: 8px;
+        backdrop-filter: blur(10px);
+        cursor: pointer;
+    }
+
+    .create-user-btn:hover {
+        background: white;
+        color: #0084c7;
+        text-decoration: none;
+        transform: translateY(-2px);
+        box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
+    }
+
+    /* Filter Section */
+    .filter-section {
+        background: white;
+        border-radius: 12px;
+        padding: 1.5rem;
+        margin-bottom: 2rem;
+        box-shadow: 0 2px 10px rgba(0, 0, 0, 0.05);
+        border: 1px solid #e5e7eb;
+    }
+
+    .filter-header {
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        margin-bottom: 1.5rem;
+        padding-bottom: 1rem;
+        border-bottom: 2px solid #f3f4f6;
+    }
+
+    .filter-title {
+        font-size: 1.25rem;
+        font-weight: 600;
+        color: #1f2937;
+        display: flex;
+        align-items: center;
+        gap: 0.5rem;
+    }
+
+    .filter-title i {
+        color: #009EDB;
+    }
+
+    .filter-grid {
+        display: grid;
+        grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
+        gap: 1rem;
+    }
+
+    .filter-group {
+        display: flex;
+        flex-direction: column;
+        gap: 0.5rem;
+    }
+
+    .filter-label {
+        font-size: 0.875rem;
+        font-weight: 600;
+        color: #4b5563;
+        display: flex;
+        align-items: center;
+        gap: 0.5rem;
+    }
+
+    .filter-label i {
+        color: #009EDB;
+        font-size: 0.875rem;
+    }
+
+    .filter-input,
+    .filter-select {
+        padding: 0.625rem 1rem;
+        border: 2px solid #e5e7eb;
+        border-radius: 8px;
+        font-size: 0.875rem;
+        transition: all 0.2s ease;
+        background: white;
+    }
+
+    .filter-input:focus,
+    .filter-select:focus {
+        outline: none;
+        border-color: #009EDB;
+        box-shadow: 0 0 0 3px rgba(0, 158, 219, 0.1);
+    }
+
+    .filter-input::placeholder {
+        color: #9ca3af;
+    }
+
+    .btn-clear-filters {
+        padding: 0.625rem 1.25rem;
+        background: #f3f4f6;
+        color: #4b5563;
+        border: none;
+        border-radius: 8px;
+        font-weight: 500;
+        font-size: 0.875rem;
+        display: inline-flex;
+        align-items: center;
+        gap: 0.5rem;
+        transition: all 0.2s ease;
+        text-decoration: none;
+    }
+
+    .btn-clear-filters:hover {
+        background: #e5e7eb;
+        color: #1f2937;
+        text-decoration: none;
+    }
+
+    /* Statistics Grid */
+    .stats-grid {
+        display: grid;
+        grid-template-columns: repeat(auto-fit, minmax(240px, 1fr));
+        gap: 1.25rem;
+        margin-bottom: 2rem;
+    }
+
+    .stat-card {
+        background: white;
+        border-radius: 12px;
+        padding: 1.5rem;
+        border: 1px solid #e5e7eb;
+        transition: all 0.3s ease;
+        position: relative;
+        overflow: hidden;
+    }
+
+    .stat-card::before {
+        content: '';
+        position: absolute;
+        top: 0;
+        left: 0;
+        right: 0;
+        height: 4px;
+        background: var(--stat-color, #3b82f6);
+    }
+
+    .stat-card:nth-child(1)::before {
+        --stat-color: #3b82f6;
+    }
+
+    .stat-card:nth-child(2)::before {
+        --stat-color: #10b981;
+    }
+
+    .stat-card:nth-child(3)::before {
+        --stat-color: #f59e0b;
+    }
+
+    .stat-card:nth-child(4)::before {
+        --stat-color: #10b981;
+    }
+
+    .stat-card:hover {
+        transform: translateY(-4px);
+        box-shadow: 0 10px 30px rgba(0, 0, 0, 0.1);
+    }
+
+    .stat-content {
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+    }
+
+    .stat-icon {
+        width: 50px;
+        height: 50px;
+        border-radius: 12px;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        font-size: 1.5rem;
+    }
+
+    .stat-icon-primary {
+        background: #3b82f6;
+        color: white;
+    }
+
+    .stat-icon-success {
+        background: #10b981;
+        color: white;
+    }
+
+    .stat-icon-warning {
+        background: #f59e0b;
+        color: white;
+    }
+
+    .stat-details {
+        text-align: right;
+    }
+
+    .stat-number {
+        font-size: 1.75rem;
+        font-weight: 700;
+        color: #1f2937;
+        line-height: 1;
+        margin-bottom: 0.25rem;
+    }
+
+    .stat-label {
+        font-size: 0.875rem;
+        color: #6b7280;
+        font-weight: 500;
+    }
+
+    /* Pagination Styles */
+    .pagination {
+        gap: 0.25rem;
+    }
+
+    .page-link {
+        color: #009EDB;
+        border: 1px solid #e5e7eb;
+        padding: 0.5rem 0.75rem;
+        font-size: 0.875rem;
+        font-weight: 500;
+        transition: all 0.2s ease;
+        border-radius: 8px;
+        margin: 0 2px;
+    }
+
+    .page-link:hover {
+        color: #0084c7;
+        background-color: #f9fafb;
+        border-color: #009EDB;
+        transform: translateY(-1px);
+    }
+
+    .page-item.active .page-link {
+        background-color: #009EDB;
+        border-color: #009EDB;
+        color: white;
+    }
+
+    .page-item.disabled .page-link {
+        color: #9ca3af;
+        background-color: #f9fafb;
+        border-color: #e5e7eb;
+        cursor: not-allowed;
+        opacity: 0.6;
+    }
+
+    @@media (max-width: 768px) {
+        .dashboard-header {
+            padding: 1rem;
+        }
+
+        .header-content {
+            flex-direction: column;
+            align-items: stretch;
+        }
+
+        .header-actions {
+            flex-direction: column;
+            align-items: stretch;
+        }
+
+        .filter-grid {
+            grid-template-columns: 1fr;
+        }
+
+        .stats-grid {
+            grid-template-columns: repeat(2, 1fr);
+            gap: 1rem;
+        }
+    }
+</style>
+
+<div class="container-fluid px-4 py-3">
+    <!-- Dashboard Header -->
+    <div class="dashboard-header">
+        <div class="header-content">
+            <div class="welcome-section">
+                <h1 class="dashboard-title">Phone Numbers Management</h1>
+                <p class="dashboard-subtitle">Manage and track all phone numbers in the system</p>
+            </div>
+            <div class="header-actions">
+                <button type="button" class="create-user-btn" data-bs-toggle="modal" data-bs-target="#addPhoneModal">
+                    <i class="bi bi-plus-circle"></i>
+                    <span>Add Phone Number</span>
+                </button>
+            </div>
+        </div>
+    </div>
+
+    <!-- Status Message -->
+    @if (!string.IsNullOrEmpty(Model.StatusMessage))
+    {
+        var alertClass = Model.StatusType switch
+        {
+            "success" => "success",
+            "warning" => "warning",
+            "danger" => "danger",
+            _ => "info"
+        };
+
+        <div class="alert alert-@alertClass alert-dismissible fade show" role="alert">
+            <i class="bi bi-@(Model.StatusType == "success" ? "check-circle-fill" : Model.StatusType == "danger" ? "exclamation-triangle-fill" : "info-circle-fill") me-2"></i>
+            @Model.StatusMessage
+            <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
+        </div>
+    }
+
+    <!-- Statistics Cards -->
+    <div class="stats-grid mb-3">
+        <div class="stat-card">
+            <div class="stat-content">
+                <div class="stat-icon stat-icon-primary">
+                    <i class="bi bi-telephone"></i>
+                </div>
+                <div class="stat-details">
+                    <div class="stat-number">@Model.TotalPhones</div>
+                    <div class="stat-label">Total Phones</div>
+                </div>
+            </div>
+        </div>
+
+        <div class="stat-card">
+            <div class="stat-content">
+                <div class="stat-icon stat-icon-success">
+                    <i class="bi bi-check-circle"></i>
+                </div>
+                <div class="stat-details">
+                    <div class="stat-number">@Model.AssignedPhones</div>
+                    <div class="stat-label">Assigned</div>
+                </div>
+            </div>
+        </div>
+
+        <div class="stat-card">
+            <div class="stat-content">
+                <div class="stat-icon stat-icon-warning">
+                    <i class="bi bi-dash-circle"></i>
+                </div>
+                <div class="stat-details">
+                    <div class="stat-number">@Model.UnassignedPhones</div>
+                    <div class="stat-label">Unassigned</div>
+                </div>
+            </div>
+        </div>
+
+        <div class="stat-card">
+            <div class="stat-content">
+                <div class="stat-icon stat-icon-success">
+                    <i class="bi bi-toggles"></i>
+                </div>
+                <div class="stat-details">
+                    <div class="stat-number">@Model.ActivePhones</div>
+                    <div class="stat-label">Active</div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Filter Section (Collapsible) -->
+    <div class="card border-0 shadow-sm mb-4" style="border-radius: 20px;">
+        <div class="card-header bg-white border-0 p-3" style="cursor: pointer; border-radius: 20px 20px 0 0;" data-bs-toggle="collapse" data-bs-target="#filterCollapse">
+            <div class="d-flex justify-content-between align-items-center">
+                <h6 class="mb-0 fw-bold">
+                    <i class="bi bi-funnel me-2"></i>Filters
+                </h6>
+                <div class="d-flex align-items-center gap-3">
+                    <span class="badge bg-light text-dark" style="font-weight: 500;">
+                        Showing @((Model.PageNumber - 1) * Model.PageSize + 1) - @Math.Min(Model.PageNumber * Model.PageSize, Model.TotalCount) of @Model.TotalCount results
+                    </span>
+                    <i class="bi bi-chevron-down"></i>
+                </div>
+            </div>
+        </div>
+        <div class="collapse" id="filterCollapse">
+            <div class="card-body p-4">
+                <form method="get" class="filter-form" id="filterForm">
+                    <input type="hidden" name="PageSize" value="@Model.PageSize" />
+                    <div class="row g-3">
+                        <div class="col-md-3">
+                            <label class="form-label text-muted small" for="searchFilter">Search</label>
+                            <input type="text" name="SearchTerm" id="searchFilter" value="@Model.SearchTerm"
+                                   class="form-control border-0 bg-light filter-search-input"
+                                   placeholder="Phone number, user, index..." style="border-radius: 12px; height: 45px;" />
+                        </div>
+                        <div class="col-md-2">
+                            <label class="form-label text-muted small">Ownership Type</label>
+                            <select name="FilterOwnershipType" class="form-select border-0 bg-light" style="border-radius: 12px; height: 45px;">
+                                <option value="">All Ownership</option>
+                                <option value="Personal" selected="@(Model.FilterOwnershipType == "Personal")">👤 Personal</option>
+                                <option value="Shared" selected="@(Model.FilterOwnershipType == "Shared")">👥 Shared</option>
+                                <option value="Department" selected="@(Model.FilterOwnershipType == "Department")">🏢 Department</option>
+                                <option value="Infrastructure" selected="@(Model.FilterOwnershipType == "Infrastructure")">🔧 Infrastructure</option>
+                                <option value="Emergency" selected="@(Model.FilterOwnershipType == "Emergency")">🚨 Emergency</option>
+                            </select>
+                        </div>
+                        <div class="col-md-2">
+                            <label class="form-label text-muted small">Status</label>
+                            <select name="FilterStatus" class="form-select border-0 bg-light" style="border-radius: 12px; height: 45px;">
+                                <option value="">All Status</option>
+                                <option value="Active" selected="@(Model.FilterStatus == "Active")">Active</option>
+                                <option value="Suspended" selected="@(Model.FilterStatus == "Suspended")">Suspended</option>
+                                <option value="Deactivated" selected="@(Model.FilterStatus == "Deactivated")">Deactivated</option>
+                            </select>
+                        </div>
+                        <div class="col-md-2">
+                            <label class="form-label text-muted small">Line Type</label>
+                            <select name="FilterLineType" class="form-select border-0 bg-light" style="border-radius: 12px; height: 45px;">
+                                <option value="">All Lines</option>
+                                <option value="Primary" selected="@(Model.FilterLineType == "Primary")">Primary</option>
+                                <option value="Secondary" selected="@(Model.FilterLineType == "Secondary")">Secondary</option>
+                                <option value="Reserved" selected="@(Model.FilterLineType == "Reserved")">Reserved</option>
+                                <option value="Data" selected="@(Model.FilterLineType == "Data")">Data</option>
+                            </select>
+                        </div>
+                        <div class="col-md-3 d-flex align-items-end gap-2">
+                            <button type="submit" class="btn btn-primary px-4" style="height: 45px; border-radius: 12px; flex-grow: 1;">
+                                <i class="bi bi-search me-2"></i>Apply Filters
+                            </button>
+                            <a href="/Admin/PhoneNumbers" class="btn-clear-filters" style="height: 45px; display: flex; align-items: center;">
+                                <i class="bi bi-x-circle"></i>
+                            </a>
+                        </div>
+                    </div>
+                </form>
+            </div>
+        </div>
+    </div>
+
+    <!-- Phone Numbers Table -->
+    <div class="card border-0 shadow-sm">
+        <!-- Reassign Selected Button (Hidden by default) -->
+        <div class="card-header bg-white border-bottom-0 p-3" id="bulkActionsBar" style="display: none;">
+            <div class="d-flex justify-content-between align-items-center">
+                <span class="text-muted" id="selectedCount">0 phones selected</span>
+                <button type="button" class="btn btn-sm px-3" id="reassignSelectedBtn"
+                        style="background: #0891b2; color: white; border-radius: 8px; font-weight: 500;">
+                    <i class="bi bi-arrow-left-right me-2"></i>Reassign Selected
+                </button>
+            </div>
+        </div>
+
+        <div class="card-body p-0">
+            <div class="table-responsive">
+                <table class="table align-middle mb-0">
+                    <thead style="background-color: #f9fafb; border-bottom: 2px solid #e5e7eb;">
+                        <tr>
+                            <th class="px-3 py-3" style="width: 40px;">
+                                <input type="checkbox" class="form-check-input" id="selectAllPhones" style="cursor: pointer;">
+                            </th>
+                            <th class="px-4 py-3" style="font-weight: 600; color: #374151;">Phone Number</th>
+                            <th class="px-4 py-3" style="font-weight: 600; color: #374151;">Type</th>
+                            <th class="px-4 py-3" style="font-weight: 600; color: #374151;">Assigned To</th>
+                            <th class="px-4 py-3" style="font-weight: 600; color: #374151;">Ownership</th>
+                            <th class="px-4 py-3" style="font-weight: 600; color: #374151;">Line Type</th>
+                            <th class="px-4 py-3" style="font-weight: 600; color: #374151;">Status</th>
+                            <th class="px-4 py-3 text-end" style="font-weight: 600; color: #374151;">Actions</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        @if (Model.Phones.Any())
+                        {
+                            @foreach (var phone in Model.Phones)
+                            {
+                                <tr class="user-row">
+                                    <td class="px-3 py-3">
+                                        <input type="checkbox" class="form-check-input phone-checkbox"
+                                               data-phone-id="@phone.Id"
+                                               data-phone-number="@phone.PhoneNumber"
+                                               style="cursor: pointer;">
+                                    </td>
+                                    <td class="px-4 py-3">
+                                        <div class="d-flex align-items-center">
+                                            <i class="bi bi-telephone me-2 text-primary"></i>
+                                            <div>
+                                                <div class="fw-semibold">@phone.PhoneNumber</div>
+                                                @if (phone.IsPrimary)
+                                                {
+                                                    <span class="badge bg-success" style="font-size: 10px;">PRIMARY</span>
+                                                }
+                                            </div>
+                                        </div>
+                                    </td>
+                                    <td class="px-4 py-3">
+                                        <span class="badge bg-light text-dark border">@phone.PhoneType</span>
+                                    </td>
+                                    <td class="px-4 py-3">
+                                        @if (phone.EbillUser != null)
+                                        {
+                                            <div>
+                                                <div class="fw-semibold">@phone.EbillUser.FirstName @phone.EbillUser.LastName</div>
+                                                <small class="text-muted">@phone.IndexNumber</small>
+                                            </div>
+                                        }
+                                        else
+                                        {
+                                            <span class="text-muted">Unassigned</span>
+                                        }
+                                    </td>
+                                    <td class="px-4 py-3">
+                                        <span class="badge bg-@phone.OwnershipTypeBadgeColor">
+                                            @phone.OwnershipTypeDisplay
+                                        </span>
+                                    </td>
+                                    <td class="px-4 py-3">
+                                        <span class="badge bg-@phone.LineTypeBadgeColor">
+                                            @phone.LineTypeDisplay
+                                        </span>
+                                    </td>
+                                    <td class="px-4 py-3">
+                                        <span class="badge bg-@phone.StatusBadgeColor">
+                                            @phone.StatusBadgeText
+                                        </span>
+                                    </td>
+                                    <td class="px-4 py-3 text-end">
+                                        <div class="btn-group" role="group">
+                                            <button type="button" class="btn btn-sm btn-light border-0" title="Edit Phone"
+                                                    data-bs-toggle="modal"
+                                                    data-bs-target="#editPhoneModal"
+                                                    data-phone-id="@phone.Id"
+                                                    data-phone-number="@phone.PhoneNumber"
+                                                    data-phone-type="@phone.PhoneType"
+                                                    data-phone-linetype="@((int)phone.LineType)"
+                                                    data-phone-location="@phone.Location"
+                                                    data-phone-notes="@phone.Notes"
+                                                    data-phone-classofservice="@phone.ClassOfServiceId"
+                                                    data-phone-status="@((int)phone.Status)"
+                                                    data-phone-ownershiptype="@((int)phone.OwnershipType)"
+                                                    data-phone-purpose="@phone.Purpose"
+                                                    data-phone-indexnumber="@phone.IndexNumber">
+                                                <i class="bi bi-pencil text-primary"></i>
+                                            </button>
+                                            @if (phone.IsActive && !string.IsNullOrEmpty(phone.IndexNumber))
+                                            {
+                                                <a href="/Admin/UserPhones?indexNumber=@phone.IndexNumber"
+                                                   class="btn btn-sm btn-light border-0" title="Manage Phone">
+                                                    <i class="bi bi-gear text-secondary"></i>
+                                                </a>
+                                            }
+                                        </div>
+                                    </td>
+                                </tr>
+                            }
+                        }
+                        else
+                        {
+                            <tr>
+                                <td colspan="8" class="text-center py-5">
+                                    <div class="text-muted">
+                                        <i class="bi bi-telephone" style="font-size: 48px;"></i>
+                                        <p class="mt-3">No phone numbers found</p>
+                                    </div>
+                                </td>
+                            </tr>
+                        }
+                    </tbody>
+                </table>
+            </div>
+        </div>
+
+        <!-- Pagination -->
+        @if (Model.TotalPages > 1)
+        {
+            <div class="card-footer border-top-0" style="background-color: #f9fafb;">
+                <div class="d-flex justify-content-between align-items-center">
+                    <div class="text-muted" style="font-size: 14px;">
+                        Showing @((Model.PageNumber - 1) * Model.PageSize + 1) to @Math.Min(Model.PageNumber * Model.PageSize, Model.TotalCount) of @Model.TotalCount phone numbers
+                    </div>
+                    <nav>
+                        <ul class="pagination pagination-sm mb-0">
+                            <li class="page-item @(!Model.HasPreviousPage ? "disabled" : "")">
+                                <a class="page-link" href="?PageNumber=@(Model.PageNumber - 1)&SearchTerm=@Model.SearchTerm&FilterOwnershipType=@Model.FilterOwnershipType&FilterLineType=@Model.FilterLineType&FilterStatus=@Model.FilterStatus&FilterAssigned=@Model.FilterAssigned&PageSize=@Model.PageSize">
+                                    Previous
+                                </a>
+                            </li>
+                            @for (int i = Math.Max(1, Model.PageNumber - 2); i <= Math.Min(Model.TotalPages, Model.PageNumber + 2); i++)
+                            {
+                                <li class="page-item @(i == Model.PageNumber ? "active" : "")">
+                                    <a class="page-link" href="?PageNumber=@i&SearchTerm=@Model.SearchTerm&FilterOwnershipType=@Model.FilterOwnershipType&FilterLineType=@Model.FilterLineType&FilterStatus=@Model.FilterStatus&FilterAssigned=@Model.FilterAssigned&PageSize=@Model.PageSize">
+                                        @i
+                                    </a>
+                                </li>
+                            }
+                            <li class="page-item @(!Model.HasNextPage ? "disabled" : "")">
+                                <a class="page-link" href="?PageNumber=@(Model.PageNumber + 1)&SearchTerm=@Model.SearchTerm&FilterOwnershipType=@Model.FilterOwnershipType&FilterLineType=@Model.FilterLineType&FilterStatus=@Model.FilterStatus&FilterAssigned=@Model.FilterAssigned&PageSize=@Model.PageSize">
+                                    Next
+                                </a>
+                            </li>
+                        </ul>
+                    </nav>
+                </div>
+            </div>
+        }
+    </div>
+</div>
+
+<!-- Add Phone Modal -->
+<div class="modal fade" id="addPhoneModal" tabindex="-1">
+    <div class="modal-dialog modal-dialog-centered modal-lg">
+        <div class="modal-content" style="border-radius: 12px; border: none; overflow: hidden;">
+            <div class="modal-header" style="background: #009EDB; border: none; padding: 1.5rem;">
+                <h5 class="modal-title text-white d-flex align-items-center">
+                    <i class="bi bi-telephone-plus me-2"></i>
+                    Add New Phone Number
+                </h5>
+                <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal"></button>
+            </div>
+            <form method="post" asp-page-handler="AddPhone">
+                <div class="modal-body" style="padding: 2rem; background-color: #f8f9fa;">
+                    @Html.AntiForgeryToken()
+
+                    <!-- Core Phone Information Section -->
+                    <div class="card mb-3" style="border: none; box-shadow: 0 2px 4px rgba(0,0,0,0.08);">
+                        <div class="card-header" style="background-color: #e3f2fd; border: none; padding: 0.75rem 1rem;">
+                            <h6 class="mb-0" style="color: #0077b6; font-weight: 600;">
+                                <i class="bi bi-telephone-fill me-2"></i>Phone Details
+                            </h6>
+                        </div>
+                        <div class="card-body" style="padding: 1.5rem;">
+                            <div class="row">
+                                <!-- Left Column -->
+                                <div class="col-md-6">
+                                    <div class="mb-3">
+                                        <label for="Input_PhoneNumber" class="form-label fw-semibold">
+                                            <i class="bi bi-telephone text-primary"></i>
+                                            Phone Number <span class="text-danger">*</span>
+                                        </label>
+                                        <input asp-for="Input.PhoneNumber" id="Input_PhoneNumber" class="form-control"
+                                               placeholder="e.g., +254712345678" required
+                                               style="border-radius: 8px; border: 2px solid #e0e0e0;" />
+                                    </div>
+
+                                    <div class="mb-3">
+                                        <label for="Input_PhoneType" class="form-label fw-semibold">
+                                            <i class="bi bi-diagram-3 text-primary"></i>
+                                            Phone Type <span class="text-danger">*</span>
+                                        </label>
+                                        <select asp-for="Input.PhoneType" id="Input_PhoneType" class="form-select" required
+                                                style="border-radius: 8px; border: 2px solid #e0e0e0;">
+                                            <option value="Mobile">📱 Mobile</option>
+                                            <option value="Fixed">☎️ Fixed Line</option>
+                                        </select>
+                                        <small class="text-muted d-block mt-1" id="add_phoneTypeHint">
+                                            <i class="bi bi-info-circle"></i> Mobile requires 9+ digits
+                                        </small>
+                                    </div>
+
+                                    <div class="mb-3" id="add_lineTypeGroup">
+                                        <label for="Input_LineType" class="form-label fw-semibold">
+                                            <i class="bi bi-tag text-primary"></i>
+                                            Line Type <span class="text-danger">*</span>
+                                        </label>
+                                        <select asp-for="Input.LineType" id="Input_LineType" class="form-select" required
+                                                style="border-radius: 8px; border: 2px solid #e0e0e0;">
+                                            <option value="1">Primary</option>
+                                            <option value="2" selected>Secondary</option>
+                                            <option value="3">Reserved</option>
+                                            <option value="4">Data</option>
+                                        </select>
+                                        <small class="text-muted d-block mt-1" id="add_lineTypeNotAvailable" style="display: none;">
+                                            <i class="bi bi-info-circle"></i> Not applicable for Fixed Lines
+                                        </small>
+                                    </div>
+
+                                    <div class="mb-0">
+                                        <label for="Input_Status" class="form-label fw-semibold">
+                                            <i class="bi bi-toggle-on text-primary"></i>
+                                            Status <span class="text-danger">*</span>
+                                        </label>
+                                        <select asp-for="Input.Status" id="Input_Status" class="form-select" required
+                                                style="border-radius: 8px; border: 2px solid #e0e0e0;">
+                                            <option value="1" selected>✓ Active</option>
+                                            <option value="2">⏸ Suspended</option>
+                                            <option value="3">✗ Deactivated</option>
+                                        </select>
+                                    </div>
+                                </div>
+
+                                <!-- Right Column -->
+                                <div class="col-md-6">
+                                    <div class="mb-3">
+                                        <label for="Input_OwnershipType" class="form-label fw-semibold">
+                                            <i class="bi bi-building text-primary"></i>
+                                            Ownership Type <span class="text-danger">*</span>
+                                        </label>
+                                        <select asp-for="Input.OwnershipType" id="Input_OwnershipType" class="form-select" required
+                                                style="border-radius: 8px; border: 2px solid #e0e0e0;">
+                                            <option value="1" selected>👤 Personal</option>
+                                            <option value="2">👥 Shared</option>
+                                            <option value="3">🏢 Department</option>
+                                            <option value="4">🔧 Infrastructure</option>
+                                            <option value="5">🚨 Emergency</option>
+                                        </select>
+                                        <small class="text-muted d-block mt-1">
+                                            <i class="bi bi-info-circle"></i> Select "Personal" for Staff phones
+                                        </small>
+                                    </div>
+
+                                    <div class="mb-3" id="add_purposeField" style="display: none;">
+                                        <label for="Input_Purpose" class="form-label fw-semibold">
+                                            <i class="bi bi-journal-text text-primary"></i>
+                                            Purpose <span class="text-danger">*</span>
+                                        </label>
+                                        <input asp-for="Input.Purpose" id="Input_Purpose" class="form-control"
+                                               placeholder="e.g., Server Room Main Line, HR Reception"
+                                               style="border-radius: 8px; border: 2px solid #e0e0e0;" />
+                                        <small class="text-muted d-block mt-1">
+                                            <i class="bi bi-info-circle"></i> Describe the purpose of this phone
+                                        </small>
+                                    </div>
+
+                                    <div class="mb-3">
+                                        <label for="Input_IndexNumber" class="form-label fw-semibold">
+                                            <i class="bi bi-person text-primary"></i>
+                                            Assign to User
+                                        </label>
+                                        <select asp-for="Input.IndexNumber" id="Input_IndexNumber" class="form-select"
+                                                style="border-radius: 8px; border: 2px solid #e0e0e0;">
+                                            <option value="">Leave Unassigned</option>
+                                            @foreach (var user in Model.AllUsers)
+                                            {
+                                                <option value="@user.IndexNumber">
+                                                    @user.IndexNumber - @user.FirstName @user.LastName
+                                                </option>
+                                            }
+                                        </select>
+                                    </div>
+
+                                    <div class="mb-0" id="add_classOfServiceGroup">
+                                        <label for="Input_ClassOfServiceId" class="form-label fw-semibold">
+                                            <i class="bi bi-award text-primary"></i>
+                                            Class of Service
+                                        </label>
+                                        <select asp-for="Input.ClassOfServiceId" id="Input_ClassOfServiceId" class="form-select"
+                                                style="border-radius: 8px; border: 2px solid #e0e0e0;">
+                                            <option value="">Select Class (Optional)</option>
+                                            @foreach (var cos in Model.ClassesOfService)
+                                            {
+                                                <option value="@cos.Id">@cos.Class - @cos.Service</option>
+                                            }
+                                        </select>
+                                        <small class="text-muted d-block mt-1" id="add_cosNotAvailable" style="display: none;">
+                                            <i class="bi bi-info-circle"></i> Not applicable for Fixed Lines
+                                        </small>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Additional Information Section -->
+                    <div class="card" style="border: none; box-shadow: 0 2px 4px rgba(0,0,0,0.08);">
+                        <div class="card-header" style="background-color: #f3e5f5; border: none; padding: 0.75rem 1rem;">
+                            <h6 class="mb-0" style="color: #7b1fa2; font-weight: 600;">
+                                <i class="bi bi-info-circle-fill me-2"></i>Additional Information
+                            </h6>
+                        </div>
+                        <div class="card-body" style="padding: 1.5rem;">
+                            <div class="mb-3">
+                                <label for="Input_Location" class="form-label fw-semibold">
+                                    <i class="bi bi-geo-alt text-primary"></i>
+                                    Location
+                                </label>
+                                <input asp-for="Input.Location" id="Input_Location" class="form-control"
+                                       placeholder="e.g., Building A, Floor 3, Room 204"
+                                       style="border-radius: 8px; border: 2px solid #e0e0e0;" />
+                            </div>
+
+                            <div class="mb-0">
+                                <label for="Input_Notes" class="form-label fw-semibold">
+                                    <i class="bi bi-sticky text-primary"></i>
+                                    Notes
+                                </label>
+                                <textarea asp-for="Input.Notes" id="Input_Notes" class="form-control" rows="2"
+                                          placeholder="Add any additional notes or comments..."
+                                          style="border-radius: 8px; border: 2px solid #e0e0e0;"></textarea>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+                <div class="modal-footer" style="background-color: #fff; border-top: 2px solid #e0e0e0; padding: 1.5rem;">
+                    <button type="button" class="btn btn-light px-4" data-bs-dismiss="modal"
+                            style="border-radius: 8px; font-weight: 500; border: 2px solid #e0e0e0;">
+                        <i class="bi bi-x-circle me-2"></i>Cancel
+                    </button>
+                    <button type="submit" class="btn btn-primary px-4"
+                            style="border-radius: 8px; font-weight: 500; background: #009EDB; border: none;">
+                        <i class="bi bi-check-circle me-2"></i>Add Phone
+                    </button>
+                </div>
+            </form>
+        </div>
+    </div>
+</div>
+
+<!-- Edit Phone Modal -->
+<div class="modal fade" id="editPhoneModal" tabindex="-1">
+    <div class="modal-dialog modal-dialog-centered modal-lg">
+        <div class="modal-content" style="border-radius: 12px; border: none; overflow: hidden;">
+            <div class="modal-header" style="background: #009EDB; border: none; padding: 1.5rem;">
+                <h5 class="modal-title text-white d-flex align-items-center">
+                    <i class="bi bi-pencil-square me-2"></i>
+                    Edit Phone Details
+                </h5>
+                <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal"></button>
+            </div>
+            <form method="post" asp-page-handler="EditPhone">
+                <div class="modal-body" style="padding: 2rem; background-color: #f8f9fa;">
+                    @Html.AntiForgeryToken()
+
+                    <div asp-validation-summary="ModelOnly" class="alert alert-danger" role="alert"></div>
+
+                    <input type="hidden" name="EditInput.Id" id="edit_PhoneId" />
+
+                    <!-- Core Phone Information Section -->
+                    <div class="card mb-3" style="border: none; box-shadow: 0 2px 4px rgba(0,0,0,0.08);">
+                        <div class="card-header" style="background-color: #e3f2fd; border: none; padding: 0.75rem 1rem;">
+                            <h6 class="mb-0" style="color: #0077b6; font-weight: 600;">
+                                <i class="bi bi-telephone-fill me-2"></i>Phone Details
+                            </h6>
+                        </div>
+                        <div class="card-body" style="padding: 1.5rem;">
+                            <div class="row">
+                                <!-- Left Column -->
+                                <div class="col-md-6">
+                                    <div class="mb-3">
+                                        <label for="edit_PhoneNumber" class="form-label fw-semibold">
+                                            <i class="bi bi-telephone text-primary"></i>
+                                            Phone Number <span class="text-danger">*</span>
+                                        </label>
+                                        <input name="EditInput.PhoneNumber" id="edit_PhoneNumber" class="form-control"
+                                               placeholder="e.g., +254712345678" required readonly
+                                               style="border-radius: 8px; border: 2px solid #e0e0e0; background-color: #f3f4f6; cursor: not-allowed;" />
+                                        <small class="text-muted d-block mt-1">
+                                            <i class="bi bi-info-circle"></i> Phone number cannot be changed after assignment
+                                        </small>
+                                        <span asp-validation-for="EditInput.PhoneNumber" class="text-danger"></span>
+                                    </div>
+
+                                    <div class="mb-3">
+                                        <label for="edit_PhoneType" class="form-label fw-semibold">
+                                            <i class="bi bi-diagram-3 text-primary"></i>
+                                            Phone Type <span class="text-danger">*</span>
+                                        </label>
+                                        <select name="EditInput.PhoneType" id="edit_PhoneType" class="form-select" required
+                                                style="border-radius: 8px; border: 2px solid #e0e0e0;">
+                                            <option value="Mobile">📱 Mobile</option>
+                                            <option value="Fixed">☎️ Fixed Line</option>
+                                        </select>
+                                        <small class="text-muted d-block mt-1" id="edit_phoneTypeHint">
+                                            <i class="bi bi-info-circle"></i> Mobile requires 9+ digits
+                                        </small>
+                                    </div>
+
+                                    <div class="mb-3" id="edit_lineTypeGroup">
+                                        <label for="edit_LineType" class="form-label fw-semibold">
+                                            <i class="bi bi-tag text-primary"></i>
+                                            Line Type <span class="text-danger">*</span>
+                                        </label>
+                                        <select name="EditInput.LineType" id="edit_LineType" class="form-select" required
+                                                style="border-radius: 8px; border: 2px solid #e0e0e0;">
+                                            <option value="1">Primary</option>
+                                            <option value="2">Secondary</option>
+                                            <option value="3">Reserved</option>
+                                            <option value="4">Data</option>
+                                        </select>
+                                        <small class="text-muted d-block mt-1" id="edit_lineTypeNotAvailable" style="display: none;">
+                                            <i class="bi bi-info-circle"></i> Not applicable for Fixed Lines
+                                        </small>
+                                    </div>
+
+                                    <div class="mb-0">
+                                        <label for="edit_Status" class="form-label fw-semibold">
+                                            <i class="bi bi-toggle-on text-primary"></i>
+                                            Status <span class="text-danger">*</span>
+                                        </label>
+                                        <select name="EditInput.Status" id="edit_Status" class="form-select" required
+                                                style="border-radius: 8px; border: 2px solid #e0e0e0;">
+                                            <option value="1">✓ Active</option>
+                                            <option value="2">⏸ Suspended</option>
+                                            <option value="3">✗ Deactivated</option>
+                                        </select>
+                                    </div>
+                                </div>
+
+                                <!-- Right Column -->
+                                <div class="col-md-6">
+                                    <div class="mb-3">
+                                        <label for="edit_OwnershipType" class="form-label fw-semibold">
+                                            <i class="bi bi-building text-primary"></i>
+                                            Ownership Type <span class="text-danger">*</span>
+                                        </label>
+                                        <select name="EditInput.OwnershipType" id="edit_OwnershipType" class="form-select" required
+                                                style="border-radius: 8px; border: 2px solid #e0e0e0;">
+                                            <option value="1">👤 Personal</option>
+                                            <option value="2">👥 Shared</option>
+                                            <option value="3">🏢 Department</option>
+                                            <option value="4">🔧 Infrastructure</option>
+                                            <option value="5">🚨 Emergency</option>
+                                        </select>
+                                        <small class="text-muted d-block mt-1">
+                                            <i class="bi bi-info-circle"></i> Select "Personal" for Staff phones
+                                        </small>
+                                    </div>
+
+                                    <div class="mb-3" id="edit_purposeField" style="display: none;">
+                                        <label for="edit_Purpose" class="form-label fw-semibold">
+                                            <i class="bi bi-journal-text text-primary"></i>
+                                            Purpose <span class="text-danger">*</span>
+                                        </label>
+                                        <input name="EditInput.Purpose" id="edit_Purpose" class="form-control"
+                                               placeholder="e.g., Server Room Main Line, HR Reception"
+                                               style="border-radius: 8px; border: 2px solid #e0e0e0;" />
+                                        <small class="text-muted d-block mt-1">
+                                            <i class="bi bi-info-circle"></i> Describe the purpose of this phone
+                                        </small>
+                                    </div>
+
+                                    <div class="mb-3">
+                                        <label for="edit_IndexNumber" class="form-label fw-semibold">
+                                            <i class="bi bi-person text-primary"></i>
+                                            Assigned User
+                                        </label>
+                                        <select name="EditInput.IndexNumber" id="edit_IndexNumber" class="form-select"
+                                                style="border-radius: 8px; border: 2px solid #e0e0e0;">
+                                            <option value="">Unassigned</option>
+                                            @foreach (var user in Model.AllUsers)
+                                            {
+                                                <option value="@user.IndexNumber">
+                                                    @user.IndexNumber - @user.FirstName @user.LastName
+                                                </option>
+                                            }
+                                        </select>
+                                        <small class="text-muted d-block mt-1">
+                                            <i class="bi bi-info-circle"></i> Change the user assigned to this phone
+                                        </small>
+                                    </div>
+
+                                    <div class="mb-0" id="edit_classOfServiceGroup">
+                                        <label for="edit_ClassOfServiceId" class="form-label fw-semibold">
+                                            <i class="bi bi-award text-primary"></i>
+                                            Class of Service
+                                        </label>
+                                        <select name="EditInput.ClassOfServiceId" id="edit_ClassOfServiceId" class="form-select"
+                                                style="border-radius: 8px; border: 2px solid #e0e0e0;">
+                                            <option value="">Select Class (Optional)</option>
+                                            @foreach (var cos in Model.ClassesOfService)
+                                            {
+                                                <option value="@cos.Id">@cos.Class - @cos.Service</option>
+                                            }
+                                        </select>
+                                        <small class="text-muted d-block mt-1" id="edit_cosNotAvailable" style="display: none;">
+                                            <i class="bi bi-info-circle"></i> Not applicable for Fixed Lines
+                                        </small>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Additional Information Section -->
+                    <div class="card" style="border: none; box-shadow: 0 2px 4px rgba(0,0,0,0.08);">
+                        <div class="card-header" style="background-color: #f3e5f5; border: none; padding: 0.75rem 1rem;">
+                            <h6 class="mb-0" style="color: #7b1fa2; font-weight: 600;">
+                                <i class="bi bi-info-circle-fill me-2"></i>Additional Information
+                            </h6>
+                        </div>
+                        <div class="card-body" style="padding: 1.5rem;">
+                            <div class="mb-3">
+                                <label for="edit_Location" class="form-label fw-semibold">
+                                    <i class="bi bi-geo-alt text-primary"></i>
+                                    Location
+                                </label>
+                                <input name="EditInput.Location" id="edit_Location" class="form-control"
+                                       placeholder="e.g., Building A, Floor 3, Room 204"
+                                       style="border-radius: 8px; border: 2px solid #e0e0e0;" />
+                            </div>
+
+                            <div class="mb-0">
+                                <label for="edit_Notes" class="form-label fw-semibold">
+                                    <i class="bi bi-sticky text-primary"></i>
+                                    Notes
+                                </label>
+                                <textarea name="EditInput.Notes" id="edit_Notes" class="form-control" rows="2"
+                                          placeholder="Add any additional notes or comments..."
+                                          style="border-radius: 8px; border: 2px solid #e0e0e0;"></textarea>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+                <div class="modal-footer" style="background-color: #fff; border-top: 2px solid #e0e0e0; padding: 1.5rem;">
+                    <button type="button" class="btn btn-light px-4" data-bs-dismiss="modal"
+                            style="border-radius: 8px; font-weight: 500; border: 2px solid #e0e0e0;">
+                        <i class="bi bi-x-circle me-2"></i>Cancel
+                    </button>
+                    <button type="submit" class="btn btn-primary px-4"
+                            style="border-radius: 8px; font-weight: 500; background: #009EDB; border: none;">
+                        <i class="bi bi-check-circle me-2"></i>Save Changes
+                    </button>
+                </div>
+            </form>
+        </div>
+    </div>
+</div>
+
+<!-- Reassign Phone Modal -->
+<div class="modal fade" id="reassignPhoneModal" tabindex="-1">
+    <div class="modal-dialog modal-dialog-centered">
+        <div class="modal-content" style="border-radius: 12px; border: none; overflow: hidden;">
+            <div class="modal-header" style="background: #0891b2; border: none; padding: 1.5rem;">
+                <h5 class="modal-title text-white d-flex align-items-center">
+                    <i class="bi bi-arrow-left-right me-2"></i>
+                    Reassign Phone Numbers
+                </h5>
+                <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal"></button>
+            </div>
+            <form method="post" asp-page-handler="ReassignPhones">
+                <div class="modal-body" style="padding: 2rem;">
+                    @Html.AntiForgeryToken()
+                    <input type="hidden" name="PhoneIds" id="reassign_phoneIds" />
+
+                    <div class="mb-4">
+                        <label class="form-label fw-medium mb-3">
+                            <i class="bi bi-telephone-fill text-primary me-2"></i>
+                            Selected Phone Numbers
+                        </label>
+                        <div class="border rounded p-3" id="reassign_selectedPhones" style="background-color: #f9fafb; max-height: 150px; overflow-y: auto;">
+                            <!-- Selected phones will be listed here -->
+                        </div>
+                    </div>
+
+                    <div class="mb-4">
+                        <label for="reassign_IndexNumber" class="form-label">
+                            <i class="bi bi-person"></i>
+                            Assign To User
+                        </label>
+                        <select name="IndexNumber" id="reassign_IndexNumber" class="form-select" required>
+                            <option value="">-- Select user to assign --</option>
+                            @foreach (var user in Model.AllUsers)
+                            {
+                                <option value="@user.IndexNumber">
+                                    @user.IndexNumber - @user.FirstName @user.LastName (@user.Email)
+                                </option>
+                            }
+                        </select>
+                    </div>
+
+                    <div class="alert d-flex align-items-start" style="background-color: #fef3c7; border: 1px solid #fcd34d; color: #92400e;">
+                        <i class="bi bi-info-circle-fill me-2 mt-1" style="color: #f59e0b;"></i>
+                        <div>
+                            <strong>Note:</strong> The selected phone numbers will be reassigned to the chosen user.
+                        </div>
+                    </div>
+                </div>
+                <div class="modal-footer" style="background-color: #f8f9fa; border: none; padding: 1.5rem;">
+                    <button type="button" class="btn btn-light px-4" data-bs-dismiss="modal"
+                            style="border-radius: 8px; font-weight: 500;">
+                        Cancel
+                    </button>
+                    <button type="submit" class="btn px-4"
+                            style="background: #0891b2; border: none; border-radius: 8px; font-weight: 500; color: white;">
+                        <i class="bi bi-arrow-left-right me-2"></i>Reassign Phones
+                    </button>
+                </div>
+            </form>
+        </div>
+    </div>
+</div>
+
+@section Scripts {
+    <link href="https://cdn.jsdelivr.net/npm/select2@4.1.0-rc.0/dist/css/select2.min.css" rel="stylesheet" />
+    <link href="https://cdn.jsdelivr.net/npm/select2-bootstrap-5-theme@1.3.0/dist/select2-bootstrap-5-theme.min.css" rel="stylesheet" />
+    <script src="https://cdn.jsdelivr.net/npm/select2@4.1.0-rc.0/dist/js/select2.min.js"></script>
+
+    <script>
+        $(document).ready(function() {
+            // Helper function to count digits in a phone number
+            function countDigits(phoneNumber) {
+                return (phoneNumber.match(/\d/g) || []).length;
+            }
+
+            // Helper function to toggle fields based on phone type
+            function toggleFieldsForPhoneType(prefix, phoneType) {
+                var isFixed = (phoneType === 'Fixed');
+
+                // Line Type field
+                var lineTypeSelect = $('#' + prefix + '_LineType');
+                var lineTypeGroup = $('#' + prefix + '_lineTypeGroup');
+                var lineTypeNotAvailable = $('#' + prefix + '_lineTypeNotAvailable');
+
+                if (isFixed) {
+                    lineTypeSelect.prop('disabled', true).css('background-color', '#e9ecef');
+                    lineTypeNotAvailable.show();
+                } else {
+                    lineTypeSelect.prop('disabled', false).css('background-color', '');
+                    lineTypeNotAvailable.hide();
+                }
+
+                // Class of Service field
+                var cosSelect = $('#' + prefix + '_ClassOfServiceId');
+                var cosNotAvailable = $('#' + prefix + '_cosNotAvailable');
+
+                if (isFixed) {
+                    cosSelect.prop('disabled', true).val('').css('background-color', '#e9ecef');
+                    cosNotAvailable.show();
+                } else {
+                    cosSelect.prop('disabled', false).css('background-color', '');
+                    cosNotAvailable.hide();
+                }
+            }
+
+            // Helper function to auto-detect phone type based on number length
+            function autoDetectPhoneType(prefix) {
+                var phoneNumber = $('#' + prefix + '_PhoneNumber').val();
+                var digitCount = countDigits(phoneNumber);
+                var phoneTypeSelect = $('#' + prefix + '_PhoneType');
+                var currentType = phoneTypeSelect.val();
+
+                // If less than 9 digits and currently set to Mobile, switch to Fixed
+                if (digitCount > 0 && digitCount < 9 && currentType === 'Mobile') {
+                    phoneTypeSelect.val('Fixed');
+                    toggleFieldsForPhoneType(prefix, 'Fixed');
+                    return false; // Indicate auto-correction happened
+                }
+                return true;
+            }
+
+            // Initialize Select2 for user dropdown in Add Modal
+            $('#Input_IndexNumber').select2({
+                theme: 'bootstrap-5',
+                placeholder: 'Search for a user...',
+                allowClear: true,
+                width: '100%',
+                dropdownParent: $('#addPhoneModal')
+            });
+
+            // Initialize Select2 for user dropdown in Edit Modal
+            $('#edit_IndexNumber').select2({
+                theme: 'bootstrap-5',
+                placeholder: 'Search for a user...',
+                allowClear: true,
+                width: '100%',
+                dropdownParent: $('#editPhoneModal')
+            });
+
+            // Initialize Select2 for user dropdown in Reassign Modal
+            $('#reassign_IndexNumber').select2({
+                theme: 'bootstrap-5',
+                placeholder: 'Search for a user...',
+                allowClear: true,
+                width: '100%',
+                dropdownParent: $('#reassignPhoneModal')
+            });
+
+            // ===== ADD MODAL: Phone Type Logic =====
+
+            // Phone number input change - auto-detect type
+            $('#Input_PhoneNumber').on('input blur', function() {
+                var digitCount = countDigits($(this).val());
+                var phoneTypeSelect = $('#Input_PhoneType');
+
+                // Update hint based on digit count
+                if (digitCount > 0 && digitCount < 9) {
+                    $('#add_phoneTypeHint').html('<i class="bi bi-exclamation-circle text-warning"></i> ' + digitCount + ' digits detected - will be treated as Fixed Line');
+                    // Auto-switch to Fixed if currently Mobile
+                    if (phoneTypeSelect.val() === 'Mobile') {
+                        phoneTypeSelect.val('Fixed').trigger('change');
+                    }
+                } else if (digitCount >= 9) {
+                    $('#add_phoneTypeHint').html('<i class="bi bi-check-circle text-success"></i> ' + digitCount + ' digits - valid for Mobile');
+                } else {
+                    $('#add_phoneTypeHint').html('<i class="bi bi-info-circle"></i> Mobile requires 9+ digits');
+                }
+            });
+
+            // Phone type change
+            $('#Input_PhoneType').on('change', function() {
+                var phoneType = $(this).val();
+                var digitCount = countDigits($('#Input_PhoneNumber').val());
+
+                // Prevent selecting Mobile if less than 9 digits
+                if (phoneType === 'Mobile' && digitCount > 0 && digitCount < 9) {
+                    alert('Mobile phone numbers must have at least 9 digits. This number has only ' + digitCount + ' digits.');
+                    $(this).val('Fixed');
+                    phoneType = 'Fixed';
+                }
+
+                toggleFieldsForPhoneType('Input', phoneType);
+            });
+
+            // Show/hide purpose field based on ownership type in Add Modal
+            $('#Input_OwnershipType').on('change', function() {
+                if (this.value === '1') { // Personal
+                    $('#add_purposeField').hide();
+                } else {
+                    $('#add_purposeField').show();
+                }
+            });
+
+            // ===== EDIT MODAL: Phone Type Logic =====
+
+            // Phone type change in Edit modal
+            $('#edit_PhoneType').on('change', function() {
+                var phoneType = $(this).val();
+                var digitCount = countDigits($('#edit_PhoneNumber').val());
+
+                // Prevent selecting Mobile if less than 9 digits
+                if (phoneType === 'Mobile' && digitCount > 0 && digitCount < 9) {
+                    alert('Mobile phone numbers must have at least 9 digits. This number has only ' + digitCount + ' digits.');
+                    $(this).val('Fixed');
+                    phoneType = 'Fixed';
+                }
+
+                toggleFieldsForPhoneType('edit', phoneType);
+            });
+
+            // Show/hide purpose field based on ownership type in Edit Modal
+            $('#edit_OwnershipType').on('change', function() {
+                if (this.value === '1') { // Personal
+                    $('#edit_purposeField').hide();
+                } else {
+                    $('#edit_purposeField').show();
+                }
+            });
+
+            // Reset Add modal when closed
+            $('#addPhoneModal').on('hidden.bs.modal', function() {
+                $(this).find('form')[0].reset();
+                $('#Input_IndexNumber').val(null).trigger('change');
+                $('#add_purposeField').hide();
+                // Reset field states
+                toggleFieldsForPhoneType('Input', 'Mobile');
+                $('#add_phoneTypeHint').html('<i class="bi bi-info-circle"></i> Mobile requires 9+ digits');
+            });
+
+            // Form validation on Add submit
+            $('#addPhoneModal form').on('submit', function(e) {
+                var phoneType = $('#Input_PhoneType').val();
+                var digitCount = countDigits($('#Input_PhoneNumber').val());
+
+                if (phoneType === 'Mobile' && digitCount < 9) {
+                    e.preventDefault();
+                    alert('Mobile phone numbers must have at least 9 digits. Please enter a valid mobile number or select Fixed Line.');
+                    return false;
+                }
+            });
+
+            // Form validation on Edit submit
+            $('#editPhoneModal form').on('submit', function(e) {
+                var phoneType = $('#edit_PhoneType').val();
+                var digitCount = countDigits($('#edit_PhoneNumber').val());
+
+                if (phoneType === 'Mobile' && digitCount < 9) {
+                    e.preventDefault();
+                    alert('Mobile phone numbers must have at least 9 digits. Please enter a valid mobile number or select Fixed Line.');
+                    return false;
+                }
+            });
+
+            // Populate Edit Phone Modal when shown
+            $('#editPhoneModal').on('show.bs.modal', function(e) {
+                var button = $(e.relatedTarget);
+
+                // Set all field values and also set the value attribute for proper form submission
+                $('#edit_PhoneId').val(button.data('phone-id')).attr('value', button.data('phone-id'));
+                $('#edit_PhoneNumber').val(button.data('phone-number')).attr('value', button.data('phone-number'));
+
+                // Map old phone types to new ones (Desk/Extension -> Fixed)
+                var phoneType = button.data('phone-type');
+                if (phoneType === 'Desk' || phoneType === 'Extension') {
+                    phoneType = 'Fixed';
+                }
+                $('#edit_PhoneType').val(phoneType);
+
+                $('#edit_LineType').val(button.data('phone-linetype'));
+                $('#edit_Location').val(button.data('phone-location')).attr('value', button.data('phone-location') || '');
+                $('#edit_Notes').val(button.data('phone-notes'));
+                $('#edit_ClassOfServiceId').val(button.data('phone-classofservice') || '');
+                $('#edit_Status').val(button.data('phone-status'));
+                $('#edit_OwnershipType').val(button.data('phone-ownershiptype'));
+                $('#edit_Purpose').val(button.data('phone-purpose')).attr('value', button.data('phone-purpose') || '');
+                $('#edit_IndexNumber').val(button.data('phone-indexnumber') || '').trigger('change');
+
+                // Show/hide purpose field
+                if (button.data('phone-ownershiptype') === 1) {
+                    $('#edit_purposeField').hide();
+                } else {
+                    $('#edit_purposeField').show();
+                }
+
+                // Apply phone type field toggling
+                toggleFieldsForPhoneType('edit', phoneType);
+
+                // Update hint for phone number
+                var digitCount = countDigits(button.data('phone-number') || '');
+                if (phoneType === 'Fixed' || digitCount < 9) {
+                    $('#edit_phoneTypeHint').html('<i class="bi bi-info-circle"></i> Fixed Line - Line Type and Class of Service disabled');
+                } else {
+                    $('#edit_phoneTypeHint').html('<i class="bi bi-check-circle text-success"></i> ' + digitCount + ' digits - valid for Mobile');
+                }
+            });
+
+            // Don't auto-reset Edit modal - let values persist for debugging
+
+            // Checkbox Selection Logic
+            var selectedPhones = [];
+
+            function updateBulkActionsBar() {
+                var count = selectedPhones.length;
+                if (count > 0) {
+                    $('#bulkActionsBar').show();
+                    $('#selectedCount').text(count + ' phone' + (count > 1 ? 's' : '') + ' selected');
+                } else {
+                    $('#bulkActionsBar').hide();
+                }
+            }
+
+            // Select All Phones checkbox
+            $('#selectAllPhones').on('change', function() {
+                var isChecked = $(this).is(':checked');
+                $('.phone-checkbox').prop('checked', isChecked);
+
+                selectedPhones = [];
+                if (isChecked) {
+                    $('.phone-checkbox').each(function() {
+                        selectedPhones.push({
+                            id: $(this).data('phone-id'),
+                            number: $(this).data('phone-number')
+                        });
+                    });
+                }
+                updateBulkActionsBar();
+            });
+
+            // Individual phone checkbox
+            $('.phone-checkbox').on('change', function() {
+                var phoneId = $(this).data('phone-id');
+                var phoneNumber = $(this).data('phone-number');
+
+                if ($(this).is(':checked')) {
+                    selectedPhones.push({ id: phoneId, number: phoneNumber });
+                } else {
+                    selectedPhones = selectedPhones.filter(p => p.id !== phoneId);
+                    $('#selectAllPhones').prop('checked', false);
+                }
+
+                updateBulkActionsBar();
+            });
+
+            // Reassign Selected Button click
+            $('#reassignSelectedBtn').on('click', function() {
+                if (selectedPhones.length === 0) {
+                    alert('Please select at least one phone number to reassign.');
+                    return;
+                }
+
+                // Populate selected phones list in modal
+                var phonesList = selectedPhones.map(p =>
+                    '<div class="mb-2"><i class="bi bi-telephone me-2"></i>' + p.number + '</div>'
+                ).join('');
+                $('#reassign_selectedPhones').html(phonesList);
+
+                // Set phone IDs as comma-separated string
+                $('#reassign_phoneIds').val(selectedPhones.map(p => p.id).join(','));
+
+                // Reset user selection
+                $('#reassign_IndexNumber').val(null).trigger('change');
+
+                // Show modal
+                $('#reassignPhoneModal').modal('show');
+            });
+
+            // Reset Reassign modal when closed
+            $('#reassignPhoneModal').on('hidden.bs.modal', function() {
+                $(this).find('form')[0].reset();
+                $('#reassign_IndexNumber').val(null).trigger('change');
+                $('#reassign_selectedPhones').html('');
+            });
+        });
+    </script>
+
+    <partial name="_ValidationScriptsPartial" />
+}

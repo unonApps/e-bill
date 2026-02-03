@@ -947,8 +947,30 @@
             return;
         }
 
-        // Redirect to submit page with selected IDs
-        window.location.href = '/Modules/EBillManagement/CallRecords/SubmitToSupervisor?ids=' + selectedCallIds.join(',');
+        // Use form POST to handle large number of IDs (avoids URL length limits)
+        const form = document.createElement('form');
+        form.method = 'POST';
+        form.action = '/Modules/EBillManagement/CallRecords/SubmitToSupervisor?handler=PrepareSubmission';
+
+        // Add anti-forgery token if available
+        const tokenElement = document.querySelector('input[name="__RequestVerificationToken"]');
+        if (tokenElement) {
+            const tokenInput = document.createElement('input');
+            tokenInput.type = 'hidden';
+            tokenInput.name = '__RequestVerificationToken';
+            tokenInput.value = tokenElement.value;
+            form.appendChild(tokenInput);
+        }
+
+        // Add all call IDs as a single comma-separated string
+        const input = document.createElement('input');
+        input.type = 'hidden';
+        input.name = 'callIdsCsv';
+        input.value = selectedCallIds.join(',');
+        form.appendChild(input);
+
+        document.body.appendChild(form);
+        form.submit();
     }
 
     // Show verification modal

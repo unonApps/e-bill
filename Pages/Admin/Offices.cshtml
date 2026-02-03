@@ -758,29 +758,39 @@ else
             </form>
             <label class="mb-0" style="font-size: 14px; color: #4b5563;">entries per page</label>
         </div>
-        <div class="text-muted" style="font-size: 14px;">
-            Showing @((Model.PageNumber - 1) * Model.PageSize + 1) to
-            @Math.Min(Model.PageNumber * Model.PageSize, Model.TotalRecords)
-            of @Model.TotalRecords offices
+        <div class="d-flex align-items-center gap-3">
+            <div class="text-muted" style="font-size: 14px;">
+                Showing @((Model.PageNumber - 1) * Model.PageSize + 1) to
+                @Math.Min(Model.PageNumber * Model.PageSize, Model.TotalRecords)
+                of @Model.TotalRecords offices
+            </div>
+            <button type="button" class="btn btn-success" style="border-radius: 10px; font-weight: 500;"
+                    data-bs-toggle="modal" data-bs-target="#officeModal" onclick="openOfficeModal()">
+                <i class="bi bi-plus-lg me-1"></i>Add Office
+            </button>
+            <button type="button" class="btn btn-info text-white" style="border-radius: 10px; font-weight: 500;"
+                    data-bs-toggle="modal" data-bs-target="#subOfficeModal" onclick="openSubOfficeModal()">
+                <i class="bi bi-plus-lg me-1"></i>Add Sub-Office
+            </button>
         </div>
     </div>
 
     <!-- Offices Table -->
     <div class="card border-0 shadow-sm" style="border-radius: 16px;">
         <div class="card-header bg-white border-0 py-4" style="border-radius: 16px 16px 0 0;">
-            <div class="d-flex justify-content-between align-items-center">
+            <div class="d-flex justify-content-between align-items-center flex-wrap gap-3">
                 <div>
                     <h5 class="card-title mb-1 fw-bold text-dark">
                         <i class="bi bi-geo-alt-fill me-2"></i>Offices Directory
                     </h5>
                     <p class="mb-0 text-muted">Manage office locations and sub-offices</p>
                 </div>
-                <div class="input-group" style="max-width: 300px;">
+                <div class="input-group" style="max-width: 250px;">
                     <span class="input-group-text bg-light border-0">
                         <i class="bi bi-search"></i>
                     </span>
                     <input type="text" class="form-control border-0 bg-light"
-                           id="searchTable" placeholder="Search offices..."
+                           id="searchTable" placeholder="Search..."
                            style="border-radius: 0 8px 8px 0;">
                 </div>
             </div>

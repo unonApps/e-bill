@@ -20,6 +20,45 @@ namespace TAB.Web.Services
             List<IFormFile>? documents = null);
 
         /// <summary>
+        /// Bulk verifies multiple call records in a single optimized operation.
+        /// Much faster than calling VerifyCallLogAsync in a loop.
+        /// </summary>
+        /// <param name="callRecordIds">List of call record IDs to verify</param>
+        /// <param name="indexNumber">The user's index number</param>
+        /// <param name="verificationType">Official or Personal</param>
+        /// <param name="justification">Optional justification for bulk operation</param>
+        /// <returns>Result containing counts of verified and skipped records</returns>
+        Task<BulkVerificationResult> BulkVerifyCallLogsAsync(
+            List<int> callRecordIds,
+            string indexNumber,
+            VerificationType verificationType,
+            string? justification = null);
+
+        /// <summary>
+        /// ULTRA-FAST bulk verification using raw SQL for an entire extension/month.
+        /// Executes directly on database - can verify thousands of records in milliseconds.
+        /// </summary>
+        Task<BulkVerificationResult> BulkVerifyByExtensionMonthRawAsync(
+            string extension,
+            int month,
+            int year,
+            string indexNumber,
+            VerificationType verificationType,
+            string? justification = null);
+
+        /// <summary>
+        /// ULTRA-FAST bulk verification using raw SQL for a specific dialed number.
+        /// </summary>
+        Task<BulkVerificationResult> BulkVerifyByDialedNumberRawAsync(
+            string extension,
+            int month,
+            int year,
+            string dialedNumber,
+            string indexNumber,
+            VerificationType verificationType,
+            string? justification = null);
+
+        /// <summary>
         /// Gets all verifications for a specific user
         /// </summary>
         Task<List<CallLogVerification>> GetUserVerificationsAsync(
@@ -74,6 +113,30 @@ namespace TAB.Web.Services
             string reason);
 
         /// <summary>
+        /// ULTRA-FAST bulk reassignment using raw SQL for an entire extension/month.
+        /// Executes directly on database - can reassign thousands of records in milliseconds.
+        /// </summary>
+        Task<BulkReassignmentResult> BulkReassignByExtensionMonthRawAsync(
+            string extension,
+            int month,
+            int year,
+            string assignedFrom,
+            string assignedTo,
+            string reason);
+
+        /// <summary>
+        /// ULTRA-FAST bulk reassignment using raw SQL for a specific dialed number.
+        /// </summary>
+        Task<BulkReassignmentResult> BulkReassignByDialedNumberRawAsync(
+            string extension,
+            int month,
+            int year,
+            string dialedNumber,
+            string assignedFrom,
+            string assignedTo,
+            string reason);
+
+        /// <summary>
         /// Accepts a payment assignment
         /// </summary>
         Task<bool> AcceptPaymentAssignmentAsync(int assignmentId, string indexNumber);
@@ -82,6 +145,31 @@ namespace TAB.Web.Services
         /// Rejects a payment assignment with a reason
         /// </summary>
         Task<bool> RejectPaymentAssignmentAsync(int assignmentId, string indexNumber, string reason);
+
+        /// <summary>
+        /// ULTRA-FAST bulk accept all pending assignments for a user using raw SQL.
+        /// Optionally filter by sender (assignedFrom), extension, month/year, or dialed number.
+        /// </summary>
+        Task<BulkAssignmentResult> BulkAcceptAssignmentsAsync(
+            string indexNumber,
+            string? assignedFrom = null,
+            string? extension = null,
+            int? month = null,
+            int? year = null,
+            string? dialedNumber = null);
+
+        /// <summary>
+        /// ULTRA-FAST bulk reject all pending assignments for a user using raw SQL.
+        /// Optionally filter by sender (assignedFrom), extension, month/year, or dialed number.
+        /// </summary>
+        Task<BulkAssignmentResult> BulkRejectAssignmentsAsync(
+            string indexNumber,
+            string reason,
+            string? assignedFrom = null,
+            string? extension = null,
+            int? month = null,
+            int? year = null,
+            string? dialedNumber = null);
 
         /// <summary>
         /// Gets all pending payment assignments for a user
@@ -165,6 +253,43 @@ namespace TAB.Web.Services
     // ===================================================================
     // DTOs and Summary Classes
     // ===================================================================
+
+    /// <summary>
+    /// Result of a bulk verification operation
+    /// </summary>
+    public class BulkVerificationResult
+    {
+        public int VerifiedCount { get; set; }
+        public int SkippedCount { get; set; }
+        public int LockedCount { get; set; }
+        public int ExpiredCount { get; set; }
+        public int UnauthorizedCount { get; set; }
+        public List<string> Errors { get; set; } = new();
+        public bool Success => VerifiedCount > 0 && Errors.Count == 0;
+    }
+
+    /// <summary>
+    /// Result of a bulk reassignment operation
+    /// </summary>
+    public class BulkReassignmentResult
+    {
+        public int ReassignedCount { get; set; }
+        public int SkippedCount { get; set; }
+        public int SubmittedCount { get; set; }
+        public List<string> Errors { get; set; } = new();
+        public bool Success => ReassignedCount > 0 && Errors.Count == 0;
+    }
+
+    /// <summary>
+    /// Result of a bulk accept/reject operation
+    /// </summary>
+    public class BulkAssignmentResult
+    {
+        public int ProcessedCount { get; set; }
+        public int SkippedCount { get; set; }
+        public List<string> Errors { get; set; } = new();
+        public bool Success => ProcessedCount > 0 && Errors.Count == 0;
+    }
 
     public class VerificationSummary
     {

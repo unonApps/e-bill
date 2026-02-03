@@ -212,7 +212,7 @@ namespace TAB.Web.Pages.Profile
             if (UserRoles.Contains("Supervisor") || UserRoles.Contains("Admin"))
             {
                 PendingApprovals = await _context.CallLogVerifications
-                    .Where(v => v.SupervisorIndexNumber == AppUser.Email
+                    .Where(v => v.SupervisorEmail == AppUser.Email
                         && v.SubmittedToSupervisor
                         && (v.SupervisorApprovalStatus == null || v.SupervisorApprovalStatus == "Pending"))
                     .CountAsync();

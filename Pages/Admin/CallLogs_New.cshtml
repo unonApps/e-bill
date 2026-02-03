@@ -589,15 +589,15 @@
                 </div>
 
                 <div class="filter-group">
-                    <label class="filter-label" for="importAudit">
-                        <i class="bi bi-box-arrow-in-down"></i> Import Batch
+                    <label class="filter-label" for="importJob">
+                        <i class="bi bi-box-arrow-in-down"></i> Import Job
                     </label>
-                    <select name="ImportAuditId" id="importAudit" class="filter-select">
-                        <option value="">All Batches</option>
-                        @foreach (var audit in Model.RecentImports)
+                    <select name="ImportJobId" id="importJob" class="filter-select">
+                        <option value="">All Jobs</option>
+                        @foreach (var job in Model.RecentImports)
                         {
-                            <option value="@audit.Id" selected="@(Model.ImportAuditId == audit.Id)">
-                                @audit.FileName - @audit.ImportDate.ToString("MMM dd, yyyy")
+                            <option value="@job.Id" selected="@(Model.ImportJobId == job.Id)">
+                                @(job.FileName ?? job.CallLogType) - @job.CreatedDate.ToString("MMM dd, yyyy")
                             </option>
                         }
                     </select>
@@ -631,11 +631,11 @@
                 {
                     <div class="col-md-2">
                         <div class="p-2 bg-light rounded text-center">
-                            <div class="fw-semibold small">@import.FileName</div>
+                            <div class="fw-semibold small">@(import.FileName ?? import.CallLogType)</div>
                             <div class="text-muted" style="font-size: 0.75rem;">
-                                @import.SuccessCount records
+                                @(import.RecordsSuccess ?? 0) records
                             </div>
-                            <a href="?ImportAuditId=@import.Id" class="btn btn-sm btn-link p-0">
+                            <a href="?ImportJobId=@import.Id" class="btn btn-sm btn-link p-0">
                                 <i class="bi bi-eye"></i> View
                             </a>
                         </div>

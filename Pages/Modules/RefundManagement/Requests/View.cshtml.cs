@@ -46,11 +46,11 @@ namespace TAB.Web.Pages.Modules.RefundManagement.Requests
 
             // Load the refund request
             var query = _context.RefundRequests.AsQueryable();
-            
-            // If not admin, filter by user
+
+            // If not admin, filter by user (RequestedBy stores the user ID)
             if (!IsAdmin)
             {
-                query = query.Where(r => r.RequestedBy == currentUser.Email || r.RequestedBy == currentUser.UserName);
+                query = query.Where(r => r.RequestedBy == currentUser.Id);
             }
 
             RefundRequest = await query.FirstOrDefaultAsync(r => r.Id == id);

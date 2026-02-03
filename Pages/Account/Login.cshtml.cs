@@ -31,6 +31,9 @@ namespace TAB.Web.Pages.Account
         {
             [Required]
             [EmailAddress]
+            [StringLength(256, ErrorMessage = "Email must not exceed 256 characters.")]
+            [RegularExpression(@"^[a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\.[a-zA-Z]{2,}$",
+                ErrorMessage = "Please enter a valid email address.")]
             public string Email { get; set; } = string.Empty;
 
             [Required]
@@ -78,9 +81,19 @@ namespace TAB.Web.Pages.Account
 
             if (ModelState.IsValid)
             {
+                // Security: Sanitize email input to prevent any injection attempts
+                // Reject emails containing shell metacharacters or suspicious patterns
+                var email = Input.Email?.Trim() ?? string.Empty;
+                if (ContainsSuspiciousCharacters(email))
+                {
+                    _logger.LogWarning("Suspicious characters detected in login email: {Email}", email);
+                    ModelState.AddModelError(string.Empty, "Invalid login attempt.");
+                    return Page();
+                }
+
                 // This doesn't count login failures towards account lockout
                 // To enable password failures to trigger account lockout, set lockoutOnFailure: true
-                var result = await _signInManager.PasswordSignInAsync(Input.Email, Input.Password, Input.RememberMe, lockoutOnFailure: false);
+                var result = await _signInManager.PasswordSignInAsync(email, Input.Password, Input.RememberMe, lockoutOnFailure: false);
                 if (result.Succeeded)
                 {
                     _logger.LogInformation("User logged in.");
@@ -104,6 +117,38 @@ namespace TAB.Web.Pages.Account
 
             // If we got this far, something failed, redisplay form
             return Page();
+        }
+
+        /// <summary>
+        /// Checks for shell metacharacters and suspicious patterns that could indicate injection attempts.
+        /// This is a defense-in-depth measure - ASP.NET Core Identity uses parameterized queries,
+        /// but this provides an additional security layer.
+        /// </summary>
+        private static bool ContainsSuspiciousCharacters(string input)
+        {
+            if (string.IsNullOrEmpty(input))
+                return false;
+
+            // Shell metacharacters and command injection patterns
+            char[] suspiciousChars = { '|', ';', '&', '$', '`', '(', ')', '{', '}', '[', ']', '<', '>', '\\', '\n', '\r', '\0' };
+
+            foreach (var c in suspiciousChars)
+            {
+                if (input.Contains(c))
+                    return true;
+            }
+
+            // Check for common command injection patterns
+            string[] suspiciousPatterns = { "ping", "wget", "curl", "nc ", "bash", "sh ", "cmd", "powershell", "/bin/", "/etc/" };
+            var lowerInput = input.ToLowerInvariant();
+
+            foreach (var pattern in suspiciousPatterns)
+            {
+                if (lowerInput.Contains(pattern))
+                    return true;
+            }
+
+            return false;
         }
     }
 } 

@@ -1577,8 +1577,8 @@
                     <p class="page-subtitle">Request #@Model.CurrentRequest.Id • @Model.CurrentRequest.FirstName @Model.CurrentRequest.LastName</p>
                 </div>
                 <div>
-                    <a href="/Modules/SimManagement/Approvals/ICTS" class="btn btn-outline-secondary">
-                        <i class="bi bi-arrow-left me-2"></i>Back to Approvals
+                    <a href="/Dashboard/Approver" class="btn btn-outline-secondary">
+                        <i class="bi bi-arrow-left me-2"></i>Back to Dashboard
                     </a>
                 </div>
             </div>
@@ -1803,34 +1803,87 @@
 
                             @if (Model.CurrentRequest.Status == TAB.Web.Models.RequestStatus.PendingIcts)
                             {
-                                @* Request New SIM Form *@
-                                <form method="post" asp-page-handler="IctsProcess">
-                                    <input type="hidden" name="requestId" value="@Model.CurrentRequest.Id" />
+                                @if (Model.CurrentRequest.LineRequestType == TAB.Web.Models.LineRequestType.ExistingLine)
+                                {
+                                    @* Complete Existing Line Form - Simplified *@
+                                    <form method="post" asp-page-handler="IctsProcess">
+                                        <input type="hidden" name="requestId" value="@Model.CurrentRequest.Id" />
 
-                                    @* Service Provider Information Card *@
-                                    <div class="mb-4" style="background: #f8fafc; border-radius: 12px; padding: 1.5rem; border: 1px solid #e2e8f0;">
-                                        <h6 style="font-size: 0.875rem; font-weight: 600; color: #004987; margin-bottom: 1rem; padding-bottom: 0.5rem; border-bottom: 2px solid #E3EDF6; display: flex; align-items: center;">
-                                            <i class="bi bi-building me-2" style="color: #009EDB;"></i>Service Provider Information
-                                        </h6>
-                                        <div class="row g-3">
-                                            <div class="col-md-6">
-                                                <label class="form-label fw-medium">Service Provider</label>
-                                                <input type="text" class="form-control" value="@Model.CurrentRequest.ServiceProvider?.ServiceProviderName" readonly style="background: #f9fafb;" />
+                                        @* Existing Phone Information Card *@
+                                        <div class="mb-4" style="background: #f0fdf4; border-radius: 12px; padding: 1.5rem; border: 1px solid #bbf7d0;">
+                                            <h6 style="font-size: 0.875rem; font-weight: 600; color: #15803d; margin-bottom: 1rem; padding-bottom: 0.5rem; border-bottom: 2px solid #bbf7d0; display: flex; align-items: center;">
+                                                <i class="bi bi-telephone-fill me-2" style="color: #22c55e;"></i>Existing Line Information
+                                            </h6>
+                                            <div class="alert alert-info" role="alert">
+                                                <i class="bi bi-info-circle me-2"></i>
+                                                This is a request for an <strong>existing line</strong>. No new SIM issuance needed.
                                             </div>
-                                            <div class="col-md-6">
-                                                <label class="form-label fw-medium">Main Contact Person</label>
-                                                <input type="text" class="form-control" value="@Model.CurrentRequest.ServiceProvider?.SPMainCP" readonly style="background: #f9fafb;" />
-                                            </div>
-                                            <div class="col-md-6">
-                                                <label class="form-label fw-medium">Main CP Email</label>
-                                                <input type="email" class="form-control" value="@Model.CurrentRequest.ServiceProvider?.SPMainCPEmail" readonly style="background: #f9fafb;" />
-                                            </div>
-                                            <div class="col-md-6">
-                                                <label class="form-label fw-medium">Other Contacts</label>
-                                                <input type="text" class="form-control" value="@Model.CurrentRequest.ServiceProvider?.SPOtherCPsEmail" readonly style="background: #f9fafb;" />
+                                            <div class="row g-3">
+                                                <div class="col-md-6">
+                                                    <label class="form-label fw-medium">Existing Phone Number</label>
+                                                    <input type="text" class="form-control" value="@Model.CurrentRequest.ExistingPhoneNumber" readonly style="background: #f9fafb; font-size: 1.1rem; font-weight: 600; color: #15803d;" />
+                                                </div>
+                                                <div class="col-md-6">
+                                                    <label class="form-label fw-medium">Request Type</label>
+                                                    <input type="text" class="form-control" value="Existing Line Registration" readonly style="background: #f9fafb;" />
+                                                </div>
                                             </div>
                                         </div>
-                                    </div>
+
+                                        @* ICTS Remarks Card *@
+                                        <div class="mb-4" style="background: #ffffff; border-radius: 12px; padding: 1.5rem; border: 1px solid #e2e8f0;">
+                                            <h6 style="font-size: 0.875rem; font-weight: 600; color: #004987; margin-bottom: 1rem; padding-bottom: 0.5rem; border-bottom: 2px solid #E3EDF6; display: flex; align-items: center;">
+                                                <i class="bi bi-chat-square-text me-2" style="color: #009EDB;"></i>ICTS Remarks
+                                            </h6>
+                                            <label class="form-label fw-medium">ICTS Remark (Optional)</label>
+                                            <textarea name="ictsRemark" class="form-control" rows="3" maxlength="200" placeholder="Add processing notes and remarks..."></textarea>
+                                            <div class="d-flex justify-content-between align-items-center mt-2">
+                                                <small class="text-muted">Optional processing notes</small>
+                                                <small class="text-muted">Max 200 characters</small>
+                                            </div>
+                                        </div>
+
+                                        @* Action Buttons *@
+                                        <div class="d-flex gap-3 justify-content-end">
+                                            <button type="submit" name="action" value="revert" class="btn btn-warning" style="min-width: 180px;">
+                                                <i class="bi bi-arrow-left me-2"></i>Revert To Requestor
+                                            </button>
+                                            <button type="submit" name="action" value="completeexisting" class="btn btn-success" style="min-width: 180px;">
+                                                <i class="bi bi-check-circle me-2"></i>Mark as Completed
+                                            </button>
+                                        </div>
+                                    </form>
+                                }
+                                else
+                                {
+                                    @* Request New SIM Form *@
+                                    <form method="post" asp-page-handler="IctsProcess">
+                                        <input type="hidden" name="requestId" value="@Model.CurrentRequest.Id" />
+
+                                        @* Service Provider Information Card *@
+                                        <div class="mb-4" style="background: #f8fafc; border-radius: 12px; padding: 1.5rem; border: 1px solid #e2e8f0;">
+                                            <h6 style="font-size: 0.875rem; font-weight: 600; color: #004987; margin-bottom: 1rem; padding-bottom: 0.5rem; border-bottom: 2px solid #E3EDF6; display: flex; align-items: center;">
+                                                <i class="bi bi-building me-2" style="color: #009EDB;"></i>Service Provider Information
+                                            </h6>
+                                            <div class="row g-3">
+                                                <div class="col-md-6">
+                                                    <label class="form-label fw-medium">Service Provider</label>
+                                                    <input type="text" class="form-control" value="@Model.CurrentRequest.ServiceProvider?.ServiceProviderName" readonly style="background: #f9fafb;" />
+                                                </div>
+                                                <div class="col-md-6">
+                                                    <label class="form-label fw-medium">Main Contact Person</label>
+                                                    <input type="text" class="form-control" value="@Model.CurrentRequest.ServiceProvider?.SPMainCP" readonly style="background: #f9fafb;" />
+                                                </div>
+                                                <div class="col-md-6">
+                                                    <label class="form-label fw-medium">Main CP Email</label>
+                                                    <input type="email" class="form-control" value="@Model.CurrentRequest.ServiceProvider?.SPMainCPEmail" readonly style="background: #f9fafb;" />
+                                                </div>
+                                                <div class="col-md-6">
+                                                    <label class="form-label fw-medium">Other Contacts</label>
+                                                    <input type="text" class="form-control" value="@Model.CurrentRequest.ServiceProvider?.SPOtherCPsEmail" readonly style="background: #f9fafb;" />
+                                                </div>
+                                            </div>
+                                        </div>
 
                                     @* SIM Request Details Card *@
                                     <div class="mb-4" style="background: #ffffff; border-radius: 12px; padding: 1.5rem; border: 1px solid #e2e8f0;">
@@ -1906,6 +1959,7 @@
                                         </button>
                                     </div>
                                 </form>
+                                }
                             }
                             else if (Model.CurrentRequest.Status == TAB.Web.Models.RequestStatus.PendingServiceProvider || Model.CurrentRequest.Status == TAB.Web.Models.RequestStatus.PendingSIMCollection)
                             {

@@ -30,27 +30,23 @@
         left: 0;
         right: 0;
         height: 4px;
-        background: linear-gradient(90deg, var(--gradient-start), var(--gradient-end));
+        background: var(--card-color);
     }
 
     .stat-card:nth-child(1)::before {
-        --gradient-start: #009EDB;
-        --gradient-end: #0084c7;
+        --card-color: #009EDB;
     }
 
     .stat-card:nth-child(2)::before {
-        --gradient-start: #f59e0b;
-        --gradient-end: #fbbf24;
+        --card-color: #f59e0b;
     }
 
     .stat-card:nth-child(3)::before {
-        --gradient-start: #10b981;
-        --gradient-end: #34d399;
+        --card-color: #10b981;
     }
 
     .stat-card:nth-child(4)::before {
-        --gradient-start: #ef4444;
-        --gradient-end: #f87171;
+        --card-color: #ef4444;
     }
 
     .stat-card:hover {
@@ -75,22 +71,22 @@
     }
 
     .stat-icon-primary {
-        background: linear-gradient(135deg, #009EDB, #0084c7);
+        background: #009EDB;
         color: white;
     }
 
     .stat-icon-warning {
-        background: linear-gradient(135deg, #f59e0b, #fbbf24);
+        background: #f59e0b;
         color: white;
     }
 
     .stat-icon-success {
-        background: linear-gradient(135deg, #10b981, #34d399);
+        background: #10b981;
         color: white;
     }
 
     .stat-icon-danger {
-        background: linear-gradient(135deg, #ef4444, #f87171);
+        background: #ef4444;
         color: white;
     }
 
@@ -226,7 +222,7 @@
     }
 
     .batch-card.active {
-        background: linear-gradient(135deg, #f0f9ff 0%, #e0f2fe 100%);
+        background: #f0f9ff;
         border-color: #009EDB;
         box-shadow: 0 4px 12px rgba(0, 158, 219, 0.15);
     }
@@ -488,12 +484,54 @@
                         <i class="bi bi-folder2-open me-2 text-primary"></i>@Model.CurrentBatch.BatchName
                     </h6>
                     <small class="text-muted">Created by @Model.CurrentBatch.CreatedBy on @Model.CurrentBatch.CreatedDate.ToString("MMM dd, yyyy HH:mm")</small>
+                    @if (!string.IsNullOrEmpty(Model.CurrentBatch.CurrentOperation))
+                    {
+                        @if (Model.CurrentBatch.ProcessingProgress >= 100)
+                        {
+                            <div class="mt-2 p-2 rounded" style="background-color: #d1fae5; border: 1px solid #10b981;">
+                                <div class="d-flex align-items-center">
+                                    <i class="bi bi-check-circle-fill text-success me-2"></i>
+                                    <span class="fw-semibold text-success">@Model.CurrentBatch.CurrentOperation - Complete</span>
+                                </div>
+                            </div>
+                        }
+                        else
+                        {
+                            <div class="mt-2 p-2 rounded" style="background-color: #fef3c7; border: 1px solid #f59e0b;">
+                                <div class="d-flex align-items-center mb-1">
+                                    <div class="spinner-border spinner-border-sm text-warning me-2" role="status">
+                                        <span class="visually-hidden">Processing...</span>
+                                    </div>
+                                    <span class="fw-semibold text-warning">@Model.CurrentBatch.CurrentOperation</span>
+                                </div>
+                                <div class="progress" style="height: 8px;">
+                                    <div class="progress-bar bg-warning progress-bar-striped progress-bar-animated"
+                                         role="progressbar"
+                                         style="width: @Model.CurrentBatch.ProcessingProgress%;"
+                                         aria-valuenow="@Model.CurrentBatch.ProcessingProgress"
+                                         aria-valuemin="0"
+                                         aria-valuemax="100">
+                                    </div>
+                                </div>
+                                <small class="text-muted">@Model.CurrentBatch.ProcessingProgress% complete</small>
+                            </div>
+                        }
+                    }
                 </div>
                 <div class="d-flex gap-2">
                     @if ((Model.CurrentBatch.BatchStatus == BatchStatus.Processing || Model.CurrentBatch.BatchStatus == BatchStatus.PartiallyVerified || Model.CurrentBatch.BatchStatus == BatchStatus.Verified) && Model.BatchStatistics.GetValueOrDefault("Verified") > 0)
                     {
                         <button type="button" class="btn btn-success btn-sm" onclick="openVerificationPeriodModal('@Model.CurrentBatch.Id')">
                             <i class="bi bi-cloud-upload me-1"></i>Push to Production
+                        </button>
+                    }
+                    @if (Model.CurrentBatch.BatchStatus == BatchStatus.Published)
+                    {
+                        <button type="button" class="btn btn-primary btn-sm send-notifications-btn"
+                                data-batch-id="@Model.CurrentBatch.Id"
+                                data-batch-name="@Model.CurrentBatch.BatchName"
+                                onclick="sendNotifications('@Model.CurrentBatch.Id', '@Model.CurrentBatch.BatchName', this)">
+                            <i class="bi bi-envelope me-1"></i>Send Notifications
                         </button>
                     }
                     @if (Model.CurrentBatch.BatchStatus != BatchStatus.Published)
@@ -587,8 +625,8 @@
 
 <!-- Staged Logs Table -->
 <div class="card border-0 shadow-sm" style="border-radius: 16px;">
-    <div class="card-header bg-gradient border-0 py-4"
-         style="background: linear-gradient(135deg, #f8f9fa 0%, #e9ecef 100%); border-radius: 16px 16px 0 0;">
+    <div class="card-header border-0 py-4"
+         style="background: #f8f9fa; border-radius: 16px 16px 0 0;">
         <div class="d-flex justify-content-between align-items-center">
             <div class="d-flex align-items-center gap-2">
                 <label class="mb-0" style="font-size: 14px; color: #4b5563;">Show</label>
@@ -901,9 +939,9 @@
         <div class="modal-content" style="border-radius: 20px; border: none; box-shadow: 0 10px 40px rgba(0, 0, 0, 0.1);">
             <div class="modal-body p-0">
                 <!-- Icon and Title Section -->
-                <div class="text-center pt-4 pb-3" style="background: linear-gradient(135deg, #f8f9fa 0%, #e9ecef 100%); border-radius: 20px 20px 0 0;">
+                <div class="text-center pt-4 pb-3" style="background: #f8f9fa; border-radius: 20px 20px 0 0;">
                     <div class="d-inline-flex align-items-center justify-content-center mb-3"
-                         style="width: 64px; height: 64px; background: linear-gradient(135deg, #009EDB 0%, #0084c7 100%); border-radius: 16px;">
+                         style="width: 64px; height: 64px; background: #009EDB; border-radius: 16px;">
                         <i class="bi bi-arrow-repeat text-white" style="font-size: 28px;"></i>
                     </div>
                     <h5 class="modal-title mb-1 fw-bold">Consolidate Call Logs</h5>
@@ -1168,7 +1206,7 @@
 
                     <!-- Progress Section (Hidden by default) -->
                     <div id="consolidationProgress" class="d-none mb-4">
-                        <div class="card border-0" style="background: linear-gradient(135deg, #f8f9fa 0%, #e9ecef 100%);">
+                        <div class="card border-0" style="background: #f8f9fa;">
                             <div class="card-body">
                                 <div class="d-flex align-items-center mb-3">
                                     <div class="spinner-border spinner-border-sm text-primary me-3" role="status">
@@ -1216,9 +1254,9 @@
         <div class="modal-content" style="border-radius: 20px; border: none; box-shadow: 0 10px 40px rgba(0, 0, 0, 0.1);">
             <div class="modal-body p-0">
                 <!-- Icon and Title Section -->
-                <div class="text-center pt-4 pb-3" style="background: linear-gradient(135deg, #fee2e2 0%, #fecaca 100%); border-radius: 20px 20px 0 0;">
+                <div class="text-center pt-4 pb-3" style="background: #fee2e2; border-radius: 20px 20px 0 0;">
                     <div class="d-inline-flex align-items-center justify-content-center mb-3"
-                         style="width: 64px; height: 64px; background: linear-gradient(135deg, #ef4444 0%, #dc2626 100%); border-radius: 16px;">
+                         style="width: 64px; height: 64px; background: #ef4444; border-radius: 16px;">
                         <i class="bi bi-trash text-white" style="font-size: 28px;"></i>
                     </div>
                     <h5 class="modal-title mb-1 fw-bold text-danger">Delete Batch</h5>
@@ -1256,7 +1294,7 @@
 <div class="modal fade" id="rejectionModal" tabindex="-1" aria-hidden="true">
     <div class="modal-dialog modal-dialog-centered">
         <div class="modal-content" style="border-radius: 16px; border: none; overflow: hidden;">
-            <div class="modal-header" style="background: linear-gradient(135deg, #ef4444, #dc2626); border: none; padding: 1.5rem;">
+            <div class="modal-header" style="background: #ef4444; border: none; padding: 1.5rem;">
                 <h5 class="modal-title text-white d-flex align-items-center">
                     <i class="bi bi-x-circle me-2"></i>
                     Reject Record
@@ -1289,7 +1327,7 @@
                     Cancel
                 </button>
                 <button type="button" class="btn btn-danger px-4" onclick="submitRejection()"
-                        style="background: linear-gradient(135deg, #ef4444, #dc2626); border: none; border-radius: 8px; font-weight: 500;">
+                        style="background: #ef4444; border: none; border-radius: 8px; font-weight: 500;">
                     <i class="bi bi-x-circle me-2"></i>Reject Record
                 </button>
             </div>
@@ -1303,9 +1341,9 @@
         <div class="modal-content" style="border-radius: 20px; border: none; box-shadow: 0 10px 40px rgba(0, 0, 0, 0.1);">
             <div class="modal-body p-0">
                 <!-- Icon and Title Section -->
-                <div class="text-center pt-4 pb-3" style="background: linear-gradient(135deg, #dbeafe 0%, #bfdbfe 100%); border-radius: 20px 20px 0 0;">
+                <div class="text-center pt-4 pb-3" style="background: #dbeafe; border-radius: 20px 20px 0 0;">
                     <div class="d-inline-flex align-items-center justify-content-center mb-3"
-                         style="width: 64px; height: 64px; background: linear-gradient(135deg, #3b82f6 0%, #2563eb 100%); border-radius: 16px;">
+                         style="width: 64px; height: 64px; background: #3b82f6; border-radius: 16px;">
                         <i class="bi bi-check-circle-fill text-white" style="font-size: 28px;"></i>
                     </div>
                     <h5 class="modal-title mb-1 fw-bold" style="color: #1e40af;">Verify All Records</h5>
@@ -1348,9 +1386,9 @@
         <div class="modal-content" style="border-radius: 20px; border: none; box-shadow: 0 10px 40px rgba(0, 0, 0, 0.1);">
             <div class="modal-body p-0">
                 <!-- Icon and Title Section -->
-                <div class="text-center pt-4 pb-3" style="background: linear-gradient(135deg, #d1fae5 0%, #a7f3d0 100%); border-radius: 20px 20px 0 0;">
+                <div class="text-center pt-4 pb-3" style="background: #d1fae5; border-radius: 20px 20px 0 0;">
                     <div class="d-inline-flex align-items-center justify-content-center mb-3"
-                         style="width: 64px; height: 64px; background: linear-gradient(135deg, #10b981 0%, #059669 100%); border-radius: 16px;">
+                         style="width: 64px; height: 64px; background: #10b981; border-radius: 16px;">
                         <i class="bi bi-check-all text-white" style="font-size: 28px;"></i>
                     </div>
                     <h5 class="modal-title mb-1 fw-bold" style="color: #047857;">Verify Selected Records</h5>
@@ -1392,9 +1430,9 @@
         <div class="modal-content" style="border-radius: 20px; border: none; box-shadow: 0 10px 40px rgba(0, 0, 0, 0.1);">
             <div class="modal-body p-0">
                 <!-- Icon and Title Section -->
-                <div class="text-center pt-4 pb-3" style="background: linear-gradient(135deg, #fee2e2 0%, #fecaca 100%); border-radius: 20px 20px 0 0;">
+                <div class="text-center pt-4 pb-3" style="background: #fee2e2; border-radius: 20px 20px 0 0;">
                     <div class="d-inline-flex align-items-center justify-content-center mb-3"
-                         style="width: 64px; height: 64px; background: linear-gradient(135deg, #ef4444 0%, #dc2626 100%); border-radius: 16px;">
+                         style="width: 64px; height: 64px; background: #ef4444; border-radius: 16px;">
                         <i class="bi bi-x-circle text-white" style="font-size: 28px;"></i>
                     </div>
                     <h5 class="modal-title mb-1 fw-bold text-danger">Reject Selected Records</h5>
@@ -1444,7 +1482,7 @@
 <div class="modal fade" id="verificationPeriodModal" tabindex="-1" aria-hidden="true">
     <div class="modal-dialog modal-dialog-centered modal-lg">
         <div class="modal-content" style="border-radius: 16px; border: none; overflow: hidden;">
-            <div class="modal-header" style="background: linear-gradient(135deg, #10b981, #059669); border: none; padding: 1.5rem;">
+            <div class="modal-header" style="background: #10b981; border: none; padding: 1.5rem;">
                 <h5 class="modal-title text-white d-flex align-items-center">
                     <i class="bi bi-calendar-check me-2"></i>
                     Push to Production - Set Deadlines
@@ -1562,7 +1600,7 @@
 
                     <!-- Progress Section (Hidden by default) -->
                     <div id="pushProgress" class="d-none mt-3">
-                        <div class="card border-0" style="background: linear-gradient(135deg, #d1fae5 0%, #a7f3d0 100%);">
+                        <div class="card border-0" style="background: #d1fae5;">
                             <div class="card-body">
                                 <div class="d-flex align-items-center mb-3">
                                     <div class="spinner-border spinner-border-sm text-success me-3" role="status">
@@ -1597,7 +1635,7 @@
                     Cancel
                 </button>
                 <button type="button" class="btn btn-success px-4" onclick="submitPushToProduction()" id="pushToProductionBtn"
-                        style="background: linear-gradient(135deg, #10b981, #059669); border: none; border-radius: 8px; font-weight: 500;">
+                        style="background: #10b981; border: none; border-radius: 8px; font-weight: 500;">
                     <i class="bi bi-cloud-upload me-2"></i>Push to Production
                 </button>
             </div>
@@ -1610,7 +1648,7 @@
 <div class="modal fade" id="detailsModal" tabindex="-1" aria-hidden="true">
     <div class="modal-dialog modal-dialog-centered modal-lg">
         <div class="modal-content" style="border-radius: 16px; border: none; overflow: hidden;">
-            <div class="modal-header" style="background: linear-gradient(135deg, #009EDB, #0077B5); border: none; padding: 1.5rem;">
+            <div class="modal-header" style="background: #009EDB; border: none; padding: 1.5rem;">
                 <h5 class="modal-title text-white d-flex align-items-center">
                     <i class="bi bi-info-circle me-2"></i>
                     Record Details
@@ -1641,7 +1679,7 @@
 <div class="modal fade" id="anomaliesModal" tabindex="-1" aria-hidden="true">
     <div class="modal-dialog modal-dialog-centered modal-lg">
         <div class="modal-content" style="border-radius: 16px; border: none; overflow: hidden;">
-            <div class="modal-header" style="background: linear-gradient(135deg, #f59e0b, #d97706); border: none; padding: 1.5rem;">
+            <div class="modal-header" style="background: #f59e0b; border: none; padding: 1.5rem;">
                 <h5 class="modal-title text-white d-flex align-items-center">
                     <i class="bi bi-exclamation-triangle me-2"></i>
                     Anomalies Detected
@@ -2810,6 +2848,109 @@
             // Clear batch selection
             window.location.href = '/Admin/CallLogStaging';
         }
+    }
+
+    // Send notifications for a published batch
+    function sendNotifications(batchId, batchName, button) {
+        if (!confirm(`Are you sure you want to send notifications for "${batchName}"?\n\nThis will send email notifications to all staff members with call logs in this batch.`)) {
+            return;
+        }
+
+        // Disable button and show loading
+        const originalHtml = button.innerHTML;
+        button.disabled = true;
+        button.innerHTML = '<span class="spinner-border spinner-border-sm me-1"></span>Sending...';
+
+        const formData = new FormData();
+        formData.append('batchId', batchId);
+
+        fetch('?handler=SendNotifications', {
+            method: 'POST',
+            body: formData,
+            headers: {
+                'RequestVerificationToken': document.querySelector('input[name="__RequestVerificationToken"]').value
+            }
+        })
+        .then(response => response.json())
+        .then(data => {
+            if (data.success) {
+                // Show success - change to check icon temporarily
+                button.innerHTML = '<i class="bi bi-check-lg me-1"></i>Queued';
+                button.classList.remove('btn-primary');
+                button.classList.add('btn-success');
+
+                // Show alert
+                alert('Notifications queued successfully!\n\nEmails will be sent in the background. You can monitor progress in Hangfire dashboard.');
+
+                // Reset button after 3 seconds
+                setTimeout(() => {
+                    button.innerHTML = originalHtml;
+                    button.classList.remove('btn-success');
+                    button.classList.add('btn-primary');
+                    button.disabled = false;
+                }, 3000);
+            } else {
+                alert('Error: ' + data.message);
+                button.innerHTML = originalHtml;
+                button.disabled = false;
+            }
+        })
+        .catch(error => {
+            console.error('Error:', error);
+            alert('Error sending notifications. Please try again.');
+            button.innerHTML = originalHtml;
+            button.disabled = false;
+        });
+    }
+
+    // =============================================
+    // Auto-refresh DISABLED on CallLogStaging page
+    // Auto-refresh is only enabled on ImportJobs page for monitoring
+    // Users can manually refresh this page using browser refresh (F5)
+    // =============================================
+    @{
+        var shouldAutoRefresh = false; // Always false - auto-refresh disabled
+    }
+
+    @if (shouldAutoRefresh)
+    {
+        @:// Auto-refresh disabled - this code won't run
+        @:let refreshInterval;
+        @:let refreshCountdown = 15;
+        @:
+        @:function updateRefreshCountdown() {
+        @:    const countdownEl = document.getElementById('refreshCountdown');
+        @:    if (countdownEl) {
+        @:        countdownEl.textContent = refreshCountdown;
+        @:        refreshCountdown--;
+        @:
+        @:        if (refreshCountdown < 0) {
+        @:            window.location.reload();
+        @:        }
+        @:    }
+        @:}
+        @:
+        @:// Show refresh indicator
+        @:document.addEventListener('DOMContentLoaded', function() {
+        @:    // Add refresh indicator to the page
+        @:    const statusBar = document.createElement('div');
+        @:    statusBar.className = 'alert alert-info d-flex align-items-center mb-3';
+        @:    statusBar.style.borderRadius = '12px';
+        @:    statusBar.innerHTML = `
+        @:        <i class="bi bi-arrow-clockwise me-2"></i>
+        @:        <strong>Background consolidation in progress...</strong>
+        @:        <span class="ms-auto">Page will auto-refresh in <span id="refreshCountdown">${refreshCountdown}</span> seconds</span>
+        @:    `;
+        @:
+        @:    // Insert at the top of the main content
+        @:    const mainContent = document.querySelector('.container-fluid');
+        @:    if (mainContent && mainContent.firstChild) {
+        @:        mainContent.insertBefore(statusBar, mainContent.firstChild);
+        @:    }
+        @:
+        @:    // Start countdown
+        @:    refreshInterval = setInterval(updateRefreshCountdown, 1000);
+        @:});
     }
 
 </script>

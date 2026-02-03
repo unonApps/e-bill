@@ -70,10 +70,22 @@ namespace TAB.Web.Models
         public int TotalRecordsProcessed { get; set; }
 
         /// <summary>
-        /// Total amount recovered
+        /// Total amount recovered (legacy - sum of both currencies, kept for backwards compatibility)
         /// </summary>
         [Column(TypeName = "decimal(18,2)")]
         public decimal TotalAmountRecovered { get; set; }
+
+        /// <summary>
+        /// Total amount recovered in KSH (Safaricom, Airtel, PSTN)
+        /// </summary>
+        [Column(TypeName = "decimal(18,2)")]
+        public decimal TotalAmountRecoveredKSH { get; set; }
+
+        /// <summary>
+        /// Total amount recovered in USD (Private Wire)
+        /// </summary>
+        [Column(TypeName = "decimal(18,2)")]
+        public decimal TotalAmountRecoveredUSD { get; set; }
 
         /// <summary>
         /// Number of deadline reminders sent

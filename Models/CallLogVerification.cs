@@ -61,6 +61,9 @@ namespace TAB.Web.Models
         [MaxLength(50)]
         public string? SupervisorIndexNumber { get; set; }
 
+        [MaxLength(256)]
+        public string? SupervisorEmail { get; set; }
+
         [MaxLength(20)]
         public string? SupervisorApprovalStatus { get; set; }
 

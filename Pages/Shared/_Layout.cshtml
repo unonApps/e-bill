@@ -3,7 +3,8 @@
 <head>
     <meta charset="utf-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-    <title>@ViewData["Title"] - TAB System</title>
+    <title>@ViewData["Title"] - UNON E-Billing System</title>
+    <link rel="icon" type="image/png" href="~/images/unlogo.png" />
     <link rel="stylesheet" href="~/lib/bootstrap/dist/css/bootstrap.min.css" />
     <link rel="stylesheet" href="~/css/site.css" asp-append-version="true" />
     <link rel="stylesheet" href="~/TAB.Web.styles.css" asp-append-version="true" />
@@ -68,7 +69,7 @@
                         <span class="pending-badge" id="refund-badge" style="display: none;">0</span>
                     </a>
                 </li>
-                <li>
+                <li id="ebill-menu-item" style="display: none;">
                     <a asp-page="/Modules/EBillManagement/CallRecords/MyCallLogs" class="menu-item @(ViewContext.RouteData.Values["Page"]?.ToString()?.StartsWith("/Modules/EBillManagement/CallRecords") == true ? "active" : "")">
                         <i class="menu-icon bi bi-envelope"></i>
                         <span>E-Bill</span>
@@ -77,40 +78,51 @@
                 </li>
             </ul>
 
-            <!-- My Reports section -->
+            <!-- My Reports section - only shown if user has e-bill account -->
             @{
                 var supervisorName = User.Identity?.IsAuthenticated == true ? $"{User.FindFirst("FirstName")?.Value} {User.FindFirst("LastName")?.Value}" : "";
             }
             @if (User.Identity?.IsAuthenticated == true)
             {
-            <div class="sidebar-section-header">
-                My Reports
+            <div id="my-reports-section" style="display: none;">
+                <div class="sidebar-section-header">
+                    My Reports
+                </div>
+                <ul class="list-unstyled menu-sections">
+                    <li>
+                        <a asp-page="/Staff/MyRecoveryReport" class="menu-item @(ViewContext.RouteData.Values["Page"]?.ToString() == "/Staff/MyRecoveryReport" ? "active" : "")">
+                            <i class="menu-icon bi bi-file-earmark-bar-graph"></i>
+                            <span>My Recovery Report</span>
+                        </a>
+                    </li>
+                    <li>
+                        <a asp-page="/Modules/EBillManagement/CallRecords/PaymentAssignments" class="menu-item @(ViewContext.RouteData.Values["Page"]?.ToString() == "/Modules/EBillManagement/CallRecords/PaymentAssignments" ? "active" : "")">
+                            <i class="menu-icon bi bi-arrow-left-right"></i>
+                            <span>Payment Assignments</span>
+                            <span class="pending-badge" id="payment-assignments-badge" style="display: none;">0</span>
+                        </a>
+                    </li>
+                </ul>
             </div>
-            <ul class="list-unstyled menu-sections">
-                <li>
-                    <a asp-page="/Staff/MyRecoveryReport" class="menu-item @(ViewContext.RouteData.Values["Page"]?.ToString() == "/Staff/MyRecoveryReport" ? "active" : "")">
-                        <i class="menu-icon bi bi-file-earmark-bar-graph"></i>
-                        <span>My Recovery Report</span>
-                    </a>
-                </li>
-            </ul>
             }
 
-            <!-- Approval Dashboard section -->
+            <!-- Approval Dashboard section - only shown if user has pending items -->
             @if (User.Identity?.IsAuthenticated == true)
             {
-            <div class="sidebar-section-header">
-                Approval Dashboard
+            <div id="approver-dashboard-section" style="display: none;">
+                <div class="sidebar-section-header">
+                    Approval Dashboard
+                </div>
+                <ul class="list-unstyled menu-sections">
+                    <li>
+                        <a asp-page="/Dashboard/Approver/Index" class="menu-item @(ViewContext.RouteData.Values["Page"]?.ToString()?.StartsWith("/Dashboard/Approver") == true || ViewContext.RouteData.Values["Page"]?.ToString()?.Contains("/Approvals/") == true ? "active" : "")">
+                            <i class="menu-icon bi bi-person-badge"></i>
+                            <span>Approver Dashboard</span>
+                            <span class="pending-badge" id="approver-badge" style="display: none;">0</span>
+                        </a>
+                    </li>
+                </ul>
             </div>
-            <ul class="list-unstyled menu-sections">
-                <li>
-                    <a asp-page="/Dashboard/Approver/Index" class="menu-item @(ViewContext.RouteData.Values["Page"]?.ToString()?.StartsWith("/Dashboard/Approver") == true || ViewContext.RouteData.Values["Page"]?.ToString()?.Contains("/Approvals/") == true ? "active" : "")">
-                        <i class="menu-icon bi bi-person-badge"></i>
-                        <span>Approver Dashboard</span>
-                        <span class="pending-badge" id="approver-badge" style="display: none;">0</span>
-                    </a>
-                </li>
-            </ul>
             }
 
             <!-- Management section -->
@@ -178,6 +190,12 @@
                             </a>
                         </li>
                         <li>
+                            <a asp-page="/Admin/PhoneNumbers" class="nested-submenu-item @(ViewContext.RouteData.Values["Page"]?.ToString() == "/Admin/PhoneNumbers" ? "active" : "")">
+                                <i class="menu-icon bi bi-telephone-fill"></i>
+                                <span>Phone Numbers</span>
+                            </a>
+                        </li>
+                        <li>
                             <a asp-page="/Admin/UserPhones" class="nested-submenu-item @(ViewContext.RouteData.Values["Page"]?.ToString() == "/Admin/UserPhones" ? "active" : "")">
                                 <i class="menu-icon bi bi-telephone-plus"></i>
                                 <span>User Phones</span>
@@ -202,15 +220,27 @@
                             </a>
                         </li>
                         <li>
-                            <a asp-page="/Admin/ImportAudits" class="nested-submenu-item @(ViewContext.RouteData.Values["Page"]?.ToString() == "/Admin/ImportAudits" ? "active" : "")">
-                                <i class="menu-icon bi bi-file-earmark-check"></i>
-                                <span>Import Audit Trail</span>
+                            <a asp-page="/Admin/BillingProcessing" class="nested-submenu-item @(ViewContext.RouteData.Values["Page"]?.ToString() == "/Admin/BillingProcessing" ? "active" : "")">
+                                <i class="menu-icon bi bi-calculator"></i>
+                                <span>Billing Processing</span>
+                            </a>
+                        </li>
+                        <li>
+                            <a asp-page="/Admin/BillingReports" class="nested-submenu-item @(ViewContext.RouteData.Values["Page"]?.ToString() == "/Admin/BillingReports" ? "active" : "")">
+                                <i class="menu-icon bi bi-bar-chart-line"></i>
+                                <span>Billing Reports</span>
                             </a>
                         </li>
                         <li>
                             <a asp-page="/Admin/ImportJobs" class="nested-submenu-item @(ViewContext.RouteData.Values["Page"]?.ToString() == "/Admin/ImportJobs" ? "active" : "")">
                                 <i class="menu-icon bi bi-server"></i>
-                                <span>Import Jobs</span>
+                                <span>Background Jobs</span>
+                            </a>
+                        </li>
+                        <li>
+                            <a asp-page="/Admin/SmartUpload" class="nested-submenu-item @(ViewContext.RouteData.Values["Page"]?.ToString() == "/Admin/SmartUpload" ? "active" : "")">
+                                <i class="menu-icon bi bi-magic text-success"></i>
+                                <span>Smart Upload</span>
                             </a>
                         </li>
 
@@ -377,14 +407,28 @@
                         $('#refund-badge').text(counts.refundCount).show();
                     }
 
-                    // Update E-Bill badge
-                    if (counts.ebillCount > 0) {
-                        $('#ebill-badge').text(counts.ebillCount).show();
+                    // Show E-Bill menu items only if user has e-bill account
+                    if (counts.hasEbillAccount) {
+                        $('#ebill-menu-item').show();
+                        $('#my-reports-section').show();
+
+                        // Update E-Bill badge
+                        if (counts.ebillCount > 0) {
+                            $('#ebill-badge').text(counts.ebillCount).show();
+                        }
+
+                        // Update Payment Assignments badge
+                        if (counts.paymentAssignmentsCount > 0) {
+                            $('#payment-assignments-badge').text(counts.paymentAssignmentsCount).show();
+                        }
                     }
 
-                    // Update Approver Dashboard badge
+                    // Update Approver Dashboard badge and show/hide section
                     if (counts.totalCount > 0) {
+                        $('#approver-dashboard-section').show();
                         $('#approver-badge').text(counts.totalCount).show();
+                    } else {
+                        $('#approver-dashboard-section').hide();
                     }
                 }
             });

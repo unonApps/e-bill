@@ -1,0 +1,389 @@
+@model TAB.Web.Pages.Modules.RefundManagement.Requests.RefundRequestFormModel
+
+<!-- Navigation Tabs -->
+<ul class="nav nav-tabs" id="formTabs" role="tablist">
+    <li class="nav-item" role="presentation">
+        <button class="nav-link active" id="personal-tab" data-bs-toggle="tab"
+                data-bs-target="#personal" type="button" role="tab">
+            <i class="bi bi-person"></i> Personal Information
+        </button>
+    </li>
+    <li class="nav-item" role="presentation">
+        <button class="nav-link" id="device-tab" data-bs-toggle="tab"
+                data-bs-target="#device" type="button" role="tab">
+            <i class="bi bi-phone"></i> Device Details
+        </button>
+    </li>
+    <li class="nav-item" role="presentation">
+        <button class="nav-link" id="purchase-tab" data-bs-toggle="tab"
+                data-bs-target="#purchase" type="button" role="tab">
+            <i class="bi bi-receipt"></i> Purchase Information
+        </button>
+    </li>
+    <li class="nav-item" role="presentation">
+        <button class="nav-link" id="review-tab" data-bs-toggle="tab"
+                data-bs-target="#review" type="button" role="tab">
+            <i class="bi bi-check-circle"></i> Review & Submit
+        </button>
+    </li>
+</ul>
+
+<!-- Tab Content -->
+<div class="tab-content" id="formTabContent">
+    <!-- Personal Information Tab -->
+    <div class="tab-pane fade show active" id="personal" role="tabpanel">
+        <div class="form-section">
+            <h6 class="section-header">
+                <i class="bi bi-person-circle section-icon"></i>
+                Staff Information
+            </h6>
+
+            <div class="row">
+                <div class="col-md-6">
+                    <div class="form-floating">
+                        <input type="text" class="form-control" id="mobileNumberAssignedTo"
+                               asp-for="RefundRequest.MobileNumberAssignedTo" placeholder=" " required>
+                        <label for="mobileNumberAssignedTo" class="required-field">Full Name</label>
+                        <span class="invalid-feedback"></span>
+                    </div>
+                </div>
+                <div class="col-md-6">
+                    <div class="form-floating">
+                        <input type="text" class="form-control" id="indexNo"
+                               asp-for="RefundRequest.IndexNo" placeholder=" " required
+                               pattern="[A-Z0-9]+" maxlength="50">
+                        <label for="indexNo" class="required-field">Index Number</label>
+                        <span class="invalid-feedback"></span>
+                    </div>
+                </div>
+            </div>
+
+            <div class="row">
+                <div class="col-md-6">
+                    <div class="form-floating">
+                        <input type="tel" class="form-control" id="primaryMobileNumber"
+                               asp-for="RefundRequest.PrimaryMobileNumber" placeholder=" " required
+                               pattern="\d{9,15}" maxlength="15">
+                        <label for="primaryMobileNumber" class="required-field">Primary Mobile Number</label>
+                        <span class="invalid-feedback"></span>
+                    </div>
+                </div>
+                <div class="col-md-6">
+                    <div class="form-floating">
+                        <input type="text" class="form-control" id="officeExtension"
+                               asp-for="RefundRequest.OfficeExtension" placeholder=" ">
+                        <label for="officeExtension">Office Extension</label>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <div class="form-section">
+            <h6 class="section-header">
+                <i class="bi bi-building section-icon"></i>
+                Organization Details
+            </h6>
+
+            <div class="row">
+                <div class="col-md-6">
+                    <div class="form-floating">
+                        <select class="form-select" id="organization" asp-for="RefundRequest.Organization" required data-organization-id="">
+                            <option value="">Select Organization</option>
+                            @foreach (var org in Model.Organizations)
+                            {
+                                @if (!string.IsNullOrEmpty(org.Code))
+                                {
+                                    <option value="@org.Name" data-org-id="@org.Id" data-org-code="@org.Code">@org.Code - @org.Name</option>
+                                }
+                                else
+                                {
+                                    <option value="@org.Name" data-org-id="@org.Id">@org.Name</option>
+                                }
+                            }
+                        </select>
+                        <label for="organization" class="required-field">Organization</label>
+                        <span class="invalid-feedback"></span>
+                    </div>
+                </div>
+                <div class="col-md-6">
+                    <div class="form-floating">
+                        <select class="form-select" id="office" asp-for="RefundRequest.Office" required disabled data-preselected-office="@Model.RefundRequest.Office">
+                            <option value="">Select Organization First</option>
+                        </select>
+                        <label for="office" class="required-field">Office</label>
+                        <span class="invalid-feedback"></span>
+                    </div>
+                </div>
+            </div>
+
+            <div class="row">
+                <div class="col-md-6">
+                    <div class="form-floating">
+                        <input type="email" class="form-control" id="supervisor"
+                               asp-for="RefundRequest.Supervisor" placeholder=" " required>
+                        <label for="supervisor" class="required-field">Supervisor Email</label>
+                        <span class="invalid-feedback"></span>
+                    </div>
+                </div>
+                <div class="col-md-6">
+                    <div class="form-floating">
+                        <input type="text" class="form-control" id="supervisorName"
+                               asp-for="RefundRequest.SupervisorName" placeholder=" ">
+                        <label for="supervisorName">Supervisor Name</label>
+                        <span class="invalid-feedback"></span>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <div class="nav-helper">
+            <button type="submit" name="action" value="draft" class="btn btn-outline-secondary">
+                <i class="bi bi-save"></i> Save as Draft
+            </button>
+            <button type="button" class="btn btn-primary" onclick="validateAndNext('personal', 'device-tab')">
+                Next: Device Details <i class="bi bi-arrow-right"></i>
+            </button>
+        </div>
+    </div>
+
+    <!-- Device Details Tab -->
+    <div class="tab-pane fade" id="device" role="tabpanel">
+        <div class="form-section">
+            <h6 class="section-header">
+                <i class="bi bi-phone-fill section-icon"></i>
+                Mobile Service Information
+            </h6>
+
+            <div class="row">
+                <div class="col-md-6">
+                    <div class="form-floating">
+                        <select class="form-select" id="mobileService" name="RefundRequest.MobileService" required>
+                            <option value="">Select Service Provider</option>
+                            <option value="Safaricom" selected="@(Model.RefundRequest.MobileService == "Safaricom")">Safaricom</option>
+                            <option value="Airtel" selected="@(Model.RefundRequest.MobileService == "Airtel")">Airtel</option>
+                            <option value="Telkom" selected="@(Model.RefundRequest.MobileService == "Telkom")">Telkom</option>
+                            <option value="Other" selected="@(Model.RefundRequest.MobileService == "Other")">Other</option>
+                        </select>
+                        <label for="mobileService" class="required-field">Mobile Service Provider</label>
+                        <span class="invalid-feedback"></span>
+                    </div>
+                </div>
+                <div class="col-md-6">
+                    <div class="form-floating">
+                        <select class="form-select" id="classOfService" name="RefundRequest.ClassOfService" required>
+                            <option value="">Select Class of Service</option>
+                            @foreach (var cos in Model.ClassesOfService)
+                            {
+                                <option value="@cos.Class" data-allowance="@cos.HandsetAllowance" selected="@(Model.RefundRequest.ClassOfService == cos.Class)">
+                                    @cos.Class - @cos.Service
+                                </option>
+                            }
+                        </select>
+                        <label for="classOfService" class="required-field">Class of Service</label>
+                        <span class="invalid-feedback"></span>
+                    </div>
+                </div>
+            </div>
+
+            <div class="row">
+                <div class="col-md-6">
+                    <div class="form-floating">
+                        <input type="number" class="form-control" id="deviceAllowance"
+                               name="RefundRequest.DeviceAllowance" placeholder=" "
+                               step="0.01" min="0.01" value="@Model.RefundRequest.DeviceAllowance" readonly required>
+                        <label for="deviceAllowance">Device Allowance (USD)</label>
+                    </div>
+                </div>
+                <div class="col-md-6">
+                    <div class="form-floating">
+                        <input type="date" class="form-control" id="previousDeviceDate"
+                               name="RefundRequest.PreviousDeviceReimbursedDate"
+                               value="@Model.RefundRequest.PreviousDeviceReimbursedDate?.ToString("yyyy-MM-dd")" placeholder=" ">
+                        <label for="previousDeviceDate">Previous Device Reimbursement Date</label>
+                    </div>
+                </div>
+            </div>
+
+            <div class="alert alert-info mt-3">
+                <i class="bi bi-info-circle"></i>
+                Your device allowance is determined by your class of service.
+                This amount represents the maximum reimbursement available for your device purchase.
+            </div>
+        </div>
+
+        <div class="nav-helper">
+            <div style="display: flex; gap: 0.5rem;">
+                <button type="button" class="btn btn-outline-secondary" onclick="previousTab('personal-tab')">
+                    <i class="bi bi-arrow-left"></i> Previous
+                </button>
+                <button type="submit" name="action" value="draft" class="btn btn-outline-secondary">
+                    <i class="bi bi-save"></i> Save as Draft
+                </button>
+            </div>
+            <button type="button" class="btn btn-primary" onclick="validateAndNext('device', 'purchase-tab')">
+                Next: Purchase Information <i class="bi bi-arrow-right"></i>
+            </button>
+        </div>
+    </div>
+
+    <!-- Purchase Information Tab -->
+    <div class="tab-pane fade" id="purchase" role="tabpanel">
+        <div class="form-section">
+            <h6 class="section-header">
+                <i class="bi bi-receipt-cutoff section-icon"></i>
+                Purchase Details
+            </h6>
+
+            <div class="row">
+                <div class="col-md-6">
+                    <div class="form-floating">
+                        <select class="form-select" id="purchaseCurrency"
+                                name="RefundRequest.DevicePurchaseCurrency" required>
+                            <option value="">Select Currency</option>
+                            <option value="USD" selected="@(Model.RefundRequest.DevicePurchaseCurrency == "USD")">USD - US Dollar</option>
+                            <option value="KES" selected="@(Model.RefundRequest.DevicePurchaseCurrency == "KES")">KES - Kenyan Shilling</option>
+                            <option value="EUR" selected="@(Model.RefundRequest.DevicePurchaseCurrency == "EUR")">EUR - Euro</option>
+                            <option value="GBP" selected="@(Model.RefundRequest.DevicePurchaseCurrency == "GBP")">GBP - British Pound</option>
+                        </select>
+                        <label for="purchaseCurrency" class="required-field">Purchase Currency</label>
+                        <span class="invalid-feedback"></span>
+                    </div>
+                </div>
+                <div class="col-md-6">
+                    <div class="form-floating">
+                        <input type="number" class="form-control" id="purchaseAmount"
+                               name="RefundRequest.DevicePurchaseAmount"
+                               value="@Model.RefundRequest.DevicePurchaseAmount" placeholder=" "
+                               step="0.01" min="0.01" required>
+                        <label for="purchaseAmount" class="required-field">Purchase Amount</label>
+                        <span class="invalid-feedback"></span>
+                    </div>
+                </div>
+            </div>
+
+            <div class="row">
+                <div class="col-md-12">
+                    <div class="form-floating">
+                        <select class="form-select" id="umojaBankName"
+                                name="RefundRequest.UmojaBankName" required>
+                            <option value="">Select Bank</option>
+                            <option value="Standard Chartered Bank" selected="@(Model.RefundRequest.UmojaBankName == "Standard Chartered Bank")">Standard Chartered Bank</option>
+                            <option value="Citibank" selected="@(Model.RefundRequest.UmojaBankName == "Citibank")">Citibank</option>
+                            <option value="JP Morgan Chase" selected="@(Model.RefundRequest.UmojaBankName == "JP Morgan Chase")">JP Morgan Chase</option>
+                            <option value="Bank of America" selected="@(Model.RefundRequest.UmojaBankName == "Bank of America")">Bank of America</option>
+                            <option value="Other" selected="@(Model.RefundRequest.UmojaBankName == "Other")">Other</option>
+                        </select>
+                        <label for="umojaBankName" class="required-field">Umoja Bank Name</label>
+                        <span class="invalid-feedback"></span>
+                    </div>
+                </div>
+            </div>
+
+            <div class="row">
+                <div class="col-md-12">
+                    <label class="form-label">Purchase Receipt <span class="text-danger">*</span></label>
+                    @if (!string.IsNullOrEmpty(Model.RefundRequest.PurchaseReceiptFileName))
+                    {
+                        <div class="alert alert-success mb-2" style="display: flex; justify-content: space-between; align-items: center;">
+                            <div>
+                                <i class="bi bi-check-circle"></i>
+                                Current file: <strong>@Model.RefundRequest.PurchaseReceiptFileName</strong>
+                                <small class="d-block mt-1">Upload a new file to replace it, or leave empty to keep the current file.</small>
+                            </div>
+                            <a href="/Modules/RefundManagement/Requests/DownloadReceipt/@Model.RefundRequest.Id"
+                               class="btn btn-sm btn-primary"
+                               target="_blank"
+                               style="background-color: #009EDB; border: none; white-space: nowrap;">
+                                <i class="bi bi-eye"></i> View Receipt
+                            </a>
+                        </div>
+                    }
+                    <div class="file-upload-area" id="fileUploadArea">
+                        <input type="file" id="purchaseReceipt" name="receiptFile"
+                               accept=".pdf,.jpg,.jpeg,.png" style="display: none;">
+                        <i class="bi bi-cloud-upload file-upload-icon"></i>
+                        <div class="file-upload-text">Click to upload or drag and drop</div>
+                        <div class="file-upload-hint">PDF, JPG, or PNG (Max 5MB)</div>
+                        <div id="fileName" class="mt-2 text-success" style="display: none;"></div>
+                    </div>
+                </div>
+            </div>
+
+            <div class="row mt-3">
+                <div class="col-md-12">
+                    <div class="form-floating">
+                        <textarea class="form-control" id="remarks"
+                                  name="RefundRequest.Remarks" placeholder=" "
+                                  style="height: 100px">@Model.RefundRequest.Remarks</textarea>
+                        <label for="remarks">Additional Remarks (Optional)</label>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <div class="nav-helper">
+            <div style="display: flex; gap: 0.5rem;">
+                <button type="button" class="btn btn-outline-secondary" onclick="previousTab('device-tab')">
+                    <i class="bi bi-arrow-left"></i> Previous
+                </button>
+                <button type="submit" name="action" value="draft" class="btn btn-outline-secondary">
+                    <i class="bi bi-save"></i> Save as Draft
+                </button>
+            </div>
+            <button type="button" class="btn btn-primary" onclick="validateAndNext('purchase', 'review-tab')">
+                Next: Review <i class="bi bi-arrow-right"></i>
+            </button>
+        </div>
+    </div>
+
+    <!-- Review & Submit Tab -->
+    <div class="tab-pane fade" id="review" role="tabpanel">
+        <div class="form-section">
+            <h6 class="section-header">
+                <i class="bi bi-list-check section-icon"></i>
+                Review Your Information
+            </h6>
+
+            <div class="alert alert-info">
+                <i class="bi bi-info-circle"></i>
+                <strong>Save as Draft:</strong> Save your progress anytime - all fields are optional.<br>
+                <strong>Submit Request:</strong> All required fields must be completed before submission.
+            </div>
+
+            <div id="validationStatus" class="alert alert-info mt-3" style="display: none;">
+                <!-- Validation status will be shown here -->
+            </div>
+
+            <div id="reviewSummary" class="mt-3">
+                <!-- This will be populated by JavaScript -->
+            </div>
+        </div>
+
+        <div class="nav-helper">
+            <div style="display: flex; gap: 0.5rem;">
+                <button type="button" class="btn btn-outline-secondary" onclick="previousTab('purchase-tab')">
+                    <i class="bi bi-arrow-left"></i> Previous
+                </button>
+                <button type="submit" name="action" value="draft" class="btn btn-outline-secondary">
+                    <i class="bi bi-save"></i> Save as Draft
+                </button>
+            </div>
+            <div></div>
+        </div>
+
+        <!-- Form Actions - Only visible on Review tab -->
+        <div class="form-actions mt-3">
+            <a href="/Modules/RefundManagement/Requests" class="btn btn-outline-secondary">
+                <i class="bi bi-x-circle"></i> Cancel
+            </a>
+            <div class="btn-group-actions">
+                <button type="submit" name="action" value="draft" class="btn btn-outline-secondary" title="Save your progress - all fields optional">
+                    <i class="bi bi-save"></i> Save as Draft
+                </button>
+                <button type="submit" name="action" value="submit" class="btn btn-primary" id="submitBtn" title="Submit for approval - all required fields must be completed">
+                    <i class="bi bi-send"></i> Submit Request
+                </button>
+            </div>
+        </div>
+    </div>
+</div>

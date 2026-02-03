@@ -59,15 +59,18 @@ namespace TAB.Web.Pages.Staff
             var ebillUser = await _context.EbillUsers
                 .FirstOrDefaultAsync(u => u.Email == UserEmail);
 
-            if (ebillUser == null)
+            if (ebillUser != null)
             {
-                _logger.LogWarning("User {Email} attempted to access recovery report but has no EbillUser account", UserEmail);
-                TempData["ErrorMessage"] = "Access Denied: You do not have an E-Bill account. Please contact your system administrator to set up your account.";
-                return RedirectToPage("/Account/AccessDenied");
+                UserIndexNumber = ebillUser.IndexNumber;
+                UserName = $"{ebillUser.FirstName} {ebillUser.LastName}";
             }
-
-            UserIndexNumber = ebillUser.IndexNumber;
-            UserName = $"{ebillUser.FirstName} {ebillUser.LastName}";
+            else
+            {
+                // User doesn't have an EbillUser account - allow access but they'll see no records
+                _logger.LogInformation("User {Email} accessing recovery report without EbillUser account - will show empty results", UserEmail);
+                UserIndexNumber = string.Empty;
+                UserName = UserEmail;
+            }
 
             // Set default date range (last 6 months)
             if (!StartDate.HasValue)

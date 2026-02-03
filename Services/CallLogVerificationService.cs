@@ -194,6 +194,508 @@ namespace TAB.Web.Services
             }
         }
 
+        /// <summary>
+        /// Optimized bulk verification - processes all records in a single transaction
+        /// with minimal database round trips.
+        /// </summary>
+        public async Task<BulkVerificationResult> BulkVerifyCallLogsAsync(
+            List<int> callRecordIds,
+            string indexNumber,
+            VerificationType verificationType,
+            string? justification = null)
+        {
+            var result = new BulkVerificationResult();
+
+            if (callRecordIds == null || !callRecordIds.Any())
+            {
+                result.Errors.Add("No call record IDs provided");
+                return result;
+            }
+
+            try
+            {
+                var now = DateTime.UtcNow;
+
+                // OPTIMIZATION 1: Load all call records in a single query
+                var callRecords = await _context.CallRecords
+                    .Where(c => callRecordIds.Contains(c.Id))
+                    .ToListAsync();
+
+                if (!callRecords.Any())
+                {
+                    result.Errors.Add("No call records found for the provided IDs");
+                    return result;
+                }
+
+                // OPTIMIZATION 2: Load all existing verifications in a single query
+                var existingVerifications = await _context.CallLogVerifications
+                    .Where(v => callRecordIds.Contains(v.CallRecordId))
+                    .ToDictionaryAsync(v => v.CallRecordId, v => v);
+
+                // OPTIMIZATION 3: Get assigned call IDs for this user in a single query
+                var assignedCallIdsList = await _context.Set<CallLogPaymentAssignment>()
+                    .Where(a => a.AssignedTo == indexNumber && a.AssignmentStatus == "Accepted")
+                    .Select(a => a.CallRecordId)
+                    .ToListAsync();
+                var assignedCallIds = assignedCallIdsList.ToHashSet();
+
+                var verificationsToAdd = new List<CallLogVerification>();
+                var verificationsToUpdate = new List<CallLogVerification>();
+                var callsToUpdate = new List<CallRecord>();
+
+                foreach (var callRecord in callRecords)
+                {
+                    // Permission check
+                    bool isResponsibleUser = callRecord.ResponsibleIndexNumber == indexNumber;
+                    bool isPayingUser = callRecord.PayingIndexNumber == indexNumber && callRecord.AssignmentStatus == "Accepted";
+                    bool isAssignedUser = assignedCallIds.Contains(callRecord.Id);
+
+                    if (!isResponsibleUser && !isPayingUser && !isAssignedUser)
+                    {
+                        result.UnauthorizedCount++;
+                        continue;
+                    }
+
+                    // Check if call has been assigned out and is awaiting acceptance
+                    if (callRecord.AssignmentStatus == "Pending" &&
+                        callRecord.ResponsibleIndexNumber == indexNumber &&
+                        callRecord.PayingIndexNumber != indexNumber)
+                    {
+                        result.SkippedCount++;
+                        continue;
+                    }
+
+                    // Check if verification deadline has expired
+                    if (callRecord.VerificationPeriod.HasValue && callRecord.VerificationPeriod.Value < now)
+                    {
+                        result.ExpiredCount++;
+                        continue;
+                    }
+
+                    // Check if locked by supervisor approval
+                    if (existingVerifications.TryGetValue(callRecord.Id, out var existingVerification))
+                    {
+                        if (existingVerification.SubmittedToSupervisor)
+                        {
+                            var approvalStatus = existingVerification.ApprovalStatus;
+                            if (approvalStatus == "Approved" || approvalStatus == "PartiallyApproved")
+                            {
+                                result.LockedCount++;
+                                continue;
+                            }
+                        }
+
+                        // Update existing verification
+                        existingVerification.VerificationType = verificationType;
+                        existingVerification.JustificationText = justification ?? $"Bulk verified as {verificationType}";
+                        existingVerification.ModifiedDate = now;
+
+                        // Clear submission if previously submitted but not approved
+                        if (existingVerification.SubmittedToSupervisor)
+                        {
+                            var currentStatus = existingVerification.ApprovalStatus;
+                            if (currentStatus != "Approved" && currentStatus != "PartiallyApproved")
+                            {
+                                existingVerification.SubmittedToSupervisor = false;
+                                existingVerification.SubmittedDate = null;
+                                existingVerification.ApprovalStatus = "Pending";
+                            }
+                        }
+
+                        verificationsToUpdate.Add(existingVerification);
+                    }
+                    else
+                    {
+                        // Create new verification
+                        var newVerification = new CallLogVerification
+                        {
+                            CallRecordId = callRecord.Id,
+                            VerifiedBy = indexNumber,
+                            VerifiedDate = now,
+                            VerificationType = verificationType,
+                            ActualAmount = callRecord.CallCostUSD,
+                            IsOverage = false, // Simplified for bulk - no overage check
+                            JustificationText = justification ?? $"Bulk verified as {verificationType}",
+                            ApprovalStatus = "Pending",
+                            CreatedDate = now
+                        };
+                        verificationsToAdd.Add(newVerification);
+                    }
+
+                    // Update call record
+                    callRecord.IsVerified = true;
+                    callRecord.VerificationDate = now;
+                    callRecord.VerificationType = verificationType.ToString();
+                    callsToUpdate.Add(callRecord);
+
+                    result.VerifiedCount++;
+                }
+
+                // OPTIMIZATION 4: Batch all changes and save in a single transaction
+                if (verificationsToAdd.Any())
+                {
+                    await _context.CallLogVerifications.AddRangeAsync(verificationsToAdd);
+                }
+
+                if (verificationsToUpdate.Any())
+                {
+                    _context.CallLogVerifications.UpdateRange(verificationsToUpdate);
+                }
+
+                if (callsToUpdate.Any())
+                {
+                    _context.CallRecords.UpdateRange(callsToUpdate);
+                }
+
+                // Single SaveChanges for all operations
+                await _context.SaveChangesAsync();
+
+                _logger.LogInformation(
+                    "Bulk verification completed: {VerifiedCount} verified, {SkippedCount} skipped, {LockedCount} locked, {ExpiredCount} expired, {UnauthorizedCount} unauthorized",
+                    result.VerifiedCount, result.SkippedCount, result.LockedCount, result.ExpiredCount, result.UnauthorizedCount);
+
+                return result;
+            }
+            catch (Exception ex)
+            {
+                _logger.LogError(ex, "Error during bulk verification for user {IndexNumber}", indexNumber);
+                result.Errors.Add($"Database error: {ex.Message}");
+                return result;
+            }
+        }
+
+        /// <summary>
+        /// ULTRA-FAST bulk verification using raw SQL.
+        /// Executes directly on database - can verify thousands of records in milliseconds.
+        /// </summary>
+        public async Task<BulkVerificationResult> BulkVerifyByExtensionMonthRawAsync(
+            string extension,
+            int month,
+            int year,
+            string indexNumber,
+            VerificationType verificationType,
+            string? justification = null)
+        {
+            var result = new BulkVerificationResult();
+            var now = DateTime.UtcNow;
+            var verificationTypeStr = verificationType.ToString();
+            var justificationText = justification ?? $"Bulk verified as {verificationType}";
+
+            try
+            {
+                // DIAGNOSTIC: First, count how many records SHOULD match (using same logic as page)
+                var diagnosticCount = await _context.CallRecords
+                    .Include(c => c.UserPhone)
+                    .Where(c => (c.UserPhone != null ? c.UserPhone.PhoneNumber : "Unknown") == extension
+                        && c.CallMonth == month
+                        && c.CallYear == year
+                        && c.ResponsibleIndexNumber == indexNumber)
+                    .CountAsync();
+
+                _logger.LogInformation(
+                    "DIAGNOSTIC: Found {Count} total records matching extension={Extension}, month={Month}, year={Year}, indexNumber={IndexNumber}",
+                    diagnosticCount, extension, month, year, indexNumber);
+
+                // Also check without ResponsibleIndexNumber filter to see if that's the issue
+                var countWithoutIndexFilter = await _context.CallRecords
+                    .Include(c => c.UserPhone)
+                    .Where(c => (c.UserPhone != null ? c.UserPhone.PhoneNumber : "Unknown") == extension
+                        && c.CallMonth == month
+                        && c.CallYear == year)
+                    .CountAsync();
+
+                _logger.LogInformation(
+                    "DIAGNOSTIC: Found {Count} records WITHOUT indexNumber filter (extension={Extension}, month={Month}, year={Year})",
+                    countWithoutIndexFilter, extension, month, year);
+
+                // Use execution strategy to handle retries with transactions
+                var strategy = _context.Database.CreateExecutionStrategy();
+                var callRecordsUpdated = 0;
+                var verificationTypeInt = (int)verificationType;
+
+                await strategy.ExecuteAsync(async () =>
+                {
+                    using var transaction = await _context.Database.BeginTransactionAsync();
+
+                    // Step 1: Update CallRecords directly with raw SQL
+                    // JOIN with UserPhones because extension in UI comes from UserPhones.PhoneNumber
+                    // Handle 'Unknown' case: when UserPhone is NULL, the UI shows 'Unknown'
+                    // NOTE: Using actual database column names (from [Column] attributes), not C# property names!
+                    var updateCallRecordsSql = @"
+                        UPDATE cr
+                        SET cr.call_ver_ind = 1,
+                            cr.call_ver_date = @now,
+                            cr.verification_type = @verificationType
+                        FROM CallRecords cr
+                        LEFT JOIN UserPhones up ON cr.UserPhoneId = up.Id
+                        WHERE (
+                            (@extension = 'Unknown' AND cr.UserPhoneId IS NULL)
+                            OR up.PhoneNumber = @extension
+                            OR cr.ext_no = @extension
+                        )
+                          AND cr.call_month = @month
+                          AND cr.call_year = @year
+                          AND cr.ext_resp_index = @indexNumber
+                          AND (cr.supervisor_approval_status IS NULL OR cr.supervisor_approval_status = '' OR cr.supervisor_approval_status = 'Pending')
+                          AND (cr.verification_period IS NULL OR cr.verification_period > @now)";
+
+                    callRecordsUpdated = await _context.Database.ExecuteSqlRawAsync(
+                        updateCallRecordsSql,
+                        new Microsoft.Data.SqlClient.SqlParameter("@now", now),
+                        new Microsoft.Data.SqlClient.SqlParameter("@verificationType", verificationTypeStr),
+                        new Microsoft.Data.SqlClient.SqlParameter("@extension", extension),
+                        new Microsoft.Data.SqlClient.SqlParameter("@month", month),
+                        new Microsoft.Data.SqlClient.SqlParameter("@year", year),
+                        new Microsoft.Data.SqlClient.SqlParameter("@indexNumber", indexNumber));
+
+                    // Step 2: Update existing CallLogVerifications
+                    // CallLogVerifications table uses property names (no [Column] attributes)
+                    // But CallRecords join uses actual database column names
+                    var updateVerificationsSql = @"
+                        UPDATE clv
+                        SET clv.VerificationType = @verificationTypeInt,
+                            clv.JustificationText = @justification,
+                            clv.ModifiedDate = @now,
+                            clv.SubmittedToSupervisor = CASE
+                                WHEN clv.ApprovalStatus IN ('Approved', 'PartiallyApproved') THEN clv.SubmittedToSupervisor
+                                ELSE 0
+                            END,
+                            clv.ApprovalStatus = CASE
+                                WHEN clv.ApprovalStatus IN ('Approved', 'PartiallyApproved') THEN clv.ApprovalStatus
+                                ELSE 'Pending'
+                            END
+                        FROM CallLogVerifications clv
+                        INNER JOIN CallRecords cr ON clv.CallRecordId = cr.Id
+                        LEFT JOIN UserPhones up ON cr.UserPhoneId = up.Id
+                        WHERE (
+                            (@extension = 'Unknown' AND cr.UserPhoneId IS NULL)
+                            OR up.PhoneNumber = @extension
+                            OR cr.ext_no = @extension
+                        )
+                          AND cr.call_month = @month
+                          AND cr.call_year = @year
+                          AND cr.ext_resp_index = @indexNumber
+                          AND (cr.supervisor_approval_status IS NULL OR cr.supervisor_approval_status = '' OR cr.supervisor_approval_status = 'Pending')";
+
+                    await _context.Database.ExecuteSqlRawAsync(
+                        updateVerificationsSql,
+                        new Microsoft.Data.SqlClient.SqlParameter("@verificationTypeInt", verificationTypeInt),
+                        new Microsoft.Data.SqlClient.SqlParameter("@justification", justificationText),
+                        new Microsoft.Data.SqlClient.SqlParameter("@now", now),
+                        new Microsoft.Data.SqlClient.SqlParameter("@extension", extension),
+                        new Microsoft.Data.SqlClient.SqlParameter("@month", month),
+                        new Microsoft.Data.SqlClient.SqlParameter("@year", year),
+                        new Microsoft.Data.SqlClient.SqlParameter("@indexNumber", indexNumber));
+
+                    // Step 3: Insert new CallLogVerifications for records that don't have one
+                    // CallLogVerifications columns use property names, CallRecords columns use database names
+                    var insertVerificationsSql = @"
+                        INSERT INTO CallLogVerifications (CallRecordId, VerifiedBy, VerifiedDate, VerificationType,
+                            ActualAmount, IsOverage, JustificationText, ApprovalStatus, CreatedDate, SubmittedToSupervisor)
+                        SELECT cr.Id, @indexNumber, @now, @verificationTypeInt,
+                               cr.call_cost_usd, 0, @justification, 'Pending', @now, 0
+                        FROM CallRecords cr
+                        LEFT JOIN UserPhones up ON cr.UserPhoneId = up.Id
+                        WHERE (
+                            (@extension = 'Unknown' AND cr.UserPhoneId IS NULL)
+                            OR up.PhoneNumber = @extension
+                            OR cr.ext_no = @extension
+                        )
+                          AND cr.call_month = @month
+                          AND cr.call_year = @year
+                          AND cr.ext_resp_index = @indexNumber
+                          AND (cr.supervisor_approval_status IS NULL OR cr.supervisor_approval_status = '' OR cr.supervisor_approval_status = 'Pending')
+                          AND (cr.verification_period IS NULL OR cr.verification_period > @now)
+                          AND NOT EXISTS (SELECT 1 FROM CallLogVerifications clv WHERE clv.CallRecordId = cr.Id)";
+
+                    await _context.Database.ExecuteSqlRawAsync(
+                        insertVerificationsSql,
+                        new Microsoft.Data.SqlClient.SqlParameter("@indexNumber", indexNumber),
+                        new Microsoft.Data.SqlClient.SqlParameter("@now", now),
+                        new Microsoft.Data.SqlClient.SqlParameter("@verificationTypeInt", verificationTypeInt),
+                        new Microsoft.Data.SqlClient.SqlParameter("@justification", justificationText),
+                        new Microsoft.Data.SqlClient.SqlParameter("@extension", extension),
+                        new Microsoft.Data.SqlClient.SqlParameter("@month", month),
+                        new Microsoft.Data.SqlClient.SqlParameter("@year", year));
+
+                    await transaction.CommitAsync();
+                });
+
+                result.VerifiedCount = callRecordsUpdated;
+
+                _logger.LogInformation(
+                    "RAW SQL bulk verification completed for {Extension}/{Month}/{Year}: {Count} records in single transaction",
+                    extension, month, year, callRecordsUpdated);
+
+                // If raw SQL found 0 but diagnostic found records, fall back to EF Core method
+                if (callRecordsUpdated == 0 && diagnosticCount > 0)
+                {
+                    _logger.LogWarning(
+                        "RAW SQL found 0 records but diagnostic found {DiagnosticCount}. Falling back to EF Core method.",
+                        diagnosticCount);
+
+                    // Get the call record IDs using EF Core (same logic as page)
+                    var callRecordIds = await _context.CallRecords
+                        .Include(c => c.UserPhone)
+                        .Where(c => (c.UserPhone != null ? c.UserPhone.PhoneNumber : "Unknown") == extension
+                            && c.CallMonth == month
+                            && c.CallYear == year
+                            && c.ResponsibleIndexNumber == indexNumber)
+                        .Select(c => c.Id)
+                        .ToListAsync();
+
+                    if (callRecordIds.Any())
+                    {
+                        // Use the existing BulkVerifyCallLogsAsync method as fallback
+                        return await BulkVerifyCallLogsAsync(callRecordIds, indexNumber, verificationType, justificationText);
+                    }
+                }
+
+                return result;
+            }
+            catch (Exception ex)
+            {
+                _logger.LogError(ex, "Error during raw SQL bulk verification for {Extension}/{Month}/{Year}", extension, month, year);
+                result.Errors.Add($"Database error: {ex.Message}");
+                return result;
+            }
+        }
+
+        /// <summary>
+        /// ULTRA-FAST bulk verification by dialed number using raw SQL.
+        /// </summary>
+        public async Task<BulkVerificationResult> BulkVerifyByDialedNumberRawAsync(
+            string extension,
+            int month,
+            int year,
+            string dialedNumber,
+            string indexNumber,
+            VerificationType verificationType,
+            string? justification = null)
+        {
+            var result = new BulkVerificationResult();
+            var now = DateTime.UtcNow;
+            var verificationTypeStr = verificationType.ToString();
+            var justificationText = justification ?? $"Bulk verified as {verificationType}";
+
+            try
+            {
+                var strategy = _context.Database.CreateExecutionStrategy();
+                var callRecordsUpdated = 0;
+                var verificationTypeInt = (int)verificationType;
+
+                await strategy.ExecuteAsync(async () =>
+                {
+                    using var transaction = await _context.Database.BeginTransactionAsync();
+
+                    // Step 1: Update CallRecords
+                    // NOTE: Using actual database column names (from [Column] attributes)
+                    var updateCallRecordsSql = @"
+                        UPDATE cr
+                        SET cr.call_ver_ind = 1,
+                            cr.call_ver_date = @now,
+                            cr.verification_type = @verificationType
+                        FROM CallRecords cr
+                        LEFT JOIN UserPhones up ON cr.UserPhoneId = up.Id
+                        WHERE (up.PhoneNumber = @extension OR cr.ext_no = @extension)
+                          AND cr.call_month = @month
+                          AND cr.call_year = @year
+                          AND ISNULL(cr.call_number, 'Unknown') = @dialedNumber
+                          AND cr.ext_resp_index = @indexNumber
+                          AND (cr.supervisor_approval_status IS NULL OR cr.supervisor_approval_status = '' OR cr.supervisor_approval_status = 'Pending')
+                          AND (cr.verification_period IS NULL OR cr.verification_period > @now)";
+
+                    callRecordsUpdated = await _context.Database.ExecuteSqlRawAsync(
+                        updateCallRecordsSql,
+                        new Microsoft.Data.SqlClient.SqlParameter("@now", now),
+                        new Microsoft.Data.SqlClient.SqlParameter("@verificationType", verificationTypeStr),
+                        new Microsoft.Data.SqlClient.SqlParameter("@extension", extension),
+                        new Microsoft.Data.SqlClient.SqlParameter("@month", month),
+                        new Microsoft.Data.SqlClient.SqlParameter("@year", year),
+                        new Microsoft.Data.SqlClient.SqlParameter("@dialedNumber", dialedNumber),
+                        new Microsoft.Data.SqlClient.SqlParameter("@indexNumber", indexNumber));
+
+                    // Step 2: Update existing verifications
+                    var updateVerificationsSql = @"
+                        UPDATE clv
+                        SET clv.VerificationType = @verificationTypeInt,
+                            clv.JustificationText = @justification,
+                            clv.ModifiedDate = @now,
+                            clv.SubmittedToSupervisor = CASE
+                                WHEN clv.ApprovalStatus IN ('Approved', 'PartiallyApproved') THEN clv.SubmittedToSupervisor
+                                ELSE 0
+                            END,
+                            clv.ApprovalStatus = CASE
+                                WHEN clv.ApprovalStatus IN ('Approved', 'PartiallyApproved') THEN clv.ApprovalStatus
+                                ELSE 'Pending'
+                            END
+                        FROM CallLogVerifications clv
+                        INNER JOIN CallRecords cr ON clv.CallRecordId = cr.Id
+                        LEFT JOIN UserPhones up ON cr.UserPhoneId = up.Id
+                        WHERE (up.PhoneNumber = @extension OR cr.ext_no = @extension)
+                          AND cr.call_month = @month
+                          AND cr.call_year = @year
+                          AND ISNULL(cr.call_number, 'Unknown') = @dialedNumber
+                          AND cr.ext_resp_index = @indexNumber";
+
+                    await _context.Database.ExecuteSqlRawAsync(
+                        updateVerificationsSql,
+                        new Microsoft.Data.SqlClient.SqlParameter("@verificationTypeInt", verificationTypeInt),
+                        new Microsoft.Data.SqlClient.SqlParameter("@justification", justificationText),
+                        new Microsoft.Data.SqlClient.SqlParameter("@now", now),
+                        new Microsoft.Data.SqlClient.SqlParameter("@extension", extension),
+                        new Microsoft.Data.SqlClient.SqlParameter("@month", month),
+                        new Microsoft.Data.SqlClient.SqlParameter("@year", year),
+                        new Microsoft.Data.SqlClient.SqlParameter("@dialedNumber", dialedNumber),
+                        new Microsoft.Data.SqlClient.SqlParameter("@indexNumber", indexNumber));
+
+                    // Step 3: Insert new verifications
+                    var insertVerificationsSql = @"
+                        INSERT INTO CallLogVerifications (CallRecordId, VerifiedBy, VerifiedDate, VerificationType,
+                            ActualAmount, IsOverage, JustificationText, ApprovalStatus, CreatedDate, SubmittedToSupervisor)
+                        SELECT cr.Id, @indexNumber, @now, @verificationTypeInt,
+                               cr.call_cost_usd, 0, @justification, 'Pending', @now, 0
+                        FROM CallRecords cr
+                        LEFT JOIN UserPhones up ON cr.UserPhoneId = up.Id
+                        WHERE (up.PhoneNumber = @extension OR cr.ext_no = @extension)
+                          AND cr.call_month = @month
+                          AND cr.call_year = @year
+                          AND ISNULL(cr.call_number, 'Unknown') = @dialedNumber
+                          AND cr.ext_resp_index = @indexNumber
+                          AND (cr.supervisor_approval_status IS NULL OR cr.supervisor_approval_status = '' OR cr.supervisor_approval_status = 'Pending')
+                          AND (cr.verification_period IS NULL OR cr.verification_period > @now)
+                          AND NOT EXISTS (SELECT 1 FROM CallLogVerifications clv WHERE clv.CallRecordId = cr.Id)";
+
+                    await _context.Database.ExecuteSqlRawAsync(
+                        insertVerificationsSql,
+                        new Microsoft.Data.SqlClient.SqlParameter("@indexNumber", indexNumber),
+                        new Microsoft.Data.SqlClient.SqlParameter("@now", now),
+                        new Microsoft.Data.SqlClient.SqlParameter("@verificationTypeInt", verificationTypeInt),
+                        new Microsoft.Data.SqlClient.SqlParameter("@justification", justificationText),
+                        new Microsoft.Data.SqlClient.SqlParameter("@extension", extension),
+                        new Microsoft.Data.SqlClient.SqlParameter("@month", month),
+                        new Microsoft.Data.SqlClient.SqlParameter("@year", year),
+                        new Microsoft.Data.SqlClient.SqlParameter("@dialedNumber", dialedNumber));
+
+                    await transaction.CommitAsync();
+                });
+
+                result.VerifiedCount = callRecordsUpdated;
+
+                _logger.LogInformation(
+                    "RAW SQL bulk verification completed for dialed number {DialedNumber}: {Count} records",
+                    dialedNumber, callRecordsUpdated);
+
+                return result;
+            }
+            catch (Exception ex)
+            {
+                _logger.LogError(ex, "Error during raw SQL bulk verification for dialed number {DialedNumber}", dialedNumber);
+                result.Errors.Add($"Database error: {ex.Message}");
+                return result;
+            }
+        }
+
         public async Task<List<CallLogVerification>> GetUserVerificationsAsync(
             string indexNumber,
             bool pendingOnly = false)
@@ -422,6 +924,271 @@ namespace TAB.Web.Services
             }
         }
 
+        /// <summary>
+        /// ULTRA-FAST bulk reassignment using raw SQL for an entire extension/month.
+        /// </summary>
+        public async Task<BulkReassignmentResult> BulkReassignByExtensionMonthRawAsync(
+            string extension,
+            int month,
+            int year,
+            string assignedFrom,
+            string assignedTo,
+            string reason)
+        {
+            var result = new BulkReassignmentResult();
+            var now = DateTime.UtcNow;
+
+            try
+            {
+                // Validate assigned-to user exists
+                var assignedToUser = await _context.EbillUsers
+                    .FirstOrDefaultAsync(u => u.IndexNumber == assignedTo);
+                if (assignedToUser == null)
+                    throw new ArgumentException($"User with index number {assignedTo} not found");
+
+                var strategy = _context.Database.CreateExecutionStrategy();
+                var assignmentsInserted = 0;
+
+                await strategy.ExecuteAsync(async () =>
+                {
+                    using var transaction = await _context.Database.BeginTransactionAsync();
+
+                    // Step 1: Get IDs of eligible calls (not submitted to supervisor)
+                    var getEligibleCallsSql = @"
+                        SELECT cr.Id
+                        FROM CallRecords cr
+                        LEFT JOIN UserPhones up ON cr.UserPhoneId = up.Id
+                        LEFT JOIN CallLogVerifications clv ON clv.CallRecordId = cr.Id AND clv.SubmittedToSupervisor = 1
+                        WHERE (
+                            (@extension = 'Unknown' AND cr.UserPhoneId IS NULL)
+                            OR up.PhoneNumber = @extension
+                            OR cr.ext_no = @extension
+                        )
+                        AND cr.call_month = @month
+                        AND cr.call_year = @year
+                        AND cr.ext_resp_index = @assignedFrom
+                        AND clv.Id IS NULL";
+
+                    var eligibleCallIds = await _context.Database
+                        .SqlQueryRaw<int>(getEligibleCallsSql,
+                            new Microsoft.Data.SqlClient.SqlParameter("@extension", extension),
+                            new Microsoft.Data.SqlClient.SqlParameter("@month", month),
+                            new Microsoft.Data.SqlClient.SqlParameter("@year", year),
+                            new Microsoft.Data.SqlClient.SqlParameter("@assignedFrom", assignedFrom))
+                        .ToListAsync();
+
+                    if (!eligibleCallIds.Any())
+                    {
+                        result.SkippedCount = 0;
+                        return;
+                    }
+
+                    // Step 2: Bulk insert payment assignments
+                    var insertAssignmentsSql = @"
+                        INSERT INTO CallLogPaymentAssignments
+                            (CallRecordId, AssignedFrom, AssignedTo, AssignmentReason, AssignedDate, AssignmentStatus, CreatedDate, NotificationSent)
+                        SELECT
+                            cr.Id,
+                            @assignedFrom,
+                            @assignedTo,
+                            @reason,
+                            @now,
+                            'Pending',
+                            @now,
+                            0
+                        FROM CallRecords cr
+                        LEFT JOIN UserPhones up ON cr.UserPhoneId = up.Id
+                        LEFT JOIN CallLogVerifications clv ON clv.CallRecordId = cr.Id AND clv.SubmittedToSupervisor = 1
+                        WHERE (
+                            (@extension = 'Unknown' AND cr.UserPhoneId IS NULL)
+                            OR up.PhoneNumber = @extension
+                            OR cr.ext_no = @extension
+                        )
+                        AND cr.call_month = @month
+                        AND cr.call_year = @year
+                        AND cr.ext_resp_index = @assignedFrom
+                        AND clv.Id IS NULL";
+
+                    assignmentsInserted = await _context.Database.ExecuteSqlRawAsync(
+                        insertAssignmentsSql,
+                        new Microsoft.Data.SqlClient.SqlParameter("@extension", extension),
+                        new Microsoft.Data.SqlClient.SqlParameter("@month", month),
+                        new Microsoft.Data.SqlClient.SqlParameter("@year", year),
+                        new Microsoft.Data.SqlClient.SqlParameter("@assignedFrom", assignedFrom),
+                        new Microsoft.Data.SqlClient.SqlParameter("@assignedTo", assignedTo),
+                        new Microsoft.Data.SqlClient.SqlParameter("@reason", reason),
+                        new Microsoft.Data.SqlClient.SqlParameter("@now", now));
+
+                    // Step 3: Update CallRecords with assignment info
+                    var updateCallRecordsSql = @"
+                        UPDATE cr
+                        SET cr.call_pay_index = @assignedTo,
+                            cr.assignment_status = 'Pending',
+                            cr.payment_assignment_id = pa.Id
+                        FROM CallRecords cr
+                        LEFT JOIN UserPhones up ON cr.UserPhoneId = up.Id
+                        LEFT JOIN CallLogVerifications clv ON clv.CallRecordId = cr.Id AND clv.SubmittedToSupervisor = 1
+                        INNER JOIN CallLogPaymentAssignments pa ON pa.CallRecordId = cr.Id
+                            AND pa.AssignedFrom = @assignedFrom
+                            AND pa.AssignedTo = @assignedTo
+                            AND pa.AssignedDate = @now
+                        WHERE (
+                            (@extension = 'Unknown' AND cr.UserPhoneId IS NULL)
+                            OR up.PhoneNumber = @extension
+                            OR cr.ext_no = @extension
+                        )
+                        AND cr.call_month = @month
+                        AND cr.call_year = @year
+                        AND cr.ext_resp_index = @assignedFrom
+                        AND clv.Id IS NULL";
+
+                    await _context.Database.ExecuteSqlRawAsync(
+                        updateCallRecordsSql,
+                        new Microsoft.Data.SqlClient.SqlParameter("@extension", extension),
+                        new Microsoft.Data.SqlClient.SqlParameter("@month", month),
+                        new Microsoft.Data.SqlClient.SqlParameter("@year", year),
+                        new Microsoft.Data.SqlClient.SqlParameter("@assignedFrom", assignedFrom),
+                        new Microsoft.Data.SqlClient.SqlParameter("@assignedTo", assignedTo),
+                        new Microsoft.Data.SqlClient.SqlParameter("@now", now));
+
+                    await transaction.CommitAsync();
+                });
+
+                result.ReassignedCount = assignmentsInserted;
+                _logger.LogInformation(
+                    "Bulk reassigned {Count} calls from extension {Extension} ({Month}/{Year}) from {From} to {To}",
+                    assignmentsInserted, extension, month, year, assignedFrom, assignedTo);
+
+                return result;
+            }
+            catch (Exception ex)
+            {
+                _logger.LogError(ex, "Error during bulk reassignment for extension {Extension}", extension);
+                result.Errors.Add(ex.Message);
+                return result;
+            }
+        }
+
+        /// <summary>
+        /// ULTRA-FAST bulk reassignment using raw SQL for a specific dialed number.
+        /// </summary>
+        public async Task<BulkReassignmentResult> BulkReassignByDialedNumberRawAsync(
+            string extension,
+            int month,
+            int year,
+            string dialedNumber,
+            string assignedFrom,
+            string assignedTo,
+            string reason)
+        {
+            var result = new BulkReassignmentResult();
+            var now = DateTime.UtcNow;
+
+            try
+            {
+                // Validate assigned-to user exists
+                var assignedToUser = await _context.EbillUsers
+                    .FirstOrDefaultAsync(u => u.IndexNumber == assignedTo);
+                if (assignedToUser == null)
+                    throw new ArgumentException($"User with index number {assignedTo} not found");
+
+                var strategy = _context.Database.CreateExecutionStrategy();
+                var assignmentsInserted = 0;
+
+                await strategy.ExecuteAsync(async () =>
+                {
+                    using var transaction = await _context.Database.BeginTransactionAsync();
+
+                    // Step 1: Bulk insert payment assignments for the specific dialed number
+                    var insertAssignmentsSql = @"
+                        INSERT INTO CallLogPaymentAssignments
+                            (CallRecordId, AssignedFrom, AssignedTo, AssignmentReason, AssignedDate, AssignmentStatus, CreatedDate, NotificationSent)
+                        SELECT
+                            cr.Id,
+                            @assignedFrom,
+                            @assignedTo,
+                            @reason,
+                            @now,
+                            'Pending',
+                            @now,
+                            0
+                        FROM CallRecords cr
+                        LEFT JOIN UserPhones up ON cr.UserPhoneId = up.Id
+                        LEFT JOIN CallLogVerifications clv ON clv.CallRecordId = cr.Id AND clv.SubmittedToSupervisor = 1
+                        WHERE (
+                            (@extension = 'Unknown' AND cr.UserPhoneId IS NULL)
+                            OR up.PhoneNumber = @extension
+                            OR cr.ext_no = @extension
+                        )
+                        AND cr.call_number = @dialedNumber
+                        AND cr.call_month = @month
+                        AND cr.call_year = @year
+                        AND cr.ext_resp_index = @assignedFrom
+                        AND clv.Id IS NULL";
+
+                    assignmentsInserted = await _context.Database.ExecuteSqlRawAsync(
+                        insertAssignmentsSql,
+                        new Microsoft.Data.SqlClient.SqlParameter("@extension", extension),
+                        new Microsoft.Data.SqlClient.SqlParameter("@dialedNumber", dialedNumber),
+                        new Microsoft.Data.SqlClient.SqlParameter("@month", month),
+                        new Microsoft.Data.SqlClient.SqlParameter("@year", year),
+                        new Microsoft.Data.SqlClient.SqlParameter("@assignedFrom", assignedFrom),
+                        new Microsoft.Data.SqlClient.SqlParameter("@assignedTo", assignedTo),
+                        new Microsoft.Data.SqlClient.SqlParameter("@reason", reason),
+                        new Microsoft.Data.SqlClient.SqlParameter("@now", now));
+
+                    // Step 2: Update CallRecords with assignment info
+                    var updateCallRecordsSql = @"
+                        UPDATE cr
+                        SET cr.call_pay_index = @assignedTo,
+                            cr.assignment_status = 'Pending',
+                            cr.payment_assignment_id = pa.Id
+                        FROM CallRecords cr
+                        LEFT JOIN UserPhones up ON cr.UserPhoneId = up.Id
+                        LEFT JOIN CallLogVerifications clv ON clv.CallRecordId = cr.Id AND clv.SubmittedToSupervisor = 1
+                        INNER JOIN CallLogPaymentAssignments pa ON pa.CallRecordId = cr.Id
+                            AND pa.AssignedFrom = @assignedFrom
+                            AND pa.AssignedTo = @assignedTo
+                            AND pa.AssignedDate = @now
+                        WHERE (
+                            (@extension = 'Unknown' AND cr.UserPhoneId IS NULL)
+                            OR up.PhoneNumber = @extension
+                            OR cr.ext_no = @extension
+                        )
+                        AND cr.call_number = @dialedNumber
+                        AND cr.call_month = @month
+                        AND cr.call_year = @year
+                        AND cr.ext_resp_index = @assignedFrom
+                        AND clv.Id IS NULL";
+
+                    await _context.Database.ExecuteSqlRawAsync(
+                        updateCallRecordsSql,
+                        new Microsoft.Data.SqlClient.SqlParameter("@extension", extension),
+                        new Microsoft.Data.SqlClient.SqlParameter("@dialedNumber", dialedNumber),
+                        new Microsoft.Data.SqlClient.SqlParameter("@month", month),
+                        new Microsoft.Data.SqlClient.SqlParameter("@year", year),
+                        new Microsoft.Data.SqlClient.SqlParameter("@assignedFrom", assignedFrom),
+                        new Microsoft.Data.SqlClient.SqlParameter("@assignedTo", assignedTo),
+                        new Microsoft.Data.SqlClient.SqlParameter("@now", now));
+
+                    await transaction.CommitAsync();
+                });
+
+                result.ReassignedCount = assignmentsInserted;
+                _logger.LogInformation(
+                    "Bulk reassigned {Count} calls to dialed number {DialedNumber} from {From} to {To}",
+                    assignmentsInserted, dialedNumber, assignedFrom, assignedTo);
+
+                return result;
+            }
+            catch (Exception ex)
+            {
+                _logger.LogError(ex, "Error during bulk reassignment for dialed number {DialedNumber}", dialedNumber);
+                result.Errors.Add(ex.Message);
+                return result;
+            }
+        }
+
         public async Task<bool> AcceptPaymentAssignmentAsync(int assignmentId, string indexNumber)
         {
             try
@@ -586,6 +1353,264 @@ namespace TAB.Web.Services
             }
         }
 
+        /// <summary>
+        /// ULTRA-FAST bulk accept all pending assignments for a user using raw SQL.
+        /// Supports filtering by extension, month/year, and dialed number.
+        /// </summary>
+        public async Task<BulkAssignmentResult> BulkAcceptAssignmentsAsync(
+            string indexNumber,
+            string? assignedFrom = null,
+            string? extension = null,
+            int? month = null,
+            int? year = null,
+            string? dialedNumber = null)
+        {
+            var result = new BulkAssignmentResult();
+            var now = DateTime.UtcNow;
+
+            try
+            {
+                var strategy = _context.Database.CreateExecutionStrategy();
+                var assignmentsUpdated = 0;
+
+                await strategy.ExecuteAsync(async () =>
+                {
+                    using var transaction = await _context.Database.BeginTransactionAsync();
+
+                    // Build additional filter clauses
+                    var additionalFilters = new List<string>();
+                    var parameters = new List<Microsoft.Data.SqlClient.SqlParameter>
+                    {
+                        new Microsoft.Data.SqlClient.SqlParameter("@indexNumber", indexNumber),
+                        new Microsoft.Data.SqlClient.SqlParameter("@now", now)
+                    };
+
+                    if (!string.IsNullOrEmpty(assignedFrom))
+                    {
+                        additionalFilters.Add("pa.AssignedFrom = @assignedFrom");
+                        parameters.Add(new Microsoft.Data.SqlClient.SqlParameter("@assignedFrom", assignedFrom));
+                    }
+
+                    // For extension/month/year/dialedNumber filtering, we need to join with CallRecords and UserPhones
+                    var needsCallRecordJoin = !string.IsNullOrEmpty(extension) || month.HasValue || year.HasValue || !string.IsNullOrEmpty(dialedNumber);
+                    var callRecordJoin = needsCallRecordJoin ? "INNER JOIN CallRecords cr ON pa.CallRecordId = cr.Id" : "";
+                    var userPhoneJoin = !string.IsNullOrEmpty(extension) ? "INNER JOIN UserPhones up ON cr.UserPhoneId = up.Id" : "";
+
+                    if (!string.IsNullOrEmpty(extension))
+                    {
+                        additionalFilters.Add("up.PhoneNumber = @extension");
+                        parameters.Add(new Microsoft.Data.SqlClient.SqlParameter("@extension", extension));
+                    }
+                    if (month.HasValue)
+                    {
+                        additionalFilters.Add("cr.call_month = @month");
+                        parameters.Add(new Microsoft.Data.SqlClient.SqlParameter("@month", month.Value));
+                    }
+                    if (year.HasValue)
+                    {
+                        additionalFilters.Add("cr.call_year = @year");
+                        parameters.Add(new Microsoft.Data.SqlClient.SqlParameter("@year", year.Value));
+                    }
+                    if (!string.IsNullOrEmpty(dialedNumber))
+                    {
+                        var actualDialedNumber = dialedNumber == "Subscription" ? "" : dialedNumber;
+                        additionalFilters.Add("ISNULL(cr.call_number, '') = @dialedNumber");
+                        parameters.Add(new Microsoft.Data.SqlClient.SqlParameter("@dialedNumber", actualDialedNumber));
+                    }
+
+                    var additionalFilterClause = additionalFilters.Count > 0 ? "AND " + string.Join(" AND ", additionalFilters) : "";
+
+                    // Step 1: Update CallLogPaymentAssignments to Accepted
+                    var updateAssignmentsSql = $@"
+                        UPDATE pa
+                        SET pa.AssignmentStatus = 'Accepted',
+                            pa.AcceptedDate = @now,
+                            pa.ModifiedDate = @now
+                        FROM CallLogPaymentAssignments pa
+                        {callRecordJoin}
+                        {userPhoneJoin}
+                        WHERE pa.AssignedTo = @indexNumber
+                          AND pa.AssignmentStatus = 'Pending'
+                          {additionalFilterClause}";
+
+                    assignmentsUpdated = await _context.Database.ExecuteSqlRawAsync(
+                        updateAssignmentsSql, parameters.ToArray());
+
+                    // Step 2: Update CallRecords assignment status (for all just-accepted assignments)
+                    var updateCallRecordsSql = @"
+                        UPDATE cr
+                        SET cr.assignment_status = 'Accepted'
+                        FROM CallRecords cr
+                        INNER JOIN CallLogPaymentAssignments pa ON cr.payment_assignment_id = pa.Id
+                        WHERE pa.AssignedTo = @indexNumber2
+                          AND pa.AssignmentStatus = 'Accepted'
+                          AND pa.AcceptedDate = @now2";
+
+                    var parameters2 = new List<Microsoft.Data.SqlClient.SqlParameter>
+                    {
+                        new Microsoft.Data.SqlClient.SqlParameter("@indexNumber2", indexNumber),
+                        new Microsoft.Data.SqlClient.SqlParameter("@now2", now)
+                    };
+
+                    await _context.Database.ExecuteSqlRawAsync(updateCallRecordsSql, parameters2.ToArray());
+
+                    await transaction.CommitAsync();
+                });
+
+                result.ProcessedCount = assignmentsUpdated;
+                _logger.LogInformation(
+                    "Bulk accepted {Count} assignments for user {IndexNumber} (extension={Extension}, month={Month}, year={Year})",
+                    assignmentsUpdated, indexNumber, extension, month, year);
+
+                return result;
+            }
+            catch (Exception ex)
+            {
+                _logger.LogError(ex, "Error during bulk accept for user {IndexNumber}", indexNumber);
+                result.Errors.Add(ex.Message);
+                return result;
+            }
+        }
+
+        /// <summary>
+        /// ULTRA-FAST bulk reject all pending assignments for a user using raw SQL.
+        /// Supports filtering by extension, month/year, and dialed number.
+        /// </summary>
+        public async Task<BulkAssignmentResult> BulkRejectAssignmentsAsync(
+            string indexNumber,
+            string reason,
+            string? assignedFrom = null,
+            string? extension = null,
+            int? month = null,
+            int? year = null,
+            string? dialedNumber = null)
+        {
+            var result = new BulkAssignmentResult();
+            var now = DateTime.UtcNow;
+
+            try
+            {
+                var strategy = _context.Database.CreateExecutionStrategy();
+                var assignmentsUpdated = 0;
+
+                await strategy.ExecuteAsync(async () =>
+                {
+                    using var transaction = await _context.Database.BeginTransactionAsync();
+
+                    // Build additional filter clauses
+                    var additionalFilters = new List<string>();
+                    var parameters = new List<Microsoft.Data.SqlClient.SqlParameter>
+                    {
+                        new Microsoft.Data.SqlClient.SqlParameter("@indexNumber", indexNumber),
+                        new Microsoft.Data.SqlClient.SqlParameter("@now", now),
+                        new Microsoft.Data.SqlClient.SqlParameter("@reason", reason)
+                    };
+
+                    if (!string.IsNullOrEmpty(assignedFrom))
+                    {
+                        additionalFilters.Add("pa.AssignedFrom = @assignedFrom");
+                        parameters.Add(new Microsoft.Data.SqlClient.SqlParameter("@assignedFrom", assignedFrom));
+                    }
+
+                    // For extension/month/year/dialedNumber filtering, we need additional joins
+                    var needsUserPhoneJoin = !string.IsNullOrEmpty(extension);
+                    var userPhoneJoin = needsUserPhoneJoin ? "INNER JOIN UserPhones up ON cr.UserPhoneId = up.Id" : "";
+
+                    if (!string.IsNullOrEmpty(extension))
+                    {
+                        additionalFilters.Add("up.PhoneNumber = @extension");
+                        parameters.Add(new Microsoft.Data.SqlClient.SqlParameter("@extension", extension));
+                    }
+                    if (month.HasValue)
+                    {
+                        additionalFilters.Add("cr.call_month = @month");
+                        parameters.Add(new Microsoft.Data.SqlClient.SqlParameter("@month", month.Value));
+                    }
+                    if (year.HasValue)
+                    {
+                        additionalFilters.Add("cr.call_year = @year");
+                        parameters.Add(new Microsoft.Data.SqlClient.SqlParameter("@year", year.Value));
+                    }
+                    if (!string.IsNullOrEmpty(dialedNumber))
+                    {
+                        var actualDialedNumber = dialedNumber == "Subscription" ? "" : dialedNumber;
+                        additionalFilters.Add("ISNULL(cr.call_number, '') = @dialedNumber");
+                        parameters.Add(new Microsoft.Data.SqlClient.SqlParameter("@dialedNumber", actualDialedNumber));
+                    }
+
+                    var additionalFilterClause = additionalFilters.Count > 0 ? "AND " + string.Join(" AND ", additionalFilters) : "";
+
+                    // Step 1: Update CallRecords - revert payment back to original owner
+                    var updateCallRecordsSql = $@"
+                        UPDATE cr
+                        SET cr.call_pay_index = pa.AssignedFrom,
+                            cr.payment_assignment_id = NULL,
+                            cr.assignment_status = 'None'
+                        FROM CallRecords cr
+                        INNER JOIN CallLogPaymentAssignments pa ON cr.payment_assignment_id = pa.Id
+                        {userPhoneJoin}
+                        WHERE pa.AssignedTo = @indexNumber
+                          AND pa.AssignmentStatus = 'Pending'
+                          {additionalFilterClause}";
+
+                    await _context.Database.ExecuteSqlRawAsync(updateCallRecordsSql, parameters.ToArray());
+
+                    // Step 2: Update CallLogPaymentAssignments to Rejected
+                    // Need to use a subquery since the call records have already been updated
+                    var updateAssignmentsSql = $@"
+                        UPDATE pa
+                        SET pa.AssignmentStatus = 'Rejected',
+                            pa.RejectionReason = @reason2,
+                            pa.ModifiedDate = @now2
+                        FROM CallLogPaymentAssignments pa
+                        INNER JOIN CallRecords cr ON pa.CallRecordId = cr.Id
+                        {userPhoneJoin.Replace("cr.", "cr2.").Replace("cr2.user_phone_id", "cr.UserPhoneId")}
+                        WHERE pa.AssignedTo = @indexNumber2
+                          AND pa.AssignmentStatus = 'Pending'
+                          {additionalFilterClause.Replace("@", "@2_").Replace("cr.", "cr.").Replace("up.", "up.")}";
+
+                    // Build parameters for second query with unique names
+                    var parameters2 = new List<Microsoft.Data.SqlClient.SqlParameter>
+                    {
+                        new Microsoft.Data.SqlClient.SqlParameter("@indexNumber2", indexNumber),
+                        new Microsoft.Data.SqlClient.SqlParameter("@now2", now),
+                        new Microsoft.Data.SqlClient.SqlParameter("@reason2", reason)
+                    };
+                    if (!string.IsNullOrEmpty(assignedFrom))
+                        parameters2.Add(new Microsoft.Data.SqlClient.SqlParameter("@2_assignedFrom", assignedFrom));
+                    if (!string.IsNullOrEmpty(extension))
+                        parameters2.Add(new Microsoft.Data.SqlClient.SqlParameter("@2_extension", extension));
+                    if (month.HasValue)
+                        parameters2.Add(new Microsoft.Data.SqlClient.SqlParameter("@2_month", month.Value));
+                    if (year.HasValue)
+                        parameters2.Add(new Microsoft.Data.SqlClient.SqlParameter("@2_year", year.Value));
+                    if (!string.IsNullOrEmpty(dialedNumber))
+                    {
+                        var actualDialedNumber = dialedNumber == "Subscription" ? "" : dialedNumber;
+                        parameters2.Add(new Microsoft.Data.SqlClient.SqlParameter("@2_dialedNumber", actualDialedNumber));
+                    }
+
+                    assignmentsUpdated = await _context.Database.ExecuteSqlRawAsync(
+                        updateAssignmentsSql, parameters2.ToArray());
+
+                    await transaction.CommitAsync();
+                });
+
+                result.ProcessedCount = assignmentsUpdated;
+                _logger.LogInformation(
+                    "Bulk rejected {Count} assignments for user {IndexNumber} (extension={Extension}, month={Month}, year={Year})",
+                    assignmentsUpdated, indexNumber, extension, month, year);
+
+                return result;
+            }
+            catch (Exception ex)
+            {
+                _logger.LogError(ex, "Error during bulk reject for user {IndexNumber}", indexNumber);
+                result.Errors.Add(ex.Message);
+                return result;
+            }
+        }
+
         public async Task<List<CallLogPaymentAssignment>> GetPendingAssignmentsAsync(string indexNumber)
         {
             return await _context.CallLogPaymentAssignments
@@ -638,14 +1663,23 @@ namespace TAB.Web.Services
                 var user = await _context.EbillUsers
                     .FirstOrDefaultAsync(u => u.IndexNumber == indexNumber);
 
-                if (user == null || string.IsNullOrEmpty(user.SupervisorIndexNumber))
+                if (user == null || string.IsNullOrEmpty(user.SupervisorEmail))
                     throw new InvalidOperationException("Supervisor not found for user");
+
+                // Look up supervisor by email to get their index number
+                var supervisorEbillUser = await _context.EbillUsers
+                    .FirstOrDefaultAsync(u => u.Email == user.SupervisorEmail);
+
+                // Store both supervisor email and index number for flexible matching
+                var supervisorEmail = user.SupervisorEmail;
+                var supervisorIndexNumber = supervisorEbillUser?.IndexNumber;
 
                 foreach (var verification in verifications)
                 {
                     verification.SubmittedToSupervisor = true;
                     verification.SubmittedDate = DateTime.UtcNow;
-                    verification.SupervisorIndexNumber = user.SupervisorIndexNumber;
+                    verification.SupervisorEmail = supervisorEmail;
+                    verification.SupervisorIndexNumber = supervisorIndexNumber;
                     verification.ModifiedDate = DateTime.UtcNow;
                 }
 
@@ -658,10 +1692,6 @@ namespace TAB.Web.Services
                 // Get user's application user ID
                 var requesterAppUser = await _context.Users
                     .FirstOrDefaultAsync(u => u.Email == user.Email);
-
-                // Get supervisor's application user ID
-                var supervisorEbillUser = await _context.EbillUsers
-                    .FirstOrDefaultAsync(u => u.IndexNumber == user.SupervisorIndexNumber);
 
                 if (requesterAppUser != null && supervisorEbillUser?.ApplicationUserId != null)
                 {
@@ -718,9 +1748,18 @@ namespace TAB.Web.Services
         {
             try
             {
+                // Get supervisor's email - supervisorIndexNumber could be either an index number or email
+                var supervisorEmail = supervisorIndexNumber.Contains("@")
+                    ? supervisorIndexNumber
+                    : await _context.EbillUsers
+                        .Where(u => u.IndexNumber == supervisorIndexNumber)
+                        .Select(u => u.Email)
+                        .FirstOrDefaultAsync();
+
+                // Match against SupervisorEmail field
                 var verification = await _context.CallLogVerifications
                     .Include(v => v.CallRecord)
-                    .FirstOrDefaultAsync(v => v.Id == verificationId && v.SupervisorIndexNumber == supervisorIndexNumber);
+                    .FirstOrDefaultAsync(v => v.Id == verificationId && v.SupervisorEmail == supervisorEmail);
 
                 if (verification == null)
                     return false;
@@ -812,9 +1851,18 @@ namespace TAB.Web.Services
         {
             try
             {
+                // Get supervisor's email - supervisorIndexNumber could be either an index number or email
+                var supervisorEmail = supervisorIndexNumber.Contains("@")
+                    ? supervisorIndexNumber
+                    : await _context.EbillUsers
+                        .Where(u => u.IndexNumber == supervisorIndexNumber)
+                        .Select(u => u.Email)
+                        .FirstOrDefaultAsync();
+
+                // Match against SupervisorEmail field
                 var verification = await _context.CallLogVerifications
                     .Include(v => v.CallRecord)
-                    .FirstOrDefaultAsync(v => v.Id == verificationId && v.SupervisorIndexNumber == supervisorIndexNumber);
+                    .FirstOrDefaultAsync(v => v.Id == verificationId && v.SupervisorEmail == supervisorEmail);
 
                 if (verification == null)
                     return false;
@@ -901,9 +1949,18 @@ namespace TAB.Web.Services
         {
             try
             {
+                // Get supervisor's email - supervisorIndexNumber could be either an index number or email
+                var supervisorEmail = supervisorIndexNumber.Contains("@")
+                    ? supervisorIndexNumber
+                    : await _context.EbillUsers
+                        .Where(u => u.IndexNumber == supervisorIndexNumber)
+                        .Select(u => u.Email)
+                        .FirstOrDefaultAsync();
+
+                // Match against SupervisorEmail field
                 var verification = await _context.CallLogVerifications
                     .Include(v => v.CallRecord)
-                    .FirstOrDefaultAsync(v => v.Id == verificationId && v.SupervisorIndexNumber == supervisorIndexNumber);
+                    .FirstOrDefaultAsync(v => v.Id == verificationId && v.SupervisorEmail == supervisorEmail);
 
                 if (verification == null)
                     return false;

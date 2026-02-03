@@ -21,10 +21,10 @@
 ### Requester Details
 - `{{FirstName}}` - Requester's first name
 - `{{LastName}}` - Requester's last name
-- `{{IndexNo}}` - Employee index number
+- `{{IndexNo}}` - Staff index number
 - `{{Organization}}` - Organization name
 - `{{Office}}` - Office location
-- `{{Grade}}` - Employee grade
+- `{{Grade}}` - Staff grade
 - `{{FunctionalTitle}}` - Job title
 - `{{OfficialEmail}}` - Official email address
 - `{{OfficeExtension}}` - Office phone extension (optional)

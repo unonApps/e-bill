@@ -1,0 +1,429 @@
+@page
+@model TAB.Web.Pages.Admin.BillingReportsModel
+@{
+    ViewData["Title"] = "Billing Reports";
+}
+
+<style>
+    /* Statistics Grid */
+    .stats-grid {
+        display: grid;
+        grid-template-columns: repeat(auto-fit, minmax(240px, 1fr));
+        gap: 1.25rem;
+        margin-bottom: 2rem;
+    }
+
+    .stat-card {
+        background: white;
+        border-radius: 12px;
+        padding: 1.5rem;
+        border: 1px solid #e5e7eb;
+        transition: all 0.3s ease;
+        position: relative;
+        overflow: hidden;
+    }
+
+    .stat-card::before {
+        content: '';
+        position: absolute;
+        top: 0;
+        left: 0;
+        right: 0;
+        height: 4px;
+        background: linear-gradient(90deg, var(--gradient-start), var(--gradient-end));
+    }
+
+    .stat-card:nth-child(1)::before {
+        --gradient-start: #009EDB;
+        --gradient-end: #0084c7;
+    }
+
+    .stat-card:nth-child(2)::before {
+        --gradient-start: #10b981;
+        --gradient-end: #34d399;
+    }
+
+    .stat-card:nth-child(3)::before {
+        --gradient-start: #8b5cf6;
+        --gradient-end: #a78bfa;
+    }
+
+    .stat-card:nth-child(4)::before {
+        --gradient-start: #f59e0b;
+        --gradient-end: #fbbf24;
+    }
+
+    .stat-card:hover {
+        transform: translateY(-4px);
+        box-shadow: 0 10px 30px rgba(0, 0, 0, 0.1);
+    }
+
+    .stat-content {
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+    }
+
+    .stat-icon {
+        width: 50px;
+        height: 50px;
+        border-radius: 12px;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        font-size: 1.5rem;
+    }
+
+    .stat-icon-primary {
+        background: linear-gradient(135deg, #009EDB, #0084c7);
+        color: white;
+    }
+
+    .stat-icon-success {
+        background: linear-gradient(135deg, #10b981, #34d399);
+        color: white;
+    }
+
+    .stat-icon-purple {
+        background: linear-gradient(135deg, #8b5cf6, #a78bfa);
+        color: white;
+    }
+
+    .stat-icon-warning {
+        background: linear-gradient(135deg, #f59e0b, #fbbf24);
+        color: white;
+    }
+
+    .stat-details {
+        text-align: right;
+    }
+
+    .stat-number {
+        font-size: 1.75rem;
+        font-weight: 700;
+        color: #1f2937;
+        line-height: 1;
+        margin-bottom: 0.25rem;
+    }
+
+    .stat-label {
+        font-size: 0.875rem;
+        color: #6b7280;
+        font-weight: 500;
+    }
+
+    /* Table Row Effects */
+    .month-row {
+        transition: all 0.2s ease;
+        border-bottom: 1px solid #f3f4f6;
+        cursor: pointer;
+    }
+
+    .month-row:hover {
+        background-color: #f9fafb;
+        transform: translateX(2px);
+        box-shadow: 0 2px 4px rgba(0, 0, 0, 0.05);
+    }
+
+    .month-row .expand-icon {
+        transition: transform 0.2s ease;
+    }
+
+    .month-row[aria-expanded="true"] .expand-icon,
+    .month-row:not(.collapsed) .expand-icon {
+        transform: rotate(180deg);
+    }
+
+    .text-purple {
+        color: #8b5cf6 !important;
+    }
+
+    @@media (max-width: 768px) {
+        .stats-grid {
+            grid-template-columns: repeat(2, 1fr);
+            gap: 1rem;
+        }
+    }
+</style>
+
+<!-- Statistics Cards -->
+<div class="stats-grid">
+    <div class="stat-card">
+        <div class="stat-content">
+            <div class="stat-icon stat-icon-primary">
+                <i class="bi bi-file-earmark-text"></i>
+            </div>
+            <div class="stat-details">
+                <div class="stat-number">@Model.TotalRecords.ToString("N0")</div>
+                <div class="stat-label">Total Records</div>
+                <div style="font-size: 10px; color: #6b7280; margin-top: 6px; line-height: 1.5;">
+                    <span title="Safaricom"><img src="/images/providers/SAF-MAIN-LOGO.png" alt="SAF" style="width: 12px; height: 12px; vertical-align: middle;"> @Model.SafaricomRecords.ToString("N0")</span>
+                    <span class="mx-1">|</span>
+                    <span title="Airtel"><img src="/images/providers/airtel-logo.jpg" alt="Airtel" style="width: 12px; height: 12px; vertical-align: middle;"> @Model.AirtelRecords.ToString("N0")</span>
+                    <span class="mx-1">|</span>
+                    <span title="PSTN"><i class="bi bi-telephone" style="font-size: 10px;"></i> @Model.PSTNRecords.ToString("N0")</span>
+                    <span class="mx-1">|</span>
+                    <span title="PrivateWire"><i class="bi bi-diagram-3" style="font-size: 10px;"></i> @Model.PrivateWireRecords.ToString("N0")</span>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <div class="stat-card">
+        <div class="stat-content">
+            <div class="stat-icon stat-icon-success">
+                <i class="bi bi-cash"></i>
+            </div>
+            <div class="stat-details">
+                <div class="stat-number">@Model.TotalKES.ToString("N0")</div>
+                <div class="stat-label">Total KES</div>
+                <div style="font-size: 10px; color: #6b7280; margin-top: 6px; line-height: 1.5;">
+                    <span title="Safaricom"><img src="/images/providers/SAF-MAIN-LOGO.png" alt="SAF" style="width: 12px; height: 12px; vertical-align: middle;"> @Model.SafaricomTotalKES.ToString("N0")</span>
+                    <span class="mx-1">|</span>
+                    <span title="Airtel"><img src="/images/providers/airtel-logo.jpg" alt="Airtel" style="width: 12px; height: 12px; vertical-align: middle;"> @Model.AirtelTotalKES.ToString("N0")</span>
+                    <span class="mx-1">|</span>
+                    <span title="PSTN"><i class="bi bi-telephone" style="font-size: 10px;"></i> @Model.PSTNTotalKES.ToString("N0")</span>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <div class="stat-card">
+        <div class="stat-content">
+            <div class="stat-icon stat-icon-purple">
+                <i class="bi bi-currency-dollar"></i>
+            </div>
+            <div class="stat-details">
+                <div class="stat-number">@Model.TotalUSD.ToString("N0")</div>
+                <div class="stat-label">Total USD</div>
+                <div style="font-size: 10px; color: #6b7280; margin-top: 6px; line-height: 1.5;">
+                    <span title="PrivateWire"><i class="bi bi-diagram-3" style="font-size: 10px;"></i> Private Wire: @Model.PrivateWireTotalUSD.ToString("N0")</span>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <div class="stat-card">
+        <div class="stat-content">
+            <div class="stat-icon stat-icon-warning">
+                <i class="bi bi-calendar3"></i>
+            </div>
+            <div class="stat-details">
+                <div class="stat-number">@Model.MonthsDisplayed</div>
+                <div class="stat-label">Months</div>
+                <div style="font-size: 11px; color: #9ca3af; margin-top: 4px;">
+                    With billing data
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Page Title and Actions -->
+<div class="d-flex justify-content-between align-items-center mb-3">
+    <h4 class="mb-0">
+        <i class="bi bi-bar-chart-line me-2 text-primary"></i>Billing Reports
+    </h4>
+    <div class="d-flex gap-2">
+        <a href="?handler=ExportCsv" class="btn btn-sm btn-outline-success" style="border-radius: 12px;">
+            <i class="bi bi-filetype-csv me-1"></i>Export CSV
+        </a>
+        <a href="?handler=ExportExcel" class="btn btn-sm btn-outline-primary" style="border-radius: 12px;">
+            <i class="bi bi-file-earmark-excel me-1"></i>Export Excel
+        </a>
+    </div>
+</div>
+
+<!-- Monthly Summary Table -->
+@if (!Model.MonthlySummaries.Any())
+{
+    <div class="card border-0 shadow-sm" style="border-radius: 16px;">
+        <div class="card-body text-center py-5">
+            <div class="bg-white rounded-circle d-inline-flex align-items-center justify-content-center mb-3"
+                 style="width: 80px; height: 80px; box-shadow: 0 4px 12px rgba(0, 0, 0, 0.08);">
+                <i class="bi bi-inbox text-muted" style="font-size: 32px;"></i>
+            </div>
+            <h5 class="text-muted mb-2">No Billing Data Found</h5>
+            <p class="text-muted mb-0">No call records found for the last 12 months.</p>
+        </div>
+    </div>
+}
+else
+{
+    <div class="card border-0 shadow-sm" style="border-radius: 16px;">
+        <div class="card-header bg-gradient border-0 py-4"
+             style="background: linear-gradient(135deg, #f8f9fa 0%, #e9ecef 100%); border-radius: 16px 16px 0 0;">
+            <div class="d-flex justify-content-between align-items-center">
+                <div class="d-flex align-items-center gap-2">
+                    <label class="mb-0" style="font-size: 14px; color: #4b5563;">
+                        Monthly billing summary from production call records
+                    </label>
+                </div>
+                <span class="badge bg-primary" style="border-radius: 10px;">
+                    @Model.MonthsDisplayed months
+                </span>
+            </div>
+        </div>
+        <div class="card-body p-0">
+            <div class="table-responsive">
+                <table class="table table-hover mb-0" id="billingTable">
+                    <thead style="background-color: #f8f9fa;">
+                        <tr>
+                            <th class="border-0 px-4 py-3" style="font-weight: 600; color: #4a5568; text-transform: uppercase; font-size: 12px; letter-spacing: 0.5px;">
+                                <i class="bi bi-calendar-month me-2"></i>Month
+                            </th>
+                            <th class="border-0 px-3 py-3 text-end" style="font-weight: 600; color: #4a5568; text-transform: uppercase; font-size: 12px; letter-spacing: 0.5px;">
+                                <i class="bi bi-hash me-2"></i>Records
+                            </th>
+                            <th class="border-0 px-3 py-3 text-end" style="font-weight: 600; color: #4a5568; text-transform: uppercase; font-size: 12px; letter-spacing: 0.5px;">
+                                <i class="bi bi-cash me-2"></i>Amount (KES)
+                            </th>
+                            <th class="border-0 px-3 py-3 text-end" style="font-weight: 600; color: #4a5568; text-transform: uppercase; font-size: 12px; letter-spacing: 0.5px;">
+                                <i class="bi bi-currency-dollar me-2"></i>Amount (USD)
+                            </th>
+                            <th class="border-0 px-3 py-3 text-center" style="width: 50px;"></th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        @foreach (var month in Model.MonthlySummaries)
+                        {
+                            var rowId = $"month-{month.Year}-{month.Month}";
+                            <tr class="month-row" data-bs-toggle="collapse" data-bs-target="#@rowId">
+                                <td class="px-4">
+                                    <div class="fw-semibold text-dark">
+                                        <i class="bi bi-calendar-event me-2 text-primary"></i>@month.MonthName
+                                    </div>
+                                </td>
+                                <td class="px-3 text-end">
+                                    <span class="fw-semibold">@month.TotalRecords.ToString("N0")</span>
+                                </td>
+                                <td class="px-3 text-end">
+                                    <span class="fw-semibold text-success">KES @month.TotalKES.ToString("N2")</span>
+                                </td>
+                                <td class="px-3 text-end">
+                                    <span class="fw-semibold text-purple">USD @month.TotalUSD.ToString("N2")</span>
+                                </td>
+                                <td class="px-3 text-center">
+                                    <i class="bi bi-chevron-down expand-icon text-muted"></i>
+                                </td>
+                            </tr>
+                            <tr class="collapse" id="@rowId">
+                                <td colspan="5" class="p-0 border-0">
+                                    <div class="p-3" style="background: #f9fafb;">
+                                        <table class="table table-sm mb-0" style="background: white; border-radius: 8px; overflow: hidden;">
+                                            <thead style="background-color: #f1f5f9;">
+                                                <tr>
+                                                    <th class="border-0 ps-3 py-2" style="font-weight: 600; color: #64748b; font-size: 11px; text-transform: uppercase;">
+                                                        <i class="bi bi-building me-1"></i>Provider
+                                                    </th>
+                                                    <th class="border-0 py-2 text-end" style="font-weight: 600; color: #64748b; font-size: 11px; text-transform: uppercase;">
+                                                        <i class="bi bi-hash me-1"></i>Records
+                                                    </th>
+                                                    <th class="border-0 py-2 text-end" style="font-weight: 600; color: #64748b; font-size: 11px; text-transform: uppercase;">
+                                                        <i class="bi bi-cash me-1"></i>KES
+                                                    </th>
+                                                    <th class="border-0 pe-3 py-2 text-end" style="font-weight: 600; color: #64748b; font-size: 11px; text-transform: uppercase;">
+                                                        <i class="bi bi-currency-dollar me-1"></i>USD
+                                                    </th>
+                                                </tr>
+                                            </thead>
+                                            <tbody>
+                                                @foreach (var provider in month.Providers)
+                                                {
+                                                    <tr>
+                                                        <td class="ps-3 py-2">
+                                                            @if (provider.Provider == "Safaricom")
+                                                            {
+                                                                <img src="/images/providers/SAF-MAIN-LOGO.png" alt="Safaricom" style="width: 20px; height: 20px; object-fit: contain;" class="me-2">
+                                                                <span>Safaricom</span>
+                                                            }
+                                                            else if (provider.Provider == "Airtel")
+                                                            {
+                                                                <img src="/images/providers/airtel-logo.jpg" alt="Airtel" style="width: 20px; height: 20px; object-fit: contain;" class="me-2">
+                                                                <span>Airtel</span>
+                                                            }
+                                                            else if (provider.Provider == "PSTN")
+                                                            {
+                                                                <i class="bi bi-telephone text-primary me-2"></i>
+                                                                <span>PSTN</span>
+                                                            }
+                                                            else if (provider.Provider == "PrivateWire")
+                                                            {
+                                                                <i class="bi bi-diagram-3 text-purple me-2"></i>
+                                                                <span>Private Wire</span>
+                                                            }
+                                                            else
+                                                            {
+                                                                <i class="bi bi-question-circle text-muted me-2"></i>
+                                                                <span>@provider.Provider</span>
+                                                            }
+                                                        </td>
+                                                        <td class="py-2 text-end">@provider.RecordCount.ToString("N0")</td>
+                                                        <td class="py-2 text-end">
+                                                            @if (provider.Provider == "Safaricom" || provider.Provider == "Airtel" || provider.Provider == "PSTN")
+                                                            {
+                                                                <span class="text-success">KES @provider.AmountKES.ToString("N2")</span>
+                                                            }
+                                                            else
+                                                            {
+                                                                <span class="text-muted">KES 0.00</span>
+                                                            }
+                                                        </td>
+                                                        <td class="pe-3 py-2 text-end">
+                                                            @if (provider.Provider == "PrivateWire")
+                                                            {
+                                                                <span class="text-purple">USD @provider.AmountUSD.ToString("N2")</span>
+                                                            }
+                                                            else
+                                                            {
+                                                                <span class="text-muted">USD 0.00</span>
+                                                            }
+                                                        </td>
+                                                    </tr>
+                                                }
+                                            </tbody>
+                                        </table>
+                                    </div>
+                                </td>
+                            </tr>
+                        }
+                    </tbody>
+                    <tfoot style="background: linear-gradient(135deg, #f0f9ff 0%, #e0f2fe 100%);">
+                        <tr>
+                            <td class="px-4 py-3 fw-bold">
+                                <i class="bi bi-calculator me-2 text-primary"></i>Grand Total
+                            </td>
+                            <td class="px-3 py-3 text-end fw-bold text-primary">@Model.TotalRecords.ToString("N0")</td>
+                            <td class="px-3 py-3 text-end fw-bold text-success">KES @Model.TotalKES.ToString("N2")</td>
+                            <td class="px-3 py-3 text-end fw-bold text-purple">USD @Model.TotalUSD.ToString("N2")</td>
+                            <td></td>
+                        </tr>
+                    </tfoot>
+                </table>
+            </div>
+        </div>
+    </div>
+}
+
+@section Scripts {
+<script>
+    document.addEventListener('DOMContentLoaded', function() {
+        // Handle expand/collapse icon rotation
+        document.querySelectorAll('.month-row').forEach(row => {
+            const targetId = row.getAttribute('data-bs-target');
+            const target = document.querySelector(targetId);
+            const icon = row.querySelector('.expand-icon');
+
+            if (target && icon) {
+                target.addEventListener('show.bs.collapse', function() {
+                    icon.style.transform = 'rotate(180deg)';
+                });
+
+                target.addEventListener('hide.bs.collapse', function() {
+                    icon.style.transform = 'rotate(0deg)';
+                });
+            }
+        });
+    });
+</script>
+}

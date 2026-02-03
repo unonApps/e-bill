@@ -9,7 +9,7 @@ using TAB.Web.Services;
 
 namespace TAB.Web.Pages.Modules.RefundManagement.Approvals.PaymentApprover
 {
-    [Authorize(Roles = "ICTS,Admin")]
+    [Authorize(Roles = "Claims Unit Approver,Admin")]
     public class IndexModel : PageModel
     {
         private readonly ApplicationDbContext _context;
@@ -34,6 +34,7 @@ namespace TAB.Web.Pages.Modules.RefundManagement.Approvals.PaymentApprover
         public string CurrentUserRole { get; set; } = "";
         public bool IsDetailView { get; set; } = false;
         public RefundRequest? CurrentRequest { get; set; }
+        public List<RefundRequestHistory> RequestHistory { get; set; } = new();
 
         [TempData]
         public string? StatusMessage { get; set; }
@@ -57,13 +58,18 @@ namespace TAB.Web.Pages.Modules.RefundManagement.Approvals.PaymentApprover
                     if (CurrentRequest != null)
                     {
                         IsDetailView = true;
+                        // Load request history
+                        RequestHistory = await _context.RefundRequestHistories
+                            .Where(h => h.RefundRequestId == requestId.Value)
+                            .OrderBy(h => h.Timestamp)
+                            .ToListAsync();
                     }
                 }
 
                 // Filter requests based on user role
-                if (await _userManager.IsInRoleAsync(currentUser, "ICTS"))
+                if (await _userManager.IsInRoleAsync(currentUser, "Claims Unit Approver"))
                 {
-                    // ICTS users see requests in Pending Payment Approval status
+                    // Claims Unit Approvers see requests in Pending Payment Approval status
                     AllPaymentRequests = await _context.RefundRequests
                         .Where(r => r.Status == RefundRequestStatus.PendingPaymentApproval)
                         .OrderBy(r => r.RequestDate)
@@ -91,7 +97,7 @@ namespace TAB.Web.Pages.Modules.RefundManagement.Approvals.PaymentApprover
             {
                 StatusMessage = "User not found.";
                 StatusMessageClass = "danger";
-                return RedirectToPage();
+                return RedirectToPage("/Dashboard/Approver/Index");
             }
 
             var request = await _context.RefundRequests.FindAsync(requestId);
@@ -99,18 +105,18 @@ namespace TAB.Web.Pages.Modules.RefundManagement.Approvals.PaymentApprover
             {
                 StatusMessage = "Request not found.";
                 StatusMessageClass = "danger";
-                return RedirectToPage();
+                return RedirectToPage("/Dashboard/Approver/Index");
             }
 
             // Verify authorization
-            var isPaymentApprover = await _userManager.IsInRoleAsync(currentUser, "ICTS");
+            var isPaymentApprover = await _userManager.IsInRoleAsync(currentUser, "Claims Unit Approver");
             var isAdmin = await _userManager.IsInRoleAsync(currentUser, "Admin");
 
             if (!isPaymentApprover && !isAdmin)
             {
                 StatusMessage = "You are not authorized to approve this payment.";
                 StatusMessageClass = "danger";
-                return RedirectToPage();
+                return RedirectToPage("/Dashboard/Approver/Index");
             }
 
             // Only approve requests in correct status
@@ -118,7 +124,7 @@ namespace TAB.Web.Pages.Modules.RefundManagement.Approvals.PaymentApprover
             {
                 StatusMessage = "This request is not in the correct status for payment approval.";
                 StatusMessageClass = "danger";
-                return RedirectToPage();
+                return RedirectToPage("/Dashboard/Approver/Index");
             }
 
             try
@@ -138,6 +144,22 @@ namespace TAB.Web.Pages.Modules.RefundManagement.Approvals.PaymentApprover
                 if (paymentData.ContainsKey("paymentReference"))
                     request.PaymentReference = paymentData["paymentReference"]?.ToString() ?? string.Empty;
 
+                await _context.SaveChangesAsync();
+
+                // Add history entry
+                var historyEntry = new RefundRequestHistory
+                {
+                    RefundRequestId = requestId,
+                    Action = RefundHistoryActions.PaymentApproved,
+                    PreviousStatus = RefundRequestStatus.PendingPaymentApproval.ToString(),
+                    NewStatus = RefundRequestStatus.Completed.ToString(),
+                    Comments = request.PaymentApprovalRemarks,
+                    PerformedBy = currentUser.Id,
+                    UserName = $"{currentUser.FirstName} {currentUser.LastName}",
+                    Timestamp = DateTime.UtcNow,
+                    IpAddress = HttpContext.Connection.RemoteIpAddress?.ToString()
+                };
+                _context.RefundRequestHistories.Add(historyEntry);
                 await _context.SaveChangesAsync();
 
                 // Send notification to requester
@@ -182,7 +204,7 @@ namespace TAB.Web.Pages.Modules.RefundManagement.Approvals.PaymentApprover
                 StatusMessageClass = "danger";
             }
 
-            return RedirectToPage();
+            return RedirectToPage("/Dashboard/Approver/Index");
         }
 
         public async Task<IActionResult> OnPostRejectAsync(int requestId, string? paymentRemarks)
@@ -192,7 +214,7 @@ namespace TAB.Web.Pages.Modules.RefundManagement.Approvals.PaymentApprover
             {
                 StatusMessage = "User not found.";
                 StatusMessageClass = "danger";
-                return RedirectToPage();
+                return RedirectToPage("/Dashboard/Approver/Index");
             }
 
             var request = await _context.RefundRequests.FindAsync(requestId);
@@ -200,22 +222,23 @@ namespace TAB.Web.Pages.Modules.RefundManagement.Approvals.PaymentApprover
             {
                 StatusMessage = "Request not found.";
                 StatusMessageClass = "danger";
-                return RedirectToPage();
+                return RedirectToPage("/Dashboard/Approver/Index");
             }
 
             // Verify authorization
-            var isPaymentApprover = await _userManager.IsInRoleAsync(currentUser, "ICTS");
+            var isPaymentApprover = await _userManager.IsInRoleAsync(currentUser, "Claims Unit Approver");
             var isAdmin = await _userManager.IsInRoleAsync(currentUser, "Admin");
 
             if (!isPaymentApprover && !isAdmin)
             {
                 StatusMessage = "You are not authorized to reject this payment.";
                 StatusMessageClass = "danger";
-                return RedirectToPage();
+                return RedirectToPage("/Dashboard/Approver/Index");
             }
 
             try
             {
+                var previousStatus = request.Status.ToString();
                 request.Status = RefundRequestStatus.Cancelled;
                 request.CancellationDate = DateTime.UtcNow;
                 request.CancellationReason = paymentRemarks ?? "";
@@ -225,6 +248,22 @@ namespace TAB.Web.Pages.Modules.RefundManagement.Approvals.PaymentApprover
                 request.PaymentApproverName = $"{currentUser.FirstName} {currentUser.LastName}";
                 request.PaymentApproverEmail = currentUser.Email ?? string.Empty;
 
+                await _context.SaveChangesAsync();
+
+                // Add history entry
+                var historyEntry = new RefundRequestHistory
+                {
+                    RefundRequestId = requestId,
+                    Action = RefundHistoryActions.PaymentRejected,
+                    PreviousStatus = previousStatus,
+                    NewStatus = RefundRequestStatus.Cancelled.ToString(),
+                    Comments = paymentRemarks,
+                    PerformedBy = currentUser.Id,
+                    UserName = $"{currentUser.FirstName} {currentUser.LastName}",
+                    Timestamp = DateTime.UtcNow,
+                    IpAddress = HttpContext.Connection.RemoteIpAddress?.ToString()
+                };
+                _context.RefundRequestHistories.Add(historyEntry);
                 await _context.SaveChangesAsync();
 
                 // Send notification to requester
@@ -270,7 +309,7 @@ namespace TAB.Web.Pages.Modules.RefundManagement.Approvals.PaymentApprover
                 StatusMessageClass = "danger";
             }
 
-            return RedirectToPage();
+            return RedirectToPage("/Dashboard/Approver/Index");
         }
 
         public async Task<IActionResult> OnPostRevertToClaimsUnitAsync(int requestId, string? paymentRemarks)
@@ -280,7 +319,7 @@ namespace TAB.Web.Pages.Modules.RefundManagement.Approvals.PaymentApprover
             {
                 StatusMessage = "User not found.";
                 StatusMessageClass = "danger";
-                return RedirectToPage();
+                return RedirectToPage("/Dashboard/Approver/Index");
             }
 
             var request = await _context.RefundRequests.FindAsync(requestId);
@@ -288,28 +327,45 @@ namespace TAB.Web.Pages.Modules.RefundManagement.Approvals.PaymentApprover
             {
                 StatusMessage = "Request not found.";
                 StatusMessageClass = "danger";
-                return RedirectToPage();
+                return RedirectToPage("/Dashboard/Approver/Index");
             }
 
             // Verify authorization
-            var isPaymentApprover = await _userManager.IsInRoleAsync(currentUser, "ICTS");
+            var isPaymentApprover = await _userManager.IsInRoleAsync(currentUser, "Claims Unit Approver");
             var isAdmin = await _userManager.IsInRoleAsync(currentUser, "Admin");
 
             if (!isPaymentApprover && !isAdmin)
             {
                 StatusMessage = "You are not authorized to revert this request.";
                 StatusMessageClass = "danger";
-                return RedirectToPage();
+                return RedirectToPage("/Dashboard/Approver/Index");
             }
 
             try
             {
+                var previousStatus = request.Status.ToString();
                 request.Status = RefundRequestStatus.PendingStaffClaimsUnit;
                 request.PaymentApprovalRemarks = paymentRemarks ?? "";
                 request.PaymentApprovalDate = DateTime.UtcNow;
                 request.PaymentApproverName = $"{currentUser.FirstName} {currentUser.LastName}";
                 request.PaymentApproverEmail = currentUser.Email ?? string.Empty;
 
+                await _context.SaveChangesAsync();
+
+                // Add history entry
+                var historyEntry = new RefundRequestHistory
+                {
+                    RefundRequestId = requestId,
+                    Action = RefundHistoryActions.PaymentRevertedToClaims,
+                    PreviousStatus = previousStatus,
+                    NewStatus = RefundRequestStatus.PendingStaffClaimsUnit.ToString(),
+                    Comments = paymentRemarks,
+                    PerformedBy = currentUser.Id,
+                    UserName = $"{currentUser.FirstName} {currentUser.LastName}",
+                    Timestamp = DateTime.UtcNow,
+                    IpAddress = HttpContext.Connection.RemoteIpAddress?.ToString()
+                };
+                _context.RefundRequestHistories.Add(historyEntry);
                 await _context.SaveChangesAsync();
 
                 StatusMessage = $"Request #{requestId} has been reverted to Staff Claims Unit for review.";
@@ -321,7 +377,7 @@ namespace TAB.Web.Pages.Modules.RefundManagement.Approvals.PaymentApprover
                 StatusMessageClass = "danger";
             }
 
-            return RedirectToPage();
+            return RedirectToPage("/Dashboard/Approver/Index");
         }
 
         public async Task<IActionResult> OnGetRequestDetailsAsync(int requestId)

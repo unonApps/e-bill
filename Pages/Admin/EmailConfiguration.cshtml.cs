@@ -220,16 +220,17 @@ namespace TAB.Web.Pages.Admin
                 await LoadConfigurationsAsync();
                 return Page();
             }
-            if (string.IsNullOrEmpty(Configuration.Username))
+            // Username and Password are optional when UseDefaultCredentials is true
+            if (!Configuration.UseDefaultCredentials && string.IsNullOrEmpty(Configuration.Username))
             {
-                StatusMessage = "Username is required.";
+                StatusMessage = "Username is required when not using Default Credentials.";
                 StatusMessageClass = "warning";
                 await LoadConfigurationsAsync();
                 return Page();
             }
-            if (string.IsNullOrEmpty(Configuration.Password))
+            if (!Configuration.UseDefaultCredentials && string.IsNullOrEmpty(Configuration.Password))
             {
-                StatusMessage = "Password is required.";
+                StatusMessage = "Password is required when not using Default Credentials.";
                 StatusMessageClass = "warning";
                 await LoadConfigurationsAsync();
                 return Page();
@@ -244,10 +245,15 @@ namespace TAB.Web.Pages.Admin
                 using var client = new System.Net.Mail.SmtpClient(Configuration.SmtpServer, Configuration.SmtpPort)
                 {
                     UseDefaultCredentials = Configuration.UseDefaultCredentials,
-                    Credentials = new System.Net.NetworkCredential(Configuration.Username, Configuration.Password),
                     EnableSsl = Configuration.EnableSsl,
                     Timeout = Configuration.Timeout * 1000 // Convert to milliseconds
                 };
+
+                // Only set credentials if not using default credentials
+                if (!Configuration.UseDefaultCredentials)
+                {
+                    client.Credentials = new System.Net.NetworkCredential(Configuration.Username, Configuration.Password);
+                }
 
                 // Create a minimal test message to verify authentication
                 using var message = new System.Net.Mail.MailMessage
@@ -360,16 +366,17 @@ namespace TAB.Web.Pages.Admin
                 await LoadConfigurationsAsync();
                 return Page();
             }
-            if (string.IsNullOrEmpty(Configuration.Username))
+            // Username and Password are optional when UseDefaultCredentials is true
+            if (!Configuration.UseDefaultCredentials && string.IsNullOrEmpty(Configuration.Username))
             {
-                StatusMessage = "Username is required.";
+                StatusMessage = "Username is required when not using Default Credentials.";
                 StatusMessageClass = "warning";
                 await LoadConfigurationsAsync();
                 return Page();
             }
-            if (string.IsNullOrEmpty(Configuration.Password))
+            if (!Configuration.UseDefaultCredentials && string.IsNullOrEmpty(Configuration.Password))
             {
-                StatusMessage = "Password is required.";
+                StatusMessage = "Password is required when not using Default Credentials.";
                 StatusMessageClass = "warning";
                 await LoadConfigurationsAsync();
                 return Page();
@@ -486,10 +493,15 @@ This is an automated test email from the TAB System.";
             using var client = new System.Net.Mail.SmtpClient(config.SmtpServer, config.SmtpPort)
             {
                 UseDefaultCredentials = config.UseDefaultCredentials,
-                Credentials = new System.Net.NetworkCredential(config.Username, config.Password),
                 EnableSsl = config.EnableSsl,
                 Timeout = config.Timeout * 1000 // Convert to milliseconds
             };
+
+            // Only set credentials if not using default credentials
+            if (!config.UseDefaultCredentials && !string.IsNullOrEmpty(config.Username))
+            {
+                client.Credentials = new System.Net.NetworkCredential(config.Username, config.Password);
+            }
 
             await client.SendMailAsync(message);
         }

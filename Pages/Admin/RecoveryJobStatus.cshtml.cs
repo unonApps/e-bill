@@ -398,6 +398,8 @@ namespace TAB.Web.Pages.Admin
                 revertedVerificationsProcessed = execution.RevertedVerificationsProcessed,
                 totalRecordsProcessed = execution.TotalRecordsProcessed,
                 totalAmountRecovered = execution.TotalAmountRecovered,
+                totalAmountRecoveredKSH = execution.TotalAmountRecoveredKSH,
+                totalAmountRecoveredUSD = execution.TotalAmountRecoveredUSD,
                 remindersSent = execution.RemindersSent,
                 errorMessage = execution.ErrorMessage,
                 executionLog = execution.ExecutionLog,
@@ -435,9 +437,25 @@ namespace TAB.Web.Pages.Admin
                 .Where(e => e.Status == "Completed")
                 .SumAsync(e => (decimal?)e.TotalAmountRecovered) ?? 0;
 
+            Statistics.TotalAmountRecoveredKSH = await _context.RecoveryJobExecutions
+                .Where(e => e.Status == "Completed")
+                .SumAsync(e => (decimal?)e.TotalAmountRecoveredKSH) ?? 0;
+
+            Statistics.TotalAmountRecoveredUSD = await _context.RecoveryJobExecutions
+                .Where(e => e.Status == "Completed")
+                .SumAsync(e => (decimal?)e.TotalAmountRecoveredUSD) ?? 0;
+
             Statistics.AmountRecoveredLast30Days = await _context.RecoveryJobExecutions
                 .Where(e => e.Status == "Completed" && e.StartTime >= last30Days)
                 .SumAsync(e => (decimal?)e.TotalAmountRecovered) ?? 0;
+
+            Statistics.AmountRecoveredLast30DaysKSH = await _context.RecoveryJobExecutions
+                .Where(e => e.Status == "Completed" && e.StartTime >= last30Days)
+                .SumAsync(e => (decimal?)e.TotalAmountRecoveredKSH) ?? 0;
+
+            Statistics.AmountRecoveredLast30DaysUSD = await _context.RecoveryJobExecutions
+                .Where(e => e.Status == "Completed" && e.StartTime >= last30Days)
+                .SumAsync(e => (decimal?)e.TotalAmountRecoveredUSD) ?? 0;
 
             // Total records processed
             Statistics.TotalRecordsProcessed = await _context.RecoveryJobExecutions
@@ -553,7 +571,11 @@ namespace TAB.Web.Pages.Admin
         public int ExecutionsLast30Days { get; set; }
         public decimal SuccessRate { get; set; }
         public decimal TotalAmountRecovered { get; set; }
+        public decimal TotalAmountRecoveredKSH { get; set; }
+        public decimal TotalAmountRecoveredUSD { get; set; }
         public decimal AmountRecoveredLast30Days { get; set; }
+        public decimal AmountRecoveredLast30DaysKSH { get; set; }
+        public decimal AmountRecoveredLast30DaysUSD { get; set; }
         public int TotalRecordsProcessed { get; set; }
         public int RecordsProcessedLast30Days { get; set; }
         public long AverageDurationMs { get; set; }

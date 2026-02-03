@@ -64,30 +64,75 @@ BEGIN
             ImportedDate,
             VerificationStatus,
             ProcessingStatus,
+            IsAdjustment,
             CreatedDate
         )
         SELECT
             @BatchId,
             'Batch',
-            ISNULL(s.Ext, ''),
-            ISNULL(s.CallDate, '1900-01-01'),
-            ISNULL(s.Dialed, ''),
-            ISNULL(s.Dest, ''),
-            DATEADD(SECOND, ISNULL(s.Dur, 0) * 60, ISNULL(s.CallDate, '1900-01-01')),
-            ISNULL(s.Dur, 0) * 60, -- Convert minutes to seconds
-            'KES',
-            ISNULL(s.Cost, 0),
-            ISNULL(s.Cost, 0) / 150.0, -- Convert KES to USD
-            ISNULL(s.Cost, 0),
-            ISNULL(s.CallType, 'Voice'),
+            ISNULL(s.ext, ''),
+            ISNULL(s.call_date, '1900-01-01'),
+            ISNULL(s.dialed, ''),
+            ISNULL(s.dest, ''),
+            -- Safaricom CallEndTime:
+            -- Internet (dialed starts with 'safaricom'): durx is KB, add as seconds placeholder
+            -- Voice (dialed is phone number): Use dur (minutes) if available, fall back to durx (mm.ss)
+            -- Other (SMS, ROAMING, RENT, MMS, Bundle): no duration, use call_date as-is
+            -- NOTE: Cap calculations to prevent INT overflow (max INT = 2147483647)
             CASE
-                WHEN s.Dest LIKE '254%' OR s.Dest LIKE '0%' THEN 'Domestic'
-                WHEN s.Dest LIKE '+%' AND s.Dest NOT LIKE '+254%' THEN 'International'
-                WHEN s.Dest LIKE '00%' THEN 'International'
+                WHEN LOWER(ISNULL(s.dialed, '')) LIKE 'safaricom%'
+                    THEN DATEADD(SECOND, CAST(CASE WHEN ISNULL(s.durx, 0) > 2147483647 THEN 2147483647 ELSE ISNULL(s.durx, 0) END AS INT), ISNULL(s.call_date, '1900-01-01'))
+                WHEN ISNULL(s.dialed, '') LIKE '[0-9]%' OR ISNULL(s.dialed, '') LIKE '+%'
+                    -- Voice call: Use dur (minutes) * 60, or fall back to durx (mm.ss) conversion
+                    THEN DATEADD(SECOND,
+                        CAST(CASE
+                            WHEN ISNULL(s.dur, 0) > 0 THEN ISNULL(s.dur, 0) * 60  -- dur is in minutes
+                            WHEN ISNULL(s.durx, 0) > 0 THEN FLOOR(ISNULL(s.durx, 0)) * 60 + (ISNULL(s.durx, 0) - FLOOR(ISNULL(s.durx, 0))) * 100
+                            ELSE 0
+                        END AS INT),
+                        ISNULL(s.call_date, '1900-01-01'))
+                ELSE ISNULL(s.call_date, '1900-01-01')  -- SMS, ROAMING, RENT, MMS, Bundle - no duration
+            END,
+            -- Safaricom CallDuration:
+            -- Internet: durx is KB, convert to MB (÷ 1024)
+            -- Voice: Use dur (minutes) * 60, or fall back to durx (mm.ss) conversion
+            -- Other: store as 0 or count
+            -- NOTE: Cap calculations to prevent INT overflow
+            CASE
+                WHEN LOWER(ISNULL(s.dialed, '')) LIKE 'safaricom%'
+                    THEN CAST(CASE WHEN ISNULL(s.durx, 0) / 1024.0 > 2147483647 THEN 2147483647 ELSE ISNULL(s.durx, 0) / 1024.0 END AS INT)  -- KB to MB (capped)
+                WHEN ISNULL(s.dialed, '') LIKE '[0-9]%' OR ISNULL(s.dialed, '') LIKE '+%'
+                    -- Voice: Use dur * 60 (minutes to seconds), or durx (mm.ss) conversion
+                    THEN CAST(CASE
+                        WHEN ISNULL(s.dur, 0) > 0 THEN ISNULL(s.dur, 0) * 60
+                        WHEN ISNULL(s.durx, 0) > 0 THEN FLOOR(ISNULL(s.durx, 0)) * 60 + (ISNULL(s.durx, 0) - FLOOR(ISNULL(s.durx, 0))) * 100
+                        ELSE 0
+                    END AS INT)
+                ELSE CAST(CASE WHEN ISNULL(s.durx, 0) > 2147483647 THEN 2147483647 ELSE ISNULL(s.durx, 0) END AS INT)  -- SMS count, or 0 for others (capped)
+            END,
+            'KES',
+            ISNULL(s.cost, 0),
+            ISNULL(s.cost, 0) / 150.0, -- Convert KES to USD
+            ISNULL(s.cost, 0),
+            -- Set CallType based on dialed value
+            CASE
+                WHEN LOWER(ISNULL(s.dialed, '')) LIKE 'safaricom%' THEN 'Internet Usage'
+                WHEN LOWER(ISNULL(s.dialed, '')) = 'sms' THEN 'SMS'
+                WHEN LOWER(ISNULL(s.dialed, '')) = 'roaming' THEN 'Roaming'
+                WHEN LOWER(ISNULL(s.dialed, '')) = 'rent' THEN 'Rent'
+                WHEN LOWER(ISNULL(s.dialed, '')) = 'mms' THEN 'MMS'
+                WHEN LOWER(ISNULL(s.dialed, '')) LIKE '%bundle%' THEN 'Bundle'
+                WHEN ISNULL(s.dialed, '') LIKE '[0-9]%' OR ISNULL(s.dialed, '') LIKE '+%' THEN 'Voice'
+                ELSE ISNULL(s.call_type, 'Other')
+            END,
+            CASE
+                WHEN s.dest LIKE '254%' OR s.dest LIKE '0%' THEN 'Domestic'
+                WHEN s.dest LIKE '+%' AND s.dest NOT LIKE '+254%' THEN 'International'
+                WHEN s.dest LIKE '00%' THEN 'International'
                 ELSE 'Unknown'
             END,
-            ISNULL(s.CallMonth, @StartMonth),
-            ISNULL(s.CallYear, @StartYear),
+            ISNULL(s.call_month, @StartMonth),
+            ISNULL(s.call_year, @StartYear),
             ISNULL(up.IndexNumber, s.IndexNumber),
             up.Id, -- UserPhoneId
             'Safaricom',
@@ -96,16 +141,17 @@ BEGIN
             GETUTCDATE(),
             0, -- Pending
             0, -- Staged
+            0, -- IsAdjustment = false
             GETUTCDATE()
-        FROM Safaricoms s
+        FROM Safaricom s
         LEFT JOIN UserPhones up ON (
-            up.PhoneNumber = s.Ext
-            OR up.PhoneNumber = REPLACE(s.Ext, '+254', '0')
+            up.PhoneNumber = s.ext
+            OR up.PhoneNumber = REPLACE(s.ext, '+254', '0')
         ) AND up.IsActive = 1
-        WHERE s.CallMonth >= @StartMonth
-          AND s.CallMonth <= @EndMonth
-          AND s.CallYear >= @StartYear
-          AND s.CallYear <= @EndYear
+        WHERE s.call_month >= @StartMonth
+          AND s.call_month <= @EndMonth
+          AND s.call_year >= @StartYear
+          AND s.call_year <= @EndYear
           AND s.StagingBatchId IS NULL;  -- Only process records not already in a batch
 
         SET @SafaricomCount = @@ROWCOUNT;
@@ -116,16 +162,16 @@ BEGIN
         SET s.StagingBatchId = @BatchId,
             s.UserPhoneId = up.Id,
             s.ProcessingStatus = 0 -- Staged
-        FROM Safaricoms s
+        FROM Safaricom s
         LEFT JOIN UserPhones up ON (
-            up.PhoneNumber = s.Ext
-            OR up.PhoneNumber = REPLACE(s.Ext, '+254', '0')
+            up.PhoneNumber = s.ext
+            OR up.PhoneNumber = REPLACE(s.ext, '+254', '0')
         ) AND up.IsActive = 1
-        WHERE s.CallMonth >= @StartMonth
-          AND s.CallMonth <= @EndMonth
-          AND s.CallYear >= @StartYear
-          AND s.CallYear <= @EndYear
-          AND s.StagingBatchId = @BatchId;
+        WHERE s.call_month >= @StartMonth
+          AND s.call_month <= @EndMonth
+          AND s.call_year >= @StartYear
+          AND s.call_year <= @EndYear
+          AND s.StagingBatchId IS NULL;
 
         -- =============================================
         -- STEP 2: Import from Airtel
@@ -157,30 +203,32 @@ BEGIN
             ImportedDate,
             VerificationStatus,
             ProcessingStatus,
+            IsAdjustment,
             CreatedDate
         )
         SELECT
             @BatchId,
             'Batch',
-            ISNULL(a.Ext, ''),
-            ISNULL(a.CallDate, '1900-01-01'),
-            ISNULL(a.Dialed, ''),
-            ISNULL(a.Dest, ''),
-            DATEADD(SECOND, ISNULL(a.Dur, 0) * 60, ISNULL(a.CallDate, '1900-01-01')),
-            ISNULL(a.Dur, 0) * 60,
+            ISNULL(a.ext, ''),
+            ISNULL(a.call_date, '1900-01-01'),
+            ISNULL(a.dialed, ''),
+            ISNULL(a.dest, ''),
+            -- Airtel: dur is in minutes, convert to seconds (cap at max INT to prevent overflow)
+            DATEADD(SECOND, CAST(CASE WHEN ISNULL(a.dur, 0) > 35791394 THEN 2147483647 ELSE ISNULL(a.dur, 0) * 60 END AS INT), ISNULL(a.call_date, '1900-01-01')),
+            CAST(CASE WHEN ISNULL(a.dur, 0) > 35791394 THEN 2147483647 ELSE ISNULL(a.dur, 0) * 60 END AS INT),  -- Convert minutes to seconds (capped)
             'KES',
-            ISNULL(a.Cost, 0),
-            ISNULL(a.Cost, 0) / 150.0,
-            ISNULL(a.Cost, 0),
-            ISNULL(a.CallType, 'Voice'),
+            ISNULL(a.cost, 0),
+            ISNULL(a.cost, 0) / 150.0,
+            ISNULL(a.cost, 0),
+            ISNULL(a.call_type, 'Voice'),
             CASE
-                WHEN a.Dest LIKE '254%' OR a.Dest LIKE '0%' THEN 'Domestic'
-                WHEN a.Dest LIKE '+%' AND a.Dest NOT LIKE '+254%' THEN 'International'
-                WHEN a.Dest LIKE '00%' THEN 'International'
+                WHEN a.dest LIKE '254%' OR a.dest LIKE '0%' THEN 'Domestic'
+                WHEN a.dest LIKE '+%' AND a.dest NOT LIKE '+254%' THEN 'International'
+                WHEN a.dest LIKE '00%' THEN 'International'
                 ELSE 'Unknown'
             END,
-            ISNULL(a.CallMonth, @StartMonth),
-            ISNULL(a.CallYear, @StartYear),
+            ISNULL(a.call_month, @StartMonth),
+            ISNULL(a.call_year, @StartYear),
             ISNULL(up.IndexNumber, a.IndexNumber),
             up.Id,
             'Airtel',
@@ -189,16 +237,17 @@ BEGIN
             GETUTCDATE(),
             0, -- Pending
             0, -- Staged
+            0, -- IsAdjustment = false
             GETUTCDATE()
-        FROM Airtels a
+        FROM Airtel a
         LEFT JOIN UserPhones up ON (
-            up.PhoneNumber = a.Ext
-            OR up.PhoneNumber = REPLACE(a.Ext, '+254', '0')
+            up.PhoneNumber = a.ext
+            OR up.PhoneNumber = REPLACE(a.ext, '+254', '0')
         ) AND up.IsActive = 1
-        WHERE a.CallMonth >= @StartMonth
-          AND a.CallMonth <= @EndMonth
-          AND a.CallYear >= @StartYear
-          AND a.CallYear <= @EndYear
+        WHERE a.call_month >= @StartMonth
+          AND a.call_month <= @EndMonth
+          AND a.call_year >= @StartYear
+          AND a.call_year <= @EndYear
           AND a.StagingBatchId IS NULL;
 
         SET @AirtelCount = @@ROWCOUNT;
@@ -209,16 +258,16 @@ BEGIN
         SET a.StagingBatchId = @BatchId,
             a.UserPhoneId = up.Id,
             a.ProcessingStatus = 0
-        FROM Airtels a
+        FROM Airtel a
         LEFT JOIN UserPhones up ON (
-            up.PhoneNumber = a.Ext
-            OR up.PhoneNumber = REPLACE(a.Ext, '+254', '0')
+            up.PhoneNumber = a.ext
+            OR up.PhoneNumber = REPLACE(a.ext, '+254', '0')
         ) AND up.IsActive = 1
-        WHERE a.CallMonth >= @StartMonth
-          AND a.CallMonth <= @EndMonth
-          AND a.CallYear >= @StartYear
-          AND a.CallYear <= @EndYear
-          AND a.StagingBatchId = @BatchId;
+        WHERE a.call_month >= @StartMonth
+          AND a.call_month <= @EndMonth
+          AND a.call_year >= @StartYear
+          AND a.call_year <= @EndYear
+          AND a.StagingBatchId IS NULL;
 
         -- =============================================
         -- STEP 3: Import from PSTN
@@ -250,6 +299,7 @@ BEGIN
             ImportedDate,
             VerificationStatus,
             ProcessingStatus,
+            IsAdjustment,
             CreatedDate
         )
         SELECT
@@ -259,9 +309,10 @@ BEGIN
             ISNULL(p.CallDate, '1900-01-01'),
             ISNULL(p.DialedNumber, ''),
             ISNULL(p.Destination, ''),
-            DATEADD(SECOND, ISNULL(p.Duration, 0) * 60, ISNULL(p.CallDate, '1900-01-01')),
-            ISNULL(p.Duration, 0) * 60,
-            'KSH',
+            -- PSTN: Duration is in minutes, convert to seconds (cap at max INT to prevent overflow)
+            DATEADD(SECOND, CAST(CASE WHEN ISNULL(p.Duration, 0) > 35791394 THEN 2147483647 ELSE ISNULL(p.Duration, 0) * 60 END AS INT), ISNULL(p.CallDate, '1900-01-01')),
+            CAST(CASE WHEN ISNULL(p.Duration, 0) > 35791394 THEN 2147483647 ELSE ISNULL(p.Duration, 0) * 60 END AS INT),
+            'KES',
             ISNULL(p.AmountKSH, 0),
             ISNULL(p.AmountKSH, 0) / 150.0,
             ISNULL(p.AmountKSH, 0),
@@ -282,6 +333,7 @@ BEGIN
             GETUTCDATE(),
             0, -- Pending
             0, -- Staged
+            0, -- IsAdjustment = false
             GETUTCDATE()
         FROM PSTNs p
         LEFT JOIN UserPhones up ON (
@@ -311,7 +363,7 @@ BEGIN
           AND p.CallMonth <= @EndMonth
           AND p.CallYear >= @StartYear
           AND p.CallYear <= @EndYear
-          AND p.StagingBatchId = @BatchId;
+          AND p.StagingBatchId IS NULL;
 
         -- =============================================
         -- STEP 4: Import from PrivateWire
@@ -343,6 +395,7 @@ BEGIN
             ImportedDate,
             VerificationStatus,
             ProcessingStatus,
+            IsAdjustment,
             CreatedDate
         )
         SELECT
@@ -352,8 +405,9 @@ BEGIN
             ISNULL(pw.CallDate, '1900-01-01'),
             ISNULL(pw.DialedNumber, ''),
             ISNULL(pw.Destination, ''),
-            DATEADD(SECOND, ISNULL(pw.Duration, 0) * 60, ISNULL(pw.CallDate, '1900-01-01')),
-            ISNULL(pw.Duration, 0) * 60,
+            -- PrivateWire: Duration is in minutes, convert to seconds (cap at max INT to prevent overflow)
+            DATEADD(SECOND, CAST(CASE WHEN ISNULL(pw.Duration, 0) > 35791394 THEN 2147483647 ELSE ISNULL(pw.Duration, 0) * 60 END AS INT), ISNULL(pw.CallDate, '1900-01-01')),
+            CAST(CASE WHEN ISNULL(pw.Duration, 0) > 35791394 THEN 2147483647 ELSE ISNULL(pw.Duration, 0) * 60 END AS INT),
             'USD',
             ISNULL(pw.AmountKSH, 0),
             ISNULL(pw.AmountUSD, 0),
@@ -375,6 +429,7 @@ BEGIN
             GETUTCDATE(),
             0, -- Pending
             0, -- Staged
+            0, -- IsAdjustment = false
             GETUTCDATE()
         FROM PrivateWires pw
         LEFT JOIN UserPhones up ON (
@@ -404,7 +459,7 @@ BEGIN
           AND pw.CallMonth <= @EndMonth
           AND pw.CallYear >= @StartYear
           AND pw.CallYear <= @EndYear
-          AND pw.StagingBatchId = @BatchId;
+          AND pw.StagingBatchId IS NULL;
 
         -- =============================================
         -- STEP 5: Calculate totals and return results

@@ -37,6 +37,7 @@ namespace TAB.Web.Pages.Modules.EBillManagement.CallRecords
 
         public List<SupervisorSubmissionGroup> PendingSubmissions { get; set; } = new();
         public string? SupervisorIndexNumber { get; set; }
+        public string? SupervisorEmail { get; set; }
         public string? SupervisorName { get; set; }
         public List<StaffOption> StaffWithPendingRequests { get; set; } = new();
 
@@ -108,13 +109,16 @@ namespace TAB.Web.Pages.Modules.EBillManagement.CallRecords
             if (user == null)
                 return Challenge();
 
-            // Use the logged-in user's email to find verifications assigned to them
-            // SupervisorIndexNumber field in CallLogVerifications contains the supervisor's email
-            SupervisorIndexNumber = user.Email;
-
-            // Try to get name from EbillUser if exists, otherwise use ApplicationUser info
+            // Try to get EbillUser record for the supervisor
             var ebillUser = await _context.EbillUsers
                 .FirstOrDefaultAsync(u => u.Email == user.Email);
+
+            // SupervisorIndexNumber field in CallLogVerifications may contain either:
+            // - The supervisor's IndexNumber (if they exist in EbillUsers)
+            // - The supervisor's Email (fallback if no EbillUser record)
+            // We store both and check for BOTH to find all submissions
+            SupervisorIndexNumber = ebillUser?.IndexNumber;
+            SupervisorEmail = user.Email;
 
             if (ebillUser != null)
             {
@@ -137,13 +141,13 @@ namespace TAB.Web.Pages.Modules.EBillManagement.CallRecords
 
         private async Task LoadStaffWithPendingRequestsAsync()
         {
-            if (string.IsNullOrEmpty(SupervisorIndexNumber))
+            if (string.IsNullOrEmpty(SupervisorEmail))
                 return;
 
             // Get distinct staff members who have pending requests
             var staffIndexNumbers = await _context.CallLogVerifications
                 .Where(v => v.SubmittedToSupervisor
-                    && v.SupervisorIndexNumber == SupervisorIndexNumber
+                    && v.SupervisorEmail == SupervisorEmail
                     && (v.SupervisorApprovalStatus == null || v.SupervisorApprovalStatus == "Pending"))
                 .Select(v => v.VerifiedBy)
                 .Distinct()
@@ -178,7 +182,7 @@ namespace TAB.Web.Pages.Modules.EBillManagement.CallRecords
 
         private async Task LoadPendingSubmissionsAsync()
         {
-            if (string.IsNullOrEmpty(SupervisorIndexNumber))
+            if (string.IsNullOrEmpty(SupervisorEmail))
                 return;
 
             // Get all verifications submitted to this supervisor that are pending approval
@@ -189,7 +193,7 @@ namespace TAB.Web.Pages.Modules.EBillManagement.CallRecords
                         .ThenInclude(up => up.ClassOfService)
                 .Include(v => v.Documents)
                 .Where(v => v.SubmittedToSupervisor
-                    && v.SupervisorIndexNumber == SupervisorIndexNumber
+                    && v.SupervisorEmail == SupervisorEmail
                     && (v.SupervisorApprovalStatus == null ||
                         v.SupervisorApprovalStatus == "" ||
                         v.SupervisorApprovalStatus == "Pending"));
@@ -472,6 +476,10 @@ namespace TAB.Web.Pages.Modules.EBillManagement.CallRecords
 
             try
             {
+                // Get the supervisor's identifier (IndexNumber if exists, otherwise Email)
+                var ebillUser = await _context.EbillUsers.FirstOrDefaultAsync(u => u.Email == user.Email);
+                var supervisorIdentifier = ebillUser?.IndexNumber ?? user.Email;
+
                 int successCount = 0;
                 int failCount = 0;
 
@@ -480,7 +488,7 @@ namespace TAB.Web.Pages.Modules.EBillManagement.CallRecords
                     // Use the service method which properly updates both tables
                     var result = await _verificationService.ApproveVerificationAsync(
                         verificationId,
-                        user.Email, // SupervisorIndexNumber
+                        supervisorIdentifier, // Use IndexNumber or Email
                         null, // approvedAmount - null means approve full amount
                         null  // comments
                     );
@@ -567,8 +575,7 @@ namespace TAB.Web.Pages.Modules.EBillManagement.CallRecords
                     { "StaffPayableAmount", (verification.ActualAmount - (verification.ApprovedAmount ?? 0)).ToString("N2") },
                     { "SupervisorName", $"{supervisor.FirstName} {supervisor.LastName}" },
                     { "SupervisorComments", verification.SupervisorComments ?? "No comments provided" },
-                    { "ViewCallLogsLink", $"{Request.Scheme}://{Request.Host}/Modules/EBillManagement/CallRecords/MyCallLogs" },
-                    { "Year", DateTime.Now.Year.ToString() }
+                    { "ViewCallLogsLink", $"{Request.Scheme}://{Request.Host}/Modules/EBillManagement/CallRecords/MyCallLogs" }
                 };
 
                 await _emailService.SendTemplatedEmailAsync(
@@ -590,8 +597,7 @@ namespace TAB.Web.Pages.Modules.EBillManagement.CallRecords
                     { "SupervisorName", $"{supervisor.FirstName} {supervisor.LastName}" },
                     { "ApprovedDate", verification.SupervisorApprovedDate?.ToString("MMMM dd, yyyy") ?? DateTime.UtcNow.ToString("MMMM dd, yyyy") },
                     { "SupervisorComments", verification.SupervisorComments ?? "Approved without comments" },
-                    { "ViewCallLogsLink", $"{Request.Scheme}://{Request.Host}/Modules/EBillManagement/CallRecords/MyCallLogs" },
-                    { "Year", DateTime.Now.Year.ToString() }
+                    { "ViewCallLogsLink", $"{Request.Scheme}://{Request.Host}/Modules/EBillManagement/CallRecords/MyCallLogs" }
                 };
 
                 await _emailService.SendTemplatedEmailAsync(
@@ -624,6 +630,10 @@ namespace TAB.Web.Pages.Modules.EBillManagement.CallRecords
 
             try
             {
+                // Get the supervisor's identifier (IndexNumber if exists, otherwise Email)
+                var ebillUser = await _context.EbillUsers.FirstOrDefaultAsync(u => u.Email == user.Email);
+                var supervisorIdentifier = ebillUser?.IndexNumber ?? user.Email;
+
                 int successCount = 0;
                 int failCount = 0;
 
@@ -631,7 +641,7 @@ namespace TAB.Web.Pages.Modules.EBillManagement.CallRecords
                 {
                     var result = await _verificationService.RejectVerificationAsync(
                         verificationId,
-                        user.Email, // SupervisorIndexNumber
+                        supervisorIdentifier, // Use IndexNumber or Email
                         rejectionReason
                     );
 
@@ -731,6 +741,10 @@ namespace TAB.Web.Pages.Modules.EBillManagement.CallRecords
 
             try
             {
+                // Get the supervisor's identifier (IndexNumber if exists, otherwise Email)
+                var ebillUser = await _context.EbillUsers.FirstOrDefaultAsync(u => u.Email == user.Email);
+                var supervisorIdentifier = ebillUser?.IndexNumber ?? user.Email;
+
                 int successCount = 0;
                 int failCount = 0;
 
@@ -738,7 +752,7 @@ namespace TAB.Web.Pages.Modules.EBillManagement.CallRecords
                 {
                     var result = await _verificationService.RevertVerificationAsync(
                         verificationId,
-                        user.Email, // SupervisorIndexNumber
+                        supervisorIdentifier, // Use IndexNumber or Email
                         revertReason
                     );
 
@@ -844,6 +858,10 @@ namespace TAB.Web.Pages.Modules.EBillManagement.CallRecords
                     return RedirectToPage();
                 }
 
+                // Get the supervisor's identifier (IndexNumber if exists, otherwise Email)
+                var ebillUser = await _context.EbillUsers.FirstOrDefaultAsync(u => u.Email == user.Email);
+                var supervisorIdentifier = ebillUser?.IndexNumber ?? user.Email;
+
                 int successCount = 0;
                 int failCount = 0;
 
@@ -852,7 +870,7 @@ namespace TAB.Web.Pages.Modules.EBillManagement.CallRecords
                     // Use the service method with approved amount for partial approval
                     var result = await _verificationService.ApproveVerificationAsync(
                         approval.VerificationId,
-                        user.Email, // SupervisorIndexNumber
+                        supervisorIdentifier, // Use IndexNumber or Email
                         approval.ApprovedAmount, // Partial approved amount
                         SupervisorComments
                     );

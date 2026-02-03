@@ -106,7 +106,7 @@ namespace TAB.Web.Pages.Modules.SimManagement.Approvals.ICTS
         }
 
         public async Task<IActionResult> OnPostIctsProcessAsync(
-            int requestId, 
+            int requestId,
             string action,
             string? simSerialNo,
             string? serviceRequestNo,
@@ -138,6 +138,7 @@ namespace TAB.Web.Pages.Modules.SimManagement.Approvals.ICTS
                     "newsim" => await IctsRequestNewSimAsync(requestId, currentUser, simSerialNo, serviceRequestNo, lineType, simPuk, lineUsage, previousLines, spNotifiedDate, assignedNo, ictsRemark),
                     "notify" => await IctsNotifyCollectionAsync(requestId, currentUser, simSerialNo, serviceRequestNo, lineType, simPuk, lineUsage, previousLines, spNotifiedDate, assignedNo, collectionNotifiedDate, simIssuedBy, simCollectedBy, simCollectedDate, ictsRemark),
                     "correct" => await IctsMarkAsCorrectedAsync(requestId, currentUser, simIssuedBy, simCollectedBy, simCollectedDate, ictsRemark),
+                    "completeexisting" => await IctsCompleteExistingLineAsync(requestId, currentUser, ictsRemark),
                     _ => throw new ArgumentException("Invalid ICTS action")
                 };
             }
@@ -410,6 +411,65 @@ namespace TAB.Web.Pages.Modules.SimManagement.Approvals.ICTS
             );
 
             StatusMessage = $"SIM collection completed for {request.FirstName} {request.LastName}. Request marked as corrected.";
+            StatusMessageClass = "success";
+
+            await LoadIctsRequestsAsync();
+            return Page();
+        }
+
+        private async Task<IActionResult> IctsCompleteExistingLineAsync(int requestId, ApplicationUser currentUser, string? ictsRemark)
+        {
+            var request = await _context.SimRequests.FirstOrDefaultAsync(r => r.Id == requestId);
+            if (request == null || request.Status != RequestStatus.PendingIcts)
+            {
+                StatusMessage = "Request not found or not pending ICTS processing.";
+                StatusMessageClass = "danger";
+                return Page();
+            }
+
+            // Verify this is an existing line request
+            if (request.LineRequestType != LineRequestType.ExistingLine)
+            {
+                StatusMessage = "This action is only available for existing line requests.";
+                StatusMessageClass = "danger";
+                return Page();
+            }
+
+            // Mark as completed directly for existing lines
+            request.IctsRemark = ictsRemark?.Trim();
+            request.ProcessedBy = currentUser.Id;
+            request.ProcessedDate = DateTime.UtcNow;
+            request.Status = RequestStatus.Completed;
+
+            await _context.SaveChangesAsync();
+
+            // Log history
+            await _historyService.AddIctsActionHistoryAsync(
+                requestId,
+                HistoryActions.Completed,
+                currentUser.Id,
+                $"{currentUser.FirstName} {currentUser.LastName}",
+                $"Existing line request completed. {ictsRemark}",
+                HttpContext.Connection.RemoteIpAddress?.ToString()
+            );
+
+            // Send notification to requester
+            await _notificationService.NotifySimRequestCompletedAsync(
+                requestId,
+                request.RequestedBy
+            );
+
+            // Log audit trail
+            await _auditLogService.LogSimRequestCompletedAsync(
+                requestId,
+                $"{currentUser.FirstName} {currentUser.LastName}",
+                $"{request.FirstName} {request.LastName}",
+                request.ExistingPhoneNumber ?? "N/A",
+                currentUser.Id,
+                HttpContext.Connection.RemoteIpAddress?.ToString()
+            );
+
+            StatusMessage = $"Existing line request for {request.FirstName} {request.LastName} (Phone: {request.ExistingPhoneNumber}) has been marked as completed.";
             StatusMessageClass = "success";
 
             await LoadIctsRequestsAsync();

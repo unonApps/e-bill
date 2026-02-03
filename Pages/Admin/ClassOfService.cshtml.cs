@@ -28,12 +28,20 @@ namespace TAB.Web.Pages.Admin
 
         [TempData]
         public string? StatusMessageClass { get; set; }
-        
+
         // Statistics
         public int TotalServices { get; set; }
         public int ActiveServices { get; set; }
         public int InactiveServices { get; set; }
         public int UniqueClasses { get; set; }
+
+        // Line Statistics
+        public int TotalLines { get; set; }
+        public int ActiveLines { get; set; }
+        public int InactiveLines { get; set; }
+
+        // Usage counts dictionary - ClassOfServiceId -> (TotalPhones, ActivePhones)
+        public Dictionary<int, (int Total, int Active)> PhoneUsageCounts { get; set; } = new Dictionary<int, (int, int)>();
         
         // Filter properties
         [BindProperty(SupportsGet = true)]
@@ -143,6 +151,22 @@ namespace TAB.Web.Pages.Admin
                     return Page();
                 }
 
+                // Check if trying to deactivate a CoS that has active lines
+                if (classOfService.ServiceStatus == ServiceStatus.Active && serviceStatus == ServiceStatus.Inactive)
+                {
+                    var activeLines = await _context.UserPhones
+                        .CountAsync(up => up.ClassOfServiceId == id && up.Status == PhoneStatus.Active);
+
+                    if (activeLines > 0)
+                    {
+                        StatusMessage = $"Cannot deactivate this Class of Service. It has {activeLines} active line{(activeLines != 1 ? "s" : "")} assigned. " +
+                                        "Please reassign or deactivate these lines first.";
+                        StatusMessageClass = "warning";
+                        await LoadPageDataAsync();
+                        return Page();
+                    }
+                }
+
                 // Validation
                 if (string.IsNullOrWhiteSpace(classType))
                 {
@@ -212,16 +236,20 @@ namespace TAB.Web.Pages.Admin
                 }
 
                 // Check if any UserPhones are using this ClassOfService
-                var hasUserPhones = await _context.UserPhones
-                    .AnyAsync(up => up.ClassOfServiceId == id);
+                var totalPhones = await _context.UserPhones
+                    .CountAsync(up => up.ClassOfServiceId == id);
 
-                if (hasUserPhones)
+                var activePhones = await _context.UserPhones
+                    .CountAsync(up => up.ClassOfServiceId == id && up.Status == PhoneStatus.Active);
+
+                if (totalPhones > 0)
                 {
-                    var phoneCount = await _context.UserPhones
-                        .CountAsync(up => up.ClassOfServiceId == id);
+                    var lineDetails = activePhones > 0
+                        ? $"{activePhones} active line{(activePhones != 1 ? "s" : "")} and {totalPhones - activePhones} inactive line{(totalPhones - activePhones != 1 ? "s" : "")}"
+                        : $"{totalPhones} line{(totalPhones != 1 ? "s" : "")}";
 
-                    StatusMessage = $"Cannot delete this Class of Service. It is currently assigned to {phoneCount} phone(s). " +
-                                    "Please reassign or remove these phones first.";
+                    StatusMessage = $"Cannot delete this Class of Service. It is currently assigned to {lineDetails}. " +
+                                    "Please reassign or remove these lines first.";
                     StatusMessageClass = "warning";
                     await LoadPageDataAsync();
                     return Page();
@@ -247,12 +275,12 @@ namespace TAB.Web.Pages.Admin
         {
             // Build query with filters
             var query = _context.ClassOfServices.AsQueryable();
-            
+
             // Apply search filter
             if (!string.IsNullOrWhiteSpace(SearchTerm))
             {
                 var searchLower = SearchTerm.ToLower();
-                query = query.Where(c => 
+                query = query.Where(c =>
                     c.Class.ToLower().Contains(searchLower) ||
                     c.Service.ToLower().Contains(searchLower) ||
                     c.EligibleStaff.ToLower().Contains(searchLower) ||
@@ -261,36 +289,58 @@ namespace TAB.Web.Pages.Admin
                     (c.HandsetAllowance != null && c.HandsetAllowance.ToLower().Contains(searchLower)) ||
                     (c.HandsetAIRemarks != null && c.HandsetAIRemarks.ToLower().Contains(searchLower)));
             }
-            
+
             // Apply class filter
             if (!string.IsNullOrWhiteSpace(SelectedClass))
             {
                 query = query.Where(c => c.Class == SelectedClass);
             }
-            
+
             // Apply status filter
             if (SelectedStatus.HasValue)
             {
                 query = query.Where(c => c.ServiceStatus == SelectedStatus.Value);
             }
-            
+
             ClassOfServices = await query
                 .OrderBy(c => c.Class)
                 .ThenBy(c => c.Service)
                 .ToListAsync();
-            
+
             // Calculate statistics
             TotalServices = ClassOfServices.Count;
             ActiveServices = ClassOfServices.Count(c => c.ServiceStatus == ServiceStatus.Active);
             InactiveServices = ClassOfServices.Count(c => c.ServiceStatus == ServiceStatus.Inactive);
             UniqueClasses = ClassOfServices.Select(c => c.Class).Distinct().Count();
-            
+
             // Get available classes for filter dropdown
             AvailableClasses = await _context.ClassOfServices
                 .Select(c => c.Class)
                 .Distinct()
                 .OrderBy(c => c)
                 .ToListAsync();
+
+            // Calculate phone usage counts for each ClassOfService
+            var phoneUsages = await _context.UserPhones
+                .Where(up => up.ClassOfServiceId != null)
+                .GroupBy(up => up.ClassOfServiceId!.Value)
+                .Select(g => new
+                {
+                    ClassOfServiceId = g.Key,
+                    TotalPhones = g.Count(),
+                    ActivePhones = g.Count(up => up.Status == PhoneStatus.Active)
+                })
+                .ToListAsync();
+
+            PhoneUsageCounts = phoneUsages.ToDictionary(
+                p => p.ClassOfServiceId,
+                p => (p.TotalPhones, p.ActivePhones)
+            );
+
+            // Calculate total line statistics
+            TotalLines = phoneUsages.Sum(p => p.TotalPhones);
+            ActiveLines = phoneUsages.Sum(p => p.ActivePhones);
+            InactiveLines = TotalLines - ActiveLines;
         }
     }
 } 

@@ -1,0 +1,924 @@
+@page
+@model TAB.Web.Pages.Admin.SmartUploadModel
+@{
+    ViewData["Title"] = "Smart Upload";
+}
+
+<style>
+    /* Call Type Card Styles */
+    .call-type-card {
+        display: flex;
+        align-items: center;
+        gap: 1rem;
+        padding: 1.25rem;
+        background: white;
+        border: 2px solid #e5e7eb;
+        border-radius: 12px;
+        cursor: pointer;
+        transition: all 0.3s ease;
+        height: 100%;
+        position: relative;
+    }
+
+    .call-type-card:hover {
+        border-color: #22c55e;
+        background: #f8fafc;
+        transform: translateY(-2px);
+        box-shadow: 0 4px 12px rgba(34, 197, 94, 0.15);
+    }
+
+    .btn-check:checked + .call-type-card {
+        border-color: #22c55e;
+        background: linear-gradient(135deg, #f0fdf4 0%, #dcfce7 100%);
+        box-shadow: 0 4px 12px rgba(34, 197, 94, 0.2);
+    }
+
+    .call-type-icon {
+        width: 50px;
+        height: 50px;
+        border-radius: 12px;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        font-size: 1.5rem;
+        color: white;
+        flex-shrink: 0;
+    }
+
+    .call-type-content {
+        flex: 1;
+    }
+
+    .call-type-title {
+        font-size: 1rem;
+        font-weight: 600;
+        color: #1f2937;
+        margin-bottom: 0.25rem;
+    }
+
+    .call-type-desc {
+        font-size: 0.875rem;
+        color: #6b7280;
+        margin: 0;
+        line-height: 1.4;
+    }
+
+    .call-type-check {
+        font-size: 1.5rem;
+        color: #e5e7eb;
+        transition: all 0.3s ease;
+        flex-shrink: 0;
+    }
+
+    .btn-check:checked + .call-type-card .call-type-check {
+        color: #22c55e;
+    }
+
+    /* Billing Period Input Styles */
+    .billing-input-group {
+        margin-bottom: 0;
+    }
+
+    .billing-label {
+        display: flex;
+        align-items: center;
+        font-weight: 600;
+        font-size: 0.9375rem;
+        color: #1f2937;
+        margin-bottom: 0.5rem;
+    }
+
+    .billing-select {
+        width: 100%;
+        padding: 0.75rem 1rem;
+        font-size: 0.9375rem;
+        color: #1f2937;
+        background: white;
+        border: 2px solid #e5e7eb;
+        border-radius: 12px;
+        transition: all 0.3s ease;
+        appearance: none;
+        background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='12' height='12' viewBox='0 0 12 12'%3E%3Cpath fill='%236b7280' d='M6 9L1 4h10z'/%3E%3C/svg%3E");
+        background-repeat: no-repeat;
+        background-position: right 1rem center;
+        padding-right: 2.5rem;
+    }
+
+    .billing-select:hover {
+        border-color: #22c55e;
+        background-color: #f8fafc;
+    }
+
+    .billing-select:focus {
+        outline: none;
+        border-color: #22c55e;
+        box-shadow: 0 0 0 3px rgba(34, 197, 94, 0.1);
+        background-color: white;
+    }
+
+    /* File Upload Styles */
+    .file-upload-container {
+        position: relative;
+    }
+
+    .file-upload-label {
+        display: flex;
+        align-items: center;
+        gap: 1.5rem;
+        padding: 2rem;
+        background: white;
+        border: 2px dashed #d1d5db;
+        border-radius: 12px;
+        cursor: pointer;
+        transition: all 0.3s ease;
+        margin-bottom: 0.5rem;
+    }
+
+    .file-upload-label:hover {
+        border-color: #22c55e;
+        background: #f0fdf4;
+    }
+
+    .file-upload-label.dragover {
+        border-color: #22c55e;
+        background: #dcfce7;
+    }
+
+    .file-upload-input {
+        position: absolute;
+        width: 0.1px;
+        height: 0.1px;
+        opacity: 0;
+        overflow: hidden;
+        z-index: -1;
+    }
+
+    .file-upload-input:focus + .file-upload-label {
+        border-color: #22c55e;
+        box-shadow: 0 0 0 3px rgba(34, 197, 94, 0.1);
+    }
+
+    .file-upload-icon {
+        width: 60px;
+        height: 60px;
+        border-radius: 12px;
+        background: linear-gradient(135deg, #22c55e 0%, #16a34a 100%);
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        font-size: 2rem;
+        color: white;
+        flex-shrink: 0;
+    }
+
+    .file-upload-content {
+        display: flex;
+        flex-direction: column;
+        gap: 0.25rem;
+        flex: 1;
+    }
+
+    .file-upload-title {
+        font-size: 1rem;
+        font-weight: 600;
+        color: #1f2937;
+    }
+
+    .file-upload-subtitle {
+        font-size: 0.875rem;
+        color: #6b7280;
+    }
+
+    .file-upload-filename {
+        font-size: 0.875rem;
+        color: #22c55e;
+        font-weight: 500;
+        margin-top: 0.25rem;
+    }
+
+    /* Preview Statistics Card Styles */
+    .preview-stat-card {
+        display: flex;
+        align-items: center;
+        gap: 1rem;
+        padding: 1.25rem;
+        background: white;
+        border: 2px solid #e5e7eb;
+        border-radius: 12px;
+        transition: all 0.3s ease;
+        height: 100%;
+    }
+
+    .preview-stat-card:hover {
+        border-color: #22c55e;
+        transform: translateY(-2px);
+        box-shadow: 0 4px 12px rgba(34, 197, 94, 0.15);
+    }
+
+    .preview-stat-icon {
+        width: 50px;
+        height: 50px;
+        border-radius: 12px;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        font-size: 1.5rem;
+        flex-shrink: 0;
+    }
+
+    .preview-stat-content {
+        display: flex;
+        flex-direction: column;
+        gap: 0.25rem;
+        flex: 1;
+    }
+
+    .preview-stat-label {
+        font-size: 0.8125rem;
+        color: #6b7280;
+        font-weight: 500;
+        text-transform: uppercase;
+        letter-spacing: 0.05em;
+    }
+
+    .preview-stat-value {
+        font-size: 1.75rem;
+        font-weight: 700;
+        line-height: 1;
+    }
+
+    /* Preview Table Styles */
+    .preview-table-container {
+        background: white;
+        border: 2px solid #e5e7eb;
+        border-radius: 12px;
+        overflow: hidden;
+    }
+
+    .preview-table-container .table-responsive {
+        max-height: 400px;
+        overflow-y: auto;
+    }
+
+    .preview-table {
+        width: 100%;
+        margin-bottom: 0;
+        border-collapse: separate;
+        border-spacing: 0;
+    }
+
+    .preview-table thead {
+        position: sticky;
+        top: 0;
+        z-index: 10;
+        background: linear-gradient(135deg, #22c55e 0%, #16a34a 100%);
+    }
+
+    .preview-table thead tr th {
+        padding: 1rem;
+        font-size: 0.8125rem;
+        font-weight: 600;
+        text-transform: uppercase;
+        letter-spacing: 0.05em;
+        color: white;
+        border-bottom: 2px solid #16a34a;
+        white-space: nowrap;
+    }
+
+    .preview-table tbody tr {
+        transition: background-color 0.2s ease;
+    }
+
+    .preview-table tbody tr:hover {
+        background-color: #f0fdf4;
+    }
+
+    .preview-table tbody tr:nth-child(even) {
+        background-color: #f8fafc;
+    }
+
+    .preview-table tbody tr:nth-child(even):hover {
+        background-color: #f0fdf4;
+    }
+
+    .preview-table tbody tr td {
+        padding: 0.875rem 1rem;
+        font-size: 0.875rem;
+        color: #1f2937;
+        border-bottom: 1px solid #e5e7eb;
+    }
+
+    .preview-table tbody tr:last-child td {
+        border-bottom: none;
+    }
+
+    /* Step Indicator Styles */
+    .step-indicator {
+        display: flex;
+        flex-direction: column;
+        align-items: center;
+        gap: 0.25rem;
+        opacity: 0.5;
+        transition: all 0.3s ease;
+    }
+
+    .step-indicator.active {
+        opacity: 1;
+    }
+
+    .step-indicator.completed {
+        opacity: 1;
+    }
+
+    .step-number {
+        width: 40px;
+        height: 40px;
+        border-radius: 50%;
+        background: #e5e7eb;
+        color: #6b7280;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        font-weight: 600;
+        font-size: 1rem;
+        transition: all 0.3s ease;
+    }
+
+    .step-indicator.active .step-number {
+        background: #22c55e;
+        color: white;
+    }
+
+    .step-indicator.completed .step-number {
+        background: #10b981;
+        color: white;
+    }
+
+    .step-label {
+        font-size: 0.875rem;
+        color: #6b7280;
+        font-weight: 500;
+    }
+
+    .step-indicator.active .step-label,
+    .step-indicator.completed .step-label {
+        color: #1f2937;
+    }
+
+    .step-line {
+        width: 80px;
+        height: 2px;
+        background: #e5e7eb;
+        margin: 0 0.5rem;
+    }
+
+    .upload-card {
+        background: white;
+        border-radius: 16px;
+        box-shadow: 0 1px 3px rgba(0, 0, 0, 0.1);
+        overflow: hidden;
+    }
+
+    .section-header {
+        background: #009EDB;
+        color: white;
+        padding: 1rem 2rem;
+        text-align: center;
+    }
+</style>
+
+<div class="container-fluid py-4">
+    <!-- Header -->
+    <div class="upload-card mb-4">
+        <div class="section-header">
+            <div class="d-flex align-items-center justify-content-between">
+                <div class="d-flex align-items-center">
+                    <div class="bg-white bg-opacity-20 rounded-circle d-inline-flex align-items-center justify-content-center me-3"
+                         style="width: 48px; height: 48px;">
+                        <i class="bi bi-magic text-white" style="font-size: 24px;"></i>
+                    </div>
+                    <div class="text-start">
+                        <h4 class="fw-bold mb-0">Smart Upload</h4>
+                        <small class="opacity-90">Import unclean CSV/Excel files with automatic header detection</small>
+                    </div>
+                </div>
+                <a href="/Admin/CallLogs" class="btn btn-light btn-sm">
+                    <i class="bi bi-arrow-left me-1"></i>Back to Call Logs
+                </a>
+            </div>
+        </div>
+    </div>
+
+    @if (!string.IsNullOrEmpty(Model.StatusMessage))
+    {
+        <div class="alert alert-@Model.StatusMessageClass alert-dismissible fade show" role="alert">
+            @Model.StatusMessage
+            <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
+        </div>
+    }
+
+    @if (!Model.ShowPreview)
+    {
+        <!-- Step Indicator -->
+        <div class="upload-card mb-4">
+            <div class="card-body py-4">
+                <div class="d-flex justify-content-center align-items-center">
+                    <div class="step-indicator active" id="step1Indicator">
+                        <span class="step-number">1</span>
+                        <span class="step-label">Setup</span>
+                    </div>
+                    <div class="step-line"></div>
+                    <div class="step-indicator" id="step2Indicator">
+                        <span class="step-number">2</span>
+                        <span class="step-label">Preview</span>
+                    </div>
+                    <div class="step-line"></div>
+                    <div class="step-indicator" id="step3Indicator">
+                        <span class="step-number">3</span>
+                        <span class="step-label">Import</span>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <form method="post" asp-page-handler="Preview" enctype="multipart/form-data" id="uploadForm">
+            <div class="row">
+                <div class="col-lg-8 mx-auto">
+                    <div class="upload-card">
+                        <div class="card-body p-4">
+                            <!-- Provider Selection -->
+                            <div class="mb-4">
+                                <h5 class="text-muted text-uppercase fw-semibold mb-3" style="font-size: 0.875rem; letter-spacing: 1px;">
+                                    <i class="bi bi-phone me-2"></i>Service Provider
+                                </h5>
+                                <div class="row g-3">
+                                    <div class="col-md-6">
+                                        <input type="radio" class="btn-check" name="provider" id="providerSafaricom" value="Safaricom" checked>
+                                        <label class="call-type-card" for="providerSafaricom">
+                                            <div class="call-type-icon" style="background: white; padding: 6px; border: 1px solid #e5e7eb;">
+                                                <img src="/images/providers/SAF-MAIN-LOGO.png" alt="Safaricom" style="width: 38px; height: 38px; object-fit: contain;">
+                                            </div>
+                                            <div class="call-type-content">
+                                                <h6 class="call-type-title">Safaricom</h6>
+                                                <p class="call-type-desc">CSV files with auto header detection</p>
+                                            </div>
+                                            <div class="call-type-check">
+                                                <i class="bi bi-check-circle-fill"></i>
+                                            </div>
+                                        </label>
+                                    </div>
+
+                                    <div class="col-md-6">
+                                        <input type="radio" class="btn-check" name="provider" id="providerAirtel" value="Airtel">
+                                        <label class="call-type-card" for="providerAirtel">
+                                            <div class="call-type-icon" style="background: white; padding: 6px; border: 1px solid #e5e7eb;">
+                                                <img src="/images/providers/airtel-logo.jpg" alt="Airtel" style="width: 38px; height: 38px; object-fit: contain;">
+                                            </div>
+                                            <div class="call-type-content">
+                                                <h6 class="call-type-title">Airtel</h6>
+                                                <p class="call-type-desc">Excel files with multiple worksheets</p>
+                                            </div>
+                                            <div class="call-type-check">
+                                                <i class="bi bi-check-circle-fill"></i>
+                                            </div>
+                                        </label>
+                                    </div>
+
+                                    <div class="col-md-6">
+                                        <input type="radio" class="btn-check" name="provider" id="providerPSTN" value="PSTN">
+                                        <label class="call-type-card" for="providerPSTN">
+                                            <div class="call-type-icon bg-primary">
+                                                <i class="bi bi-telephone"></i>
+                                            </div>
+                                            <div class="call-type-content">
+                                                <h6 class="call-type-title">PSTN</h6>
+                                                <p class="call-type-desc">Fixed-line with per-Staff sections</p>
+                                            </div>
+                                            <div class="call-type-check">
+                                                <i class="bi bi-check-circle-fill"></i>
+                                            </div>
+                                        </label>
+                                    </div>
+
+                                    <div class="col-md-6">
+                                        <input type="radio" class="btn-check" name="provider" id="providerPrivateWire" value="PrivateWire">
+                                        <label class="call-type-card" for="providerPrivateWire">
+                                            <div class="call-type-icon bg-info">
+                                                <i class="bi bi-ethernet"></i>
+                                            </div>
+                                            <div class="call-type-content">
+                                                <h6 class="call-type-title">Private Wire</h6>
+                                                <p class="call-type-desc">Dedicated private line records</p>
+                                            </div>
+                                            <div class="call-type-check">
+                                                <i class="bi bi-check-circle-fill"></i>
+                                            </div>
+                                        </label>
+                                    </div>
+                                </div>
+                            </div>
+
+                            <hr class="my-4">
+
+                            <!-- Billing Period Section -->
+                            <div class="mb-4">
+                                <h5 class="text-muted text-uppercase fw-semibold mb-3" style="font-size: 0.875rem; letter-spacing: 1px;">
+                                    <i class="bi bi-calendar-range me-2"></i>Billing Period
+                                </h5>
+                                <div class="row g-3">
+                                    <div class="col-md-6">
+                                        <div class="billing-input-group">
+                                            <label for="billingMonth" class="billing-label">
+                                                <i class="bi bi-calendar-month text-success me-2"></i>
+                                                Billing Month
+                                            </label>
+                                            <select class="billing-select" id="billingMonth" name="billingMonth" required>
+                                                <option value="">Choose month...</option>
+                                                <option value="1">January</option>
+                                                <option value="2">February</option>
+                                                <option value="3">March</option>
+                                                <option value="4">April</option>
+                                                <option value="5">May</option>
+                                                <option value="6">June</option>
+                                                <option value="7">July</option>
+                                                <option value="8">August</option>
+                                                <option value="9">September</option>
+                                                <option value="10">October</option>
+                                                <option value="11">November</option>
+                                                <option value="12">December</option>
+                                            </select>
+                                        </div>
+                                    </div>
+                                    <div class="col-md-6">
+                                        <div class="billing-input-group">
+                                            <label for="billingYear" class="billing-label">
+                                                <i class="bi bi-calendar text-success me-2"></i>
+                                                Billing Year
+                                            </label>
+                                            <select class="billing-select" id="billingYear" name="billingYear" required>
+                                                <option value="">Choose year...</option>
+                                                @for (int year = DateTime.Now.Year; year >= 2020; year--)
+                                                {
+                                                    @Html.Raw($"<option value=\"{year}\">{year}</option>")
+                                                }
+                                            </select>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+
+                            <hr class="my-4">
+
+                            <!-- File Upload Section -->
+                            <div class="mb-4">
+                                <h5 class="text-muted text-uppercase fw-semibold mb-3" style="font-size: 0.875rem; letter-spacing: 1px;">
+                                    <i class="bi bi-file-earmark-arrow-up me-2"></i>Data File
+                                </h5>
+                                <div class="file-upload-container">
+                                    <input type="file" class="file-upload-input" id="callLogFile" name="callLogFile" accept=".csv,.xlsx,.xls" required />
+                                    <label for="callLogFile" class="file-upload-label" id="dropZone">
+                                        <div class="file-upload-icon">
+                                            <i class="bi bi-cloud-arrow-up"></i>
+                                        </div>
+                                        <div class="file-upload-content">
+                                            <span class="file-upload-title">Choose CSV or Excel File</span>
+                                            <span class="file-upload-subtitle">or drag and drop here</span>
+                                            <span class="file-upload-filename" id="fileNameDisplay">No file chosen</span>
+                                        </div>
+                                    </label>
+                                    <small class="text-muted mt-2 d-block">
+                                        <i class="bi bi-info-circle me-1"></i>
+                                        Supports .csv, .xlsx, .xls files with automatic header detection
+                                    </small>
+                                </div>
+                            </div>
+
+                            <!-- Smart Detection Info -->
+                            <div class="alert border-0 mt-4" style="background-color: #f0fdf4; border-radius: 12px;">
+                                <div class="d-flex">
+                                    <i class="bi bi-magic text-success me-3" style="font-size: 24px;"></i>
+                                    <div>
+                                        <h6 class="mb-2 fw-bold">Smart Detection Features</h6>
+                                        <div class="row">
+                                            <div class="col-md-6">
+                                                <ul class="mb-0 small">
+                                                    <li><strong>Safaricom:</strong> Auto-detect headers, skip junk rows</li>
+                                                    <li><strong>Airtel:</strong> Multi-worksheet support, skip last sheet</li>
+                                                </ul>
+                                            </div>
+                                            <div class="col-md-6">
+                                                <ul class="mb-0 small">
+                                                    <li><strong>PSTN:</strong> Per-Staff sections, extension extraction</li>
+                                                    <li><strong>Private Wire:</strong> Same format as PSTN</li>
+                                                </ul>
+                                            </div>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Action Buttons -->
+            <div class="row mt-4">
+                <div class="col-lg-8 mx-auto">
+                    <div class="d-flex justify-content-between">
+                        <a href="/Admin/CallLogs" class="btn btn-light px-4">
+                            <i class="bi bi-x-circle me-2"></i>Cancel
+                        </a>
+                        <button type="submit" class="btn btn-success px-4" id="previewBtn">
+                            <i class="bi bi-eye me-2"></i>Preview Data
+                        </button>
+                    </div>
+                </div>
+            </div>
+        </form>
+    }
+    else
+    {
+        <!-- Preview Results -->
+        <!-- Step Indicator -->
+        <div class="upload-card mb-4">
+            <div class="card-body py-4">
+                <div class="d-flex justify-content-center align-items-center">
+                    <div class="step-indicator completed">
+                        <span class="step-number"><i class="bi bi-check"></i></span>
+                        <span class="step-label">Setup</span>
+                    </div>
+                    <div class="step-line"></div>
+                    <div class="step-indicator active">
+                        <span class="step-number">2</span>
+                        <span class="step-label">Preview</span>
+                    </div>
+                    <div class="step-line"></div>
+                    <div class="step-indicator">
+                        <span class="step-number">3</span>
+                        <span class="step-label">Import</span>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <div class="row">
+            <div class="col-12">
+                <div class="upload-card">
+                    <div class="card-body p-4">
+                        <div class="d-flex align-items-center justify-content-between mb-4">
+                            <h5 class="text-muted text-uppercase fw-semibold mb-0" style="font-size: 0.875rem; letter-spacing: 1px;">
+                                <i class="bi bi-check-circle-fill text-success me-2"></i>File Analysis Complete
+                            </h5>
+                            <span class="badge bg-success" style="font-size: 0.875rem;">
+                                <i class="bi bi-magic me-1"></i>@Model.PreviewProvider
+                            </span>
+                        </div>
+
+                        <!-- Statistics Cards -->
+                        <div class="row g-3 mb-4">
+                            <div class="col-md-3">
+                                <div class="preview-stat-card">
+                                    <div class="preview-stat-icon bg-primary bg-opacity-10">
+                                        <i class="bi bi-list-ol text-primary"></i>
+                                    </div>
+                                    <div class="preview-stat-content">
+                                        <span class="preview-stat-label">Header Row</span>
+                                        <span class="preview-stat-value text-primary">@Model.HeaderRowNumber</span>
+                                    </div>
+                                </div>
+                            </div>
+                            <div class="col-md-3">
+                                <div class="preview-stat-card">
+                                    <div class="preview-stat-icon bg-success bg-opacity-10">
+                                        <i class="bi bi-check-circle text-success"></i>
+                                    </div>
+                                    <div class="preview-stat-content">
+                                        <span class="preview-stat-label">Valid Records</span>
+                                        <span class="preview-stat-value text-success">@Model.ValidRows.ToString("N0")</span>
+                                    </div>
+                                </div>
+                            </div>
+                            <div class="col-md-3">
+                                <div class="preview-stat-card">
+                                    <div class="preview-stat-icon bg-info bg-opacity-10">
+                                        <i class="bi bi-link-45deg text-info"></i>
+                                    </div>
+                                    <div class="preview-stat-content">
+                                        <span class="preview-stat-label">Linked to Users</span>
+                                        <span class="preview-stat-value text-info">@Model.LinkedRecords.ToString("N0")</span>
+                                    </div>
+                                </div>
+                            </div>
+                            <div class="col-md-3">
+                                <div class="preview-stat-card">
+                                    <div class="preview-stat-icon bg-warning bg-opacity-10">
+                                        <i class="bi bi-person-x text-warning"></i>
+                                    </div>
+                                    <div class="preview-stat-content">
+                                        <span class="preview-stat-label">Unlinked</span>
+                                        <span class="preview-stat-value text-warning">@Model.UnlinkedRecords.ToString("N0")</span>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+
+                        <!-- Linking Status Alert -->
+                        @if (Model.UnlinkedRecords > 0)
+                        {
+                            var linkedPercent = Model.ValidRows > 0 ? (Model.LinkedRecords * 100.0 / Model.ValidRows) : 0;
+                            <div class="alert @(linkedPercent >= 80 ? "alert-success" : linkedPercent >= 50 ? "alert-warning" : "alert-danger") d-flex align-items-center mb-4" role="alert">
+                                <i class="bi @(linkedPercent >= 80 ? "bi-check-circle-fill" : linkedPercent >= 50 ? "bi-exclamation-triangle-fill" : "bi-x-circle-fill") me-2"></i>
+                                <div>
+                                    <strong>@linkedPercent.ToString("F1")% of records linked to users.</strong>
+                                    @if (linkedPercent < 80)
+                                    {
+                                        <span>@Model.UnlinkedRecords.ToString("N0") records have phone numbers not found in <a href="/Admin/UserPhones" target="_blank">User Phones</a>.</span>
+                                    }
+                                </div>
+                            </div>
+                        }
+
+                        <!-- Charges Summary -->
+                        <div class="alert border-0 mb-4" style="background: linear-gradient(135deg, #f0fdf4 0%, #dcfce7 100%); border-radius: 12px;">
+                            <div class="d-flex align-items-center">
+                                <div class="me-3">
+                                    <div class="bg-success bg-opacity-20 rounded-circle d-flex align-items-center justify-content-center" style="width: 50px; height: 50px;">
+                                        <i class="bi bi-cash-stack text-success" style="font-size: 1.5rem;"></i>
+                                    </div>
+                                </div>
+                                <div class="flex-grow-1">
+                                    <h6 class="fw-bold mb-1 text-success">
+                                        <i class="bi bi-graph-up-arrow me-1"></i>Total Charges Summary
+                                    </h6>
+                                    <div class="d-flex gap-4">
+                                        @if (Model.TotalAmountKES > 0)
+                                        {
+                                            <div>
+                                                <span class="text-muted small">Amount (KES):</span>
+                                                <span class="fw-bold text-dark ms-1" style="font-size: 1.25rem;">KES @Model.TotalAmountKES.ToString("N2")</span>
+                                            </div>
+                                        }
+                                        @if (Model.TotalAmountUSD > 0)
+                                        {
+                                            <div>
+                                                <span class="text-muted small">Amount (USD):</span>
+                                                <span class="fw-bold text-dark ms-1" style="font-size: 1.25rem;">USD @Model.TotalAmountUSD.ToString("N2")</span>
+                                            </div>
+                                        }
+                                        @if (Model.TotalAmountKES == 0 && Model.TotalAmountUSD == 0)
+                                        {
+                                            <div>
+                                                <span class="text-muted">No charges found in file</span>
+                                            </div>
+                                        }
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+
+                        <!-- Preview Table -->
+                        <h6 class="fw-semibold mb-3">
+                            <i class="bi bi-table me-2"></i>Preview (First 10 Records)
+                        </h6>
+                        <div class="preview-table-container">
+                            <div class="table-responsive">
+                                <table class="preview-table">
+                                    <thead>
+                                        <tr>
+                                            <th>CallingNo</th>
+                                            <th>Date</th>
+                                            <th>Time</th>
+                                            <th>DialledNo</th>
+                                            <th>Duration</th>
+                                            <th>CallCharges</th>
+                                            <th>CallType</th>
+                                        </tr>
+                                    </thead>
+                                    <tbody>
+                                        @foreach (var row in Model.PreviewRows)
+                                        {
+                                            <tr>
+                                                <td><code>@row.CallingNo</code></td>
+                                                <td>@row.Date</td>
+                                                <td>@row.Time</td>
+                                                <td>@row.DialledNo</td>
+                                                <td>@row.Duration</td>
+                                                <td class="text-success fw-semibold">@row.CallCharges</td>
+                                                <td><small class="text-muted">@row.CallType</small></td>
+                                            </tr>
+                                        }
+                                    </tbody>
+                                </table>
+                            </div>
+                        </div>
+
+                        <!-- Column Mapping Info -->
+                        <div class="alert border-0 mt-4" style="background-color: #f8fafc; border-radius: 12px;">
+                            <h6 class="fw-bold mb-2">
+                                <i class="bi bi-arrow-left-right me-2"></i>Column Mapping
+                            </h6>
+                            <div class="row">
+                                <div class="col-md-6">
+                                    <small>
+                                        <strong>CallingNo</strong> → ext (phone number)<br>
+                                        <strong>Date + Time</strong> → call_date<br>
+                                        <strong>DialledNo</strong> → dialed<br>
+                                    </small>
+                                </div>
+                                <div class="col-md-6">
+                                    <small>
+                                        <strong>Duration</strong> → durx & dur<br>
+                                        <strong>CallCharges</strong> → cost (KSH)<br>
+                                        <strong>CallType</strong> → dest & call_type<br>
+                                    </small>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Action Buttons -->
+        <div class="row mt-4">
+            <div class="col-12">
+                <div class="d-flex justify-content-between">
+                    <a href="/Admin/SmartUpload" class="btn btn-light px-4">
+                        <i class="bi bi-arrow-counterclockwise me-2"></i>Start Over
+                    </a>
+                    <form method="post" asp-page-handler="Import" class="d-inline">
+                        <input type="hidden" name="tempFilePath" value="@Model.TempFilePath" />
+                        <input type="hidden" name="billingMonth" value="@Model.PreviewBillingMonth" />
+                        <input type="hidden" name="billingYear" value="@Model.PreviewBillingYear" />
+                        <input type="hidden" name="provider" value="@Model.PreviewProvider" />
+                        <button type="submit" class="btn btn-success btn-lg px-5" onclick="this.disabled=true; this.innerHTML='<span class=\'spinner-border spinner-border-sm me-2\'></span>Importing...'; this.form.submit();">
+                            <i class="bi bi-cloud-upload me-2"></i>Import @Model.ValidRows.ToString("N0") Records
+                        </button>
+                    </form>
+                </div>
+            </div>
+        </div>
+    }
+</div>
+
+@section Scripts {
+    <script>
+        // Set default month and year to current date
+        (function() {
+            const now = new Date();
+            const monthSelect = document.getElementById('billingMonth');
+            const yearSelect = document.getElementById('billingYear');
+            if (monthSelect) monthSelect.value = now.getMonth() + 1;
+            if (yearSelect) yearSelect.value = now.getFullYear();
+        })();
+
+        // File input handling
+        const dropZone = document.getElementById('dropZone');
+        const fileInput = document.getElementById('callLogFile');
+        const fileNameDisplay = document.getElementById('fileNameDisplay');
+
+        if (dropZone && fileInput) {
+            // Drag and drop
+            dropZone.addEventListener('dragover', (e) => {
+                e.preventDefault();
+                dropZone.classList.add('dragover');
+            });
+
+            dropZone.addEventListener('dragleave', () => {
+                dropZone.classList.remove('dragover');
+            });
+
+            dropZone.addEventListener('drop', (e) => {
+                e.preventDefault();
+                dropZone.classList.remove('dragover');
+                if (e.dataTransfer.files.length) {
+                    fileInput.files = e.dataTransfer.files;
+                    showFileInfo(e.dataTransfer.files[0]);
+                }
+            });
+
+            // File selected
+            fileInput.addEventListener('change', () => {
+                if (fileInput.files.length) {
+                    showFileInfo(fileInput.files[0]);
+                }
+            });
+        }
+
+        function showFileInfo(file) {
+            if (fileNameDisplay) {
+                fileNameDisplay.textContent = `${file.name} (${(file.size / 1024 / 1024).toFixed(2)} MB)`;
+                fileNameDisplay.style.color = '#22c55e';
+            }
+        }
+
+        // Form submission with loading state
+        document.getElementById('uploadForm')?.addEventListener('submit', function() {
+            const btn = document.getElementById('previewBtn');
+            if (btn) {
+                btn.disabled = true;
+                btn.innerHTML = '<span class="spinner-border spinner-border-sm me-2"></span>Analyzing File...';
+            }
+        });
+    </script>
+}

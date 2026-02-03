@@ -225,6 +225,9 @@ namespace TAB.Web.Migrations
                     b.Property<int?>("ImportAuditId")
                         .HasColumnType("int");
 
+                    b.Property<Guid?>("ImportJobId")
+                        .HasColumnType("uniqueidentifier");
+
                     b.Property<string>("IndexNumber")
                         .HasMaxLength(50)
                         .HasColumnType("nvarchar(50)");
@@ -253,6 +256,8 @@ namespace TAB.Web.Migrations
                     b.HasIndex("EbillUserId");
 
                     b.HasIndex("ImportAuditId");
+
+                    b.HasIndex("ImportJobId");
 
                     b.HasIndex("UserPhoneId");
 
@@ -1122,6 +1127,10 @@ namespace TAB.Web.Migrations
                         .HasMaxLength(50)
                         .HasColumnType("nvarchar(50)");
 
+                    b.Property<string>("SupervisorEmail")
+                        .HasMaxLength(256)
+                        .HasColumnType("nvarchar(256)");
+
                     b.Property<string>("SupportingDocuments")
                         .HasColumnType("nvarchar(max)");
 
@@ -1147,6 +1156,8 @@ namespace TAB.Web.Migrations
                     b.HasIndex("PaymentAssignmentId");
 
                     b.HasIndex("SupervisorIndexNumber");
+
+                    b.HasIndex("SupervisorEmail");
 
                     b.HasIndex("VerifiedBy");
 
@@ -1417,6 +1428,12 @@ namespace TAB.Web.Migrations
                     b.Property<decimal?>("DataAllowanceAmount")
                         .HasColumnType("decimal(18,4)");
 
+                    b.Property<DateTime>("EffectiveFrom")
+                        .HasColumnType("datetime2");
+
+                    b.Property<DateTime?>("EffectiveTo")
+                        .HasColumnType("datetime2");
+
                     b.Property<string>("EligibleStaff")
                         .IsRequired()
                         .HasMaxLength(200)
@@ -1433,6 +1450,9 @@ namespace TAB.Web.Migrations
                     b.Property<decimal?>("HandsetAllowanceAmount")
                         .HasColumnType("decimal(18,4)");
 
+                    b.Property<int?>("ParentClassOfServiceId")
+                        .HasColumnType("int");
+
                     b.Property<Guid>("PublicId")
                         .HasColumnType("uniqueidentifier");
 
@@ -1444,7 +1464,12 @@ namespace TAB.Web.Migrations
                     b.Property<int>("ServiceStatus")
                         .HasColumnType("int");
 
+                    b.Property<int>("Version")
+                        .HasColumnType("int");
+
                     b.HasKey("Id");
+
+                    b.HasIndex("ParentClassOfServiceId");
 
                     b.ToTable("ClassOfServices");
                 });
@@ -1659,11 +1684,13 @@ namespace TAB.Web.Migrations
                         .HasMaxLength(450)
                         .HasColumnType("nvarchar(450)");
 
+                    b.Property<Guid?>("AutoCreatedFromImportJobId")
+                        .HasColumnType("uniqueidentifier");
+
                     b.Property<DateTime>("CreatedDate")
                         .HasColumnType("datetime2");
 
                     b.Property<string>("Email")
-                        .IsRequired()
                         .HasMaxLength(256)
                         .HasColumnType("nvarchar(256)");
 
@@ -1681,6 +1708,9 @@ namespace TAB.Web.Migrations
                         .HasColumnType("nvarchar(50)");
 
                     b.Property<bool>("IsActive")
+                        .HasColumnType("bit");
+
+                    b.Property<bool>("IsAutoCreated")
                         .HasColumnType("bit");
 
                     b.Property<string>("IssuedDeviceID")
@@ -1706,7 +1736,6 @@ namespace TAB.Web.Migrations
                         .HasColumnType("int");
 
                     b.Property<string>("OfficialMobileNumber")
-                        .IsRequired()
                         .HasMaxLength(20)
                         .HasColumnType("nvarchar(20)");
 
@@ -1734,10 +1763,13 @@ namespace TAB.Web.Migrations
                     b.HasKey("Id");
 
                     b.HasIndex("Email")
-                        .IsUnique();
+                        .IsUnique()
+                        .HasFilter("[Email] IS NOT NULL");
 
                     b.HasIndex("IndexNumber")
                         .IsUnique();
+
+                    b.HasIndex("IsAutoCreated");
 
                     b.HasIndex("OfficeId");
 
@@ -2503,6 +2535,9 @@ namespace TAB.Web.Migrations
                     b.Property<int?>("ImportAuditId")
                         .HasColumnType("int");
 
+                    b.Property<Guid?>("ImportJobId")
+                        .HasColumnType("uniqueidentifier");
+
                     b.Property<string>("IndexNumber")
                         .HasMaxLength(50)
                         .HasColumnType("nvarchar(50)");
@@ -2531,6 +2566,8 @@ namespace TAB.Web.Migrations
                     b.HasIndex("EbillUserId");
 
                     b.HasIndex("ImportAuditId");
+
+                    b.HasIndex("ImportJobId");
 
                     b.HasIndex("UserPhoneId");
 
@@ -2717,6 +2754,9 @@ namespace TAB.Web.Migrations
                     b.Property<int?>("ImportAuditId")
                         .HasColumnType("int");
 
+                    b.Property<Guid?>("ImportJobId")
+                        .HasColumnType("uniqueidentifier");
+
                     b.Property<string>("IndexNumber")
                         .HasMaxLength(50)
                         .HasColumnType("nvarchar(50)");
@@ -2745,6 +2785,8 @@ namespace TAB.Web.Migrations
                     b.HasIndex("EbillUserId");
 
                     b.HasIndex("ImportAuditId");
+
+                    b.HasIndex("ImportJobId");
 
                     b.HasIndex("UserPhoneId");
 
@@ -2888,6 +2930,12 @@ namespace TAB.Web.Migrations
                         .HasColumnType("nvarchar(50)");
 
                     b.Property<decimal>("TotalAmountRecovered")
+                        .HasColumnType("decimal(18,2)");
+
+                    b.Property<decimal>("TotalAmountRecoveredKSH")
+                        .HasColumnType("decimal(18,2)");
+
+                    b.Property<decimal>("TotalAmountRecoveredUSD")
                         .HasColumnType("decimal(18,2)");
 
                     b.Property<int>("TotalRecordsProcessed")
@@ -3208,6 +3256,58 @@ namespace TAB.Web.Migrations
                     b.ToTable("RefundRequests");
                 });
 
+            modelBuilder.Entity("TAB.Web.Models.RefundRequestHistory", b =>
+                {
+                    b.Property<int>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("int");
+
+                    SqlServerPropertyBuilderExtensions.UseIdentityColumn(b.Property<int>("Id"));
+
+                    b.Property<string>("Action")
+                        .IsRequired()
+                        .HasMaxLength(100)
+                        .HasColumnType("nvarchar(100)");
+
+                    b.Property<string>("Comments")
+                        .HasMaxLength(1000)
+                        .HasColumnType("nvarchar(1000)");
+
+                    b.Property<string>("IpAddress")
+                        .HasMaxLength(50)
+                        .HasColumnType("nvarchar(50)");
+
+                    b.Property<string>("NewStatus")
+                        .HasMaxLength(50)
+                        .HasColumnType("nvarchar(50)");
+
+                    b.Property<string>("PerformedBy")
+                        .IsRequired()
+                        .HasMaxLength(450)
+                        .HasColumnType("nvarchar(450)");
+
+                    b.Property<string>("PreviousStatus")
+                        .HasMaxLength(50)
+                        .HasColumnType("nvarchar(50)");
+
+                    b.Property<int>("RefundRequestId")
+                        .HasColumnType("int");
+
+                    b.Property<DateTime>("Timestamp")
+                        .HasColumnType("datetime2");
+
+                    b.Property<string>("UserName")
+                        .IsRequired()
+                        .HasMaxLength(200)
+                        .HasColumnType("nvarchar(200)");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("RefundRequestId");
+
+                    b.ToTable("RefundRequestHistories");
+                });
+
             modelBuilder.Entity("TAB.Web.Models.Safaricom", b =>
                 {
                     b.Property<int>("Id")
@@ -3278,6 +3378,9 @@ namespace TAB.Web.Migrations
                     b.Property<int?>("ImportAuditId")
                         .HasColumnType("int");
 
+                    b.Property<Guid?>("ImportJobId")
+                        .HasColumnType("uniqueidentifier");
+
                     b.Property<string>("IndexNumber")
                         .HasMaxLength(50)
                         .HasColumnType("nvarchar(50)");
@@ -3306,6 +3409,8 @@ namespace TAB.Web.Migrations
                     b.HasIndex("EbillUserId");
 
                     b.HasIndex("ImportAuditId");
+
+                    b.HasIndex("ImportJobId");
 
                     b.HasIndex("UserPhoneId");
 
@@ -3373,6 +3478,10 @@ namespace TAB.Web.Migrations
                     b.Property<DateTime?>("CollectionNotifiedDate")
                         .HasColumnType("datetime2");
 
+                    b.Property<string>("ExistingPhoneNumber")
+                        .HasMaxLength(20)
+                        .HasColumnType("nvarchar(20)");
+
                     b.Property<string>("FirstName")
                         .IsRequired()
                         .HasMaxLength(100)
@@ -3405,6 +3514,9 @@ namespace TAB.Web.Migrations
                         .IsRequired()
                         .HasMaxLength(100)
                         .HasColumnType("nvarchar(100)");
+
+                    b.Property<int>("LineRequestType")
+                        .HasColumnType("int");
 
                     b.Property<string>("LineType")
                         .HasMaxLength(20)
@@ -3472,7 +3584,7 @@ namespace TAB.Web.Migrations
                         .HasMaxLength(450)
                         .HasColumnType("nvarchar(450)");
 
-                    b.Property<int>("ServiceProviderId")
+                    b.Property<int?>("ServiceProviderId")
                         .HasColumnType("int");
 
                     b.Property<string>("ServiceRequestNo")
@@ -3632,13 +3744,27 @@ namespace TAB.Web.Migrations
                     b.Property<DateTime>("CreatedDate")
                         .HasColumnType("datetime2");
 
+                    b.Property<string>("CurrentOperation")
+                        .HasMaxLength(100)
+                        .HasColumnType("nvarchar(100)");
+
                     b.Property<DateTime?>("EndProcessingDate")
                         .HasColumnType("datetime2");
+
+                    b.Property<string>("FailureReason")
+                        .HasColumnType("nvarchar(max)");
+
+                    b.Property<string>("HangfireJobId")
+                        .HasMaxLength(100)
+                        .HasColumnType("nvarchar(100)");
 
                     b.Property<string>("Notes")
                         .HasColumnType("nvarchar(max)");
 
                     b.Property<int>("PendingRecords")
+                        .HasColumnType("int");
+
+                    b.Property<int>("ProcessingProgress")
                         .HasColumnType("int");
 
                     b.Property<string>("PublishedBy")
@@ -3802,18 +3928,24 @@ namespace TAB.Web.Migrations
                         .HasMaxLength(500)
                         .HasColumnType("nvarchar(500)");
 
+                    b.Property<int>("OwnershipType")
+                        .HasColumnType("int");
+
                     b.Property<string>("PhoneNumber")
                         .IsRequired()
                         .HasMaxLength(20)
                         .HasColumnType("nvarchar(20)");
 
                     b.Property<string>("PhoneType")
-                        .IsRequired()
                         .HasMaxLength(50)
                         .HasColumnType("nvarchar(50)");
 
                     b.Property<Guid>("PublicId")
                         .HasColumnType("uniqueidentifier");
+
+                    b.Property<string>("Purpose")
+                        .HasMaxLength(200)
+                        .HasColumnType("nvarchar(200)");
 
                     b.Property<int>("Status")
                         .HasColumnType("int");
@@ -3949,6 +4081,10 @@ namespace TAB.Web.Migrations
                         .WithMany()
                         .HasForeignKey("ImportAuditId");
 
+                    b.HasOne("TAB.Web.Models.ImportJob", "ImportJob")
+                        .WithMany()
+                        .HasForeignKey("ImportJobId");
+
                     b.HasOne("TAB.Web.Models.UserPhone", "UserPhone")
                         .WithMany()
                         .HasForeignKey("UserPhoneId");
@@ -3956,6 +4092,8 @@ namespace TAB.Web.Migrations
                     b.Navigation("EbillUser");
 
                     b.Navigation("ImportAudit");
+
+                    b.Navigation("ImportJob");
 
                     b.Navigation("UserPhone");
                 });
@@ -4140,6 +4278,15 @@ namespace TAB.Web.Migrations
                     b.Navigation("UserPhone");
                 });
 
+            modelBuilder.Entity("TAB.Web.Models.ClassOfService", b =>
+                {
+                    b.HasOne("TAB.Web.Models.ClassOfService", "ParentClassOfService")
+                        .WithMany()
+                        .HasForeignKey("ParentClassOfServiceId");
+
+                    b.Navigation("ParentClassOfService");
+                });
+
             modelBuilder.Entity("TAB.Web.Models.DeadlineTracking", b =>
                 {
                     b.HasOne("TAB.Web.Models.StagingBatch", "StagingBatch")
@@ -4255,6 +4402,10 @@ namespace TAB.Web.Migrations
                         .WithMany()
                         .HasForeignKey("ImportAuditId");
 
+                    b.HasOne("TAB.Web.Models.ImportJob", "ImportJob")
+                        .WithMany()
+                        .HasForeignKey("ImportJobId");
+
                     b.HasOne("TAB.Web.Models.UserPhone", "UserPhone")
                         .WithMany()
                         .HasForeignKey("UserPhoneId");
@@ -4262,6 +4413,8 @@ namespace TAB.Web.Migrations
                     b.Navigation("EbillUser");
 
                     b.Navigation("ImportAudit");
+
+                    b.Navigation("ImportJob");
 
                     b.Navigation("UserPhone");
                 });
@@ -4298,6 +4451,10 @@ namespace TAB.Web.Migrations
                         .WithMany()
                         .HasForeignKey("ImportAuditId");
 
+                    b.HasOne("TAB.Web.Models.ImportJob", "ImportJob")
+                        .WithMany()
+                        .HasForeignKey("ImportJobId");
+
                     b.HasOne("TAB.Web.Models.UserPhone", "UserPhone")
                         .WithMany()
                         .HasForeignKey("UserPhoneId");
@@ -4305,6 +4462,8 @@ namespace TAB.Web.Migrations
                     b.Navigation("EbillUser");
 
                     b.Navigation("ImportAudit");
+
+                    b.Navigation("ImportJob");
 
                     b.Navigation("UserPhone");
                 });
@@ -4328,6 +4487,17 @@ namespace TAB.Web.Migrations
                     b.Navigation("StagingBatch");
                 });
 
+            modelBuilder.Entity("TAB.Web.Models.RefundRequestHistory", b =>
+                {
+                    b.HasOne("TAB.Web.Models.RefundRequest", "RefundRequest")
+                        .WithMany("History")
+                        .HasForeignKey("RefundRequestId")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired();
+
+                    b.Navigation("RefundRequest");
+                });
+
             modelBuilder.Entity("TAB.Web.Models.Safaricom", b =>
                 {
                     b.HasOne("TAB.Web.Models.EbillUser", "EbillUser")
@@ -4338,6 +4508,10 @@ namespace TAB.Web.Migrations
                         .WithMany()
                         .HasForeignKey("ImportAuditId");
 
+                    b.HasOne("TAB.Web.Models.ImportJob", "ImportJob")
+                        .WithMany()
+                        .HasForeignKey("ImportJobId");
+
                     b.HasOne("TAB.Web.Models.UserPhone", "UserPhone")
                         .WithMany()
                         .HasForeignKey("UserPhoneId");
@@ -4345,6 +4519,8 @@ namespace TAB.Web.Migrations
                     b.Navigation("EbillUser");
 
                     b.Navigation("ImportAudit");
+
+                    b.Navigation("ImportJob");
 
                     b.Navigation("UserPhone");
                 });
@@ -4354,8 +4530,7 @@ namespace TAB.Web.Migrations
                     b.HasOne("TAB.Web.Models.ServiceProvider", "ServiceProvider")
                         .WithMany()
                         .HasForeignKey("ServiceProviderId")
-                        .OnDelete(DeleteBehavior.Restrict)
-                        .IsRequired();
+                        .OnDelete(DeleteBehavior.Restrict);
 
                     b.Navigation("ServiceProvider");
                 });
@@ -4468,6 +4643,11 @@ namespace TAB.Web.Migrations
             modelBuilder.Entity("TAB.Web.Models.PhoneOverageJustification", b =>
                 {
                     b.Navigation("Documents");
+                });
+
+            modelBuilder.Entity("TAB.Web.Models.RefundRequest", b =>
+                {
+                    b.Navigation("History");
                 });
 
             modelBuilder.Entity("TAB.Web.Models.SimRequest", b =>

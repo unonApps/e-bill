@@ -295,7 +295,6 @@
     </div>
     <div class="card-body p-4">
         <form method="post" enctype="multipart/form-data">
-            @Html.AntiForgeryToken()
 
             <!-- Hidden field with call record IDs -->
             @foreach (var call in Model.CallRecordsToSubmit)
@@ -504,7 +503,9 @@
                     <div class="d-flex align-items-center">
                         <i class="bi bi-person-badge me-3" style="font-size: 2rem;"></i>
                         <div>
-                            <strong>Supervisor:</strong> @Model.CurrentUser.SupervisorIndexNumber
+                            <strong>Supervisor:</strong> @(Model.CurrentUser.SupervisorName ?? Model.CurrentUser.SupervisorEmail)
+                            <br />
+                            <small class="text-muted">@Model.CurrentUser.SupervisorEmail</small>
                             <br />
                             <small>Your call verifications will be sent to your supervisor for approval.</small>
                         </div>
@@ -581,28 +582,6 @@
             });
         }
 
-        // Form validation feedback
-        document.querySelector('form').addEventListener('submit', function (e) {
-            const hasOverage = @Model.HasOverage.ToString().ToLower();
-
-            if (hasOverage) {
-                const justification = document.getElementById('overageJustification').value.trim();
-                const document = document.getElementById('overageDocument').files[0];
-
-                if (!justification) {
-                    e.preventDefault();
-                    alert('Please provide a justification for the overage.');
-                    document.getElementById('overageJustification').focus();
-                    return false;
-                }
-
-                if (!document) {
-                    e.preventDefault();
-                    alert('Please upload a supporting document for the overage.');
-                    document.getElementById('overageDocument').focus();
-                    return false;
-                }
-            }
-        });
+        // Form validation is handled by HTML5 required attributes on phone-level overage fields
     </script>
 }

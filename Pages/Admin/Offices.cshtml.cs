@@ -292,10 +292,10 @@ namespace TAB.Web.Pages.Admin
                 return Page();
             }
 
-            // Check if office has users
+            // Check if office has ApplicationUsers
             if (office.Users.Any())
             {
-                StatusMessage = "Error: Cannot delete office that has users assigned to it.";
+                StatusMessage = $"Error: Cannot delete office. It has {office.Users.Count} system user(s) assigned to it.";
                 StatusMessageClass = "danger";
                 await LoadDataAsync();
                 return Page();
@@ -304,7 +304,17 @@ namespace TAB.Web.Pages.Admin
             // Check if office has sub-offices
             if (office.SubOffices.Any())
             {
-                StatusMessage = "Error: Cannot delete office that has sub-offices. Please delete or reassign sub-offices first.";
+                StatusMessage = $"Error: Cannot delete office. It has {office.SubOffices.Count} sub-office(s). Please delete or reassign sub-offices first.";
+                StatusMessageClass = "danger";
+                await LoadDataAsync();
+                return Page();
+            }
+
+            // Check if office has EbillUsers
+            var ebillUserCount = await _context.EbillUsers.CountAsync(u => u.OfficeId == id);
+            if (ebillUserCount > 0)
+            {
+                StatusMessage = $"Error: Cannot delete office. It has {ebillUserCount} E-Bill user(s) assigned to it.";
                 StatusMessageClass = "danger";
                 await LoadDataAsync();
                 return Page();
@@ -469,10 +479,20 @@ namespace TAB.Web.Pages.Admin
                 return Page();
             }
 
-            // Check if sub-office has users
+            // Check if sub-office has ApplicationUsers
             if (subOffice.Users.Any())
             {
-                StatusMessage = "Error: Cannot delete sub-office that has users assigned to it.";
+                StatusMessage = $"Error: Cannot delete sub-office. It has {subOffice.Users.Count} system user(s) assigned to it.";
+                StatusMessageClass = "danger";
+                await LoadDataAsync();
+                return Page();
+            }
+
+            // Check if sub-office has EbillUsers
+            var ebillUserCount = await _context.EbillUsers.CountAsync(u => u.SubOfficeId == id);
+            if (ebillUserCount > 0)
+            {
+                StatusMessage = $"Error: Cannot delete sub-office. It has {ebillUserCount} E-Bill user(s) assigned to it.";
                 StatusMessageClass = "danger";
                 await LoadDataAsync();
                 return Page();

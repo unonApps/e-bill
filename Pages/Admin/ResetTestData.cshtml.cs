@@ -46,6 +46,7 @@ namespace TAB.Web.Pages.Admin
         public async Task<IActionResult> OnPostAsync(string confirmText)
         {
             var log = new StringBuilder();
+            int? originalTimeout = null; // Declare at method scope for access in catch block
 
             try
             {
@@ -71,6 +72,10 @@ namespace TAB.Web.Pages.Admin
                 log.AppendLine();
 
                 int totalDeleted = 0;
+
+                // Increase command timeout for large deletions (30 minutes)
+                originalTimeout = _context.Database.GetCommandTimeout();
+                _context.Database.SetCommandTimeout(1800); // 30 minutes
 
                 // Use execution strategy to handle the transaction
                 var strategy = _context.Database.CreateExecutionStrategy();
@@ -145,11 +150,37 @@ namespace TAB.Web.Pages.Admin
                         log.AppendLine($"  ✓ Deleted {callRecordCount:N0} call records");
 
                         // 10. Delete Call Log Staging (must delete before StagingBatches)
+                        // Use batch deletion for large tables to prevent transaction timeout
                         log.AppendLine("[10/12] Deleting Call Log Staging...");
                         var stagingCount = await _context.CallLogStagings.CountAsync();
-                        await _context.Database.ExecuteSqlRawAsync("DELETE FROM CallLogStagings");
-                        totalDeleted += stagingCount;
-                        log.AppendLine($"  ✓ Deleted {stagingCount:N0} staging records");
+
+                        if (stagingCount > 0)
+                        {
+                            const int BATCH_SIZE = 10000; // Delete 10K records at a time
+                            int deletedSoFar = 0;
+                            int rowsAffected = 0;
+
+                            do
+                            {
+                                rowsAffected = await _context.Database.ExecuteSqlRawAsync(
+                                    $"DELETE TOP ({BATCH_SIZE}) FROM CallLogStagings");
+
+                                deletedSoFar += rowsAffected;
+
+                                if (deletedSoFar % 50000 == 0 && deletedSoFar > 0)
+                                {
+                                    log.AppendLine($"  ... {deletedSoFar:N0} / {stagingCount:N0} deleted");
+                                }
+                            }
+                            while (rowsAffected > 0);
+
+                            totalDeleted += stagingCount;
+                            log.AppendLine($"  ✓ Deleted {stagingCount:N0} staging records (in batches of {BATCH_SIZE:N0})");
+                        }
+                        else
+                        {
+                            log.AppendLine($"  ✓ No staging records found");
+                        }
 
                         // 11. Delete Staging Batches
                         log.AppendLine("[11/12] Deleting Staging Batches...");
@@ -168,9 +199,26 @@ namespace TAB.Web.Pages.Admin
                             var safaricomCount = await _context.Safaricoms.CountAsync();
                             if (safaricomCount > 0)
                             {
-                                await _context.Database.ExecuteSqlRawAsync("DELETE FROM Safaricom");
+                                // Batch deletion for large tables
+                                const int BATCH_SIZE = 10000;
+                                int deletedSoFar = 0;
+                                int rowsAffected = 0;
+
+                                do
+                                {
+                                    rowsAffected = await _context.Database.ExecuteSqlRawAsync(
+                                        $"DELETE TOP ({BATCH_SIZE}) FROM Safaricom");
+                                    deletedSoFar += rowsAffected;
+
+                                    if (deletedSoFar % 50000 == 0 && deletedSoFar > 0)
+                                    {
+                                        log.AppendLine($"  ... Safaricom: {deletedSoFar:N0} / {safaricomCount:N0} deleted");
+                                    }
+                                }
+                                while (rowsAffected > 0);
+
                                 telecomTotal += safaricomCount;
-                                log.AppendLine($"  ✓ Deleted {safaricomCount:N0} Safaricom records");
+                                log.AppendLine($"  ✓ Deleted {safaricomCount:N0} Safaricom records (in batches)");
                             }
                             else
                             {
@@ -188,9 +236,26 @@ namespace TAB.Web.Pages.Admin
                             var airtelCount = await _context.Airtels.CountAsync();
                             if (airtelCount > 0)
                             {
-                                await _context.Database.ExecuteSqlRawAsync("DELETE FROM Airtel");
+                                // Batch deletion for large tables
+                                const int BATCH_SIZE = 10000;
+                                int deletedSoFar = 0;
+                                int rowsAffected = 0;
+
+                                do
+                                {
+                                    rowsAffected = await _context.Database.ExecuteSqlRawAsync(
+                                        $"DELETE TOP ({BATCH_SIZE}) FROM Airtel");
+                                    deletedSoFar += rowsAffected;
+
+                                    if (deletedSoFar % 50000 == 0 && deletedSoFar > 0)
+                                    {
+                                        log.AppendLine($"  ... Airtel: {deletedSoFar:N0} / {airtelCount:N0} deleted");
+                                    }
+                                }
+                                while (rowsAffected > 0);
+
                                 telecomTotal += airtelCount;
-                                log.AppendLine($"  ✓ Deleted {airtelCount:N0} Airtel records");
+                                log.AppendLine($"  ✓ Deleted {airtelCount:N0} Airtel records (in batches)");
                             }
                             else
                             {
@@ -208,9 +273,26 @@ namespace TAB.Web.Pages.Admin
                             var pstnCount = await _context.PSTNs.CountAsync();
                             if (pstnCount > 0)
                             {
-                                await _context.Database.ExecuteSqlRawAsync("DELETE FROM PSTNs");
+                                // Batch deletion for large tables
+                                const int BATCH_SIZE = 10000;
+                                int deletedSoFar = 0;
+                                int rowsAffected = 0;
+
+                                do
+                                {
+                                    rowsAffected = await _context.Database.ExecuteSqlRawAsync(
+                                        $"DELETE TOP ({BATCH_SIZE}) FROM PSTNs");
+                                    deletedSoFar += rowsAffected;
+
+                                    if (deletedSoFar % 50000 == 0 && deletedSoFar > 0)
+                                    {
+                                        log.AppendLine($"  ... PSTN: {deletedSoFar:N0} / {pstnCount:N0} deleted");
+                                    }
+                                }
+                                while (rowsAffected > 0);
+
                                 telecomTotal += pstnCount;
-                                log.AppendLine($"  ✓ Deleted {pstnCount:N0} PSTN records");
+                                log.AppendLine($"  ✓ Deleted {pstnCount:N0} PSTN records (in batches)");
                             }
                             else
                             {
@@ -228,9 +310,26 @@ namespace TAB.Web.Pages.Admin
                             var privateWireCount = await _context.PrivateWires.CountAsync();
                             if (privateWireCount > 0)
                             {
-                                await _context.Database.ExecuteSqlRawAsync("DELETE FROM PrivateWires");
+                                // Batch deletion for large tables
+                                const int BATCH_SIZE = 10000;
+                                int deletedSoFar = 0;
+                                int rowsAffected = 0;
+
+                                do
+                                {
+                                    rowsAffected = await _context.Database.ExecuteSqlRawAsync(
+                                        $"DELETE TOP ({BATCH_SIZE}) FROM PrivateWires");
+                                    deletedSoFar += rowsAffected;
+
+                                    if (deletedSoFar % 50000 == 0 && deletedSoFar > 0)
+                                    {
+                                        log.AppendLine($"  ... PrivateWire: {deletedSoFar:N0} / {privateWireCount:N0} deleted");
+                                    }
+                                }
+                                while (rowsAffected > 0);
+
                                 telecomTotal += privateWireCount;
-                                log.AppendLine($"  ✓ Deleted {privateWireCount:N0} PrivateWire records");
+                                log.AppendLine($"  ✓ Deleted {privateWireCount:N0} PrivateWire records (in batches)");
                             }
                             else
                             {
@@ -316,9 +415,15 @@ namespace TAB.Web.Pages.Admin
                         throw new Exception($"Transaction failed: {ex.Message}", ex);
                     }
                 });
+
+                // Restore original timeout
+                _context.Database.SetCommandTimeout(originalTimeout);
             }
             catch (Exception ex)
             {
+                // Restore original timeout on error
+                try { _context.Database.SetCommandTimeout(originalTimeout); } catch { }
+
                 log.AppendLine();
                 log.AppendLine("========================================");
                 log.AppendLine("ERROR - OPERATION FAILED");

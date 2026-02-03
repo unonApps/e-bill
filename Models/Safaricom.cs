@@ -106,6 +106,13 @@ namespace TAB.Web.Models
 
         public virtual ImportAudit? ImportAudit { get; set; }
 
+        // Import Job tracking (new background job system)
+        [Display(Name = "Import Job ID")]
+        public Guid? ImportJobId { get; set; }
+
+        [ForeignKey("ImportJobId")]
+        public virtual ImportJob? ImportJob { get; set; }
+
         // Processing status for cleanup tracking
         [Display(Name = "Processing Status")]
         public ProcessingStatus ProcessingStatus { get; set; } = ProcessingStatus.Staged;

@@ -11,6 +11,7 @@ using Microsoft.AspNetCore.Authentication.Cookies;
 using System.Security.Claims;
 using Microsoft.AspNetCore.HttpOverrides;
 using Microsoft.AspNetCore.Http;
+using Microsoft.AspNetCore.DataProtection;
 using Hangfire;
 using Hangfire.SqlServer;
 
@@ -24,14 +25,30 @@ builder.Services.Configure<ForwardedHeadersOptions>(options =>
     options.KnownProxies.Clear();
 });
 
+// Configure Data Protection to persist keys to file system
+// This prevents antiforgery token errors after app restarts
+var keysFolder = Path.Combine(builder.Environment.ContentRootPath, "App_Data", "DataProtection-Keys");
+Directory.CreateDirectory(keysFolder);
+builder.Services.AddDataProtection()
+    .SetApplicationName("TABWeb")
+    .PersistKeysToFileSystem(new DirectoryInfo(keysFolder));
+
 // Add services to the container.
 var connectionString = builder.Configuration.GetConnectionString("DefaultConnection");
+
+// Add connection resilience settings if not already in connection string
+if (!string.IsNullOrEmpty(connectionString) && !connectionString.Contains("Command Timeout"))
+{
+    connectionString += ";Command Timeout=60;Max Pool Size=200;Min Pool Size=5;Connect Timeout=30";
+}
+
 builder.Services.AddDbContext<ApplicationDbContext>(options =>
     options.UseSqlServer(connectionString, sqlOptions => {
         sqlOptions.EnableRetryOnFailure(
             maxRetryCount: 5,
             maxRetryDelay: TimeSpan.FromSeconds(30),
             errorNumbersToAdd: null);
+        sqlOptions.CommandTimeout(60); // 60 second command timeout
     }));
 
 // Configure Email Settings
@@ -70,6 +87,7 @@ builder.Services.AddScoped<IFlexibleDateParserService, FlexibleDateParserService
 // Register Call Log Verification Services
 builder.Services.AddScoped<ICallLogVerificationService, CallLogVerificationService>();
 builder.Services.AddScoped<IClassOfServiceCalculationService, ClassOfServiceCalculationService>();
+builder.Services.AddScoped<IClassOfServiceVersioningService, ClassOfServiceVersioningService>();
 builder.Services.AddScoped<IDocumentManagementService, DocumentManagementService>();
 
 // Register Notification Service for in-app notifications
@@ -89,7 +107,13 @@ builder.Services.AddHostedService<RecoveryAutomationJob>();
 // Register Bulk Import Service for enterprise-level upload processing
 builder.Services.AddScoped<IBulkImportService, BulkImportService>();
 
-// Add Hangfire for background job processing
+// Register SmartUpload Import Service for Excel file imports with ImportJob tracking
+builder.Services.AddScoped<ISmartUploadImportService, SmartUploadImportService>();
+
+// Register SmartUpload User Creation Service for auto-creating users from PSTN/PW files
+builder.Services.AddScoped<ISmartUploadUserCreationService, SmartUploadUserCreationService>();
+
+// Add Hangfire for background job processing with resilient settings
 builder.Services.AddHangfire(config => config
     .SetDataCompatibilityLevel(CompatibilityLevel.Version_180)
     .UseSimpleAssemblyNameTypeSerializer()
@@ -98,26 +122,35 @@ builder.Services.AddHangfire(config => config
     {
         CommandBatchMaxTimeout = TimeSpan.FromMinutes(5),
         SlidingInvisibilityTimeout = TimeSpan.FromMinutes(5),
-        QueuePollInterval = TimeSpan.Zero,
+        QueuePollInterval = TimeSpan.FromSeconds(15), // Poll every 15 seconds instead of constantly
         UseRecommendedIsolationLevel = true,
-        DisableGlobalLocks = true
+        DisableGlobalLocks = true,
+        CommandTimeout = TimeSpan.FromMinutes(1), // Command timeout for Hangfire queries
+        PrepareSchemaIfNecessary = true
     }));
 
 builder.Services.AddHangfireServer(options =>
 {
-    options.WorkerCount = 4; // Number of concurrent jobs
+    options.WorkerCount = 2; // Reduced from 4 to prevent connection exhaustion
     options.Queues = new[] { "imports", "default" }; // Separate queue for imports
+    options.ServerCheckInterval = TimeSpan.FromMinutes(1); // Check server health less frequently
+    options.HeartbeatInterval = TimeSpan.FromMinutes(1); // Heartbeat less frequently
 });
 
-// Configure file upload limits for large CSV files
+// Configure file upload limits for large CSV files and form value limits for bulk operations
 builder.Services.Configure<Microsoft.AspNetCore.Http.Features.FormOptions>(options =>
 {
     options.MultipartBodyLengthLimit = 500 * 1024 * 1024; // 500MB
+    options.ValueCountLimit = 50000; // Allow up to 50,000 form values (for submitting many call record IDs)
+    options.KeyLengthLimit = 2048; // Increase key length limit
+    options.ValueLengthLimit = 1024 * 1024; // 1MB per value
 });
 
 builder.WebHost.ConfigureKestrel(options =>
 {
     options.Limits.MaxRequestBodySize = 500 * 1024 * 1024; // 500MB
+    options.Limits.KeepAliveTimeout = TimeSpan.FromMinutes(10); // Keep connection alive for long operations
+    options.Limits.RequestHeadersTimeout = TimeSpan.FromMinutes(5); // Headers timeout
 });
 
 // Add Azure AD Authentication
@@ -157,6 +190,7 @@ builder.Services.AddAuthentication(OpenIdConnectDefaults.AuthenticationScheme)
             {
                 var userManager = context.HttpContext.RequestServices.GetRequiredService<UserManager<ApplicationUser>>();
                 var signInManager = context.HttpContext.RequestServices.GetRequiredService<SignInManager<ApplicationUser>>();
+                var dbContext = context.HttpContext.RequestServices.GetRequiredService<ApplicationDbContext>();
                 var logger = context.HttpContext.RequestServices.GetRequiredService<ILogger<Program>>();
 
                 // Extract Azure AD claims
@@ -178,16 +212,24 @@ builder.Services.AddAuthentication(OpenIdConnectDefaults.AuthenticationScheme)
                 }
 
                 // Find or create user
-                var user = await userManager.Users.FirstOrDefaultAsync(u => u.AzureAdObjectId == objectId);
+                var user = await userManager.Users
+                    .Include(u => u.EbillUser)
+                    .FirstOrDefaultAsync(u => u.AzureAdObjectId == objectId);
 
                 if (user == null)
                 {
-                    // Check if email exists (migrated local account)
-                    user = await userManager.FindByEmailAsync(email);
+                    // Try to find by email (first time Azure AD login for existing user)
+                    user = await userManager.Users
+                        .Include(u => u.EbillUser)
+                        .FirstOrDefaultAsync(u => u.Email == email);
 
                     if (user == null)
                     {
-                        // Create new user from Azure AD
+                        // Check if EbillUser exists - link it to new ApplicationUser
+                        var ebillUser = await dbContext.EbillUsers
+                            .FirstOrDefaultAsync(e => e.Email == email);
+
+                        // Create new ApplicationUser from Azure AD (auto-provisioning)
                         user = new ApplicationUser
                         {
                             UserName = email,
@@ -198,7 +240,8 @@ builder.Services.AddAuthentication(OpenIdConnectDefaults.AuthenticationScheme)
                             AzureAdUpn = upn,
                             FirstName = firstName,
                             LastName = lastName,
-                            Status = UserStatus.Active
+                            Status = UserStatus.Active,
+                            EbillUserId = ebillUser?.Id  // Link to EbillUser if exists
                         };
 
                         var result = await userManager.CreateAsync(user);
@@ -210,21 +253,24 @@ builder.Services.AddAuthentication(OpenIdConnectDefaults.AuthenticationScheme)
                             return;
                         }
 
-                        logger.LogInformation("Created new user from Azure AD: {Email}", email);
+                        logger.LogInformation("Created new ApplicationUser from Azure AD: {Email} (EbillUser linked: {HasEbillUser})",
+                            email, ebillUser != null);
                     }
                     else
                     {
-                        // Link existing local account to Azure AD
+                        // User exists by email - link Azure AD ObjectId for future logins
                         user.AzureAdObjectId = objectId;
                         user.AzureAdTenantId = tenantId;
                         user.AzureAdUpn = upn;
+                        user.FirstName = firstName ?? user.FirstName;
+                        user.LastName = lastName ?? user.LastName;
                         await userManager.UpdateAsync(user);
-                        logger.LogInformation("Linked existing user to Azure AD: {Email}", email);
+                        logger.LogInformation("Linked existing ApplicationUser to Azure AD: {Email}", email);
                     }
                 }
                 else
                 {
-                    // Update user info from Azure AD
+                    // Update user info from Azure AD on each login
                     user.Email = email;
                     user.UserName = email;
                     user.AzureAdUpn = upn;
@@ -244,14 +290,21 @@ builder.Services.AddAuthentication(OpenIdConnectDefaults.AuthenticationScheme)
                     // Add role claims
                     foreach (var role in roles)
                     {
-                        claimsIdentity.AddClaim(new Claim(ClaimTypes.Role, role));
+                        claimsIdentity.AddClaim(new System.Security.Claims.Claim(ClaimTypes.Role, role));
                     }
 
                     // Add user ID claim for Identity
-                    claimsIdentity.AddClaim(new Claim(ClaimTypes.NameIdentifier, user.Id));
+                    claimsIdentity.AddClaim(new System.Security.Claims.Claim(ClaimTypes.NameIdentifier, user.Id));
+
+                    // Add EbillUserId if exists
+                    if (user.EbillUserId.HasValue)
+                    {
+                        claimsIdentity.AddClaim(new System.Security.Claims.Claim("EbillUserId", user.EbillUserId.Value.ToString()));
+                    }
                 }
 
-                logger.LogInformation("User {Email} signed in successfully via Azure AD", email);
+                logger.LogInformation("User {Email} signed in successfully via Azure AD with roles: {Roles}",
+                    email, roles.Any() ? string.Join(", ", roles) : "None");
             },
             OnAuthenticationFailed = context =>
             {
@@ -383,6 +436,13 @@ app.UseHangfireDashboard("/hangfire", new Hangfire.DashboardOptions
 {
     Authorization = new[] { new HangfireAuthorizationFilter() }
 });
+
+// Add Hangfire recurring job for email queue processing
+// Processes 50 queued emails every 5 minutes (reduced frequency to prevent connection exhaustion)
+RecurringJob.AddOrUpdate<IEnhancedEmailService>(
+    "process-email-queue",
+    service => service.ProcessQueueAsync(50),
+    "*/5 * * * *"); // Every 5 minutes instead of 2
 
 // Add password change middleware
 app.UsePasswordChangeMiddleware();

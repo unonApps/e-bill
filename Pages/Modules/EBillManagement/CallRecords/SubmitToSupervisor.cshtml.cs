@@ -11,6 +11,7 @@ using TAB.Web.Services;
 namespace TAB.Web.Pages.Modules.EBillManagement.CallRecords
 {
     [Authorize]
+    [IgnoreAntiforgeryToken]
     public class SubmitToSupervisorModel : PageModel
     {
         private readonly ApplicationDbContext _context;
@@ -63,6 +64,27 @@ namespace TAB.Web.Pages.Modules.EBillManagement.CallRecords
         [TempData]
         public string? StatusMessageClass { get; set; }
 
+        [TempData]
+        public string? StoredCallIds { get; set; }
+
+        /// <summary>
+        /// POST handler to receive call IDs (for large selections that exceed URL length limits)
+        /// Stores IDs in TempData and redirects to GET
+        /// </summary>
+        public IActionResult OnPostPrepareSubmission(string? callIdsCsv)
+        {
+            if (string.IsNullOrEmpty(callIdsCsv))
+            {
+                StatusMessage = "No calls selected for submission.";
+                StatusMessageClass = "warning";
+                return RedirectToPage("/Modules/EBillManagement/CallRecords/MyCallLogs");
+            }
+
+            // Store call IDs in TempData and redirect to GET
+            StoredCallIds = callIdsCsv;
+            return RedirectToPage(new { ids = (string?)null }); // Redirect to OnGetAsync
+        }
+
         public async Task<IActionResult> OnGetAsync(string? ids)
         {
             var user = await _userManager.GetUserAsync(User);
@@ -74,35 +96,69 @@ namespace TAB.Web.Pages.Modules.EBillManagement.CallRecords
 
             if (CurrentUser == null)
             {
-                StatusMessage = "Your profile is not linked to an employee record.";
+                StatusMessage = "Your profile is not linked to an Staff record.";
                 StatusMessageClass = "danger";
                 return RedirectToPage("/Modules/EBillManagement/CallRecords/MyCallLogs");
             }
 
             UserIndexNumber = CurrentUser.IndexNumber;
 
-            // Check if supervisor is assigned
-            if (string.IsNullOrEmpty(CurrentUser.SupervisorIndexNumber))
+            // Check if supervisor is assigned (SupervisorEmail is required for submission)
+            if (string.IsNullOrEmpty(CurrentUser.SupervisorEmail))
             {
-                StatusMessage = "No supervisor assigned to your profile. Please contact ICT Service Desk.";
+                StatusMessage = "No supervisor assigned to your profile. Please contact ICT Service Desk to have a supervisor assigned.";
                 StatusMessageClass = "warning";
                 return RedirectToPage("/Modules/EBillManagement/CallRecords/MyCallLogs");
             }
 
-            // Load ALL verified calls for summary display (both Official and Personal)
+            // Check for IDs from URL or TempData (POST redirect)
+            var effectiveIds = ids;
+            if (string.IsNullOrEmpty(effectiveIds) && !string.IsNullOrEmpty(StoredCallIds))
+            {
+                effectiveIds = StoredCallIds;
+            }
+
+            // Parse call IDs
+            List<int> idList = new List<int>();
+            if (!string.IsNullOrEmpty(effectiveIds))
+            {
+                idList = effectiveIds.Split(',').Select(int.Parse).ToList();
+            }
+
+            if (!idList.Any())
+            {
+                StatusMessage = "No calls selected for submission.";
+                StatusMessageClass = "warning";
+                return RedirectToPage("/Modules/EBillManagement/CallRecords/MyCallLogs");
+            }
+
+            // Auto-verify unverified calls as "Official" before submission
+            // This allows users to submit without manually verifying each call (defaults to Official)
+            var unverifiedCalls = await _context.CallRecords
+                .Where(c => idList.Contains(c.Id) &&
+                           (c.ResponsibleIndexNumber == UserIndexNumber ||
+                            (c.PayingIndexNumber == UserIndexNumber && c.AssignmentStatus == "Accepted")) &&
+                           !c.IsVerified &&
+                           c.VerificationType != "Personal") // Don't auto-verify Personal calls
+                .ToListAsync();
+
+            if (unverifiedCalls.Any())
+            {
+                foreach (var call in unverifiedCalls)
+                {
+                    call.IsVerified = true;
+                    call.VerificationType = "Official";
+                }
+                await _context.SaveChangesAsync();
+            }
+
+            // Load ALL calls for summary display (now includes auto-verified ones)
             var allCallsQuery = _context.CallRecords
                 .Include(c => c.UserPhone)
                     .ThenInclude(up => up.ClassOfService)
-                .Where(c => (c.ResponsibleIndexNumber == UserIndexNumber ||
-                           (c.PayingIndexNumber == UserIndexNumber && c.AssignmentStatus == "Accepted"))
-                       && c.IsVerified);
-
-            // If specific IDs provided, filter to those
-            if (!string.IsNullOrEmpty(ids))
-            {
-                var idList = ids.Split(',').Select(int.Parse).ToList();
-                allCallsQuery = allCallsQuery.Where(c => idList.Contains(c.Id));
-            }
+                .Where(c => idList.Contains(c.Id) &&
+                           (c.ResponsibleIndexNumber == UserIndexNumber ||
+                            (c.PayingIndexNumber == UserIndexNumber && c.AssignmentStatus == "Accepted")));
 
             var allSelectedCalls = await allCallsQuery
                 .OrderBy(c => c.CallDate)
@@ -110,7 +166,7 @@ namespace TAB.Web.Pages.Modules.EBillManagement.CallRecords
 
             if (!allSelectedCalls.Any())
             {
-                StatusMessage = "No verified calls selected for submission.";
+                StatusMessage = "No calls found for submission.";
                 StatusMessageClass = "warning";
                 return RedirectToPage("/Modules/EBillManagement/CallRecords/MyCallLogs");
             }
@@ -120,7 +176,7 @@ namespace TAB.Web.Pages.Modules.EBillManagement.CallRecords
 
             if (!CallRecordsToSubmit.Any())
             {
-                StatusMessage = "No official calls selected for submission. Only official calls can be submitted to supervisor.";
+                StatusMessage = "No official calls selected for submission. All selected calls are marked as Personal.";
                 StatusMessageClass = "warning";
                 return RedirectToPage("/Modules/EBillManagement/CallRecords/MyCallLogs");
             }
@@ -182,7 +238,7 @@ namespace TAB.Web.Pages.Modules.EBillManagement.CallRecords
 
             if (ebillUser == null)
             {
-                StatusMessage = "Your profile is not linked to an employee record.";
+                StatusMessage = "Your profile is not linked to an Staff record.";
                 StatusMessageClass = "danger";
                 return RedirectToPage("/Modules/EBillManagement/CallRecords/MyCallLogs");
             }
@@ -209,7 +265,8 @@ namespace TAB.Web.Pages.Modules.EBillManagement.CallRecords
                 {
                     StatusMessage = "Personal calls cannot be submitted to supervisor. Only official calls can be submitted.";
                     StatusMessageClass = "danger";
-                    return RedirectToPage(new { ids = string.Join(",", callRecordIds) });
+                    StoredCallIds = string.Join(",", callRecordIds);
+                    return RedirectToPage();
                 }
 
                 var officialCallsCost = callRecords.Sum(c => c.CallCostUSD);
@@ -226,14 +283,16 @@ namespace TAB.Web.Pages.Modules.EBillManagement.CallRecords
                     {
                         StatusMessage = "Overage justification is required when official calls exceed your monthly allowance.";
                         StatusMessageClass = "danger";
-                        return RedirectToPage(new { ids = string.Join(",", callRecordIds) });
+                        StoredCallIds = string.Join(",", callRecordIds);
+                        return RedirectToPage();
                     }
 
                     if (overageDocument == null)
                     {
                         StatusMessage = "Supporting document is required when official calls exceed your monthly allowance.";
                         StatusMessageClass = "danger";
-                        return RedirectToPage(new { ids = string.Join(",", callRecordIds) });
+                        StoredCallIds = string.Join(",", callRecordIds);
+                        return RedirectToPage();
                     }
                 }
 
@@ -354,9 +413,9 @@ namespace TAB.Web.Pages.Modules.EBillManagement.CallRecords
                 // Send email notifications
                 try
                 {
-                    // Get supervisor details
+                    // Get supervisor details (lookup by email)
                     var supervisorUser = await _context.EbillUsers
-                        .FirstOrDefaultAsync(u => u.IndexNumber == ebillUser.SupervisorIndexNumber);
+                        .FirstOrDefaultAsync(u => u.Email == ebillUser.SupervisorEmail);
 
                     if (supervisorUser != null)
                     {
@@ -393,9 +452,11 @@ namespace TAB.Web.Pages.Modules.EBillManagement.CallRecords
             }
             catch (Exception ex)
             {
+                _logger.LogError(ex, "Error submitting verifications for user");
                 StatusMessage = $"Error submitting verifications: {ex.Message}";
                 StatusMessageClass = "danger";
-                return RedirectToPage(new { ids = string.Join(",", callRecordIds) });
+                StoredCallIds = string.Join(",", callRecordIds);
+                return RedirectToPage();
             }
         }
 
@@ -672,8 +733,7 @@ namespace TAB.Web.Pages.Modules.EBillManagement.CallRecords
                 { "OverageBackgroundColor", overageBackgroundColor },
                 { "OverageBorderColor", overageBorderColor },
                 { "OverageTextColor", overageTextColor },
-                { "ViewCallLogsLink", $"{Request.Scheme}://{Request.Host}/Modules/EBillManagement/CallRecords/MyCallLogs" },
-                { "Year", DateTime.Now.Year.ToString() }
+                { "ViewCallLogsLink", $"{Request.Scheme}://{Request.Host}/Modules/EBillManagement/CallRecords/MyCallLogs" }
             };
 
             await _emailService.SendTemplatedEmailAsync(
@@ -712,8 +772,7 @@ namespace TAB.Web.Pages.Modules.EBillManagement.CallRecords
                 { "OverageBorderColor", overageBorderColor },
                 { "OverageTextColor", overageTextColor },
                 { "JustificationText", hasOverage && !string.IsNullOrEmpty(justification) ? justification : "No justification required" },
-                { "ApprovalLink", $"{Request.Scheme}://{Request.Host}/Modules/EBillManagement/CallRecords/SupervisorApprovals" },
-                { "Year", DateTime.Now.Year.ToString() }
+                { "ApprovalLink", $"{Request.Scheme}://{Request.Host}/Modules/EBillManagement/CallRecords/SupervisorApprovals" }
             };
 
             await _emailService.SendTemplatedEmailAsync(
@@ -763,7 +822,7 @@ namespace TAB.Web.Pages.Modules.EBillManagement.CallRecords
         public List<CallRecord> Calls { get; set; } = new();
         public int CallCount => Calls.Count;
         public decimal TotalCost => Calls.Sum(c => c.CallCostUSD);
-        public int TotalDuration => Calls.Sum(c => c.CallDuration);
+        public long TotalDuration => Calls.Sum(c => (long)c.CallDuration);
         public string GetDurationFormatted()
         {
             var totalMinutes = TotalDuration / 60.0m;

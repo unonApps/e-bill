@@ -136,9 +136,9 @@ namespace TAB.Web.Services
                         row["Destination"] = GetValue(values, columnIndices, "destination")
                             ?? GetValue(values, columnIndices, "dialednumber") ?? "";
                         row["DestinationLine"] = GetValue(values, columnIndices, "destinationline") ?? "";
-                        row["DurationExtended"] = ParseDecimalOrZero(GetValue(values, columnIndices, "durationextended"));
+                        row["DurationExtended"] = ParseDurationToMinutes(GetValue(values, columnIndices, "durationextended"));
                         row["CallDate"] = ParseDate(GetValue(values, columnIndices, "calldate"), dateFormat);
-                        row["Duration"] = ParseDecimalOrZero(GetValue(values, columnIndices, "duration"));
+                        row["Duration"] = ParseDurationToMinutes(GetValue(values, columnIndices, "duration"));
                         row["AmountKSH"] = ParseDecimalOrZero(GetValue(values, columnIndices, "amountksh"));
                         row["AmountUSD"] = ParseDecimalOrZero(GetValue(values, columnIndices, "amountusd"));
                         row["IndexNumber"] = indexNumber;
@@ -151,6 +151,7 @@ namespace TAB.Web.Services
                         row["CreatedDate"] = DateTime.UtcNow;
                         row["CreatedBy"] = "BulkImport";
                         row["ProcessingStatus"] = 0; // ProcessingStatus.Staged
+                        row["ImportJobId"] = jobId;
 
                         dataTable.Rows.Add(row);
                         result.TotalRecords++;
@@ -312,9 +313,9 @@ namespace TAB.Web.Services
                         row["Destination"] = GetValue(values, columnIndices, "destination")
                             ?? GetValue(values, columnIndices, "dialednumber") ?? "";
                         row["DestinationLine"] = GetValue(values, columnIndices, "destinationline") ?? "";
-                        row["DurationExtended"] = ParseDecimalOrZero(GetValue(values, columnIndices, "durationextended"));
+                        row["DurationExtended"] = ParseDurationToMinutes(GetValue(values, columnIndices, "durationextended"));
                         row["CallDate"] = ParseDate(GetValue(values, columnIndices, "calldate"), dateFormat);
-                        row["Duration"] = ParseDecimalOrZero(GetValue(values, columnIndices, "duration"));
+                        row["Duration"] = ParseDurationToMinutes(GetValue(values, columnIndices, "duration"));
                         row["AmountKSH"] = ParseDecimalOrZero(GetValue(values, columnIndices, "amountksh"));
                         row["AmountUSD"] = ParseDecimalOrZero(GetValue(values, columnIndices, "amountusd"));
                         row["IndexNumber"] = indexNumber;
@@ -326,6 +327,7 @@ namespace TAB.Web.Services
                         row["CreatedDate"] = DateTime.UtcNow;
                         row["CreatedBy"] = "BulkImport";
                         row["ProcessingStatus"] = 0; // ProcessingStatus.Staged
+                        row["ImportJobId"] = jobId;
 
                         dataTable.Rows.Add(row);
                         result.TotalRecords++;
@@ -487,7 +489,7 @@ namespace TAB.Web.Services
                         row["call_date"] = ParseDate(GetValue(values, columnIndices, "call_date"), dateFormat);
                         row["dialed"] = GetValue(values, columnIndices, "dialed") ?? "";
                         row["dest"] = GetValue(values, columnIndices, "dest") ?? GetValue(values, columnIndices, "dialed") ?? "";
-                        row["durx"] = ParseDecimalOrZero(GetValue(values, columnIndices, "durx"));
+                        row["durx"] = ParseDurxValue(GetValue(values, columnIndices, "durx"));
                         row["cost"] = ParseDecimalOrZero(GetValue(values, columnIndices, "cost"));
                         row["dur"] = ParseDecimalOrZero(GetValue(values, columnIndices, "dur"));
                         row["call_type"] = GetValue(values, columnIndices, "call_type") ?? "Voice";
@@ -500,6 +502,7 @@ namespace TAB.Web.Services
                         row["CreatedDate"] = DateTime.UtcNow;
                         row["CreatedBy"] = "BulkImport";
                         row["ProcessingStatus"] = 0; // ProcessingStatus.Staged
+                        row["ImportJobId"] = jobId;
 
                         dataTable.Rows.Add(row);
                         result.TotalRecords++;
@@ -623,6 +626,7 @@ namespace TAB.Web.Services
             dt.Columns.Add("CreatedDate", typeof(DateTime)).AllowDBNull = false;
             dt.Columns.Add("CreatedBy", typeof(string)).AllowDBNull = true;
             dt.Columns.Add("ProcessingStatus", typeof(int)).AllowDBNull = false;
+            dt.Columns.Add("ImportJobId", typeof(Guid)).AllowDBNull = true;
             return dt;
         }
 
@@ -650,6 +654,7 @@ namespace TAB.Web.Services
             dt.Columns.Add("CreatedDate", typeof(DateTime)).AllowDBNull = false;
             dt.Columns.Add("CreatedBy", typeof(string)).AllowDBNull = true;
             dt.Columns.Add("ProcessingStatus", typeof(int)).AllowDBNull = false;
+            dt.Columns.Add("ImportJobId", typeof(Guid)).AllowDBNull = true;
             return dt;
         }
 
@@ -676,6 +681,7 @@ namespace TAB.Web.Services
             dt.Columns.Add("CreatedDate", typeof(DateTime)).AllowDBNull = false;
             dt.Columns.Add("CreatedBy", typeof(string)).AllowDBNull = true;
             dt.Columns.Add("ProcessingStatus", typeof(int)).AllowDBNull = false;
+            dt.Columns.Add("ImportJobId", typeof(Guid)).AllowDBNull = true;
             return dt;
         }
 
@@ -715,6 +721,7 @@ namespace TAB.Web.Services
                 bulkCopy.ColumnMappings.Add("CreatedDate", "CreatedDate");
                 bulkCopy.ColumnMappings.Add("CreatedBy", "CreatedBy");
                 bulkCopy.ColumnMappings.Add("ProcessingStatus", "ProcessingStatus");
+                bulkCopy.ColumnMappings.Add("ImportJobId", "ImportJobId");
             }
             else if (tableName == "PSTNs")
             {
@@ -738,6 +745,7 @@ namespace TAB.Web.Services
                 bulkCopy.ColumnMappings.Add("CreatedDate", "CreatedDate");
                 bulkCopy.ColumnMappings.Add("CreatedBy", "CreatedBy");
                 bulkCopy.ColumnMappings.Add("ProcessingStatus", "ProcessingStatus");
+                bulkCopy.ColumnMappings.Add("ImportJobId", "ImportJobId");
             }
             else if (tableName == "PrivateWires")
             {
@@ -760,6 +768,7 @@ namespace TAB.Web.Services
                 bulkCopy.ColumnMappings.Add("CreatedDate", "CreatedDate");
                 bulkCopy.ColumnMappings.Add("CreatedBy", "CreatedBy");
                 bulkCopy.ColumnMappings.Add("ProcessingStatus", "ProcessingStatus");
+                bulkCopy.ColumnMappings.Add("ImportJobId", "ImportJobId");
             }
             else
             {
@@ -900,6 +909,97 @@ namespace TAB.Web.Services
         {
             if (string.IsNullOrWhiteSpace(value)) return 0;
             return decimal.TryParse(value, out var result) ? result : 0;
+        }
+
+        /// <summary>
+        /// Parses duration from various formats for PSTN/PrivateWire:
+        /// - Time format "H:MM:SS" or "HH:MM:SS" → converts to minutes (decimal)
+        /// - Time format "MM:SS" or "M:SS" → converts to minutes (decimal)
+        /// - Decimal number (already in minutes) → returns as-is
+        /// </summary>
+        private decimal ParseDurationToMinutes(string? value)
+        {
+            if (string.IsNullOrWhiteSpace(value)) return 0;
+
+            // Check if it's a time format (contains colons)
+            if (value.Contains(':'))
+            {
+                var parts = value.Split(':');
+
+                if (parts.Length == 3)
+                {
+                    // Format: H:MM:SS or HH:MM:SS
+                    if (int.TryParse(parts[0], out int hours) &&
+                        int.TryParse(parts[1], out int minutes) &&
+                        int.TryParse(parts[2], out int seconds))
+                    {
+                        // Convert to total minutes (decimal)
+                        // e.g., 0:01:30 = 0*60 + 1 + 30/60 = 1.5 minutes
+                        return (hours * 60) + minutes + (seconds / 60.0m);
+                    }
+                }
+                else if (parts.Length == 2)
+                {
+                    // Format: MM:SS or M:SS
+                    if (int.TryParse(parts[0], out int minutes) &&
+                        int.TryParse(parts[1], out int seconds))
+                    {
+                        return minutes + (seconds / 60.0m);
+                    }
+                }
+            }
+
+            // Try to parse as decimal number (already in minutes)
+            return decimal.TryParse(value, out var result) ? result : 0;
+        }
+
+        /// <summary>
+        /// Parses the durx column which can be:
+        /// - Time format "H:MM:SS" or "HH:MM:SS" (voice calls) → convert to total seconds as decimal (mm.ss format)
+        /// - Decimal number (internet usage in KB)
+        /// - Text like "SMS" → store as 0
+        /// </summary>
+        private decimal ParseDurxValue(string? value)
+        {
+            if (string.IsNullOrWhiteSpace(value)) return 0;
+
+            // Check if it's a time format (contains colons like "0:00:33" or "0:01:57")
+            if (value.Contains(':'))
+            {
+                var parts = value.Split(':');
+                if (parts.Length == 3)
+                {
+                    // Format: H:MM:SS or HH:MM:SS
+                    if (int.TryParse(parts[0], out int hours) &&
+                        int.TryParse(parts[1], out int minutes) &&
+                        int.TryParse(parts[2], out int seconds))
+                    {
+                        // Convert to mm.ss format (minutes with seconds as decimal)
+                        // e.g., 0:01:57 = 1 minute 57 seconds = 1.57
+                        // e.g., 0:00:33 = 0 minutes 33 seconds = 0.33
+                        int totalMinutes = (hours * 60) + minutes;
+                        return totalMinutes + (seconds / 100m);
+                    }
+                }
+                else if (parts.Length == 2)
+                {
+                    // Format: MM:SS
+                    if (int.TryParse(parts[0], out int minutes) &&
+                        int.TryParse(parts[1], out int seconds))
+                    {
+                        return minutes + (seconds / 100m);
+                    }
+                }
+            }
+
+            // Try parsing as decimal (for internet usage KB values like "325316.64")
+            if (decimal.TryParse(value, out var result))
+            {
+                return result;
+            }
+
+            // Text values like "SMS", "ROAMING", etc. - return 0
+            return 0;
         }
 
         private TimeSpan ParseTimeSpan(string? value)

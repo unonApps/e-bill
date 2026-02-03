@@ -223,9 +223,8 @@ namespace TAB.Web.Pages.Admin
                     "Queued {CallLogType} import job {JobId} with Hangfire job ID {HangfireJobId}",
                     callLogType, jobId, hangfireJobId);
 
-                StatusMessage = $"✅ Import queued successfully! Job ID: {jobId}<br/>" +
-                                $"📁 File: {callLogFile.FileName} ({callLogFile.Length / 1024 / 1024:N2} MB)<br/>" +
-                                $"📊 The import is running in the background. Monitor progress at <a href='/hangfire' target='_blank' class='alert-link'>/hangfire</a>";
+                StatusMessage = $"Import queued successfully! File: {callLogFile.FileName} ({callLogFile.Length / 1024 / 1024:N2} MB). " +
+                                $"The import is running in the background. Monitor progress on the Import Jobs page or /hangfire dashboard.";
                 StatusMessageClass = "success";
 
                 return RedirectToPage("/Admin/CallLogs");

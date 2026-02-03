@@ -184,10 +184,29 @@ namespace TAB.Web.Pages.Admin
                 return Page();
             }
 
-            // Check if organization has users or offices
-            if (organization.Users.Any() || organization.Offices.Any())
+            // Check if organization has ApplicationUsers
+            if (organization.Users.Any())
             {
-                StatusMessage = "Error: Cannot delete organization that has users or offices assigned to it.";
+                StatusMessage = $"Error: Cannot delete organization. It has {organization.Users.Count} system user(s) assigned to it.";
+                StatusMessageClass = "danger";
+                await LoadDataAsync();
+                return Page();
+            }
+
+            // Check if organization has offices
+            if (organization.Offices.Any())
+            {
+                StatusMessage = $"Error: Cannot delete organization. It has {organization.Offices.Count} office(s) assigned to it.";
+                StatusMessageClass = "danger";
+                await LoadDataAsync();
+                return Page();
+            }
+
+            // Check if organization has EbillUsers
+            var ebillUserCount = await _context.EbillUsers.CountAsync(u => u.OrganizationId == id);
+            if (ebillUserCount > 0)
+            {
+                StatusMessage = $"Error: Cannot delete organization. It has {ebillUserCount} E-Bill user(s) assigned to it.";
                 StatusMessageClass = "danger";
                 await LoadDataAsync();
                 return Page();

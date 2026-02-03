@@ -174,6 +174,7 @@ namespace TAB.Web.Models
         Staged,
         Processing,
         Completed,
-        Failed
+        Failed,
+        Verified
     }
 }

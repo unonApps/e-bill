@@ -67,6 +67,10 @@ namespace TAB.Web.Pages.Admin
         public int TotalOfficialCallsAll { get; set; }
         public decimal TotalOfficialAmountKSHAll { get; set; }
 
+        // Cached exchange rate to avoid repeated lookups
+        private decimal _kshToUsdRate;
+        private decimal _usdToKshRate;
+
         public class ProviderSummary
         {
             public string ProviderName { get; set; } = string.Empty;
@@ -94,106 +98,145 @@ namespace TAB.Web.Pages.Admin
             Filters.Providers = providers ?? new List<string>();
             Filters.RecoveryTypes = recoveryTypes ?? new List<string>();
 
-            // Load existing dashboard sections
-            await LoadDashboardMetricsAsync();
-            await LoadRecoveryTrendsAsync();
-            await LoadDeadlineComplianceAsync();
-            await LoadTopBatchesAsync();
-            await LoadRecentActivitiesAsync();
-            await LoadRecoveryBreakdownAsync();
+            // Cache exchange rates upfront to avoid repeated lookups
+            await CacheExchangeRatesAsync();
 
-            // Load enhanced dashboard sections
+            // Run independent queries in parallel for better performance
+            var dashboardMetricsTask = LoadDashboardMetricsAsync();
+            var recoveryTrendsTask = LoadRecoveryTrendsAsync();
+            var deadlineComplianceTask = LoadDeadlineComplianceAsync();
+            var topBatchesTask = LoadTopBatchesAsync();
+            var recentActivitiesTask = LoadRecentActivitiesAsync();
+            var recoveryBreakdownTask = LoadRecoveryBreakdownAsync();
+            var alertsTask = LoadAlertsAsync();
+
+            await Task.WhenAll(
+                dashboardMetricsTask,
+                recoveryTrendsTask,
+                deadlineComplianceTask,
+                topBatchesTask,
+                recentActivitiesTask,
+                recoveryBreakdownTask,
+                alertsTask
+            );
+
+            // These depend on base metrics being loaded
             await LoadEnhancedMetricsAsync();
-            await LoadRecoveryByTypeAsync();
-            await LoadRecoveryByProviderAsync();
-            await LoadRecoveryByOrganizationAsync();
-            await LoadTopUserRecoveriesAsync();
-            await LoadAlertsAsync();
-            await LoadOfficialCallsMetricsAsync();
-            await LoadProviderSummaryAsync();
-            await LoadMonthlyRecoveryTrendsAsync();
+
+            // Run second batch in parallel
+            var recoveryByTypeTask = LoadRecoveryByTypeAsync();
+            var recoveryByProviderTask = LoadRecoveryByProviderAsync();
+            var recoveryByOrgTask = LoadRecoveryByOrganizationAsync();
+            var topUserTask = LoadTopUserRecoveriesAsync();
+            var officialCallsTask = LoadOfficialCallsMetricsAsync();
+            var providerSummaryTask = LoadProviderSummaryAsync();
+            var monthlyTrendsTask = LoadMonthlyRecoveryTrendsAsync();
+
+            await Task.WhenAll(
+                recoveryByTypeTask,
+                recoveryByProviderTask,
+                recoveryByOrgTask,
+                topUserTask,
+                officialCallsTask,
+                providerSummaryTask,
+                monthlyTrendsTask
+            );
+        }
+
+        private async Task CacheExchangeRatesAsync()
+        {
+            _kshToUsdRate = await _currencyService.ConvertCurrencyAsync(1, "KSH", "USD");
+            _usdToKshRate = await _currencyService.ConvertCurrencyAsync(1, "USD", "KSH");
+        }
+
+        private decimal ConvertToUsd(decimal amount, string currency)
+        {
+            if (currency == "USD") return amount;
+            return amount * _kshToUsdRate;
+        }
+
+        private decimal ConvertToKsh(decimal amount, string currency)
+        {
+            if (currency == "KES" || currency == "KSH") return amount;
+            return amount * _usdToKshRate;
         }
 
         private async Task LoadDashboardMetricsAsync()
         {
             var last30Days = DateTime.UtcNow.AddDays(-30);
             var last7Days = DateTime.UtcNow.AddDays(-7);
+            var previous30DaysStart = DateTime.UtcNow.AddDays(-60);
 
-            // Total amount recovered (all time)
-            Metrics.TotalAmountRecovered = await _context.RecoveryJobExecutions
+            // Single query with aggregation for job executions
+            var jobStats = await _context.RecoveryJobExecutions
+                .AsNoTracking()
                 .Where(e => e.Status == "Completed")
-                .SumAsync(e => (decimal?)e.TotalAmountRecovered) ?? 0;
+                .GroupBy(e => 1)
+                .Select(g => new
+                {
+                    TotalAmount = g.Sum(e => (decimal?)e.TotalAmountRecovered) ?? 0,
+                    Last30DaysAmount = g.Where(e => e.StartTime >= last30Days).Sum(e => (decimal?)e.TotalAmountRecovered) ?? 0,
+                    Last7DaysAmount = g.Where(e => e.StartTime >= last7Days).Sum(e => (decimal?)e.TotalAmountRecovered) ?? 0,
+                    TotalRecords = g.Sum(e => (int?)e.TotalRecordsProcessed) ?? 0,
+                    Last30DaysRecords = g.Where(e => e.StartTime >= last30Days).Sum(e => (int?)e.TotalRecordsProcessed) ?? 0,
+                    Previous30DaysAmount = g.Where(e => e.StartTime >= previous30DaysStart && e.StartTime < last30Days).Sum(e => (decimal?)e.TotalAmountRecovered) ?? 0,
+                    TotalJobs = g.Count(),
+                    SuccessfulJobs = g.Count()
+                })
+                .FirstOrDefaultAsync();
 
-            // Amount recovered last 30 days
-            Metrics.AmountRecoveredLast30Days = await _context.RecoveryJobExecutions
-                .Where(e => e.Status == "Completed" && e.StartTime >= last30Days)
-                .SumAsync(e => (decimal?)e.TotalAmountRecovered) ?? 0;
-
-            // Amount recovered last 7 days
-            Metrics.AmountRecoveredLast7Days = await _context.RecoveryJobExecutions
-                .Where(e => e.Status == "Completed" && e.StartTime >= last7Days)
-                .SumAsync(e => (decimal?)e.TotalAmountRecovered) ?? 0;
-
-            // Total records processed
-            Metrics.TotalRecordsProcessed = await _context.RecoveryJobExecutions
-                .Where(e => e.Status == "Completed")
-                .SumAsync(e => (int?)e.TotalRecordsProcessed) ?? 0;
-
-            // Records processed last 30 days
-            Metrics.RecordsProcessedLast30Days = await _context.RecoveryJobExecutions
-                .Where(e => e.Status == "Completed" && e.StartTime >= last30Days)
-                .SumAsync(e => (int?)e.TotalRecordsProcessed) ?? 0;
-
-            // Total batches processed
-            Metrics.TotalBatchesProcessed = await _context.StagingBatches
-                .Where(b => b.RecoveryStatus == "Completed")
+            // Count failed jobs separately
+            var failedJobs = await _context.RecoveryJobExecutions
+                .AsNoTracking()
+                .Where(e => e.Status == "Failed")
                 .CountAsync();
 
-            // Active batches
-            Metrics.ActiveBatchesWithDeadlines = await _context.StagingBatches
-                .Where(b => b.BatchStatus == BatchStatus.Processing ||
-                            b.BatchStatus == BatchStatus.PartiallyVerified ||
-                            b.BatchStatus == BatchStatus.Verified)
-                .CountAsync();
-
-            // Success rate
-            var totalJobs = await _context.RecoveryJobExecutions
-                .Where(e => e.Status == "Completed" || e.Status == "Failed")
-                .CountAsync();
-
-            if (totalJobs > 0)
-            {
-                var successfulJobs = await _context.RecoveryJobExecutions
-                    .Where(e => e.Status == "Completed")
-                    .CountAsync();
-                Metrics.SuccessRate = (decimal)successfulJobs / totalJobs * 100;
-            }
+            // Batch counts
+            var batchStats = await _context.StagingBatches
+                .AsNoTracking()
+                .GroupBy(b => 1)
+                .Select(g => new
+                {
+                    CompletedBatches = g.Count(b => b.RecoveryStatus == "Completed"),
+                    ActiveBatches = g.Count(b => b.BatchStatus == BatchStatus.Processing ||
+                                                  b.BatchStatus == BatchStatus.PartiallyVerified ||
+                                                  b.BatchStatus == BatchStatus.Verified)
+                })
+                .FirstOrDefaultAsync();
 
             // Average recovery per batch
-            var batchesWithRecovery = await _context.StagingBatches
+            var avgRecovery = await _context.StagingBatches
+                .AsNoTracking()
                 .Where(b => b.TotalRecoveredAmount.HasValue && b.TotalRecoveredAmount > 0)
-                .Select(b => b.TotalRecoveredAmount!.Value)
-                .ToListAsync();
+                .AverageAsync(b => (decimal?)b.TotalRecoveredAmount) ?? 0;
 
-            if (batchesWithRecovery.Any())
+            if (jobStats != null)
             {
-                Metrics.AverageRecoveryPerBatch = batchesWithRecovery.Average();
-            }
+                Metrics.TotalAmountRecovered = jobStats.TotalAmount;
+                Metrics.AmountRecoveredLast30Days = jobStats.Last30DaysAmount;
+                Metrics.AmountRecoveredLast7Days = jobStats.Last7DaysAmount;
+                Metrics.TotalRecordsProcessed = jobStats.TotalRecords;
+                Metrics.RecordsProcessedLast30Days = jobStats.Last30DaysRecords;
 
-            // Calculate trend percentages
-            if (Metrics.AmountRecoveredLast30Days > 0)
-            {
-                var previous30Days = DateTime.UtcNow.AddDays(-60);
-                var previous30DaysEnd = DateTime.UtcNow.AddDays(-30);
-                var previousPeriodAmount = await _context.RecoveryJobExecutions
-                    .Where(e => e.Status == "Completed" && e.StartTime >= previous30Days && e.StartTime < previous30DaysEnd)
-                    .SumAsync(e => (decimal?)e.TotalAmountRecovered) ?? 0;
-
-                if (previousPeriodAmount > 0)
+                var totalJobs = jobStats.TotalJobs + failedJobs;
+                if (totalJobs > 0)
                 {
-                    Metrics.TrendPercentage = ((Metrics.AmountRecoveredLast30Days - previousPeriodAmount) / previousPeriodAmount) * 100;
+                    Metrics.SuccessRate = (decimal)jobStats.SuccessfulJobs / totalJobs * 100;
+                }
+
+                if (jobStats.Previous30DaysAmount > 0)
+                {
+                    Metrics.TrendPercentage = ((jobStats.Last30DaysAmount - jobStats.Previous30DaysAmount) / jobStats.Previous30DaysAmount) * 100;
                 }
             }
+
+            if (batchStats != null)
+            {
+                Metrics.TotalBatchesProcessed = batchStats.CompletedBatches;
+                Metrics.ActiveBatchesWithDeadlines = batchStats.ActiveBatches;
+            }
+
+            Metrics.AverageRecoveryPerBatch = avgRecovery;
         }
 
         private async Task LoadRecoveryTrendsAsync()
@@ -201,6 +244,7 @@ namespace TAB.Web.Pages.Admin
             var last30Days = DateTime.UtcNow.AddDays(-30).Date;
 
             var dailyRecoveries = await _context.RecoveryJobExecutions
+                .AsNoTracking()
                 .Where(e => e.Status == "Completed" && e.StartTime >= last30Days)
                 .GroupBy(e => e.StartTime.Date)
                 .Select(g => new DailyRecoveryTrend
@@ -213,11 +257,17 @@ namespace TAB.Web.Pages.Admin
                 .OrderBy(t => t.Date)
                 .ToListAsync();
 
-            // Fill in missing dates with zeros
+            // Fill in missing dates with zeros using a dictionary for O(1) lookup
+            var recoveryDict = dailyRecoveries.ToDictionary(d => d.Date, d => d);
             var currentDate = last30Days;
+
             while (currentDate <= DateTime.UtcNow.Date)
             {
-                if (!dailyRecoveries.Any(d => d.Date == currentDate))
+                if (recoveryDict.TryGetValue(currentDate, out var trend))
+                {
+                    RecoveryTrends.Add(trend);
+                }
+                else
                 {
                     RecoveryTrends.Add(new DailyRecoveryTrend
                     {
@@ -227,52 +277,48 @@ namespace TAB.Web.Pages.Admin
                         JobsRun = 0
                     });
                 }
-                else
-                {
-                    RecoveryTrends.Add(dailyRecoveries.First(d => d.Date == currentDate));
-                }
                 currentDate = currentDate.AddDays(1);
             }
         }
 
         private async Task LoadDeadlineComplianceAsync()
         {
-            var totalDeadlines = await _context.DeadlineTracking
-                .Where(d => d.DeadlineType == "Verification" || d.DeadlineType == "Approval")
-                .CountAsync();
-
-            if (totalDeadlines > 0)
-            {
-                DeadlineCompliance.TotalDeadlines = totalDeadlines;
-
-                DeadlineCompliance.MetDeadlines = await _context.DeadlineTracking
-                    .Where(d => (d.DeadlineType == "Verification" || d.DeadlineType == "Approval") &&
-                               d.DeadlineStatus == "Met")
-                    .CountAsync();
-
-                DeadlineCompliance.MissedDeadlines = await _context.DeadlineTracking
-                    .Where(d => (d.DeadlineType == "Verification" || d.DeadlineType == "Approval") &&
-                               d.DeadlineStatus == "Missed")
-                    .CountAsync();
-
-                DeadlineCompliance.ExtendedDeadlines = await _context.ImportAudits
-                    .Where(a => a.ImportType == "Deadline Extension")
-                    .CountAsync();
-
-                DeadlineCompliance.ComplianceRate = (decimal)DeadlineCompliance.MetDeadlines / DeadlineCompliance.TotalDeadlines * 100;
-            }
-
-            // Current deadlines at risk (expiring in next 48 hours)
             var next48Hours = DateTime.UtcNow.AddHours(48);
-            DeadlineCompliance.DeadlinesAtRisk = await _context.DeadlineTracking
-                .Where(d => d.DeadlineDate > DateTime.UtcNow && d.DeadlineDate <= next48Hours &&
-                           d.DeadlineStatus == "Pending")
+
+            // Single query with all counts
+            var deadlineStats = await _context.DeadlineTracking
+                .AsNoTracking()
+                .Where(d => d.DeadlineType == "Verification" || d.DeadlineType == "Approval")
+                .GroupBy(d => 1)
+                .Select(g => new
+                {
+                    Total = g.Count(),
+                    Met = g.Count(d => d.DeadlineStatus == "Met"),
+                    Missed = g.Count(d => d.DeadlineStatus == "Missed"),
+                    AtRisk = g.Count(d => d.DeadlineDate > DateTime.UtcNow && d.DeadlineDate <= next48Hours && d.DeadlineStatus == "Pending")
+                })
+                .FirstOrDefaultAsync();
+
+            var extendedCount = await _context.ImportAudits
+                .AsNoTracking()
+                .Where(a => a.ImportType == "Deadline Extension")
                 .CountAsync();
+
+            if (deadlineStats != null && deadlineStats.Total > 0)
+            {
+                DeadlineCompliance.TotalDeadlines = deadlineStats.Total;
+                DeadlineCompliance.MetDeadlines = deadlineStats.Met;
+                DeadlineCompliance.MissedDeadlines = deadlineStats.Missed;
+                DeadlineCompliance.ExtendedDeadlines = extendedCount;
+                DeadlineCompliance.DeadlinesAtRisk = deadlineStats.AtRisk;
+                DeadlineCompliance.ComplianceRate = (decimal)deadlineStats.Met / deadlineStats.Total * 100;
+            }
         }
 
         private async Task LoadTopBatchesAsync()
         {
             var topBatches = await _context.StagingBatches
+                .AsNoTracking()
                 .Where(b => b.TotalRecoveredAmount.HasValue && b.TotalRecoveredAmount > 0)
                 .OrderByDescending(b => b.TotalRecoveredAmount)
                 .Take(10)
@@ -289,41 +335,34 @@ namespace TAB.Web.Pages.Admin
                 })
                 .ToListAsync();
 
-            TopBatches = new List<BatchRecoveryInfo>();
-
-            foreach (var batch in topBatches)
+            TopBatches = topBatches.Select(batch =>
             {
-                // Determine primary currency based on source system
-                // PrivateWire uses USD, all others use KSH
                 var primaryCurrency = "KSH";
                 var containsPrivateWire = batch.SourceSystems?.Contains("PrivateWire", StringComparison.OrdinalIgnoreCase) == true;
                 var containsOthers = batch.SourceSystems?.Contains("Safaricom", StringComparison.OrdinalIgnoreCase) == true ||
                                     batch.SourceSystems?.Contains("Airtel", StringComparison.OrdinalIgnoreCase) == true ||
                                     batch.SourceSystems?.Contains("PSTN", StringComparison.OrdinalIgnoreCase) == true;
 
-                // If ONLY PrivateWire, primary is USD; otherwise KSH
                 if (containsPrivateWire && !containsOthers)
                 {
                     primaryCurrency = "USD";
                 }
 
-                decimal totalKSH = 0;
-                decimal totalUSD = 0;
                 var recoveredAmount = batch.TotalRecoveredAmount ?? 0;
+                decimal totalKSH, totalUSD;
 
-                // Use the batch's stored total and convert to both currencies
                 if (primaryCurrency == "KSH")
                 {
                     totalKSH = recoveredAmount;
-                    totalUSD = await _currencyService.ConvertCurrencyAsync(recoveredAmount, "KSH", "USD");
+                    totalUSD = recoveredAmount * _kshToUsdRate;
                 }
                 else
                 {
                     totalUSD = recoveredAmount;
-                    totalKSH = await _currencyService.ConvertCurrencyAsync(recoveredAmount, "USD", "KSH");
+                    totalKSH = recoveredAmount * _usdToKshRate;
                 }
 
-                TopBatches.Add(new BatchRecoveryInfo
+                return new BatchRecoveryInfo
                 {
                     BatchId = batch.Id,
                     BatchName = batch.BatchName,
@@ -335,13 +374,14 @@ namespace TAB.Web.Pages.Admin
                     ClassOfServiceAmount = batch.TotalClassOfServiceAmount ?? 0,
                     TotalRecords = batch.TotalRecords,
                     RecoveryDate = batch.RecoveryProcessingDate
-                });
-            }
+                };
+            }).ToList();
         }
 
         private async Task LoadRecentActivitiesAsync()
         {
             RecentActivities = await _context.RecoveryJobExecutions
+                .AsNoTracking()
                 .Where(e => e.Status == "Completed")
                 .OrderByDescending(e => e.EndTime)
                 .Take(15)
@@ -363,116 +403,94 @@ namespace TAB.Web.Pages.Admin
 
         private async Task LoadRecoveryBreakdownAsync()
         {
-            var completedExecutions = await _context.RecoveryJobExecutions
+            // Get execution breakdown in single query
+            var executionBreakdown = await _context.RecoveryJobExecutions
+                .AsNoTracking()
                 .Where(e => e.Status == "Completed")
-                .ToListAsync();
+                .GroupBy(e => 1)
+                .Select(g => new
+                {
+                    ExpiredVerifications = g.Sum(e => e.ExpiredVerificationsProcessed),
+                    ExpiredApprovals = g.Sum(e => e.ExpiredApprovalsProcessed),
+                    RevertedVerifications = g.Sum(e => e.RevertedVerificationsProcessed)
+                })
+                .FirstOrDefaultAsync();
 
-            if (completedExecutions.Any())
+            // Get batch amounts in single query
+            var batchAmounts = await _context.StagingBatches
+                .AsNoTracking()
+                .Where(b => b.TotalRecoveredAmount.HasValue && b.TotalRecoveredAmount > 0)
+                .GroupBy(b => 1)
+                .Select(g => new
+                {
+                    PersonalTotal = g.Sum(b => b.TotalPersonalAmount ?? 0),
+                    COSTotal = g.Sum(b => b.TotalClassOfServiceAmount ?? 0)
+                })
+                .FirstOrDefaultAsync();
+
+            if (executionBreakdown != null)
             {
-                RecoveryBreakdown.ExpiredVerificationCount = completedExecutions.Sum(e => e.ExpiredVerificationsProcessed);
-                RecoveryBreakdown.ExpiredApprovalCount = completedExecutions.Sum(e => e.ExpiredApprovalsProcessed);
-                RecoveryBreakdown.RevertedVerificationCount = completedExecutions.Sum(e => e.RevertedVerificationsProcessed);
+                RecoveryBreakdown.ExpiredVerificationCount = executionBreakdown.ExpiredVerifications;
+                RecoveryBreakdown.ExpiredApprovalCount = executionBreakdown.ExpiredApprovals;
+                RecoveryBreakdown.RevertedVerificationCount = executionBreakdown.RevertedVerifications;
             }
 
-            // Get amounts by type from batches
-            var batches = await _context.StagingBatches
-                .Where(b => b.TotalRecoveredAmount.HasValue && b.TotalRecoveredAmount > 0)
-                .ToListAsync();
-
-            if (batches.Any())
+            if (batchAmounts != null)
             {
-                RecoveryBreakdown.PersonalAmountTotal = batches.Sum(b => b.TotalPersonalAmount ?? 0);
-                RecoveryBreakdown.ClassOfServiceAmountTotal = batches.Sum(b => b.TotalClassOfServiceAmount ?? 0);
+                RecoveryBreakdown.PersonalAmountTotal = batchAmounts.PersonalTotal;
+                RecoveryBreakdown.ClassOfServiceAmountTotal = batchAmounts.COSTotal;
             }
         }
 
         private async Task LoadEnhancedMetricsAsync()
         {
-            var filteredRecoveryLogs = GetFilteredRecoveryLogs();
-
-            // Overall totals (all time)
-            var allRecoveryLogs = await _context.RecoveryLogs
+            // Get all recovery logs with currency info in single query
+            var recoveryStats = await _context.RecoveryLogs
+                .AsNoTracking()
                 .Include(r => r.CallRecord)
+                .GroupBy(r => r.CallRecord != null ? r.CallRecord.CallCurrencyCode : "KES")
+                .Select(g => new
+                {
+                    Currency = g.Key ?? "KES",
+                    TotalAmount = g.Sum(r => r.AmountRecovered),
+                    Last30DaysAmount = g.Where(r => r.RecoveryDate >= Filters.StartDate && r.RecoveryDate <= Filters.EndDate)
+                                        .Sum(r => r.AmountRecovered),
+                    Last7DaysAmount = g.Where(r => r.RecoveryDate >= DateTime.UtcNow.AddDays(-7))
+                                       .Sum(r => r.AmountRecovered)
+                })
                 .ToListAsync();
 
-            decimal totalKSH = 0;
-            decimal totalUSD = 0;
+            decimal totalKSH = 0, totalUSD = 0;
+            decimal last30KSH = 0, last30USD = 0;
+            decimal last7KSH = 0, last7USD = 0;
 
-            foreach (var log in allRecoveryLogs)
+            foreach (var stat in recoveryStats)
             {
-                var currency = log.CallRecord?.CallCurrencyCode?.ToUpper() ?? "KES";
-
-                // Handle both KES (ISO code) and KSH (common abbreviation)
+                var currency = stat.Currency?.ToUpper() ?? "KES";
                 if (currency == "KES" || currency == "KSH")
                 {
-                    totalKSH += log.AmountRecovered;
-                    totalUSD += await _currencyService.ConvertCurrencyAsync(log.AmountRecovered, "KSH", "USD");
+                    totalKSH += stat.TotalAmount;
+                    totalUSD += stat.TotalAmount * _kshToUsdRate;
+                    last30KSH += stat.Last30DaysAmount;
+                    last30USD += stat.Last30DaysAmount * _kshToUsdRate;
+                    last7KSH += stat.Last7DaysAmount;
+                    last7USD += stat.Last7DaysAmount * _kshToUsdRate;
                 }
                 else if (currency == "USD")
                 {
-                    totalUSD += log.AmountRecovered;
-                    totalKSH += await _currencyService.ConvertCurrencyAsync(log.AmountRecovered, "USD", "KSH");
+                    totalUSD += stat.TotalAmount;
+                    totalKSH += stat.TotalAmount * _usdToKshRate;
+                    last30USD += stat.Last30DaysAmount;
+                    last30KSH += stat.Last30DaysAmount * _usdToKshRate;
+                    last7USD += stat.Last7DaysAmount;
+                    last7KSH += stat.Last7DaysAmount * _usdToKshRate;
                 }
             }
 
             EnhancedMetrics.TotalAmountRecoveredKSH = totalKSH;
             EnhancedMetrics.TotalAmountRecoveredUSD = totalUSD;
-
-            // Last 30 days with filters
-            var last30DaysLogs = await filteredRecoveryLogs
-                .Where(r => r.RecoveryDate >= Filters.StartDate && r.RecoveryDate <= Filters.EndDate)
-                .Include(r => r.CallRecord)
-                .ToListAsync();
-
-            decimal last30KSH = 0;
-            decimal last30USD = 0;
-
-            foreach (var log in last30DaysLogs)
-            {
-                var currency = log.CallRecord?.CallCurrencyCode?.ToUpper() ?? "KES";
-
-                // Handle both KES (ISO code) and KSH (common abbreviation)
-                if (currency == "KES" || currency == "KSH")
-                {
-                    last30KSH += log.AmountRecovered;
-                    last30USD += await _currencyService.ConvertCurrencyAsync(log.AmountRecovered, "KSH", "USD");
-                }
-                else if (currency == "USD")
-                {
-                    last30USD += log.AmountRecovered;
-                    last30KSH += await _currencyService.ConvertCurrencyAsync(log.AmountRecovered, "USD", "KSH");
-                }
-            }
-
             EnhancedMetrics.AmountRecoveredLast30DaysKSH = last30KSH;
             EnhancedMetrics.AmountRecoveredLast30DaysUSD = last30USD;
-
-            // Last 7 days
-            var last7DaysLogs = await filteredRecoveryLogs
-                .Where(r => r.RecoveryDate >= DateTime.UtcNow.AddDays(-7))
-                .Include(r => r.CallRecord)
-                .ToListAsync();
-
-            decimal last7KSH = 0;
-            decimal last7USD = 0;
-
-            foreach (var log in last7DaysLogs)
-            {
-                var currency = log.CallRecord?.CallCurrencyCode?.ToUpper() ?? "KES";
-
-                // Handle both KES (ISO code) and KSH (common abbreviation)
-                if (currency == "KES" || currency == "KSH")
-                {
-                    last7KSH += log.AmountRecovered;
-                    last7USD += await _currencyService.ConvertCurrencyAsync(log.AmountRecovered, "KSH", "USD");
-                }
-                else if (currency == "USD")
-                {
-                    last7USD += log.AmountRecovered;
-                    last7KSH += await _currencyService.ConvertCurrencyAsync(log.AmountRecovered, "USD", "KSH");
-                }
-            }
-
             EnhancedMetrics.AmountRecoveredLast7DaysKSH = last7KSH;
             EnhancedMetrics.AmountRecoveredLast7DaysUSD = last7USD;
 
@@ -484,7 +502,6 @@ namespace TAB.Web.Pages.Admin
             EnhancedMetrics.SuccessRate = Metrics.SuccessRate;
             EnhancedMetrics.TrendPercentage = Metrics.TrendPercentage;
 
-            // Calculate average recovery per batch in both currencies
             if (Metrics.TotalBatchesProcessed > 0)
             {
                 EnhancedMetrics.AverageRecoveryPerBatchKSH = totalKSH / Metrics.TotalBatchesProcessed;
@@ -494,54 +511,59 @@ namespace TAB.Web.Pages.Admin
 
         private async Task LoadRecoveryByTypeAsync()
         {
-            // Get all call records that have been assigned (not "None")
-            // Use FinalAssignmentType to determine the breakdown
-            var allCalls = await _context.CallRecords
+            // Single query with grouping by assignment type and currency
+            var callStats = await _context.CallRecords
+                .AsNoTracking()
                 .Where(c => c.FinalAssignmentType != null && c.FinalAssignmentType != "None")
+                .GroupBy(c => new { c.FinalAssignmentType, c.CallCurrencyCode })
+                .Select(g => new
+                {
+                    AssignmentType = g.Key.FinalAssignmentType,
+                    Currency = g.Key.CallCurrencyCode ?? "KES",
+                    TotalKSH = g.Sum(c => c.CallCostKSHS),
+                    TotalUSD = g.Sum(c => c.CallCostUSD),
+                    Count = g.Count()
+                })
                 .ToListAsync();
 
             var dto = new RecoveryByTypeDTO();
 
-            foreach (var call in allCalls)
+            foreach (var stat in callStats)
             {
-                var currency = call.CallCurrencyCode?.ToUpper() ?? "KES";
-                decimal amountKSH = 0;
-                decimal amountUSD = 0;
+                var currency = stat.Currency?.ToUpper() ?? "KES";
+                decimal amountKSH, amountUSD;
 
-                // Handle both KES (ISO code) and KSH (common abbreviation)
                 if (currency == "KES" || currency == "KSH")
                 {
-                    amountKSH = call.CallCostKSHS;
-                    amountUSD = await _currencyService.ConvertCurrencyAsync(call.CallCostKSHS, "KSH", "USD");
+                    amountKSH = stat.TotalKSH;
+                    amountUSD = stat.TotalKSH * _kshToUsdRate;
                 }
-                else if (currency == "USD")
+                else
                 {
-                    amountUSD = call.CallCostUSD;
-                    amountKSH = await _currencyService.ConvertCurrencyAsync(call.CallCostUSD, "USD", "KSH");
+                    amountUSD = stat.TotalUSD;
+                    amountKSH = stat.TotalUSD * _usdToKshRate;
                 }
 
-                // Categorize by FinalAssignmentType
-                switch (call.FinalAssignmentType?.ToLower())
+                switch (stat.AssignmentType?.ToLower())
                 {
                     case "personal":
                         dto.PersonalKSH += amountKSH;
                         dto.PersonalUSD += amountUSD;
-                        dto.PersonalCallCount++;
+                        dto.PersonalCallCount += stat.Count;
                         break;
                     case "official":
                         dto.OfficialKSH += amountKSH;
                         dto.OfficialUSD += amountUSD;
-                        dto.OfficialCallCount++;
+                        dto.OfficialCallCount += stat.Count;
                         break;
                     case "classofservice":
                         dto.ClassOfServiceKSH += amountKSH;
                         dto.ClassOfServiceUSD += amountUSD;
-                        dto.COSCallCount++;
+                        dto.COSCallCount += stat.Count;
                         break;
                 }
             }
 
-            // Calculate percentages
             if (dto.TotalCalls > 0)
             {
                 dto.PersonalPercentage = (decimal)dto.PersonalCallCount / dto.TotalCalls * 100;
@@ -549,15 +571,12 @@ namespace TAB.Web.Pages.Admin
                 dto.COSPercentage = (decimal)dto.COSCallCount / dto.TotalCalls * 100;
             }
 
-            // Store breakdown in enhanced metrics
             EnhancedMetrics.PersonalRecoveryKSH = dto.PersonalKSH;
             EnhancedMetrics.PersonalRecoveryUSD = dto.PersonalUSD;
             EnhancedMetrics.PersonalRecoveryPercentage = dto.PersonalPercentage;
-
             EnhancedMetrics.OfficialRecoveryKSH = dto.OfficialKSH;
             EnhancedMetrics.OfficialRecoveryUSD = dto.OfficialUSD;
             EnhancedMetrics.OfficialRecoveryPercentage = dto.OfficialPercentage;
-
             EnhancedMetrics.COSRecoveryKSH = dto.ClassOfServiceKSH;
             EnhancedMetrics.COSRecoveryUSD = dto.ClassOfServiceUSD;
             EnhancedMetrics.COSRecoveryPercentage = dto.COSPercentage;
@@ -567,66 +586,71 @@ namespace TAB.Web.Pages.Admin
 
         private async Task LoadRecoveryByProviderAsync()
         {
-            var filteredLogs = await GetFilteredRecoveryLogs()
-                .Include(r => r.CallRecord)
+            var query = GetFilteredRecoveryLogsQuery();
+
+            // Group by provider and currency in database
+            var providerStats = await query
+                .GroupBy(r => new
+                {
+                    Provider = r.CallRecord!.SourceSystem ?? "Unknown",
+                    Currency = r.CallRecord.CallCurrencyCode ?? "KES"
+                })
+                .Select(g => new
+                {
+                    g.Key.Provider,
+                    g.Key.Currency,
+                    TotalAmount = g.Sum(r => r.AmountRecovered),
+                    Count = g.Count()
+                })
                 .ToListAsync();
 
-            // Group by provider (SourceSystem)
-            var providerGroups = filteredLogs
-                .Where(r => r.CallRecord != null)
-                .GroupBy(r => r.CallRecord!.SourceSystem ?? "Unknown");
+            // Aggregate by provider
+            var providerDict = new Dictionary<string, (decimal ksh, decimal usd, int count)>();
 
-            var providerList = new List<RecoveryByProviderDTO>();
-
-            foreach (var group in providerGroups)
+            foreach (var stat in providerStats)
             {
-                var provider = group.Key;
-                var logs = group.ToList();
+                var currency = stat.Currency?.ToUpper() ?? "KES";
+                decimal amountKSH, amountUSD;
 
-                // Determine native currency for this provider
-                var nativeCurrency = provider.ToUpper() == "PRIVATEWIRE" ? "USD" : "KSH";
-
-                decimal nativeAmount = 0;
-                decimal totalKSH = 0;
-                decimal totalUSD = 0;
-
-                foreach (var log in logs)
+                if (currency == "KES" || currency == "KSH")
                 {
-                    var currency = log.CallRecord?.CallCurrencyCode?.ToUpper() ?? "KES";
-                    decimal amountKSH = 0;
-                    decimal amountUSD = 0;
-
-                    // Handle both KES (ISO code) and KSH (common abbreviation)
-                    if (currency == "KES" || currency == "KSH")
-                    {
-                        amountKSH = log.AmountRecovered;
-                        amountUSD = await _currencyService.ConvertCurrencyAsync(log.AmountRecovered, "KSH", "USD");
-                    }
-                    else if (currency == "USD")
-                    {
-                        amountUSD = log.AmountRecovered;
-                        amountKSH = await _currencyService.ConvertCurrencyAsync(log.AmountRecovered, "USD", "KSH");
-                    }
-
-                    totalKSH += amountKSH;
-                    totalUSD += amountUSD;
+                    amountKSH = stat.TotalAmount;
+                    amountUSD = stat.TotalAmount * _kshToUsdRate;
+                }
+                else
+                {
+                    amountUSD = stat.TotalAmount;
+                    amountKSH = stat.TotalAmount * _usdToKshRate;
                 }
 
-                nativeAmount = nativeCurrency == "USD" ? totalUSD : totalKSH;
-
-                providerList.Add(new RecoveryByProviderDTO
+                if (providerDict.ContainsKey(stat.Provider))
                 {
-                    Provider = provider,
-                    NativeCurrency = nativeCurrency,
-                    AmountInNativeCurrency = nativeAmount,
-                    AmountInKSH = totalKSH,
-                    AmountInUSD = totalUSD,
-                    CallCount = logs.Count,
-                    AvgPerCall = logs.Count > 0 ? nativeAmount / logs.Count : 0
-                });
+                    var (ksh, usd, count) = providerDict[stat.Provider];
+                    providerDict[stat.Provider] = (ksh + amountKSH, usd + amountUSD, count + stat.Count);
+                }
+                else
+                {
+                    providerDict[stat.Provider] = (amountKSH, amountUSD, stat.Count);
+                }
             }
 
-            // Calculate percentages
+            var providerList = providerDict.Select(kvp =>
+            {
+                var nativeCurrency = kvp.Key.ToUpper() == "PRIVATEWIRE" ? "USD" : "KSH";
+                var nativeAmount = nativeCurrency == "USD" ? kvp.Value.usd : kvp.Value.ksh;
+
+                return new RecoveryByProviderDTO
+                {
+                    Provider = kvp.Key,
+                    NativeCurrency = nativeCurrency,
+                    AmountInNativeCurrency = nativeAmount,
+                    AmountInKSH = kvp.Value.ksh,
+                    AmountInUSD = kvp.Value.usd,
+                    CallCount = kvp.Value.count,
+                    AvgPerCall = kvp.Value.count > 0 ? nativeAmount / kvp.Value.count : 0
+                };
+            }).ToList();
+
             var grandTotal = providerList.Sum(p => p.AmountInKSH);
             if (grandTotal > 0)
             {
@@ -641,177 +665,163 @@ namespace TAB.Web.Pages.Admin
 
         private async Task LoadRecoveryByOrganizationAsync()
         {
-            var filteredLogs = await GetFilteredRecoveryLogs()
-                .Include(r => r.CallRecord)
-                    .ThenInclude(c => c!.ResponsibleUser)
-                        .ThenInclude(u => u!.OrganizationEntity)
+            var query = GetFilteredRecoveryLogsQuery();
+
+            // Get recovery data grouped by organization in database
+            var orgStats = await query
+                .Where(r => r.CallRecord!.ResponsibleUser!.OrganizationEntity != null)
+                .GroupBy(r => new
+                {
+                    OrgId = r.CallRecord!.ResponsibleUser!.OrganizationEntity!.Id,
+                    OrgName = r.CallRecord.ResponsibleUser.OrganizationEntity.Name,
+                    Currency = r.CallRecord.CallCurrencyCode ?? "KES",
+                    Action = r.RecoveryAction
+                })
+                .Select(g => new
+                {
+                    g.Key.OrgId,
+                    g.Key.OrgName,
+                    g.Key.Currency,
+                    g.Key.Action,
+                    TotalAmount = g.Sum(r => r.AmountRecovered),
+                    Count = g.Count(),
+                    UserCount = g.Select(r => r.RecoveredFrom).Distinct().Count()
+                })
                 .ToListAsync();
 
-            // Group by organization
-            var orgGroups = filteredLogs
-                .Where(r => r.CallRecord?.ResponsibleUser?.OrganizationEntity != null)
-                .GroupBy(r => r.CallRecord!.ResponsibleUser!.OrganizationEntity);
+            // Aggregate by organization
+            var orgDict = new Dictionary<int, RecoveryByOrganizationDTO>();
 
-            var orgList = new List<RecoveryByOrganizationDTO>();
-
-            foreach (var group in orgGroups)
+            foreach (var stat in orgStats)
             {
-                var org = group.Key;
-                var logs = group.ToList();
+                var currency = stat.Currency?.ToUpper() ?? "KES";
+                decimal amountKSH, amountUSD;
 
-                decimal totalKSH = 0;
-                decimal totalUSD = 0;
-                int personalCount = 0;
-                int officialCount = 0;
-                int cosCount = 0;
-
-                foreach (var log in logs)
+                if (currency == "KES" || currency == "KSH")
                 {
-                    var currency = log.CallRecord?.CallCurrencyCode?.ToUpper() ?? "KES";
-                    decimal amountKSH = 0;
-                    decimal amountUSD = 0;
-
-                    // Handle both KES (ISO code) and KSH (common abbreviation)
-                    if (currency == "KES" || currency == "KSH")
-                    {
-                        amountKSH = log.AmountRecovered;
-                        amountUSD = await _currencyService.ConvertCurrencyAsync(log.AmountRecovered, "KSH", "USD");
-                    }
-                    else if (currency == "USD")
-                    {
-                        amountUSD = log.AmountRecovered;
-                        amountKSH = await _currencyService.ConvertCurrencyAsync(log.AmountRecovered, "USD", "KSH");
-                    }
-
-                    totalKSH += amountKSH;
-                    totalUSD += amountUSD;
-
-                    // Count by type
-                    switch (log.RecoveryAction?.ToLower())
-                    {
-                        case "personal":
-                            personalCount++;
-                            break;
-                        case "official":
-                            officialCount++;
-                            break;
-                        case "classofservice":
-                        case "cos":
-                            cosCount++;
-                            break;
-                    }
+                    amountKSH = stat.TotalAmount;
+                    amountUSD = stat.TotalAmount * _kshToUsdRate;
+                }
+                else
+                {
+                    amountUSD = stat.TotalAmount;
+                    amountKSH = stat.TotalAmount * _usdToKshRate;
                 }
 
-                // Get unique user count
-                var userCount = logs
-                    .Where(r => r.RecoveredFrom != null)
-                    .Select(r => r.RecoveredFrom)
-                    .Distinct()
-                    .Count();
-
-                orgList.Add(new RecoveryByOrganizationDTO
+                if (!orgDict.ContainsKey(stat.OrgId))
                 {
-                    OrganizationId = org!.Id,
-                    OrganizationName = org.Name,
-                    TotalKSH = totalKSH,
-                    TotalUSD = totalUSD,
-                    PersonalCount = personalCount,
-                    OfficialCount = officialCount,
-                    COSCount = cosCount,
-                    UserCount = userCount,
-                    ComplianceRate = 0 // TODO: Calculate compliance rate
-                });
+                    orgDict[stat.OrgId] = new RecoveryByOrganizationDTO
+                    {
+                        OrganizationId = stat.OrgId,
+                        OrganizationName = stat.OrgName
+                    };
+                }
+
+                var org = orgDict[stat.OrgId];
+                org.TotalKSH += amountKSH;
+                org.TotalUSD += amountUSD;
+                org.UserCount = Math.Max(org.UserCount, stat.UserCount);
+
+                switch (stat.Action?.ToLower())
+                {
+                    case "personal":
+                        org.PersonalCount += stat.Count;
+                        break;
+                    case "official":
+                        org.OfficialCount += stat.Count;
+                        break;
+                    case "classofservice":
+                    case "cos":
+                        org.COSCount += stat.Count;
+                        break;
+                }
             }
 
-            RecoveryByOrganization = orgList.OrderByDescending(o => o.TotalKSH).ToList();
+            RecoveryByOrganization = orgDict.Values.OrderByDescending(o => o.TotalKSH).ToList();
         }
 
         private async Task LoadTopUserRecoveriesAsync()
         {
-            var filteredLogs = await GetFilteredRecoveryLogs()
-                .Include(r => r.CallRecord)
-                    .ThenInclude(c => c!.ResponsibleUser)
-                        .ThenInclude(u => u!.OrganizationEntity)
-                .Include(r => r.CallRecord)
-                    .ThenInclude(c => c!.ResponsibleUser)
-                        .ThenInclude(u => u!.OfficeEntity)
+            var query = GetFilteredRecoveryLogsQuery();
+
+            // Get recovery data grouped by user in database
+            var userStats = await query
+                .Where(r => r.RecoveredFrom != null && r.CallRecord!.ResponsibleUser != null)
+                .GroupBy(r => new
+                {
+                    IndexNumber = r.RecoveredFrom,
+                    FullName = r.CallRecord!.ResponsibleUser!.FirstName + " " + r.CallRecord.ResponsibleUser.LastName,
+                    OrgName = r.CallRecord.ResponsibleUser.OrganizationEntity != null ? r.CallRecord.ResponsibleUser.OrganizationEntity.Name : "N/A",
+                    OfficeName = r.CallRecord.ResponsibleUser.OfficeEntity != null ? r.CallRecord.ResponsibleUser.OfficeEntity.Name : "N/A",
+                    Currency = r.CallRecord.CallCurrencyCode ?? "KES",
+                    Action = r.RecoveryAction
+                })
+                .Select(g => new
+                {
+                    g.Key.IndexNumber,
+                    g.Key.FullName,
+                    g.Key.OrgName,
+                    g.Key.OfficeName,
+                    g.Key.Currency,
+                    g.Key.Action,
+                    TotalAmount = g.Sum(r => r.AmountRecovered),
+                    Count = g.Count()
+                })
                 .ToListAsync();
 
-            // Group by user
-            var userGroups = filteredLogs
-                .Where(r => r.RecoveredFrom != null && r.CallRecord?.ResponsibleUser != null)
-                .GroupBy(r => r.RecoveredFrom);
+            // Aggregate by user
+            var userDict = new Dictionary<string, TopUserRecoveryDTO>();
 
-            var userList = new List<TopUserRecoveryDTO>();
-
-            foreach (var group in userGroups)
+            foreach (var stat in userStats)
             {
-                var indexNumber = group.Key!;
-                var logs = group.ToList();
-                var user = logs.First().CallRecord?.ResponsibleUser;
+                if (stat.IndexNumber == null) continue;
 
-                if (user == null) continue;
+                var currency = stat.Currency?.ToUpper() ?? "KES";
+                decimal amountKSH, amountUSD;
 
-                decimal totalKSH = 0;
-                decimal totalUSD = 0;
-                int personalCalls = 0;
-                int officialCalls = 0;
-                int cosCalls = 0;
-
-                foreach (var log in logs)
+                if (currency == "KES" || currency == "KSH")
                 {
-                    var currency = log.CallRecord?.CallCurrencyCode?.ToUpper() ?? "KES";
-                    decimal amountKSH = 0;
-                    decimal amountUSD = 0;
-
-                    // Handle both KES (ISO code) and KSH (common abbreviation)
-                    if (currency == "KES" || currency == "KSH")
-                    {
-                        amountKSH = log.AmountRecovered;
-                        amountUSD = await _currencyService.ConvertCurrencyAsync(log.AmountRecovered, "KSH", "USD");
-                    }
-                    else if (currency == "USD")
-                    {
-                        amountUSD = log.AmountRecovered;
-                        amountKSH = await _currencyService.ConvertCurrencyAsync(log.AmountRecovered, "USD", "KSH");
-                    }
-
-                    totalKSH += amountKSH;
-                    totalUSD += amountUSD;
-
-                    // Count by type
-                    switch (log.RecoveryAction?.ToLower())
-                    {
-                        case "personal":
-                            personalCalls++;
-                            break;
-                        case "official":
-                            officialCalls++;
-                            break;
-                        case "classofservice":
-                        case "cos":
-                            cosCalls++;
-                            break;
-                    }
+                    amountKSH = stat.TotalAmount;
+                    amountUSD = stat.TotalAmount * _kshToUsdRate;
+                }
+                else
+                {
+                    amountUSD = stat.TotalAmount;
+                    amountKSH = stat.TotalAmount * _usdToKshRate;
                 }
 
-                userList.Add(new TopUserRecoveryDTO
+                if (!userDict.ContainsKey(stat.IndexNumber))
                 {
-                    IndexNumber = indexNumber,
-                    FullName = $"{user.FirstName} {user.LastName}",
-                    OrganizationName = user.OrganizationEntity?.Name ?? "N/A",
-                    OfficeName = user.OfficeEntity?.Name ?? "N/A",
-                    TotalKSH = totalKSH,
-                    TotalUSD = totalUSD,
-                    CallCount = logs.Count(),
-                    PersonalCalls = personalCalls,
-                    OfficialCalls = officialCalls,
-                    COSCalls = cosCalls
-                });
+                    userDict[stat.IndexNumber] = new TopUserRecoveryDTO
+                    {
+                        IndexNumber = stat.IndexNumber,
+                        FullName = stat.FullName,
+                        OrganizationName = stat.OrgName,
+                        OfficeName = stat.OfficeName
+                    };
+                }
+
+                var user = userDict[stat.IndexNumber];
+                user.TotalKSH += amountKSH;
+                user.TotalUSD += amountUSD;
+                user.CallCount += stat.Count;
+
+                switch (stat.Action?.ToLower())
+                {
+                    case "personal":
+                        user.PersonalCalls += stat.Count;
+                        break;
+                    case "official":
+                        user.OfficialCalls += stat.Count;
+                        break;
+                    case "classofservice":
+                    case "cos":
+                        user.COSCalls += stat.Count;
+                        break;
+                }
             }
 
-            // Rank and take top 20
-            var ranked = userList
+            TopUserRecoveries = userDict.Values
                 .OrderByDescending(u => u.TotalKSH)
                 .Take(20)
                 .Select((u, index) =>
@@ -820,43 +830,46 @@ namespace TAB.Web.Pages.Admin
                     return u;
                 })
                 .ToList();
-
-            TopUserRecoveries = ranked;
         }
 
         private async Task LoadAlertsAsync()
         {
             var alerts = new List<DashboardAlertDTO>();
+            var next48Hours = DateTime.UtcNow.AddHours(48);
 
-            // Check for pending recoveries
-            var pendingRecoveries = await _context.CallRecords
+            // Get both counts in parallel
+            var pendingTask = _context.CallRecords
+                .AsNoTracking()
                 .Where(c => c.RecoveryStatus == "Pending")
+                .GroupBy(c => 1)
+                .Select(g => new { Count = g.Count(), Amount = g.Sum(c => c.RecoveryAmount ?? 0) })
+                .FirstOrDefaultAsync();
+
+            var deadlineTask = _context.DeadlineTracking
+                .AsNoTracking()
+                .Where(d => d.DeadlineDate > DateTime.UtcNow &&
+                           d.DeadlineDate <= next48Hours &&
+                           d.DeadlineStatus == "Pending")
                 .CountAsync();
 
-            if (pendingRecoveries > 0)
-            {
-                var pendingAmount = await _context.CallRecords
-                    .Where(c => c.RecoveryStatus == "Pending")
-                    .SumAsync(c => c.RecoveryAmount ?? 0);
+            await Task.WhenAll(pendingTask, deadlineTask);
 
+            var pendingResult = await pendingTask;
+            var upcomingDeadlines = await deadlineTask;
+
+            if (pendingResult != null && pendingResult.Count > 0)
+            {
                 alerts.Add(new DashboardAlertDTO
                 {
                     AlertType = "Pending Recoveries",
                     Priority = "Medium",
-                    Message = $"{pendingRecoveries} call records pending recovery processing",
-                    AffectedCount = pendingRecoveries,
-                    AmountAtRisk = pendingAmount,
+                    Message = $"{pendingResult.Count} call records pending recovery processing",
+                    AffectedCount = pendingResult.Count,
+                    AmountAtRisk = pendingResult.Amount,
                     Icon = "bi-clock-history",
                     Link = "/Admin/CallLogs?filter=pending"
                 });
             }
-
-            // Check for upcoming deadlines
-            var upcomingDeadlines = await _context.DeadlineTracking
-                .Where(d => d.DeadlineDate > DateTime.UtcNow &&
-                           d.DeadlineDate <= DateTime.UtcNow.AddDays(2) &&
-                           d.DeadlineStatus == "Pending")
-                .CountAsync();
 
             if (upcomingDeadlines > 0)
             {
@@ -877,254 +890,233 @@ namespace TAB.Web.Pages.Admin
 
         private async Task LoadOfficialCallsMetricsAsync()
         {
-            // Get all calls where FinalAssignmentType = "Official"
-            // These are calls approved by supervisor as legitimate business calls
-            // Organization pays for these - NOT recovered from staff
-            var officialCalls = await _context.CallRecords
+            // Single query with grouping by currency
+            var officialStats = await _context.CallRecords
+                .AsNoTracking()
                 .Where(c => c.FinalAssignmentType == "Official")
+                .GroupBy(c => c.CallCurrencyCode ?? "KES")
+                .Select(g => new
+                {
+                    Currency = g.Key,
+                    Count = g.Count(),
+                    TotalKSH = g.Sum(c => c.CallCostKSHS),
+                    TotalUSD = g.Sum(c => c.CallCostUSD)
+                })
                 .ToListAsync();
 
-            TotalOfficialCallsCount = officialCalls.Count;
+            decimal totalKSH = 0, totalUSD = 0;
+            int totalCount = 0;
 
-            // Calculate total amounts in both currencies
-            decimal totalKSH = 0;
-            decimal totalUSD = 0;
-
-            foreach (var call in officialCalls)
+            foreach (var stat in officialStats)
             {
-                var currency = call.CallCurrencyCode?.ToUpper() ?? "KES";
+                totalCount += stat.Count;
+                var currency = stat.Currency?.ToUpper() ?? "KES";
 
-                // Handle both KES (ISO code) and KSH (common abbreviation)
                 if (currency == "KES" || currency == "KSH")
                 {
-                    totalKSH += call.CallCostKSHS;
-                    totalUSD += await _currencyService.ConvertCurrencyAsync(call.CallCostKSHS, "KSH", "USD");
+                    totalKSH += stat.TotalKSH;
+                    totalUSD += stat.TotalKSH * _kshToUsdRate;
                 }
-                else if (currency == "USD")
+                else
                 {
-                    totalUSD += call.CallCostUSD;
-                    totalKSH += await _currencyService.ConvertCurrencyAsync(call.CallCostUSD, "USD", "KSH");
+                    totalUSD += stat.TotalUSD;
+                    totalKSH += stat.TotalUSD * _usdToKshRate;
                 }
             }
 
+            TotalOfficialCallsCount = totalCount;
             TotalOfficialAmountKSH = totalKSH;
             TotalOfficialAmountUSD = totalUSD;
         }
 
         private async Task LoadProviderSummaryAsync()
         {
-            // Get all processed call records (those with FinalAssignmentType set)
-            var allProcessedCalls = await _context.CallRecords
+            // Single query with grouping by provider, currency, and assignment type
+            var providerStats = await _context.CallRecords
+                .AsNoTracking()
                 .Where(c => c.FinalAssignmentType != null && c.FinalAssignmentType != "None")
+                .GroupBy(c => new
+                {
+                    Provider = c.SourceSystem ?? "Unknown",
+                    Currency = c.CallCurrencyCode ?? "KES",
+                    AssignmentType = c.FinalAssignmentType
+                })
+                .Select(g => new
+                {
+                    g.Key.Provider,
+                    g.Key.Currency,
+                    g.Key.AssignmentType,
+                    Count = g.Count(),
+                    TotalKSH = g.Sum(c => c.CallCostKSHS),
+                    TotalUSD = g.Sum(c => c.CallCostUSD)
+                })
                 .ToListAsync();
 
-            // Group by provider (SourceSystem)
-            var providerGroups = allProcessedCalls.GroupBy(c => c.SourceSystem ?? "Unknown");
-
             ProviderSummaries.Clear();
-
-            // Calculate totals for each provider
-            foreach (var group in providerGroups)
-            {
-                var provider = group.Key;
-                var calls = group.ToList();
-
-                decimal totalKSH = 0;
-                decimal totalUSD = 0;
-
-                foreach (var call in calls)
-                {
-                    var currency = call.CallCurrencyCode?.ToUpper() ?? "KES";
-
-                    // Handle both KES (ISO code) and KSH (common abbreviation)
-                    if (currency == "KES" || currency == "KSH")
-                    {
-                        totalKSH += call.CallCostKSHS;
-                        totalUSD += await _currencyService.ConvertCurrencyAsync(call.CallCostKSHS, "KSH", "USD");
-                    }
-                    else if (currency == "USD")
-                    {
-                        totalUSD += call.CallCostUSD;
-                        totalKSH += await _currencyService.ConvertCurrencyAsync(call.CallCostUSD, "USD", "KSH");
-                    }
-                }
-
-                // Determine native currency for this provider
-                var nativeCurrency = provider.ToUpper() == "PRIVATEWIRE" ? "USD" : "KSH";
-
-                ProviderSummaries[provider] = new ProviderSummary
-                {
-                    ProviderName = provider,
-                    CallCount = calls.Count,
-                    AmountKSH = totalKSH,
-                    AmountUSD = totalUSD,
-                    Currency = nativeCurrency
-                };
-            }
-
-            // Calculate Personal vs Official totals across all providers
-            var personalCalls = allProcessedCalls.Where(c => c.FinalAssignmentType == "Personal").ToList();
-            var officialCalls = allProcessedCalls.Where(c => c.FinalAssignmentType == "Official").ToList();
-
-            TotalPersonalCalls = personalCalls.Count;
+            TotalPersonalCalls = 0;
             TotalPersonalAmountKSH = 0;
-
-            foreach (var call in personalCalls)
-            {
-                var currency = call.CallCurrencyCode?.ToUpper() ?? "KES";
-
-                if (currency == "KES" || currency == "KSH")
-                {
-                    TotalPersonalAmountKSH += call.CallCostKSHS;
-                }
-                else if (currency == "USD")
-                {
-                    TotalPersonalAmountKSH += await _currencyService.ConvertCurrencyAsync(call.CallCostUSD, "USD", "KSH");
-                }
-            }
-
-            TotalOfficialCallsAll = officialCalls.Count;
+            TotalOfficialCallsAll = 0;
             TotalOfficialAmountKSHAll = 0;
 
-            foreach (var call in officialCalls)
+            foreach (var stat in providerStats)
             {
-                var currency = call.CallCurrencyCode?.ToUpper() ?? "KES";
+                var currency = stat.Currency?.ToUpper() ?? "KES";
+                decimal amountKSH, amountUSD;
 
                 if (currency == "KES" || currency == "KSH")
                 {
-                    TotalOfficialAmountKSHAll += call.CallCostKSHS;
+                    amountKSH = stat.TotalKSH;
+                    amountUSD = stat.TotalKSH * _kshToUsdRate;
                 }
-                else if (currency == "USD")
+                else
                 {
-                    TotalOfficialAmountKSHAll += await _currencyService.ConvertCurrencyAsync(call.CallCostUSD, "USD", "KSH");
+                    amountUSD = stat.TotalUSD;
+                    amountKSH = stat.TotalUSD * _usdToKshRate;
+                }
+
+                // Update provider summary
+                if (!ProviderSummaries.ContainsKey(stat.Provider))
+                {
+                    var nativeCurrency = stat.Provider.ToUpper() == "PRIVATEWIRE" ? "USD" : "KSH";
+                    ProviderSummaries[stat.Provider] = new ProviderSummary
+                    {
+                        ProviderName = stat.Provider,
+                        Currency = nativeCurrency
+                    };
+                }
+
+                var summary = ProviderSummaries[stat.Provider];
+                summary.CallCount += stat.Count;
+                summary.AmountKSH += amountKSH;
+                summary.AmountUSD += amountUSD;
+
+                // Update totals by assignment type
+                if (stat.AssignmentType == "Personal")
+                {
+                    TotalPersonalCalls += stat.Count;
+                    TotalPersonalAmountKSH += amountKSH;
+                }
+                else if (stat.AssignmentType == "Official")
+                {
+                    TotalOfficialCallsAll += stat.Count;
+                    TotalOfficialAmountKSHAll += amountKSH;
                 }
             }
         }
 
         private async Task LoadMonthlyRecoveryTrendsAsync()
         {
-            // Get data from the last 12 months based on billing period (call_year/call_month)
             var twelveMonthsAgo = DateTime.UtcNow.AddMonths(-12);
             var cutoffYear = twelveMonthsAgo.Year;
             var cutoffMonth = twelveMonthsAgo.Month;
 
-            // Get all processed call records with recovery data using call_year/call_month (billing period)
-            var callRecords = await _context.CallRecords
+            // Single query with grouping by month, year, currency, and assignment type
+            var monthlyStats = await _context.CallRecords
+                .AsNoTracking()
                 .Where(c => c.FinalAssignmentType != null &&
                            c.FinalAssignmentType != "None" &&
                            (c.CallYear > cutoffYear || (c.CallYear == cutoffYear && c.CallMonth >= cutoffMonth)))
-                .Select(c => new
+                .GroupBy(c => new
                 {
                     c.CallYear,
                     c.CallMonth,
                     c.FinalAssignmentType,
-                    c.CallCostKSHS,
-                    c.CallCostUSD,
-                    c.CallCurrencyCode
-                })
-                .ToListAsync();
-
-            // Group by billing month (call_year/call_month) and assignment type
-            var monthlyData = callRecords
-                .GroupBy(c => new
-                {
-                    Year = c.CallYear,
-                    Month = c.CallMonth
+                    Currency = c.CallCurrencyCode ?? "KES"
                 })
                 .Select(g => new
                 {
-                    g.Key.Year,
-                    g.Key.Month,
-                    PersonalCalls = g.Where(c => c.FinalAssignmentType == "Personal").ToList(),
-                    OfficialCalls = g.Where(c => c.FinalAssignmentType == "Official").ToList()
+                    g.Key.CallYear,
+                    g.Key.CallMonth,
+                    g.Key.FinalAssignmentType,
+                    g.Key.Currency,
+                    TotalKSH = g.Sum(c => c.CallCostKSHS),
+                    TotalUSD = g.Sum(c => c.CallCostUSD),
+                    Count = g.Count()
                 })
-                .OrderBy(g => g.Year)
-                .ThenBy(g => g.Month)
-                .ToList();
+                .ToListAsync();
 
-            MonthlyRecoveryTrends.Clear();
+            // Aggregate by month
+            var monthDict = new Dictionary<(int Year, int Month), MonthlyRecoveryTrend>();
 
-            foreach (var monthData in monthlyData)
+            foreach (var stat in monthlyStats)
             {
-                decimal personalKSH = 0;
-                decimal officialKSH = 0;
+                var key = (stat.CallYear, stat.CallMonth);
+                var currency = stat.Currency?.ToUpper() ?? "KES";
+                decimal amountKSH;
 
-                // Calculate Personal amount in KSH
-                foreach (var call in monthData.PersonalCalls)
+                if (currency == "KES" || currency == "KSH")
                 {
-                    var currency = call.CallCurrencyCode?.ToUpper() ?? "KES";
-                    if (currency == "KES" || currency == "KSH")
-                    {
-                        personalKSH += call.CallCostKSHS;
-                    }
-                    else if (currency == "USD")
-                    {
-                        personalKSH += await _currencyService.ConvertCurrencyAsync(call.CallCostUSD, "USD", "KSH");
-                    }
+                    amountKSH = stat.TotalKSH;
+                }
+                else
+                {
+                    amountKSH = stat.TotalUSD * _usdToKshRate;
                 }
 
-                // Calculate Official amount in KSH
-                foreach (var call in monthData.OfficialCalls)
+                if (!monthDict.ContainsKey(key))
                 {
-                    var currency = call.CallCurrencyCode?.ToUpper() ?? "KES";
-                    if (currency == "KES" || currency == "KSH")
+                    monthDict[key] = new MonthlyRecoveryTrend
                     {
-                        officialKSH += call.CallCostKSHS;
-                    }
-                    else if (currency == "USD")
-                    {
-                        officialKSH += await _currencyService.ConvertCurrencyAsync(call.CallCostUSD, "USD", "KSH");
-                    }
+                        MonthYear = new DateTime(stat.CallYear, stat.CallMonth, 1).ToString("MMM yyyy"),
+                        Year = stat.CallYear,
+                        Month = stat.CallMonth
+                    };
                 }
 
-                var monthName = new DateTime(monthData.Year, monthData.Month, 1).ToString("MMM yyyy");
-
-                MonthlyRecoveryTrends.Add(new MonthlyRecoveryTrend
+                var trend = monthDict[key];
+                if (stat.FinalAssignmentType == "Personal")
                 {
-                    MonthYear = monthName,
-                    Year = monthData.Year,
-                    Month = monthData.Month,
-                    PersonalAmountKSH = personalKSH,
-                    OfficialAmountKSH = officialKSH,
-                    PersonalCallCount = monthData.PersonalCalls.Count,
-                    OfficialCallCount = monthData.OfficialCalls.Count
-                });
+                    trend.PersonalAmountKSH += amountKSH;
+                    trend.PersonalCallCount += stat.Count;
+                }
+                else if (stat.FinalAssignmentType == "Official")
+                {
+                    trend.OfficialAmountKSH += amountKSH;
+                    trend.OfficialCallCount += stat.Count;
+                }
             }
+
+            MonthlyRecoveryTrends = monthDict.Values
+                .OrderBy(t => t.Year)
+                .ThenBy(t => t.Month)
+                .ToList();
         }
 
-        private IQueryable<RecoveryLog> GetFilteredRecoveryLogs()
+        private IQueryable<RecoveryLog> GetFilteredRecoveryLogsQuery()
         {
             var query = _context.RecoveryLogs
+                .AsNoTracking()
+                .Include(r => r.CallRecord)
+                    .ThenInclude(c => c!.ResponsibleUser)
+                        .ThenInclude(u => u!.OrganizationEntity)
+                .Include(r => r.CallRecord)
+                    .ThenInclude(c => c!.ResponsibleUser)
+                        .ThenInclude(u => u!.OfficeEntity)
                 .Where(r => r.RecoveryDate >= Filters.StartDate && r.RecoveryDate <= Filters.EndDate);
 
-            // Filter by organization
             if (Filters.OrganizationIds.Any())
             {
                 query = query.Where(r => r.CallRecord!.ResponsibleUser!.OrganizationId != null &&
                                         Filters.OrganizationIds.Contains(r.CallRecord.ResponsibleUser.OrganizationId.Value));
             }
 
-            // Filter by office
             if (Filters.OfficeIds.Any())
             {
                 query = query.Where(r => r.CallRecord!.ResponsibleUser!.OfficeId != null &&
                                         Filters.OfficeIds.Contains(r.CallRecord.ResponsibleUser.OfficeId.Value));
             }
 
-            // Filter by user
             if (!string.IsNullOrEmpty(Filters.UserIndexNumber))
             {
                 query = query.Where(r => r.RecoveredFrom == Filters.UserIndexNumber);
             }
 
-            // Filter by provider
             if (Filters.Providers.Any())
             {
                 query = query.Where(r => r.CallRecord!.SourceSystem != null &&
                                         Filters.Providers.Contains(r.CallRecord.SourceSystem));
             }
 
-            // Filter by recovery type
             if (Filters.RecoveryTypes.Any())
             {
                 query = query.Where(r => Filters.RecoveryTypes.Contains(r.RecoveryAction));
@@ -1159,7 +1151,7 @@ namespace TAB.Web.Pages.Admin
 
     public class MonthlyRecoveryTrend
     {
-        public string MonthYear { get; set; } = string.Empty; // e.g., "Jan 2024"
+        public string MonthYear { get; set; } = string.Empty;
         public int Year { get; set; }
         public int Month { get; set; }
         public decimal PersonalAmountKSH { get; set; }

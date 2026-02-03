@@ -20,10 +20,9 @@ namespace TAB.Web.Models
         [Display(Name = "Phone Number")]
         public string PhoneNumber { get; set; } = string.Empty;
 
-        [Required]
         [StringLength(50)]
         [Display(Name = "Phone Type")]
-        public string PhoneType { get; set; } = "Mobile"; // Mobile, Desk, Extension, Home, Temporary
+        public string? PhoneType { get; set; } = "Mobile"; // Mobile, Desk, Extension, Home, Temporary
 
         [Display(Name = "Primary Phone")]
         public bool IsPrimary { get; set; } = false;
@@ -52,6 +51,14 @@ namespace TAB.Web.Models
         [StringLength(500)]
         [Display(Name = "Notes")]
         public string? Notes { get; set; }
+
+        [Required]
+        [Display(Name = "Ownership Type")]
+        public PhoneOwnershipType OwnershipType { get; set; } = PhoneOwnershipType.Personal;
+
+        [StringLength(200)]
+        [Display(Name = "Purpose")]
+        public string? Purpose { get; set; }
 
         [StringLength(100)]
         [Display(Name = "Created By")]
@@ -125,6 +132,28 @@ namespace TAB.Web.Models
             LineType.Data => "Data",
             _ => "Unknown"
         };
+
+        [NotMapped]
+        public string OwnershipTypeDisplay => OwnershipType switch
+        {
+            PhoneOwnershipType.Personal => "Personal",
+            PhoneOwnershipType.Shared => "Shared",
+            PhoneOwnershipType.Department => "Department",
+            PhoneOwnershipType.Infrastructure => "Infrastructure",
+            PhoneOwnershipType.Emergency => "Emergency",
+            _ => "Unknown"
+        };
+
+        [NotMapped]
+        public string OwnershipTypeBadgeColor => OwnershipType switch
+        {
+            PhoneOwnershipType.Personal => "primary",
+            PhoneOwnershipType.Shared => "info",
+            PhoneOwnershipType.Department => "secondary",
+            PhoneOwnershipType.Infrastructure => "warning",
+            PhoneOwnershipType.Emergency => "danger",
+            _ => "secondary"
+        };
     }
 
     public enum PhoneStatus
@@ -152,6 +181,24 @@ namespace TAB.Web.Models
 
         [Display(Name = "Data")]
         Data = 4
+    }
+
+    public enum PhoneOwnershipType
+    {
+        [Display(Name = "Personal")]
+        Personal = 1,
+
+        [Display(Name = "Shared")]
+        Shared = 2,
+
+        [Display(Name = "Department")]
+        Department = 3,
+
+        [Display(Name = "Infrastructure")]
+        Infrastructure = 4,
+
+        [Display(Name = "Emergency")]
+        Emergency = 5
     }
 
     // Enum for phone types (optional, for stronger typing)

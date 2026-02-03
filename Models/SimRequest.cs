@@ -56,8 +56,15 @@ namespace TAB.Web.Models
         public SimType SimType { get; set; }
 
         [Required]
+        [Display(Name = "Line Request Type")]
+        public LineRequestType LineRequestType { get; set; } = LineRequestType.NewLine;
+
+        [StringLength(20)]
+        [Display(Name = "Existing Phone Number")]
+        public string? ExistingPhoneNumber { get; set; }
+
         [Display(Name = "Service Provider")]
-        public int ServiceProviderId { get; set; }
+        public int? ServiceProviderId { get; set; }
 
         [Required]
         [StringLength(200)]
@@ -190,6 +197,14 @@ namespace TAB.Web.Models
         Physical = 1,
         [Display(Name = "eSIM")]
         ESim = 2
+    }
+
+    public enum LineRequestType
+    {
+        [Display(Name = "New Line")]
+        NewLine = 1,
+        [Display(Name = "Existing Line")]
+        ExistingLine = 2
     }
 
     public enum MobileServiceType

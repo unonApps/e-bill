@@ -9,7 +9,7 @@ namespace TAB.Web.Services
     {
         Task<List<UserPhone>> GetUserPhonesAsync(string indexNumber);
         Task<UserPhone?> GetPhoneAsync(int id);
-        Task<bool> AssignPhoneAsync(string indexNumber, string phoneNumber, string phoneType, bool isPrimary, string? location = null, string? notes = null, int? classOfServiceId = null, bool forceReassign = false, PhoneStatus status = PhoneStatus.Active, LineType lineType = LineType.Secondary);
+        Task<bool> AssignPhoneAsync(string indexNumber, string phoneNumber, string phoneType, bool isPrimary, string? location = null, string? notes = null, int? classOfServiceId = null, bool forceReassign = false, PhoneStatus status = PhoneStatus.Active, LineType lineType = LineType.Secondary, PhoneOwnershipType ownershipType = PhoneOwnershipType.Personal, string? purpose = null, string? reassignedFromIndex = null, string? reassignedFromName = null, int? oldPhoneIdForHistory = null);
         Task<bool> UnassignPhoneAsync(int phoneId);
         Task<bool> SetPrimaryPhoneAsync(int phoneId);
         Task<string?> GetUserByPhoneAsync(string phoneNumber, DateTime? billDate = null);
@@ -76,7 +76,7 @@ namespace TAB.Web.Services
             return (true, null, null);
         }
 
-        public async Task<bool> AssignPhoneAsync(string indexNumber, string phoneNumber, string phoneType, bool isPrimary, string? location = null, string? notes = null, int? classOfServiceId = null, bool forceReassign = false, PhoneStatus status = PhoneStatus.Active, LineType lineType = LineType.Secondary)
+        public async Task<bool> AssignPhoneAsync(string indexNumber, string phoneNumber, string phoneType, bool isPrimary, string? location = null, string? notes = null, int? classOfServiceId = null, bool forceReassign = false, PhoneStatus status = PhoneStatus.Active, LineType lineType = LineType.Secondary, PhoneOwnershipType ownershipType = PhoneOwnershipType.Personal, string? purpose = null, string? reassignedFromIndex = null, string? reassignedFromName = null, int? oldPhoneIdForHistory = null)
         {
             try
             {
@@ -109,6 +109,13 @@ namespace TAB.Web.Services
                                               up.IsActive &&
                                               up.IndexNumber != indexNumber);
 
+                // Track if this is a reassignment for history purposes
+                // Can be set from existingAssignment OR passed from caller (when phone was pre-unassigned)
+                var isReassignment = !string.IsNullOrEmpty(reassignedFromIndex);
+                string? previousUserIndex = reassignedFromIndex;
+                string? previousUserName = reassignedFromName;
+                int? oldPhoneId = oldPhoneIdForHistory; // Track old phone ID for history copy
+
                 if (existingAssignment != null)
                 {
                     if (!forceReassign)
@@ -116,6 +123,14 @@ namespace TAB.Web.Services
                         _logger.LogWarning($"Phone {phoneNumber} is already assigned to user {existingAssignment.IndexNumber}");
                         return false;
                     }
+
+                    // Mark this as a reassignment for history tracking
+                    isReassignment = true;
+                    previousUserIndex = existingAssignment.IndexNumber;
+                    previousUserName = existingAssignment.EbillUser != null
+                        ? $"{existingAssignment.EbillUser.FirstName} {existingAssignment.EbillUser.LastName}"
+                        : existingAssignment.IndexNumber;
+                    oldPhoneId = existingAssignment.Id; // Store old phone ID for history copy
 
                     // Unassign from previous user
                     _logger.LogInformation($"Reassigning phone {phoneNumber} from user {existingAssignment.IndexNumber} to user {indexNumber}");
@@ -173,6 +188,8 @@ namespace TAB.Web.Services
                     existingPhone.AssignedDate = DateTime.UtcNow;
                     existingPhone.PhoneType = phoneType;
                     existingPhone.LineType = lineType;
+                    existingPhone.OwnershipType = ownershipType;
+                    existingPhone.Purpose = purpose;
                     existingPhone.Location = location;
                     existingPhone.Notes = notes;
                     existingPhone.IsPrimary = isPrimary;
@@ -188,6 +205,8 @@ namespace TAB.Web.Services
                         PhoneNumber = phoneNumber,
                         PhoneType = phoneType,
                         LineType = lineType,
+                        OwnershipType = ownershipType,
+                        Purpose = purpose,
                         IsPrimary = isPrimary,
                         IsActive = true,
                         Location = location,
@@ -238,10 +257,34 @@ namespace TAB.Web.Services
 
                 if (assignedPhone != null)
                 {
-                    var action = existingPhone != null ? "Assigned" : "Created";
-                    var description = existingPhone != null
-                        ? $"Phone reactivated and assigned to user"
-                        : $"Phone created and assigned to user";
+                    // Copy history from old phone if this is a reassignment and we have the old phone ID
+                    if (isReassignment && oldPhoneId.HasValue && oldPhoneId.Value != assignedPhone.Id)
+                    {
+                        await _historyService.CopyHistoryToNewPhoneAsync(oldPhoneId.Value, assignedPhone.Id, "System");
+                        _logger.LogInformation($"Copied history from old phone {oldPhoneId.Value} to new phone {assignedPhone.Id}");
+                    }
+
+                    string action;
+                    string description;
+
+                    if (isReassignment)
+                    {
+                        // This was a reassignment from another user
+                        action = "Reassigned";
+                        description = $"Phone reassigned from {previousUserName} ({previousUserIndex})";
+                    }
+                    else if (existingPhone != null)
+                    {
+                        // Reactivating an existing phone record for this user
+                        action = "Assigned";
+                        description = "Phone reactivated and assigned to user";
+                    }
+                    else
+                    {
+                        // Brand new phone assignment
+                        action = "Created";
+                        description = "Phone created and assigned to user";
+                    }
 
                     if (isPrimary)
                     {

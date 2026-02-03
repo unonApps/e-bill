@@ -8,6 +8,7 @@ using TAB.Web.Data;
 using TAB.Web.Models;
 using TAB.Web.Services;
 using System.Text.Json;
+using Hangfire;
 
 namespace TAB.Web.Pages.Admin
 {
@@ -18,17 +19,20 @@ namespace TAB.Web.Pages.Admin
         private readonly ICallLogStagingService _stagingService;
         private readonly ILogger<CallLogStagingModel> _logger;
         private readonly UserManager<ApplicationUser> _userManager;
+        private readonly IBackgroundJobClient _backgroundJobs;
 
         public CallLogStagingModel(
             ApplicationDbContext context,
             ICallLogStagingService stagingService,
             ILogger<CallLogStagingModel> logger,
-            UserManager<ApplicationUser> userManager)
+            UserManager<ApplicationUser> userManager,
+            IBackgroundJobClient backgroundJobs)
         {
             _context = context;
             _stagingService = stagingService;
             _logger = logger;
             _userManager = userManager;
+            _backgroundJobs = backgroundJobs;
         }
 
         // View Properties
@@ -121,28 +125,30 @@ namespace TAB.Web.Pages.Admin
 
             await LoadPageDataAsync();
 
-            // Load system configuration for approval days
-            var config = await _context.RecoveryConfigurations
-                .FirstOrDefaultAsync(rc => rc.RuleName == "SystemConfiguration");
-            DefaultApprovalDays = config?.DefaultApprovalDays ?? 5;
-
-            // Load recovery status for the staged logs
-            await LoadRecoveryStatusAsync();
-
-            // Load deadline information for production records
-            await LoadDeadlineInformationAsync();
-
-            // Calculate statistics
-            await CalculateStatisticsAsync();
-
-            // Calculate pending count for current batch
+            // Only load heavy data when a batch is selected
             if (BatchId.HasValue)
             {
-                CurrentBatchPendingCount = await _context.CallLogStagings
-                    .Where(c => c.BatchId == BatchId.Value &&
-                           (c.VerificationStatus == VerificationStatus.Pending ||
-                            c.VerificationStatus == VerificationStatus.RequiresReview))
-                    .CountAsync();
+                // Load system configuration for approval days
+                var config = await _context.RecoveryConfigurations
+                    .FirstOrDefaultAsync(rc => rc.RuleName == "SystemConfiguration");
+                DefaultApprovalDays = config?.DefaultApprovalDays ?? 5;
+
+                // Load recovery status for the staged logs
+                await LoadRecoveryStatusAsync();
+
+                // Load deadline information for production records
+                await LoadDeadlineInformationAsync();
+
+                // Use batch statistics that were already loaded (single optimized query)
+                // No need to run CalculateStatisticsAsync - use BatchStatistics instead
+                TotalBatches = await _context.StagingBatches.CountAsync();
+                TotalPendingRecords = BatchStatistics.GetValueOrDefault("Pending", 0);
+                TotalVerifiedToday = BatchStatistics.GetValueOrDefault("VerifiedToday", 0);
+                TotalAnomaliesDetected = BatchStatistics.GetValueOrDefault("WithAnomalies", 0);
+
+                // Calculate pending count from batch statistics (no extra DB call)
+                CurrentBatchPendingCount = BatchStatistics.GetValueOrDefault("Pending", 0) +
+                                           BatchStatistics.GetValueOrDefault("RequiresReview", 0);
             }
 
             // Diagnostic: Check record counts in source tables
@@ -207,50 +213,71 @@ namespace TAB.Web.Pages.Admin
                     Text = s.ToString()
                 }).ToList();
 
-            // If a batch is selected, load its details
+            // Only load batch details and staged logs when a batch is selected
             if (BatchId.HasValue)
             {
                 CurrentBatch = await _stagingService.GetBatchDetailsAsync(BatchId.Value);
                 BatchStatistics = await _stagingService.GetBatchStatisticsAsync(BatchId.Value);
+
+                // Load staged logs with filters
+                var filter = new StagingFilter
+                {
+                    BatchId = BatchId,
+                    Status = Status,
+                    HasAnomalies = HasAnomalies,
+                    SearchTerm = SearchTerm,
+                    StartDate = StartDate,
+                    EndDate = EndDate,
+                    PageNumber = PageNumber,
+                    PageSize = PageSize
+                };
+
+                StagedLogs = await _stagingService.GetStagedLogsAsync(filter);
             }
-
-            // Load staged logs with filters
-            var filter = new StagingFilter
+            else
             {
-                BatchId = BatchId,
-                Status = Status,
-                HasAnomalies = HasAnomalies,
-                SearchTerm = SearchTerm,
-                StartDate = StartDate,
-                EndDate = EndDate,
-                PageNumber = PageNumber,
-                PageSize = PageSize
-            };
-
-            StagedLogs = await _stagingService.GetStagedLogsAsync(filter);
+                // Initialize empty results when no batch selected
+                StagedLogs = new PagedResult<CallLogStaging>
+                {
+                    Items = new List<CallLogStaging>(),
+                    TotalCount = 0,
+                    PageNumber = 1,
+                    PageSize = PageSize
+                };
+                BatchStatistics = new Dictionary<string, int>();
+            }
         }
 
         private async Task CalculateStatisticsAsync()
         {
-            var today = DateTime.UtcNow.Date;
+            // Only calculate stats for the selected batch to improve performance
+            if (!BatchId.HasValue)
+            {
+                TotalBatches = 0;
+                TotalPendingRecords = 0;
+                TotalVerifiedToday = 0;
+                TotalAnomaliesDetected = 0;
+                return;
+            }
 
-            // Total batches
+            var today = DateTime.UtcNow.Date;
+            var batchQuery = _context.CallLogStagings.Where(c => c.BatchId == BatchId.Value);
+
+            // Total batches (quick count)
             TotalBatches = await _context.StagingBatches.CountAsync();
 
-            // Total pending records across all batches
-            TotalPendingRecords = await _context.CallLogStagings
+            // Stats for selected batch only (not all batches)
+            TotalPendingRecords = await batchQuery
                 .Where(c => c.VerificationStatus == VerificationStatus.Pending)
                 .CountAsync();
 
-            // Total verified today
-            TotalVerifiedToday = await _context.CallLogStagings
+            TotalVerifiedToday = await batchQuery
                 .Where(c => c.VerificationStatus == VerificationStatus.Verified &&
                            c.VerificationDate != null &&
                            c.VerificationDate.Value.Date == today)
                 .CountAsync();
 
-            // Total anomalies detected
-            TotalAnomaliesDetected = await _context.CallLogStagings
+            TotalAnomaliesDetected = await batchQuery
                 .Where(c => c.HasAnomalies)
                 .CountAsync();
         }
@@ -388,8 +415,13 @@ namespace TAB.Web.Pages.Admin
                 var startDate = new DateTime(billingDate.Year, billingDate.Month, 1);
                 var endDate = startDate.AddMonths(1).AddDays(-1); // Last day of the month
 
+                int startMonth = billingDate.Month;
+                int startYear = billingDate.Year;
+                int endMonth = endDate.Month;
+                int endYear = endDate.Year;
+
                 // Check for existing batch first
-                var existingBatch = await _stagingService.GetExistingBatchForPeriodAsync(billingDate.Month, billingDate.Year);
+                var existingBatch = await _stagingService.GetExistingBatchForPeriodAsync(startMonth, startYear);
                 if (existingBatch != null)
                 {
                     StatusMessage = $"Cannot create batch: A batch already exists for {billingDate:MMMM yyyy}. " +
@@ -401,16 +433,88 @@ namespace TAB.Web.Pages.Admin
                     return Page();
                 }
 
-                var userName = User.Identity?.Name ?? "System";
-                var batch = await _stagingService.ConsolidateCallLogsAsync(
-                    startDate,
-                    endDate,
-                    userName);
+                // Check if there are any records to consolidate
+                var hasRecords = await _context.Safaricoms
+                    .AnyAsync(s => s.CallMonth >= startMonth && s.CallMonth <= endMonth &&
+                                  s.CallYear >= startYear && s.CallYear <= endYear);
 
-                StatusMessage = $"Successfully created batch '{batch.BatchName}' with {batch.TotalRecords} records. {batch.RecordsWithAnomalies} anomalies detected.";
+                if (!hasRecords)
+                {
+                    hasRecords = await _context.Airtels
+                        .AnyAsync(a => a.CallMonth >= startMonth && a.CallMonth <= endMonth &&
+                                      a.CallYear >= startYear && a.CallYear <= endYear);
+                }
+
+                if (!hasRecords)
+                {
+                    hasRecords = await _context.PSTNs
+                        .AnyAsync(p => p.CallMonth >= startMonth && p.CallMonth <= endMonth &&
+                                      p.CallYear >= startYear && p.CallYear <= endYear);
+                }
+
+                if (!hasRecords)
+                {
+                    hasRecords = await _context.PrivateWires
+                        .AnyAsync(p => p.CallMonth >= startMonth && p.CallMonth <= endMonth &&
+                                      p.CallYear >= startYear && p.CallYear <= endYear);
+                }
+
+                if (!hasRecords)
+                {
+                    StatusMessage = $"No call log records found for {billingDate:MMMM yyyy}. " +
+                                  $"Please ensure data has been imported from source systems before consolidation.";
+                    StatusMessageClass = "warning";
+                    await LoadPageDataAsync();
+                    return Page();
+                }
+
+                var userName = User.Identity?.Name ?? "System";
+
+                // =============================================
+                // Create the batch upfront (without processing)
+                // =============================================
+                var batch = new StagingBatch
+                {
+                    Id = Guid.NewGuid(),
+                    BatchName = startMonth == endMonth && startYear == endYear
+                        ? $"Call Logs {startDate:MMMM yyyy}"
+                        : $"Call Logs {startDate:MMM yyyy} to {endDate:MMM yyyy}",
+                    BatchType = "Manual",
+                    CreatedBy = userName,
+                    CreatedDate = DateTime.UtcNow,
+                    BatchStatus = BatchStatus.Created,
+                    SourceSystems = "Safaricom,Airtel,PSTN,PrivateWire",
+                    Notes = "Consolidation queued in background job"
+                };
+
+                _context.StagingBatches.Add(batch);
+                await _context.SaveChangesAsync();
+
+                _logger.LogInformation("Created batch {BatchId} for background consolidation", batch.Id);
+
+                // =============================================
+                // Queue Hangfire background job for consolidation
+                // =============================================
+                var hangfireJobId = _backgroundJobs.Enqueue<ICallLogStagingService>(
+                    service => service.ConsolidateCallLogsInBackgroundAsync(
+                        batch.Id,
+                        startMonth,
+                        startYear,
+                        endMonth,
+                        endYear,
+                        userName));
+
+                // Store Hangfire job ID for cleanup when batch is deleted
+                batch.HangfireJobId = hangfireJobId;
+                await _context.SaveChangesAsync();
+
+                _logger.LogInformation("Enqueued consolidation job {HangfireJobId} for batch {BatchId}", hangfireJobId, batch.Id);
+
+                StatusMessage = $"Batch '{batch.BatchName}' created successfully! Consolidation is running in the background. " +
+                               $"This page will update automatically as records are processed. You can also check the batch status below.";
                 StatusMessageClass = "success";
 
-                // Redirect to the new batch
+                // Redirect to the new batch - user can monitor progress
                 return RedirectToPage(new { BatchId = batch.Id });
             }
             catch (InvalidOperationException ex)
@@ -471,31 +575,34 @@ namespace TAB.Web.Pages.Admin
             {
                 var userName = User.Identity?.Name ?? "System";
 
-                // Get ALL records that need verification in the batch (Pending and RequiresReview)
-                // IMPORTANT: This queries ALL records in the batch, not just the current page
-                // This will verify all 4000+ records at once if needed
-                var recordsToVerify = await _context.CallLogStagings
+                // Check how many records need verification
+                var pendingCount = await _context.CallLogStagings
                     .Where(c => c.BatchId == BatchId.Value &&
                            (c.VerificationStatus == VerificationStatus.Pending ||
                             c.VerificationStatus == VerificationStatus.RequiresReview))
-                    .Select(c => c.Id)
-                    .ToListAsync();
+                    .CountAsync();
 
-                if (!recordsToVerify.Any())
+                if (pendingCount == 0)
                 {
                     StatusMessage = "No records to verify in this batch";
                     StatusMessageClass = "info";
                     return RedirectToPage(new { BatchId });
                 }
 
-                var count = await _stagingService.BulkVerifyAsync(recordsToVerify, userName);
+                // Queue Hangfire background job for verification
+                var hangfireJobId = _backgroundJobs.Enqueue<ICallLogStagingService>(
+                    service => service.BulkVerifyInBackgroundAsync(BatchId.Value, userName));
 
-                StatusMessage = $"Successfully verified all {count} records in this batch";
+                _logger.LogInformation("Enqueued verification job {HangfireJobId} for batch {BatchId} with {PendingCount} records",
+                    hangfireJobId, BatchId.Value, pendingCount);
+
+                StatusMessage = $"Verification of {pendingCount} records has been queued and is running in the background. " +
+                               "This page will update automatically as records are processed.";
                 StatusMessageClass = "success";
             }
             catch (Exception ex)
             {
-                _logger.LogError(ex, "Error verifying all records");
+                _logger.LogError(ex, "Error queuing verification job");
                 StatusMessage = $"Error: {ex.Message}";
                 StatusMessageClass = "danger";
             }
@@ -541,6 +648,8 @@ namespace TAB.Web.Pages.Admin
         {
             try
             {
+                var userName = User.Identity?.Name ?? "System";
+
                 // Parse verification period
                 DateTime? verificationDeadline = null;
                 if (!string.IsNullOrEmpty(verificationPeriod))
@@ -551,34 +660,45 @@ namespace TAB.Web.Pages.Admin
                     }
                 }
 
-                var count = await _stagingService.PushToProductionAsync(batchId, verificationDeadline, verificationType);
+                // Check how many verified records to push
+                var verifiedCount = await _context.CallLogStagings
+                    .Where(c => c.BatchId == batchId && c.VerificationStatus == VerificationStatus.Verified)
+                    .CountAsync();
 
-                if (count > 0)
-                {
-                    var periodMessage = "";
-                    if (verificationDeadline.HasValue)
-                    {
-                        // Load config to calculate approval deadline
-                        var config = await _context.RecoveryConfigurations
-                            .FirstOrDefaultAsync(rc => rc.RuleName == "SystemConfiguration");
-
-                        var approvalDays = config?.DefaultApprovalDays ?? 5;
-                        var approvalDeadline = verificationDeadline.Value.AddDays(approvalDays);
-
-                        periodMessage = $" (Staff verification: {verificationDeadline.Value:MMM dd, yyyy} | Supervisor approval: {approvalDeadline:MMM dd, yyyy})";
-                    }
-                    StatusMessage = $"Successfully pushed {count} records to production{periodMessage}";
-                    StatusMessageClass = "success";
-                }
-                else
+                if (verifiedCount == 0)
                 {
                     StatusMessage = "No verified records to push or batch not ready";
                     StatusMessageClass = "warning";
+                    return RedirectToPage(new { BatchId = batchId });
                 }
+
+                // Queue Hangfire background job for push to production (with notifications enabled)
+                var hangfireJobId = _backgroundJobs.Enqueue<ICallLogStagingService>(
+                    service => service.PushToProductionInBackgroundAsync(batchId, verificationDeadline, verificationType, userName, true));
+
+                _logger.LogInformation("Enqueued push to production job {HangfireJobId} for batch {BatchId} with {VerifiedCount} records",
+                    hangfireJobId, batchId, verifiedCount);
+
+                var periodMessage = "";
+                if (verificationDeadline.HasValue)
+                {
+                    // Load config to calculate approval deadline
+                    var config = await _context.RecoveryConfigurations
+                        .FirstOrDefaultAsync(rc => rc.RuleName == "SystemConfiguration");
+
+                    var approvalDays = config?.DefaultApprovalDays ?? 5;
+                    var approvalDeadline = verificationDeadline.Value.AddDays(approvalDays);
+
+                    periodMessage = $" Staff verification deadline: {verificationDeadline.Value:MMM dd, yyyy}, Supervisor approval: {approvalDeadline:MMM dd, yyyy}.";
+                }
+
+                StatusMessage = $"Push to production of {verifiedCount} records has been queued and is running in the background.{periodMessage} " +
+                               "This page will update automatically when complete.";
+                StatusMessageClass = "success";
             }
             catch (Exception ex)
             {
-                _logger.LogError(ex, "Error pushing to production");
+                _logger.LogError(ex, "Error queuing push to production job");
                 StatusMessage = $"Error: {ex.Message}";
                 StatusMessageClass = "danger";
             }
@@ -1211,6 +1331,43 @@ namespace TAB.Web.Pages.Admin
             {
                 _logger.LogError(ex, "Error checking if batch {BatchId} can be deleted", batchId);
                 return new JsonResult(new { canDelete = false, error = ex.Message });
+            }
+        }
+
+        public async Task<IActionResult> OnPostSendNotificationsAsync(Guid batchId)
+        {
+            try
+            {
+                var batch = await _context.StagingBatches.FindAsync(batchId);
+                if (batch == null)
+                {
+                    return new JsonResult(new { success = false, message = "Batch not found" });
+                }
+
+                if (batch.BatchStatus != BatchStatus.Published)
+                {
+                    return new JsonResult(new { success = false, message = "Can only send notifications for published batches" });
+                }
+
+                // Get the verification period from batch (use EndProcessingDate + 7 days as default)
+                var verificationPeriod = batch.EndProcessingDate?.AddDays(7) ?? DateTime.UtcNow.AddDays(7);
+
+                // Queue the notification job in background
+                var jobId = _backgroundJobs.Enqueue<ICallLogStagingService>(
+                    service => service.SendBatchNotificationsAsync(batchId, verificationPeriod));
+
+                _logger.LogInformation("Queued notification job {JobId} for batch {BatchId}", jobId, batchId);
+
+                return new JsonResult(new {
+                    success = true,
+                    message = "Notifications queued successfully. Emails will be sent in the background.",
+                    jobId = jobId
+                });
+            }
+            catch (Exception ex)
+            {
+                _logger.LogError(ex, "Error sending notifications for batch {BatchId}", batchId);
+                return new JsonResult(new { success = false, message = ex.Message });
             }
         }
 

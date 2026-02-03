@@ -232,7 +232,7 @@
             </div>
         </div>
     </div>
-    
+
     <div class="stat-card">
         <div class="stat-content">
             <div class="stat-icon stat-icon-success">
@@ -244,7 +244,7 @@
             </div>
         </div>
     </div>
-    
+
     <div class="stat-card">
         <div class="stat-content">
             <div class="stat-icon stat-icon-danger">
@@ -256,7 +256,7 @@
             </div>
         </div>
     </div>
-    
+
     <div class="stat-card">
         <div class="stat-content">
             <div class="stat-icon stat-icon-info">
@@ -265,6 +265,45 @@
             <div class="stat-details">
                 <div class="stat-number">@Model.UniqueClasses</div>
                 <div class="stat-label">Unique Classes</div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Line Statistics Cards -->
+<div class="stats-grid mb-4">
+    <div class="stat-card" style="--gradient-start: #3b82f6; --gradient-end: #60a5fa;">
+        <div class="stat-content">
+            <div class="stat-icon" style="background: linear-gradient(135deg, #3b82f6, #60a5fa); color: white;">
+                <i class="bi bi-telephone"></i>
+            </div>
+            <div class="stat-details">
+                <div class="stat-number">@Model.TotalLines</div>
+                <div class="stat-label">Total Lines</div>
+            </div>
+        </div>
+    </div>
+
+    <div class="stat-card" style="--gradient-start: #22c55e; --gradient-end: #4ade80;">
+        <div class="stat-content">
+            <div class="stat-icon" style="background: linear-gradient(135deg, #22c55e, #4ade80); color: white;">
+                <i class="bi bi-telephone-fill"></i>
+            </div>
+            <div class="stat-details">
+                <div class="stat-number">@Model.ActiveLines</div>
+                <div class="stat-label">Active Lines</div>
+            </div>
+        </div>
+    </div>
+
+    <div class="stat-card" style="--gradient-start: #6b7280; --gradient-end: #9ca3af;">
+        <div class="stat-content">
+            <div class="stat-icon" style="background: linear-gradient(135deg, #6b7280, #9ca3af); color: white;">
+                <i class="bi bi-telephone-x"></i>
+            </div>
+            <div class="stat-details">
+                <div class="stat-number">@Model.InactiveLines</div>
+                <div class="stat-label">Inactive Lines</div>
             </div>
         </div>
     </div>
@@ -363,6 +402,14 @@
 }
 else
 {
+    <!-- Action Buttons Row -->
+    <div class="d-flex justify-content-end align-items-center mb-3">
+        <button type="button" class="btn" style="background-color: #f59e0b; color: white; border-radius: 10px; font-weight: 500;"
+                data-bs-toggle="modal" data-bs-target="#classOfServiceModal" onclick="openCreateModal()">
+            <i class="bi bi-plus-lg me-1"></i>Add Service Class
+        </button>
+    </div>
+
     <div class="card border-0 shadow-sm" style="border-radius: 16px;">
         <div class="card-header border-0 py-4" style="background: white; border-bottom: 3px solid #f59e0b; border-radius: 16px 16px 0 0;">
             <div>
@@ -388,6 +435,9 @@ else
                             </th>
                             <th class="border-0 px-3 py-3" style="font-weight: 700; color: #1e293b; text-transform: uppercase; font-size: 13px; letter-spacing: 0.5px;">
                                 <i class="bi bi-telephone me-2"></i>Allowances
+                            </th>
+                            <th class="border-0 px-3 py-3" style="font-weight: 700; color: #1e293b; text-transform: uppercase; font-size: 13px; letter-spacing: 0.5px;">
+                                <i class="bi bi-telephone me-2"></i>Number of Lines
                             </th>
                             <th class="border-0 px-3 py-3" style="font-weight: 700; color: #1e293b; text-transform: uppercase; font-size: 13px; letter-spacing: 0.5px;">
                                 <i class="bi bi-toggle-on me-2"></i>Status
@@ -426,8 +476,8 @@ else
                                     <div class="d-flex flex-column gap-1">
                                         @if (!string.IsNullOrEmpty(item.AirtimeAllowance) || item.AirtimeAllowanceAmount.HasValue)
                                         {
-                                            <span class="badge bg-primary bg-opacity-10 text-primary px-2 py-1">
-                                                <i class="bi bi-telephone-fill me-1"></i>@item.AirtimeAllowance
+                                            <span class="badge bg-primary bg-opacity-10 text-primary px-2 py-1" title="Voice/Airtime allowance">
+                                                <i class="bi bi-mic-fill me-1"></i><strong>Voice:</strong> @item.AirtimeAllowance
                                                 @if (item.AirtimeAllowanceAmount.HasValue)
                                                 {
                                                     <small class="text-muted">($@item.AirtimeAllowanceAmount.Value.ToString("N2"))</small>
@@ -436,8 +486,8 @@ else
                                         }
                                         @if (!string.IsNullOrEmpty(item.DataAllowance) || item.DataAllowanceAmount.HasValue)
                                         {
-                                            <span class="badge bg-info bg-opacity-10 text-info px-2 py-1">
-                                                <i class="bi bi-wifi me-1"></i>@item.DataAllowance
+                                            <span class="badge bg-info bg-opacity-10 text-info px-2 py-1" title="Data bundle allowance">
+                                                <i class="bi bi-broadcast me-1"></i><strong>Data:</strong> @item.DataAllowance
                                                 @if (item.DataAllowanceAmount.HasValue)
                                                 {
                                                     <small class="text-muted">($@item.DataAllowanceAmount.Value.ToString("N2"))</small>
@@ -446,15 +496,58 @@ else
                                         }
                                         @if (!string.IsNullOrEmpty(item.HandsetAllowance) || item.HandsetAllowanceAmount.HasValue)
                                         {
-                                            <span class="badge bg-secondary bg-opacity-10 text-secondary px-2 py-1">
-                                                <i class="bi bi-phone-fill me-1"></i>@item.HandsetAllowance
+                                            <span class="badge bg-secondary bg-opacity-10 text-secondary px-2 py-1" title="Handset allowance">
+                                                <i class="bi bi-phone me-1"></i><strong>Handset:</strong> @item.HandsetAllowance
                                                 @if (item.HandsetAllowanceAmount.HasValue)
                                                 {
                                                     <small class="text-muted">($@item.HandsetAllowanceAmount.Value.ToString("N2"))</small>
                                                 }
                                             </span>
                                         }
+                                        @if ((item.AirtimeAllowanceAmount.HasValue || item.DataAllowanceAmount.HasValue) &&
+                                             !string.IsNullOrEmpty(item.AirtimeAllowance) &&
+                                             (item.AirtimeAllowance.Contains("Included") || item.AirtimeAllowance.ToLower().Contains("unlimited")))
+                                        {
+                                            <span class="badge bg-success bg-opacity-10 text-success px-2 py-1" title="Includes data and airtime">
+                                                <i class="bi bi-check-circle-fill me-1"></i>Includes data & airtime
+                                            </span>
+                                        }
                                     </div>
+                                </td>
+                                <td class="px-3 py-3">
+                                    @{
+                                        var usageCount = Model.PhoneUsageCounts.ContainsKey(item.Id)
+                                            ? Model.PhoneUsageCounts[item.Id]
+                                            : (0, 0);
+                                        var totalPhones = usageCount.Item1;
+                                        var activePhones = usageCount.Item2;
+                                    }
+                                    @if (totalPhones > 0)
+                                    {
+                                        <div class="d-flex flex-column gap-1">
+                                            <span class="badge bg-primary bg-opacity-10 text-primary px-2 py-1" style="font-weight: 500;">
+                                                <i class="bi bi-telephone me-1"></i>@totalPhones Total Line@(totalPhones != 1 ? "s" : "")
+                                            </span>
+                                            @if (activePhones > 0)
+                                            {
+                                                <span class="badge bg-success bg-opacity-10 text-success px-2 py-1" style="font-weight: 500;">
+                                                    <i class="bi bi-check-circle-fill me-1"></i>@activePhones Active
+                                                </span>
+                                            }
+                                            @if (totalPhones > activePhones)
+                                            {
+                                                <span class="badge bg-secondary bg-opacity-10 text-secondary px-2 py-1" style="font-weight: 500;">
+                                                    <i class="bi bi-dash-circle-fill me-1"></i>@(totalPhones - activePhones) Inactive
+                                                </span>
+                                            }
+                                        </div>
+                                    }
+                                    else
+                                    {
+                                        <span class="text-muted" style="font-size: 0.875rem;">
+                                            <i class="bi bi-dash-circle me-1"></i>No lines assigned
+                                        </span>
+                                    }
                                 </td>
                                 <td class="px-3 py-3">
                                     @if (item.ServiceStatus == ServiceStatus.Active)

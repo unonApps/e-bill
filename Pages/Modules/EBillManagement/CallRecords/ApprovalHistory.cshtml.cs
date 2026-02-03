@@ -78,7 +78,7 @@ namespace TAB.Web.Pages.Modules.EBillManagement.CallRecords
 
             if (ebillUser == null)
             {
-                StatusMessage = "Your profile is not linked to an employee record.";
+                StatusMessage = "Your profile is not linked to an Staff record.";
                 StatusMessageClass = "warning";
                 return Page();
             }

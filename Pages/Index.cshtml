@@ -62,8 +62,8 @@
         </div>
     </div>
 
-    <!-- E-Bill Management -->
-    <div class="service-card ebill-card">
+    <!-- E-Bill Management - only shown if user has e-bill account -->
+    <div id="ebill-card" class="service-card ebill-card" style="display: none;">
         <div class="service-card-inner">
             <div class="service-icon-container">
                 <div class="service-icon">
@@ -82,6 +82,17 @@
         </div>
     </div>
 </div>
+
+@section Scripts {
+<script>
+    // Show E-Bill card only if user has e-bill account
+    $(document).ready(function() {
+        if (window.pendingRequestCounts && window.pendingRequestCounts.hasEbillAccount) {
+            $('#ebill-card').show();
+        }
+    });
+</script>
+}
 
 
 <style>

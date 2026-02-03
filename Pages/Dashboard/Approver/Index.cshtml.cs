@@ -34,6 +34,12 @@ namespace TAB.Web.Pages.Dashboard.Approver
         public List<UnifiedRequest> RecentRequests { get; set; } = new();
         public List<UnifiedRequest> UrgentRequests { get; set; } = new();
 
+        // All Pending Requests (for combined table view)
+        public List<UnifiedRequest> AllPendingRequests { get; set; } = new();
+
+        // Pending Call Log Submissions by Staff
+        public List<PendingCallLogStaff> PendingCallLogStaff { get; set; } = new();
+
         // Status Messages
         [TempData]
         public string? StatusMessage { get; set; }
@@ -63,6 +69,7 @@ namespace TAB.Web.Pages.Dashboard.Approver
 
             await LoadDashboardStatisticsAsync(currentUser.Email ?? string.Empty);
             await LoadRecentActivityAsync(currentUser.Email ?? string.Empty);
+            await LoadPendingCallLogStaffAsync(currentUser.Email ?? string.Empty);
 
             return Page();
         }
@@ -93,7 +100,7 @@ namespace TAB.Web.Pages.Dashboard.Approver
 
                 // Check if this user's email is a supervisor on any pending call log verifications
                 var hasEbillSupervisorAssignments = await _context.CallLogVerifications
-                    .AnyAsync(v => v.SupervisorIndexNumber == userEmail &&
+                    .AnyAsync(v => v.SupervisorEmail == userEmail &&
                                    v.SubmittedToSupervisor &&
                                    (v.SupervisorApprovalStatus == null || v.SupervisorApprovalStatus == "Pending"));
 
@@ -116,10 +123,12 @@ namespace TAB.Web.Pages.Dashboard.Approver
                     .Where(r => r.Status == RequestStatus.PendingAdmin || r.Status == RequestStatus.PendingIcts)
                     .CountAsync();
 
-                // Count call log verifications pending any supervisor approval
+                // Count distinct staff with pending call log approvals (for admin view)
                 var pendingEBillRequests = await _context.CallLogVerifications
                     .Where(v => v.SubmittedToSupervisor
                         && (v.SupervisorApprovalStatus == null || v.SupervisorApprovalStatus == "Pending"))
+                    .Select(v => v.VerifiedBy)
+                    .Distinct()
                     .CountAsync();
                     
                 var pendingRefundRequests = await _context.RefundRequests
@@ -136,16 +145,25 @@ namespace TAB.Web.Pages.Dashboard.Approver
             }
             else if (isICTS)
             {
-                // ICTS staff see only requests pending THEIR action (PendingAdmin/PendingIcts)
+                // ICTS staff see requests pending THEIR action (PendingAdmin/PendingIcts)
                 var ictsActionRequests = await _context.SimRequests
                     .Where(r => r.Status == RequestStatus.PendingAdmin || r.Status == RequestStatus.PendingIcts)
                     .CountAsync();
 
+                // ICTS staff may also be supervisors - count distinct staff with pending call log approvals
+                var ictsPendingEBillStaffCount = await _context.CallLogVerifications
+                    .Where(v => v.SubmittedToSupervisor
+                        && v.SupervisorEmail == userEmail
+                        && (v.SupervisorApprovalStatus == null || v.SupervisorApprovalStatus == "Pending"))
+                    .Select(v => v.VerifiedBy)
+                    .Distinct()
+                    .CountAsync();
+
                 TotalSimRequests = ictsActionRequests;
                 TotalRefundRequests = 0;
-                TotalEBillRequests = 0;
+                TotalEBillRequests = ictsPendingEBillStaffCount;
                 TotalIctsRequests = ictsActionRequests;
-                TotalPendingRequests = ictsActionRequests; // Only requests pending ICTS action
+                TotalPendingRequests = ictsActionRequests + ictsPendingEBillStaffCount;
             }
             else if (isBudgetOfficer)
             {
@@ -155,11 +173,13 @@ namespace TAB.Web.Pages.Dashboard.Approver
                                (r.SupervisorEmail == userEmail || r.Supervisor == userEmail))
                     .CountAsync();
 
-                // Count call log verifications pending THIS budget officer's approval
+                // Count distinct staff with pending call log approvals for THIS budget officer
                 var budgetPendingEBillRequests = await _context.CallLogVerifications
                     .Where(v => v.SubmittedToSupervisor
-                        && v.SupervisorIndexNumber == userEmail
+                        && v.SupervisorEmail == userEmail
                         && (v.SupervisorApprovalStatus == null || v.SupervisorApprovalStatus == "Pending"))
+                    .Select(v => v.VerifiedBy)
+                    .Distinct()
                     .CountAsync();
                     
                 var budgetPendingRefundRequests = await _context.RefundRequests
@@ -174,16 +194,25 @@ namespace TAB.Web.Pages.Dashboard.Approver
             }
             else if (isClaimsUnit)
             {
-                // Claims Unit see only requests pending THEIR claims approval
+                // Claims Unit see requests pending THEIR claims approval
                 var claimsPendingRefundRequests = await _context.RefundRequests
                     .Where(r => r.Status == RefundRequestStatus.PendingStaffClaimsUnit)
                     .CountAsync();
 
+                // Claims Unit staff may also be supervisors - count distinct staff with pending call log approvals
+                var claimsPendingEBillStaffCount = await _context.CallLogVerifications
+                    .Where(v => v.SubmittedToSupervisor
+                        && v.SupervisorEmail == userEmail
+                        && (v.SupervisorApprovalStatus == null || v.SupervisorApprovalStatus == "Pending"))
+                    .Select(v => v.VerifiedBy)
+                    .Distinct()
+                    .CountAsync();
+
                 TotalSimRequests = 0;
                 TotalRefundRequests = claimsPendingRefundRequests;
-                TotalEBillRequests = 0;
+                TotalEBillRequests = claimsPendingEBillStaffCount;
                 TotalIctsRequests = 0;
-                TotalPendingRequests = claimsPendingRefundRequests;
+                TotalPendingRequests = claimsPendingRefundRequests + claimsPendingEBillStaffCount;
             }
             else if (isSupervisor || isManager || isDynamicSupervisor)
             {
@@ -193,11 +222,13 @@ namespace TAB.Web.Pages.Dashboard.Approver
                                (r.SupervisorEmail == userEmail || r.Supervisor == userEmail))
                     .CountAsync();
 
-                // Count call log verifications pending THIS supervisor's approval
+                // Count distinct staff with pending call log approvals for THIS supervisor
                 var supervisorPendingEBillRequests = await _context.CallLogVerifications
                     .Where(v => v.SubmittedToSupervisor
-                        && v.SupervisorIndexNumber == userEmail
+                        && v.SupervisorEmail == userEmail
                         && (v.SupervisorApprovalStatus == null || v.SupervisorApprovalStatus == "Pending"))
+                    .Select(v => v.VerifiedBy)
+                    .Distinct()
                     .CountAsync();
 
                 var supervisorPendingRefundRequests = await _context.RefundRequests
@@ -260,7 +291,7 @@ namespace TAB.Web.Pages.Dashboard.Approver
 
                 // Check if this user's email is a supervisor on any pending call log verifications
                 var hasEbillSupervisorAssignments = await _context.CallLogVerifications
-                    .AnyAsync(v => v.SupervisorIndexNumber == userEmail &&
+                    .AnyAsync(v => v.SupervisorEmail == userEmail &&
                                    v.SubmittedToSupervisor &&
                                    (v.SupervisorApprovalStatus == null || v.SupervisorApprovalStatus == "Pending"));
 
@@ -279,7 +310,6 @@ namespace TAB.Web.Pages.Dashboard.Approver
                     .Include(r => r.ServiceProvider)
                     .Where(r => r.Status == RequestStatus.PendingSupervisor || r.Status == RequestStatus.PendingAdmin)
                     .OrderByDescending(r => r.RequestDate)
-                    .Take(10)
                     .ToListAsync();
 
                 allRequests.AddRange(simRequests.Select(r => new UnifiedRequest
@@ -301,7 +331,6 @@ namespace TAB.Web.Pages.Dashboard.Approver
                     .Where(v => v.SubmittedToSupervisor
                         && (v.SupervisorApprovalStatus == null || v.SupervisorApprovalStatus == "Pending"))
                     .OrderByDescending(v => v.SubmittedDate)
-                    .Take(10)
                     .ToListAsync();
 
                 allRequests.AddRange(callLogVerifications.Select(v => new UnifiedRequest
@@ -322,7 +351,6 @@ namespace TAB.Web.Pages.Dashboard.Approver
                                r.Status != RefundRequestStatus.Cancelled &&
                                r.Status != RefundRequestStatus.Draft)
                     .OrderByDescending(r => r.RequestDate)
-                    .Take(10)
                     .ToListAsync();
 
                 allRequests.AddRange(refundRequests.Select(r => new UnifiedRequest
@@ -344,7 +372,6 @@ namespace TAB.Web.Pages.Dashboard.Approver
                     .Include(r => r.ServiceProvider)
                     .Where(r => r.Status == RequestStatus.PendingAdmin || r.Status == RequestStatus.PendingIcts)
                     .OrderByDescending(r => r.RequestDate)
-                    .Take(10)
                     .ToListAsync();
 
                 allRequests.AddRange(simRequests.Select(r => new UnifiedRequest
@@ -359,6 +386,27 @@ namespace TAB.Web.Pages.Dashboard.Approver
                     ServiceProvider = r.ServiceProvider,
                     OriginalRequest = r
                 }));
+
+                // ICTS staff may also be supervisors - include call log verifications assigned to them
+                var ictsCallLogVerifications = await _context.CallLogVerifications
+                    .Include(v => v.CallRecord)
+                    .Where(v => v.SubmittedToSupervisor
+                        && v.SupervisorEmail == userEmail
+                        && (v.SupervisorApprovalStatus == null || v.SupervisorApprovalStatus == "Pending"))
+                    .OrderByDescending(v => v.SubmittedDate)
+                    .ToListAsync();
+
+                allRequests.AddRange(ictsCallLogVerifications.Select(v => new UnifiedRequest
+                {
+                    Id = v.Id,
+                    RequestType = RequestType.EBill,
+                    StaffName = v.VerifiedBy ?? "Unknown",
+                    RequestTitle = $"Call Log Verification - ${v.ActualAmount:N2} - Pending Supervisor Approval",
+                    RequestDate = v.SubmittedDate ?? DateTime.Now,
+                    Status = "PendingSupervisor",
+                    Priority = GetPriority(v.SubmittedDate ?? DateTime.Now),
+                    OriginalRequest = v
+                }));
             }
             else if (isBudgetOfficer)
             {
@@ -368,7 +416,6 @@ namespace TAB.Web.Pages.Dashboard.Approver
                     .Where(r => r.Status == RequestStatus.PendingSupervisor &&
                                (r.SupervisorEmail == userEmail || r.Supervisor == userEmail))
                     .OrderByDescending(r => r.RequestDate)
-                    .Take(10)
                     .ToListAsync();
 
                 allRequests.AddRange(simRequests.Select(r => new UnifiedRequest
@@ -388,10 +435,9 @@ namespace TAB.Web.Pages.Dashboard.Approver
                 var callLogVerifications = await _context.CallLogVerifications
                     .Include(v => v.CallRecord)
                     .Where(v => v.SubmittedToSupervisor
-                        && v.SupervisorIndexNumber == userEmail
+                        && v.SupervisorEmail == userEmail
                         && (v.SupervisorApprovalStatus == null || v.SupervisorApprovalStatus == "Pending"))
                     .OrderByDescending(v => v.SubmittedDate)
-                    .Take(10)
                     .ToListAsync();
 
                 allRequests.AddRange(callLogVerifications.Select(v => new UnifiedRequest
@@ -416,14 +462,29 @@ namespace TAB.Web.Pages.Dashboard.Approver
             }
             else if (isClaimsUnit)
             {
-                // Claims Unit see ONLY requests pending THEIR claims approval
+                // Claims Unit see requests pending THEIR claims approval
                 // TODO: Add refund requests pending claims unit approval when model is available
-                // var refundRequests = await _context.RefundRequests
-                //     .Where(r => r.Status == RefundRequestStatus.PendingStaffClaimsUnit && 
-                //                r.ClaimsUnitEmail == userEmail)
-                //     .OrderByDescending(r => r.RequestDate)
-                //     .Take(10)
-                //     .ToListAsync();
+
+                // Claims Unit staff may also be supervisors - include call log verifications assigned to them
+                var claimsCallLogVerifications = await _context.CallLogVerifications
+                    .Include(v => v.CallRecord)
+                    .Where(v => v.SubmittedToSupervisor
+                        && v.SupervisorEmail == userEmail
+                        && (v.SupervisorApprovalStatus == null || v.SupervisorApprovalStatus == "Pending"))
+                    .OrderByDescending(v => v.SubmittedDate)
+                    .ToListAsync();
+
+                allRequests.AddRange(claimsCallLogVerifications.Select(v => new UnifiedRequest
+                {
+                    Id = v.Id,
+                    RequestType = RequestType.EBill,
+                    StaffName = v.VerifiedBy ?? "Unknown",
+                    RequestTitle = $"Call Log Verification - ${v.ActualAmount:N2} - Pending Supervisor Approval",
+                    RequestDate = v.SubmittedDate ?? DateTime.Now,
+                    Status = "PendingSupervisor",
+                    Priority = GetPriority(v.SubmittedDate ?? DateTime.Now),
+                    OriginalRequest = v
+                }));
             }
             else if (isSupervisor || isManager || isDynamicSupervisor)
             {
@@ -433,7 +494,6 @@ namespace TAB.Web.Pages.Dashboard.Approver
                     .Where(r => r.Status == RequestStatus.PendingSupervisor &&
                                (r.SupervisorEmail == userEmail || r.Supervisor == userEmail))
                     .OrderByDescending(r => r.RequestDate)
-                    .Take(10)
                     .ToListAsync();
 
                 allRequests.AddRange(simRequests.Select(r => new UnifiedRequest
@@ -453,10 +513,9 @@ namespace TAB.Web.Pages.Dashboard.Approver
                 var callLogVerifications = await _context.CallLogVerifications
                     .Include(v => v.CallRecord)
                     .Where(v => v.SubmittedToSupervisor
-                        && v.SupervisorIndexNumber == userEmail
+                        && v.SupervisorEmail == userEmail
                         && (v.SupervisorApprovalStatus == null || v.SupervisorApprovalStatus == "Pending"))
                     .OrderByDescending(v => v.SubmittedDate)
-                    .Take(10)
                     .ToListAsync();
 
                 allRequests.AddRange(callLogVerifications.Select(v => new UnifiedRequest
@@ -486,7 +545,6 @@ namespace TAB.Web.Pages.Dashboard.Approver
                     .Include(r => r.ServiceProvider)
                     .Where(r => r.OfficialEmail == userEmail)
                     .OrderByDescending(r => r.RequestDate)
-                    .Take(10)
                     .ToListAsync();
 
                 allRequests.AddRange(simRequests.Select(r => new UnifiedRequest
@@ -505,7 +563,6 @@ namespace TAB.Web.Pages.Dashboard.Approver
                 var eBillRequests = await _context.Ebills
                     .Where(r => r.Email == userEmail)
                     .OrderByDescending(r => r.RequestDate)
-                    .Take(10)
                     .ToListAsync();
 
                 allRequests.AddRange(eBillRequests.Select(r => new UnifiedRequest
@@ -521,18 +578,15 @@ namespace TAB.Web.Pages.Dashboard.Approver
                 }));
             }
 
+            // Store all pending requests for the combined table view
+            AllPendingRequests = allRequests
+                .OrderByDescending(r => r.RequestDate)
+                .ToList();
+
             // Sort all requests by date and take most recent
             RecentRequests = allRequests
                 .OrderByDescending(r => r.RequestDate)
                 .Take(5)
-                .ToList();
-
-            // Identify urgent requests (older than 3 days)
-            var urgentCutoff = DateTime.Now.AddDays(-3);
-            UrgentRequests = allRequests
-                .Where(r => r.RequestDate < urgentCutoff)
-                .OrderBy(r => r.RequestDate)
-                .Take(10)
                 .ToList();
 
             // Get urgent requests (older than 3 days)
@@ -587,5 +641,51 @@ namespace TAB.Web.Pages.Dashboard.Approver
                 _ => "bg-secondary text-white"
             };
         }
+
+        private async Task LoadPendingCallLogStaffAsync(string userEmail)
+        {
+            // Get pending call log submissions grouped by staff
+            var pendingVerifications = await _context.CallLogVerifications
+                .Include(v => v.CallRecord)
+                .Where(v => v.SubmittedToSupervisor
+                    && v.SupervisorEmail == userEmail
+                    && (v.SupervisorApprovalStatus == null || v.SupervisorApprovalStatus == "Pending"))
+                .ToListAsync();
+
+            // Group by staff (VerifiedBy)
+            var staffGroups = pendingVerifications
+                .GroupBy(v => v.VerifiedBy)
+                .Select(g => new PendingCallLogStaff
+                {
+                    IndexNumber = g.Key ?? "Unknown",
+                    TotalRecords = g.Count(),
+                    TotalAmount = g.Sum(v => v.ActualAmount),
+                    SubmittedDate = g.Min(v => v.SubmittedDate) ?? DateTime.Now
+                })
+                .ToList();
+
+            // Get staff names from EbillUsers
+            var indexNumbers = staffGroups.Select(s => s.IndexNumber).ToList();
+            var ebillUsers = await _context.EbillUsers
+                .Where(u => indexNumbers.Contains(u.IndexNumber))
+                .ToDictionaryAsync(u => u.IndexNumber, u => $"{u.FirstName} {u.LastName}");
+
+            foreach (var staff in staffGroups)
+            {
+                staff.StaffName = ebillUsers.TryGetValue(staff.IndexNumber, out var name) ? name : staff.IndexNumber;
+            }
+
+            PendingCallLogStaff = staffGroups.OrderBy(s => s.SubmittedDate).ToList();
+        }
+    }
+
+    public class PendingCallLogStaff
+    {
+        public string IndexNumber { get; set; } = string.Empty;
+        public string StaffName { get; set; } = string.Empty;
+        public int TotalRecords { get; set; }
+        public decimal TotalAmount { get; set; }
+        public DateTime SubmittedDate { get; set; }
+        public int DaysPending => (DateTime.Now - SubmittedDate).Days;
     }
 }

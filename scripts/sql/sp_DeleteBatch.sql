@@ -64,8 +64,8 @@ BEGIN
             RETURN;
         END
 
-        -- Check if any records from this batch are in production (ProcessingStatus.Completed = 3)
-        IF EXISTS (SELECT 1 FROM CallLogStagings WHERE BatchId = @BatchId AND ProcessingStatus = 3)
+        -- Check if any records from this batch are in production (ProcessingStatus.Completed = 2)
+        IF EXISTS (SELECT 1 FROM CallLogStagings WHERE BatchId = @BatchId AND ProcessingStatus = 2)
         BEGIN
             SET @Result = JSON_QUERY('{"success": false, "error": "Cannot delete batch - has records in production"}');
             ROLLBACK TRANSACTION;
@@ -91,9 +91,10 @@ BEGIN
         PRINT 'Resetting source records...';
 
         -- Reset Safaricom records
-        UPDATE Safaricoms
+        UPDATE Safaricom
         SET StagingBatchId = NULL,
-            ProcessingStatus = 0  -- Reset to Staged
+            ProcessingStatus = 0,  -- Reset to Staged
+            ProcessedDate = NULL   -- Clear processed date
         WHERE StagingBatchId = @BatchId;
 
         SET @SafaricomRecordsReset = @@ROWCOUNT;
@@ -101,9 +102,10 @@ BEGIN
             PRINT 'Reset ' + CAST(@SafaricomRecordsReset AS NVARCHAR(20)) + ' Safaricom records';
 
         -- Reset Airtel records
-        UPDATE Airtels
+        UPDATE Airtel
         SET StagingBatchId = NULL,
-            ProcessingStatus = 0
+            ProcessingStatus = 0,
+            ProcessedDate = NULL
         WHERE StagingBatchId = @BatchId;
 
         SET @AirtelRecordsReset = @@ROWCOUNT;
@@ -113,7 +115,8 @@ BEGIN
         -- Reset PSTN records
         UPDATE PSTNs
         SET StagingBatchId = NULL,
-            ProcessingStatus = 0
+            ProcessingStatus = 0,
+            ProcessedDate = NULL
         WHERE StagingBatchId = @BatchId;
 
         SET @PSTNRecordsReset = @@ROWCOUNT;
@@ -123,7 +126,8 @@ BEGIN
         -- Reset PrivateWire records
         UPDATE PrivateWires
         SET StagingBatchId = NULL,
-            ProcessingStatus = 0
+            ProcessingStatus = 0,
+            ProcessedDate = NULL
         WHERE StagingBatchId = @BatchId;
 
         SET @PrivateWireRecordsReset = @@ROWCOUNT;

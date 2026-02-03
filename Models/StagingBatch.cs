@@ -66,6 +66,19 @@ namespace TAB.Web.Models
 
         public string? Notes { get; set; }
 
+        // Hangfire Job Tracking
+        [MaxLength(100)]
+        public string? HangfireJobId { get; set; } // Track background job for cleanup
+
+        // Processing Progress Tracking
+        [MaxLength(100)]
+        public string? CurrentOperation { get; set; } // Current operation being performed (e.g., "Consolidating Safaricom records")
+
+        public int ProcessingProgress { get; set; } // Progress percentage (0-100)
+
+        // Error Tracking
+        public string? FailureReason { get; set; } // Stores the error message if batch fails
+
         // Billing Period tracking
         public int? BillingPeriodId { get; set; }
 

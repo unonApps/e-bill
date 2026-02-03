@@ -22,14 +22,12 @@ namespace TAB.Web.Models
         [Display(Name = "From Display Name")]
         public string FromName { get; set; } = string.Empty;
 
-        [Required(ErrorMessage = "Username is required")]
         [Display(Name = "Username")]
-        public string Username { get; set; } = string.Empty;
+        public string? Username { get; set; }
 
-        [Required(ErrorMessage = "Password is required")]
         [Display(Name = "Password")]
         [DataType(DataType.Password)]
-        public string Password { get; set; } = string.Empty;
+        public string? Password { get; set; }
 
         [Display(Name = "Enable SSL")]
         public bool EnableSsl { get; set; } = true;

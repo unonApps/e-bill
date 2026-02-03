@@ -63,8 +63,11 @@ namespace TAB.Web.Pages.Admin
             FilterMonth = filterMonth;
             FilterYear = filterYear;
 
-            await LoadEOSStaffDataAsync();
-            await LoadStatisticsAsync();
+            // Run both data loads in parallel
+            var staffTask = LoadEOSStaffDataAsync();
+            var statsTask = LoadStatisticsAsync();
+
+            await Task.WhenAll(staffTask, statsTask);
         }
 
         /// <summary>
@@ -75,10 +78,8 @@ namespace TAB.Web.Pages.Admin
         /// </summary>
         public async Task<IActionResult> OnPostTriggerRecoveryAsync()
         {
-            // Declare failedStaff outside try block so it's accessible in catch block
             var failedStaff = new List<(string IndexNumber, string StaffName, string Error)>();
 
-            // Use database transaction for atomic operation
             using var transaction = await _context.Database.BeginTransactionAsync();
 
             try
@@ -94,7 +95,6 @@ namespace TAB.Web.Pages.Admin
                 _logger.LogInformation("EOS Recovery triggered for {Count} staff members by {User}",
                     SelectedStaffIndexNumbers.Count, User.Identity?.Name);
 
-                // Generate unique execution ID to track this specific recovery operation
                 var executionId = Guid.NewGuid();
                 var executionTime = DateTime.UtcNow;
 
@@ -103,12 +103,11 @@ namespace TAB.Web.Pages.Admin
                 int totalFailed = 0;
                 decimal totalRecovered = 0;
 
-                // Optimize: Get ONLY PERSONAL approved records in ONE query
-                // NOTE: Official calls are already certified as official business - NO recovery needed
+                // Get all approved PERSONAL records in ONE query
                 var allApprovedRecords = await _context.CallRecords
                     .Where(r => SelectedStaffIndexNumbers.Contains(r.ResponsibleIndexNumber) &&
                                r.SupervisorApprovalStatus == "Approved" &&
-                               r.VerificationType == "Personal" && // ONLY Personal calls need recovery
+                               r.VerificationType == "Personal" &&
                                (r.RecoveryStatus == "Pending" || r.RecoveryStatus == "NotProcessed"))
                     .ToListAsync();
 
@@ -121,20 +120,22 @@ namespace TAB.Web.Pages.Admin
                     return Page();
                 }
 
+                // Get staff names in bulk for error reporting
+                var staffNames = await _context.EbillUsers
+                    .AsNoTracking()
+                    .Where(u => SelectedStaffIndexNumbers.Contains(u.IndexNumber))
+                    .Select(u => new { u.IndexNumber, u.FullName })
+                    .ToDictionaryAsync(u => u.IndexNumber, u => u.FullName);
+
                 // Group records by staff member
                 var recordsByStaff = allApprovedRecords.GroupBy(r => r.ResponsibleIndexNumber);
+                var recoveryLogsToAdd = new List<RecoveryLog>();
 
                 foreach (var staffGroup in recordsByStaff)
                 {
                     var indexNumber = staffGroup.Key;
                     var approvedRecords = staffGroup.ToList();
-
-                    // Get staff info for error reporting
-                    var staffInfo = await _context.EbillUsers
-                        .Where(u => u.IndexNumber == indexNumber)
-                        .Select(u => new { u.FullName })
-                        .FirstOrDefaultAsync();
-                    var staffName = staffInfo?.FullName ?? indexNumber;
+                    var staffName = staffNames.GetValueOrDefault(indexNumber ?? "", indexNumber ?? "Unknown");
 
                     try
                     {
@@ -144,15 +145,12 @@ namespace TAB.Web.Pages.Admin
                             continue;
                         }
 
-                        // Process recovery for each PERSONAL record
-                        // NOTE: At this point, all records are Personal (filtered in query above)
                         foreach (var record in approvedRecords)
                         {
                             totalProcessed++;
 
                             try
                             {
-                                // Verify this is a Personal call (should always be true due to query filter)
                                 if (record.VerificationType != "Personal")
                                 {
                                     _logger.LogWarning("Skipping non-Personal record {RecordId} - VerificationType: {Type}",
@@ -160,15 +158,11 @@ namespace TAB.Web.Pages.Admin
                                     continue;
                                 }
 
-                                // Recovery logic for Personal calls ONLY
-                                string finalAssignmentType = "Personal";
                                 decimal recoveryAmount = record.CallCostUSD;
 
-                                // Update call record fields
                                 record.AssignmentStatus = "Personal";
                                 record.FinalAssignmentType = "Personal";
 
-                                // Create recovery log for Personal call recovery
                                 var recoveryLog = new RecoveryLog
                                 {
                                     CallRecordId = record.Id,
@@ -189,21 +183,18 @@ namespace TAB.Web.Pages.Admin
                                         CallCostKSH = record.CallCostKSHS,
                                         VerificationType = record.VerificationType,
                                         RecoveryMethod = "EOS Manual Trigger",
-                                        ExecutionId = executionId.ToString(), // Track this execution
+                                        ExecutionId = executionId.ToString(),
                                         ExecutionTime = executionTime
                                     })
                                 };
 
-                                _context.RecoveryLogs.Add(recoveryLog);
-                                // Don't save yet - will save all at once outside loop
+                                recoveryLogsToAdd.Add(recoveryLog);
 
-                                // Update call record status
                                 record.RecoveryStatus = "Completed";
                                 record.RecoveryAmount = recoveryAmount;
                                 record.RecoveryDate = DateTime.UtcNow;
                                 record.RecoveryProcessedBy = User.Identity?.Name ?? "System";
 
-                                // Count Personal call towards total recovered
                                 totalRecovered += recoveryAmount;
                                 totalSuccess++;
 
@@ -214,65 +205,53 @@ namespace TAB.Web.Pages.Admin
                             {
                                 totalFailed++;
                                 _logger.LogError(recordEx, "Failed to process recovery for record {RecordId}", record.Id);
-                                throw; // Re-throw to be caught by outer catch and rollback transaction
+                                throw;
                             }
                         }
-
-                        // Don't save changes here - will save once at the end
                     }
                     catch (Exception staffEx)
                     {
                         _logger.LogError(staffEx, "Failed to process recovery for staff {IndexNumber}", indexNumber);
-                        failedStaff.Add((indexNumber, staffName, staffEx.Message));
+                        failedStaff.Add((indexNumber ?? "Unknown", staffName, staffEx.Message));
                         totalFailed++;
-
-                        // For critical errors, rollback and stop
                         await transaction.RollbackAsync();
                         throw;
                     }
                 }
 
-                // Save all changes at once (outside the loop)
+                // Bulk add recovery logs
+                _context.RecoveryLogs.AddRange(recoveryLogsToAdd);
                 await _context.SaveChangesAsync();
 
-                // Update batch totals (same pattern as CallLogRecoveryService)
-                // FIX: Only use recovery logs from THIS execution (using executionId)
-                var processedBatchIds = await _context.CallRecords
-                    .Where(r => SelectedStaffIndexNumbers.Contains(r.ResponsibleIndexNumber) &&
-                               r.SourceBatchId.HasValue &&
-                               r.RecoveryStatus == "Completed")
+                // Update batch totals
+                var processedBatchIds = allApprovedRecords
+                    .Where(r => r.SourceBatchId.HasValue)
                     .Select(r => r.SourceBatchId!.Value)
                     .Distinct()
-                    .ToListAsync();
+                    .ToList();
 
                 var batchesToUpdate = await _context.StagingBatches
                     .Where(b => processedBatchIds.Contains(b.Id))
                     .ToListAsync();
 
-                // Use executionId string for batch queries
                 var executionIdString = executionId.ToString();
+
+                // Calculate batch totals from the logs we just added
+                var batchTotals = recoveryLogsToAdd
+                    .Where(r => r.RecoveryAction == "Personal")
+                    .GroupBy(r => r.BatchId)
+                    .ToDictionary(g => g.Key, g => g.Sum(r => r.AmountRecovered));
 
                 foreach (var batch in batchesToUpdate)
                 {
-                    // Calculate Personal amounts for THIS EXECUTION ONLY
-                    // NOTE: We only process Personal calls, so officialAmount will always be 0
-                    var batchRecoveryLogs = await _context.RecoveryLogs
-                        .Where(r => r.BatchId == batch.Id &&
-                                   r.RecoveryType == "EOS" &&
-                                   r.Metadata.Contains(executionIdString)) // Only this execution
-                        .ToListAsync();
+                    if (batchTotals.TryGetValue(batch.Id, out var personalAmount))
+                    {
+                        batch.TotalPersonalAmount = (batch.TotalPersonalAmount ?? 0) + personalAmount;
+                        batch.TotalRecoveredAmount = (batch.TotalRecoveredAmount ?? 0) + personalAmount;
+                    }
 
-                    var personalAmount = batchRecoveryLogs
-                        .Where(r => r.RecoveryAction == "Personal")
-                        .Sum(r => r.AmountRecovered);
-
-                    // Update batch totals (same as CallLogRecoveryService)
-                    // NOTE: We only process Personal calls, so only Personal totals are updated
-                    batch.TotalPersonalAmount = (batch.TotalPersonalAmount ?? 0) + personalAmount;
-                    batch.TotalRecoveredAmount = (batch.TotalRecoveredAmount ?? 0) + personalAmount; // Only Personal is "recovered"
-
-                    // Check if all records in this batch have been processed
                     var allRecordsRecovered = !await _context.CallRecords
+                        .AsNoTracking()
                         .AnyAsync(r => r.SourceBatchId == batch.Id &&
                                       r.SupervisorApprovalStatus == "Approved" &&
                                       (r.RecoveryStatus == "Pending" || r.RecoveryStatus == "NotProcessed"));
@@ -281,8 +260,7 @@ namespace TAB.Web.Pages.Admin
                     {
                         batch.RecoveryStatus = "Completed";
                         batch.RecoveryProcessingDate = DateTime.UtcNow;
-                        _logger.LogInformation("Batch {BatchId} marked as recovery completed - Personal: ${Personal:F2}",
-                            batch.Id, personalAmount);
+                        _logger.LogInformation("Batch {BatchId} marked as recovery completed", batch.Id);
                     }
                     else
                     {
@@ -292,25 +270,15 @@ namespace TAB.Web.Pages.Admin
                 }
 
                 await _context.SaveChangesAsync();
-
-                // Commit transaction - all changes successful
                 await transaction.CommitAsync();
 
-                // Count Personal records processed (should be same as totalSuccess)
-                // NOTE: We only process Personal calls, Official calls are not touched
-                var personalRecordsProcessed = await _context.RecoveryLogs
-                    .Where(r => r.RecoveryType == "EOS" &&
-                               r.Metadata.Contains(executionIdString) &&
-                               r.RecoveryAction == "Personal")
-                    .CountAsync();
+                var personalRecordsProcessed = recoveryLogsToAdd.Count(r => r.RecoveryAction == "Personal");
 
-                // Build success message with detailed information
                 var successDetails = $"EOS Recovery completed! " +
                     $"Processed: {personalRecordsProcessed} Personal call(s) recovered. " +
                     $"Success: {totalSuccess}, Failed: {totalFailed}. " +
                     $"Total Recovered: ${totalRecovered:F2}";
 
-                // Add failed staff details if any
                 if (failedStaff.Any())
                 {
                     var failedDetails = string.Join(", ", failedStaff.Select(f => $"{f.StaffName} ({f.IndexNumber})"));
@@ -325,10 +293,8 @@ namespace TAB.Web.Pages.Admin
             }
             catch (Exception ex)
             {
-                // Transaction will be automatically rolled back
                 _logger.LogError(ex, "Error triggering EOS recovery - transaction rolled back");
 
-                // Build detailed error message
                 var errorDetails = $"Error triggering recovery: {ex.Message}";
 
                 if (failedStaff.Any())
@@ -346,145 +312,139 @@ namespace TAB.Web.Pages.Admin
 
         private async Task LoadEOSStaffDataAsync()
         {
-            // Business Logic: Query CallRecords directly and join to INTERIM batches
-            // Show records where:
-            // 1. SourceBatchId links to a batch with BatchCategory = "INTERIM"
-            // 2. Batch is Published (BatchStatus = Published)
-            // 3. Staff has verified the record (IsVerified = true)
-            // 4. Supervisor has approved OR pending approval
-            // 5. Recovery is not completed yet
-            //
-            // Recovery Rules (same as regular recovery):
-            // - Personal calls: Full recovery from staff
-            // - Official calls: NO recovery (certified as official business)
-
-            var allStaffList = new List<EOSStaffRecovery>();
-
-            // Get all staff with INTERIM batch records
             _logger.LogInformation("Starting EOS Recovery data load...");
 
-            // Debug: Check all INTERIM batches
-            var allInterimBatches = await _context.StagingBatches
-                .Where(b => b.BatchCategory == "INTERIM")
+            // Get published INTERIM batch IDs in one query
+            var publishedInterimBatchIds = await _context.StagingBatches
+                .AsNoTracking()
+                .Where(b => b.BatchCategory == "INTERIM" && b.BatchStatus == BatchStatus.Published)
+                .Select(b => b.Id)
                 .ToListAsync();
-            _logger.LogInformation($"Found {allInterimBatches.Count} INTERIM batches");
 
-            // Debug: Check published INTERIM batches
-            var publishedInterimBatches = allInterimBatches.Where(b => b.BatchStatus == BatchStatus.Published).ToList();
-            _logger.LogInformation($"Found {publishedInterimBatches.Count} Published INTERIM batches");
+            _logger.LogInformation($"Found {publishedInterimBatchIds.Count} Published INTERIM batches");
 
-            var staffWithInterimRecords = await _context.CallRecords
+            if (!publishedInterimBatchIds.Any())
+            {
+                EOSStaffList = new List<EOSStaffRecovery>();
+                Organizations = new List<string>();
+                TotalRecords = 0;
+                TotalPages = 0;
+                return;
+            }
+
+            // Build base query for call records
+            var baseQuery = _context.CallRecords
+                .AsNoTracking()
                 .Where(r => r.SourceBatchId.HasValue &&
+                           publishedInterimBatchIds.Contains(r.SourceBatchId.Value) &&
                            r.IsVerified == true &&
                            (r.SupervisorApprovalStatus == "Approved" || r.SupervisorApprovalStatus == "Pending") &&
-                           (r.RecoveryStatus == "Pending" || r.RecoveryStatus == "NotProcessed"))
-                .Join(_context.StagingBatches,
-                     cr => cr.SourceBatchId,
-                     sb => (Guid?)sb.Id,
-                     (cr, sb) => new { CallRecord = cr, Batch = sb })
-                .Where(x => x.Batch.BatchCategory == "INTERIM" &&
-                           x.Batch.BatchStatus == BatchStatus.Published)
-                .Select(x => x.CallRecord.ResponsibleIndexNumber)
-                .Distinct()
+                           (r.RecoveryStatus == "Pending" || r.RecoveryStatus == "NotProcessed"));
+
+            // Apply month/year filters
+            if (FilterMonth.HasValue)
+            {
+                baseQuery = baseQuery.Where(r => r.CallMonth == FilterMonth.Value);
+            }
+            if (FilterYear.HasValue)
+            {
+                baseQuery = baseQuery.Where(r => r.CallYear == FilterYear.Value);
+            }
+
+            // Get aggregated data per staff member in single query
+            var staffRecoveryData = await baseQuery
+                .GroupBy(r => r.ResponsibleIndexNumber)
+                .Select(g => new
+                {
+                    IndexNumber = g.Key,
+                    TotalRecords = g.Count(),
+                    TotalPersonal = g.Where(r => r.VerificationType == "Personal").Sum(r => (decimal?)r.CallCostUSD) ?? 0,
+                    TotalOfficial = g.Where(r => r.VerificationType == "Official").Sum(r => (decimal?)r.CallCostUSD) ?? 0,
+                    ApprovedCount = g.Count(r => r.SupervisorApprovalStatus == "Approved"),
+                    LatestBatchId = g.Select(r => r.SourceBatchId).FirstOrDefault(),
+                    LatestCallDate = g.Max(r => r.CallDate),
+                    RecentVerificationStatus = g.OrderByDescending(r => r.CallDate).Select(r => r.IsVerified).FirstOrDefault(),
+                    RecentApprovalStatus = g.OrderByDescending(r => r.CallDate).Select(r => r.SupervisorApprovalStatus).FirstOrDefault(),
+                    RecentVerificationDeadline = g.OrderByDescending(r => r.CallDate).Select(r => r.VerificationPeriod).FirstOrDefault(),
+                    RecentApprovalDeadline = g.OrderByDescending(r => r.CallDate).Select(r => r.ApprovalPeriod).FirstOrDefault()
+                })
+                .Where(g => g.IndexNumber != null)
                 .ToListAsync();
 
-            _logger.LogInformation($"Found {staffWithInterimRecords.Count} staff with INTERIM records");
+            _logger.LogInformation($"Found {staffRecoveryData.Count} staff with INTERIM records");
 
-            foreach (var indexNumber in staffWithInterimRecords)
+            if (!staffRecoveryData.Any())
             {
-                if (string.IsNullOrEmpty(indexNumber))
-                    continue;
+                EOSStaffList = new List<EOSStaffRecovery>();
+                Organizations = new List<string>();
+                TotalRecords = 0;
+                TotalPages = 0;
+                return;
+            }
 
-                // Get verified records from INTERIM batches for this staff member
-                var query = _context.CallRecords
-                    .Where(r => r.ResponsibleIndexNumber == indexNumber &&
-                               r.SourceBatchId.HasValue &&
-                               r.IsVerified == true &&
-                               (r.SupervisorApprovalStatus == "Approved" || r.SupervisorApprovalStatus == "Pending") &&
-                               (r.RecoveryStatus == "Pending" || r.RecoveryStatus == "NotProcessed"))
-                    .Join(_context.StagingBatches,
-                         cr => cr.SourceBatchId,
-                         sb => (Guid?)sb.Id,
-                         (cr, sb) => new { CallRecord = cr, Batch = sb })
-                    .Where(x => x.Batch.BatchCategory == "INTERIM" &&
-                               x.Batch.BatchStatus == BatchStatus.Published)
-                    .Select(x => x.CallRecord);
-
-                // Apply month filter if specified
-                if (FilterMonth.HasValue)
+            // Get staff details in bulk
+            var indexNumbers = staffRecoveryData.Select(s => s.IndexNumber!).ToList();
+            var staffDetails = await _context.EbillUsers
+                .AsNoTracking()
+                .Include(u => u.OrganizationEntity)
+                .Where(u => indexNumbers.Contains(u.IndexNumber))
+                .Select(u => new
                 {
-                    query = query.Where(r => r.CallMonth == FilterMonth.Value);
-                }
+                    u.IndexNumber,
+                    u.FullName,
+                    u.Email,
+                    Organization = u.OrganizationEntity != null ? u.OrganizationEntity.Name : "N/A"
+                })
+                .ToDictionaryAsync(u => u.IndexNumber, u => u);
 
-                // Apply year filter if specified
-                if (FilterYear.HasValue)
-                {
-                    query = query.Where(r => r.CallYear == FilterYear.Value);
-                }
+            // Get batch details in bulk
+            var batchIds = staffRecoveryData
+                .Where(s => s.LatestBatchId.HasValue)
+                .Select(s => s.LatestBatchId!.Value)
+                .Distinct()
+                .ToList();
 
-                var verifiedRecords = await query.ToListAsync();
+            var batchDetails = await _context.StagingBatches
+                .AsNoTracking()
+                .Where(b => batchIds.Contains(b.Id))
+                .Select(b => new { b.Id, b.BatchName, b.CreatedDate })
+                .ToDictionaryAsync(b => b.Id, b => b);
 
-                _logger.LogInformation($"Staff {indexNumber}: Found {verifiedRecords.Count} verified records");
+            // Build the staff list
+            var allStaffList = new List<EOSStaffRecovery>();
 
-                if (!verifiedRecords.Any())
-                    continue; // Skip staff with no verified records pending recovery
+            foreach (var data in staffRecoveryData)
+            {
+                if (data.IndexNumber == null) continue;
 
-                // Get staff information
-                var staff = await _context.EbillUsers
-                    .Include(u => u.OrganizationEntity)
-                    .FirstOrDefaultAsync(u => u.IndexNumber == indexNumber);
+                var staff = staffDetails.GetValueOrDefault(data.IndexNumber);
+                if (staff == null) continue;
 
-                if (staff == null)
-                    continue;
-
-                // Calculate amounts per verification type
-                var totalPersonal = verifiedRecords
-                    .Where(r => r.VerificationType == "Personal")
-                    .Sum(r => r.CallCostUSD);
-
-                var totalOfficial = verifiedRecords
-                    .Where(r => r.VerificationType == "Official")
-                    .Sum(r => r.CallCostUSD);
-
-                // Total recovery amount = Only Personal calls (Official calls are NOT recovered)
-                var totalAmount = totalPersonal;
-
-                // Get latest batch info from the records
-                var latestBatchId = verifiedRecords
-                    .Where(r => r.SourceBatchId.HasValue)
-                    .OrderByDescending(r => r.CallDate)
-                    .Select(r => r.SourceBatchId)
-                    .FirstOrDefault();
-
-                var latestBatch = latestBatchId.HasValue
-                    ? await _context.StagingBatches.FindAsync(latestBatchId.Value)
+                var batchInfo = data.LatestBatchId.HasValue
+                    ? batchDetails.GetValueOrDefault(data.LatestBatchId.Value)
                     : null;
 
-                // Get verification and approval information from the most recent batch
-                var recentRecord = verifiedRecords.OrderByDescending(r => r.CallDate).FirstOrDefault();
-
-                var staffRecovery = new EOSStaffRecovery
+                allStaffList.Add(new EOSStaffRecovery
                 {
-                    IndexNumber = indexNumber,
+                    IndexNumber = data.IndexNumber,
                     StaffName = staff.FullName,
                     Email = staff.Email,
-                    Organization = staff.OrganizationEntity?.Name ?? "N/A",
-                    BatchName = latestBatch?.BatchName ?? "N/A",
-                    BatchDate = latestBatch?.CreatedDate ?? DateTime.MinValue,
-                    TotalRecords = verifiedRecords.Count,
-                    TotalPersonalAmount = totalPersonal,
-                    TotalOfficialAmount = totalOfficial,
-                    TotalRecoveryAmount = totalAmount,
-                    ApprovedRecordsCount = verifiedRecords.Count(r => r.SupervisorApprovalStatus == "Approved"),
+                    Organization = staff.Organization,
+                    BatchName = batchInfo?.BatchName ?? "N/A",
+                    BatchDate = batchInfo?.CreatedDate ?? DateTime.MinValue,
+                    TotalRecords = data.TotalRecords,
+                    TotalPersonalAmount = data.TotalPersonal,
+                    TotalOfficialAmount = data.TotalOfficial,
+                    TotalRecoveryAmount = data.TotalPersonal, // Only Personal calls need recovery
+                    ApprovedRecordsCount = data.ApprovedCount,
                     PendingRecovery = true,
-                    VerificationStatus = recentRecord?.IsVerified == true ? "Verified" : "Pending",
-                    VerificationDeadline = recentRecord?.VerificationPeriod,
-                    SupervisorApprovalStatus = recentRecord?.SupervisorApprovalStatus ?? "Pending",
-                    SupervisorApprovalDeadline = recentRecord?.ApprovalPeriod
-                };
+                    VerificationStatus = data.RecentVerificationStatus == true ? "Verified" : "Pending",
+                    VerificationDeadline = data.RecentVerificationDeadline,
+                    SupervisorApprovalStatus = data.RecentApprovalStatus ?? "Pending",
+                    SupervisorApprovalDeadline = data.RecentApprovalDeadline
+                });
 
-                allStaffList.Add(staffRecovery);
-                _logger.LogInformation($"Added {staff.FullName} to EOS Recovery list with {verifiedRecords.Count} records totaling ${totalAmount:F2}");
+                _logger.LogInformation($"Added {staff.FullName} to EOS Recovery list with {data.TotalRecords} records totaling ${data.TotalPersonal:F2}");
             }
 
             _logger.LogInformation($"Total staff in EOS Recovery list before filtering: {allStaffList.Count}");
@@ -493,7 +453,7 @@ namespace TAB.Web.Pages.Admin
             Organizations = allStaffList
                 .Select(s => s.Organization)
                 .Where(o => !string.IsNullOrEmpty(o) && o != "N/A")
-                .Select(o => o!) // Not-null assertion after null check
+                .Select(o => o!)
                 .Distinct()
                 .OrderBy(o => o)
                 .ToList();
@@ -518,14 +478,13 @@ namespace TAB.Web.Pages.Admin
             {
                 "name" => allStaffList.OrderBy(s => s.StaffName).ToList(),
                 "date" => allStaffList.OrderByDescending(s => s.BatchDate).ToList(),
-                _ => allStaffList.OrderByDescending(s => s.TotalRecoveryAmount).ToList() // Default: amount
+                _ => allStaffList.OrderByDescending(s => s.TotalRecoveryAmount).ToList()
             };
 
             // Calculate pagination
             TotalRecords = allStaffList.Count;
             TotalPages = (int)Math.Ceiling(TotalRecords / (double)PageSize);
 
-            // Ensure CurrentPage is valid
             if (CurrentPage < 1) CurrentPage = 1;
             if (CurrentPage > TotalPages && TotalPages > 0) CurrentPage = TotalPages;
 
@@ -538,20 +497,29 @@ namespace TAB.Web.Pages.Admin
 
         private async Task LoadStatisticsAsync()
         {
-            // Get all EOS recovery logs
-            var eosLogs = await _context.RecoveryLogs
+            // Get EOS recovery stats in single query
+            var eosStats = await _context.RecoveryLogs
+                .AsNoTracking()
                 .Where(r => r.RecoveryType == "EOS")
-                .ToListAsync();
+                .GroupBy(r => 1)
+                .Select(g => new
+                {
+                    TotalAmount = g.Sum(r => r.AmountRecovered),
+                    TotalRecords = g.Count(),
+                    UniqueStaff = g.Select(r => r.RecoveredFrom).Distinct().Count(),
+                    LastDate = g.Max(r => (DateTime?)r.RecoveryDate)
+                })
+                .FirstOrDefaultAsync();
 
             Statistics = new EOSRecoveryStatistics
             {
                 TotalEOSStaff = EOSStaffList.Count,
                 TotalPendingRecords = EOSStaffList.Sum(s => s.TotalRecords),
                 TotalPendingAmount = EOSStaffList.Sum(s => s.TotalRecoveryAmount),
-                TotalProcessedStaff = eosLogs.Select(l => l.RecoveredFrom).Distinct().Count(),
-                TotalRecoveredAmount = eosLogs.Sum(l => l.AmountRecovered),
-                TotalRecoveredRecords = eosLogs.Count(),
-                LastProcessedDate = eosLogs.Any() ? eosLogs.Max(l => l.RecoveryDate) : (DateTime?)null
+                TotalProcessedStaff = eosStats?.UniqueStaff ?? 0,
+                TotalRecoveredAmount = eosStats?.TotalAmount ?? 0,
+                TotalRecoveredRecords = eosStats?.TotalRecords ?? 0,
+                LastProcessedDate = eosStats?.LastDate
             };
         }
 
@@ -562,8 +530,8 @@ namespace TAB.Web.Pages.Admin
         {
             try
             {
-                // Get user profile
                 var user = await _context.EbillUsers
+                    .AsNoTracking()
                     .Include(u => u.OrganizationEntity)
                     .FirstOrDefaultAsync(u => u.IndexNumber == indexNumber);
 
@@ -572,8 +540,8 @@ namespace TAB.Web.Pages.Admin
                     return new JsonResult(new { success = false, message = "User not found" });
                 }
 
-                // Get assigned phone numbers
                 var phones = await _context.UserPhones
+                    .AsNoTracking()
                     .Include(p => p.ClassOfService)
                     .Where(p => p.IndexNumber == indexNumber && p.IsActive)
                     .OrderByDescending(p => p.IsPrimary)
@@ -591,7 +559,7 @@ namespace TAB.Web.Pages.Admin
                     })
                     .ToListAsync();
 
-                var result = new
+                return new JsonResult(new
                 {
                     success = true,
                     indexNumber = user.IndexNumber,
@@ -600,9 +568,7 @@ namespace TAB.Web.Pages.Admin
                     organization = user.OrganizationEntity?.Name,
                     isActive = user.IsActive,
                     phones = phones
-                };
-
-                return new JsonResult(result);
+                });
             }
             catch (Exception ex)
             {
@@ -626,6 +592,7 @@ namespace TAB.Web.Pages.Admin
                 var query = searchQuery.ToLower().Trim();
 
                 var results = await _context.EbillUsers
+                    .AsNoTracking()
                     .Include(u => u.OrganizationEntity)
                     .Where(u =>
                         u.FirstName.ToLower().Contains(query) ||
@@ -634,7 +601,7 @@ namespace TAB.Web.Pages.Admin
                         u.IndexNumber.ToLower().Contains(query))
                     .OrderBy(u => u.FirstName)
                     .ThenBy(u => u.LastName)
-                    .Take(10) // Limit to 10 results
+                    .Take(10)
                     .Select(u => new
                     {
                         indexNumber = u.IndexNumber,
@@ -644,11 +611,7 @@ namespace TAB.Web.Pages.Admin
                     })
                     .ToListAsync();
 
-                return new JsonResult(new
-                {
-                    success = true,
-                    results = results
-                });
+                return new JsonResult(new { success = true, results = results });
             }
             catch (Exception ex)
             {
@@ -664,7 +627,6 @@ namespace TAB.Web.Pages.Admin
         {
             try
             {
-                // Get the phone record
                 var phone = await _context.UserPhones
                     .Include(p => p.EbillUser)
                     .FirstOrDefaultAsync(p => p.Id == phoneId);
@@ -674,7 +636,6 @@ namespace TAB.Web.Pages.Admin
                     return new JsonResult(new { success = false, message = "Phone record not found" });
                 }
 
-                // Verify new staff member exists
                 var newUser = await _context.EbillUsers
                     .FirstOrDefaultAsync(u => u.IndexNumber == newIndexNumber);
 
@@ -683,11 +644,9 @@ namespace TAB.Web.Pages.Admin
                     return new JsonResult(new { success = false, message = "New staff member not found" });
                 }
 
-                // Store old values for logging
                 var oldIndexNumber = phone.IndexNumber;
                 var oldUserName = phone.EbillUser != null ? $"{phone.EbillUser.FirstName} {phone.EbillUser.LastName}" : oldIndexNumber;
 
-                // Check if new user already has a primary phone if this is a primary phone
                 if (phone.IsPrimary)
                 {
                     var existingPrimary = await _context.UserPhones
@@ -695,13 +654,11 @@ namespace TAB.Web.Pages.Admin
 
                     if (existingPrimary != null)
                     {
-                        // Set existing primary to secondary
                         existingPrimary.IsPrimary = false;
                         existingPrimary.LineType = LineType.Secondary;
                     }
                 }
 
-                // Reassign the phone
                 phone.IndexNumber = newIndexNumber;
                 phone.AssignedDate = DateTime.UtcNow;
 
@@ -737,7 +694,6 @@ namespace TAB.Web.Pages.Admin
                     return new JsonResult(new { success = false, message = "User not found" });
                 }
 
-                // Toggle the IsActive status
                 user.IsActive = !user.IsActive;
                 var action = user.IsActive ? "enabled" : "disabled";
 
@@ -774,9 +730,8 @@ namespace TAB.Web.Pages.Admin
                     return new JsonResult(new { success = false, message = "Phone record not found" });
                 }
 
-                // Set status to Deactivated
                 phone.Status = PhoneStatus.Deactivated;
-                phone.IsPrimary = false; // Remove primary status when deactivating
+                phone.IsPrimary = false;
 
                 await _context.SaveChangesAsync();
 
@@ -811,8 +766,6 @@ namespace TAB.Web.Pages.Admin
             public decimal TotalRecoveryAmount { get; set; }
             public int ApprovedRecordsCount { get; set; }
             public bool PendingRecovery { get; set; }
-
-            // Verification & Approval Information
             public string? VerificationStatus { get; set; }
             public DateTime? VerificationDeadline { get; set; }
             public string? SupervisorApprovalStatus { get; set; }

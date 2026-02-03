@@ -31,16 +31,14 @@ namespace TAB.Web.Models
         [StringLength(255)]
         public string FromName { get; set; } = string.Empty;
 
-        [Required(ErrorMessage = "Username is required")]
         [Display(Name = "Username")]
         [StringLength(255)]
-        public string Username { get; set; } = string.Empty;
+        public string? Username { get; set; }
 
-        [Required(ErrorMessage = "Password is required")]
         [Display(Name = "Password")]
         [DataType(DataType.Password)]
         [StringLength(500)]
-        public string Password { get; set; } = string.Empty;
+        public string? Password { get; set; }
 
         [Display(Name = "Enable SSL")]
         public bool EnableSsl { get; set; } = true;

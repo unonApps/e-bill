@@ -8,7 +8,9 @@ namespace TAB.Web.Services
     {
         Task AddHistoryAsync(int userPhoneId, string action, string? description = null, string? changedBy = null, string? fieldChanged = null, string? oldValue = null, string? newValue = null);
         Task<List<UserPhoneHistory>> GetHistoryForPhoneAsync(int userPhoneId);
+        Task<List<UserPhoneHistory>> GetHistoryByPhoneNumberAsync(string phoneNumber);
         Task<List<UserPhoneHistory>> GetRecentHistoryForUserAsync(string indexNumber, int count = 10);
+        Task CopyHistoryToNewPhoneAsync(int oldPhoneId, int newPhoneId, string? changedBy = null);
     }
 
     public class UserPhoneHistoryService : IUserPhoneHistoryService
@@ -65,6 +67,59 @@ namespace TAB.Web.Services
                 .OrderByDescending(h => h.ChangedDate)
                 .Take(count)
                 .ToListAsync();
+        }
+
+        public async Task<List<UserPhoneHistory>> GetHistoryByPhoneNumberAsync(string phoneNumber)
+        {
+            // Get all history entries for a phone number across all UserPhone records
+            // This is useful for viewing complete history of a phone number regardless of reassignments
+            return await _context.UserPhoneHistories
+                .Include(h => h.UserPhone)
+                .Where(h => h.UserPhone!.PhoneNumber == phoneNumber)
+                .OrderByDescending(h => h.ChangedDate)
+                .ToListAsync();
+        }
+
+        public async Task CopyHistoryToNewPhoneAsync(int oldPhoneId, int newPhoneId, string? changedBy = null)
+        {
+            try
+            {
+                // Get all history from the old phone
+                var oldHistory = await _context.UserPhoneHistories
+                    .Where(h => h.UserPhoneId == oldPhoneId)
+                    .OrderBy(h => h.ChangedDate)
+                    .ToListAsync();
+
+                if (!oldHistory.Any())
+                {
+                    _logger.LogInformation($"No history to copy from UserPhone {oldPhoneId} to {newPhoneId}");
+                    return;
+                }
+
+                // Copy each history entry to the new phone
+                foreach (var history in oldHistory)
+                {
+                    var newHistory = new UserPhoneHistory
+                    {
+                        UserPhoneId = newPhoneId,
+                        Action = history.Action,
+                        Description = history.Description,
+                        ChangedBy = history.ChangedBy,
+                        FieldChanged = history.FieldChanged,
+                        OldValue = history.OldValue,
+                        NewValue = history.NewValue,
+                        ChangedDate = history.ChangedDate // Preserve original date
+                    };
+                    _context.UserPhoneHistories.Add(newHistory);
+                }
+
+                await _context.SaveChangesAsync();
+                _logger.LogInformation($"Copied {oldHistory.Count} history entries from UserPhone {oldPhoneId} to {newPhoneId}");
+            }
+            catch (Exception ex)
+            {
+                _logger.LogError(ex, $"Error copying history from UserPhone {oldPhoneId} to {newPhoneId}");
+            }
         }
     }
 }

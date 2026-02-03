@@ -9,6 +9,7 @@ namespace TAB.Web.Services
     {
         // Consolidation
         Task<StagingBatch> ConsolidateCallLogsAsync(DateTime startDate, DateTime endDate, string createdBy);
+        Task ConsolidateCallLogsInBackgroundAsync(Guid batchId, int startMonth, int startYear, int endMonth, int endYear, string createdBy);
         Task<int> ImportFromSafaricomAsync(Guid batchId, DateTime startDate, DateTime endDate);
         Task<int> ImportFromAirtelAsync(Guid batchId, DateTime startDate, DateTime endDate);
         Task<int> ImportFromPSTNAsync(Guid batchId, DateTime startDate, DateTime endDate);
@@ -18,16 +19,23 @@ namespace TAB.Web.Services
         Task<List<CallLogAnomaly>> DetectAnomaliesAsync(int stagingId);
         Task<bool> ValidateCallLogAsync(CallLogStaging log);
         Task<int> DetectBatchAnomaliesAsync(Guid batchId);
+        Task<int> DetectBatchAnomaliesFastAsync(Guid batchId);
 
         // Verification
         Task<bool> VerifyCallLogAsync(int stagingId, string verifiedBy, string? notes = null);
         Task<int> BulkVerifyAsync(List<int> stagingIds, string verifiedBy);
+        Task BulkVerifyInBackgroundAsync(Guid batchId, string verifiedBy);
+        Task<int> AutoVerifyCleanRecordsAsync(Guid batchId, string verifiedBy);
         Task<bool> RejectCallLogAsync(int stagingId, string rejectedBy, string reason);
         Task<int> BulkRejectAsync(List<int> stagingIds, string rejectedBy, string reason);
 
         // Production Push
-        Task<int> PushToProductionAsync(Guid batchId, DateTime? verificationPeriod = null, string? verificationType = null);
+        Task<int> PushToProductionAsync(Guid batchId, DateTime? verificationPeriod = null, string? verificationType = null, bool sendNotifications = true);
+        Task PushToProductionInBackgroundAsync(Guid batchId, DateTime? verificationPeriod, string? verificationType, string publishedBy, bool sendNotifications = true);
         Task<bool> RollbackBatchAsync(Guid batchId);
+
+        // Notifications
+        Task<int> SendBatchNotificationsAsync(Guid batchId, DateTime? verificationPeriod = null);
 
         // Batch Management
         Task<bool> DeleteBatchAsync(Guid batchId, string deletedBy);

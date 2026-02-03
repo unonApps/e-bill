@@ -89,23 +89,23 @@
     .modern-card-header {
         padding: 1.25rem 1.5rem;
         border-bottom: 2px solid #e5e7eb;
-        background: linear-gradient(135deg, #f8f9fa 0%, #e9ecef 100%);
+        background: #f8f9fa;
     }
 
     .modern-card-header.primary {
-        background: linear-gradient(135deg, #f8f9fa 0%, #e9ecef 100%);
+        background: #f8f9fa;
     }
 
     .modern-card-header.success {
-        background: linear-gradient(135deg, #f8f9fa 0%, #e9ecef 100%);
+        background: #f8f9fa;
     }
 
     .modern-card-header.warning {
-        background: linear-gradient(135deg, #f8f9fa 0%, #e9ecef 100%);
+        background: #f8f9fa;
     }
 
     .modern-card-header.info {
-        background: linear-gradient(135deg, #f8f9fa 0%, #e9ecef 100%);
+        background: #f8f9fa;
     }
 
     .modern-card-title {
@@ -666,8 +666,7 @@
                             </button>
                         </div>
                         <div>
-                            <button type="submit" class="btn-reset" asp-page-handler="ResetToDefaults"
-                                    onclick="return confirm('Are you sure you want to reset all settings to their default values?')">
+                            <button type="button" class="btn-reset" data-bs-toggle="modal" data-bs-target="#confirmResetModal">
                                 <i class="bi bi-arrow-clockwise"></i>Reset to Defaults
                             </button>
                         </div>
@@ -676,6 +675,42 @@
             </div>
         </div>
     </form>
+
+    <!-- Hidden form for Reset to Defaults -->
+    <form id="resetDefaultsForm" method="post" asp-page-handler="ResetToDefaults" style="display: none;"></form>
+</div>
+
+<!-- Reset to Defaults Confirmation Modal -->
+<div class="modal fade" id="confirmResetModal" tabindex="-1" aria-labelledby="confirmResetModalLabel" aria-hidden="true">
+    <div class="modal-dialog modal-dialog-centered">
+        <div class="modal-content" style="border-radius: 16px; border: none;">
+            <div class="modal-header" style="background: #f8f9fa; border-bottom: 2px solid #e5e7eb; border-radius: 16px 16px 0 0;">
+                <h5 class="modal-title" id="confirmResetModalLabel" style="font-weight: 700; color: #1f2937;">
+                    <i class="bi bi-arrow-clockwise me-2 text-warning"></i>Confirm Reset
+                </h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+            </div>
+            <div class="modal-body" style="padding: 1.5rem;">
+                <div class="d-flex align-items-start gap-3">
+                    <div class="flex-shrink-0">
+                        <div style="width: 48px; height: 48px; border-radius: 12px; background: rgba(245, 158, 11, 0.1); display: flex; align-items: center; justify-content: center;">
+                            <i class="bi bi-exclamation-triangle" style="font-size: 1.5rem; color: #f59e0b;"></i>
+                        </div>
+                    </div>
+                    <div>
+                        <p class="mb-2" style="font-weight: 600; color: #1f2937;">Are you sure you want to reset all settings to their default values?</p>
+                        <p class="mb-0 text-muted" style="font-size: 0.9rem;">This will restore the original configuration for job intervals, notifications, and deadline settings.</p>
+                    </div>
+                </div>
+            </div>
+            <div class="modal-footer" style="border-top: 2px solid #e5e7eb; padding: 1rem 1.5rem;">
+                <button type="button" class="btn btn-outline-secondary" style="border-radius: 10px;" data-bs-dismiss="modal">Cancel</button>
+                <button type="button" class="btn btn-warning" style="border-radius: 10px;" onclick="document.getElementById('resetDefaultsForm').submit();">
+                    <i class="bi bi-arrow-clockwise me-1"></i>Reset to Defaults
+                </button>
+            </div>
+        </div>
+    </div>
 </div>
 
 @section Scripts {

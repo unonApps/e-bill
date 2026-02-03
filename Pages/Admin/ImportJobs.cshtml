@@ -1,7 +1,7 @@
 @page
 @model TAB.Web.Pages.Admin.ImportJobsModel
 @{
-    ViewData["Title"] = "Import Jobs";
+    ViewData["Title"] = "Background Jobs";
 }
 
 <style>
@@ -195,6 +195,9 @@
             <div class="stat-details">
                 <div class="stat-number">@Model.TotalJobs.ToString("N0")</div>
                 <div class="stat-label">Total Jobs</div>
+                <div style="font-size: 11px; color: #9ca3af; margin-top: 4px;">
+                    @Model.TotalImportJobs imports • @Model.TotalConsolidationJobs consolidations • @Model.TotalEmailJobs emails
+                </div>
             </div>
         </div>
     </div>
@@ -234,16 +237,57 @@
             </div>
         </div>
     </div>
+
+    <div class="stat-card">
+        <div class="stat-content">
+            <div class="stat-icon stat-icon-primary">
+                <i class="bi bi-database"></i>
+            </div>
+            <div class="stat-details">
+                <div class="stat-number">@Model.TotalRecordsProcessed.ToString("N0")</div>
+                <div class="stat-label">Records Processed</div>
+            </div>
+        </div>
+    </div>
+
+    <div class="stat-card">
+        <div class="stat-content">
+            <div class="stat-icon" style="background: linear-gradient(135deg, #8b5cf6, #a78bfa); color: white;">
+                <i class="bi bi-envelope"></i>
+            </div>
+            <div class="stat-details">
+                <div class="stat-number">@Model.TotalEmailJobs.ToString("N0")</div>
+                <div class="stat-label">Emails</div>
+                <div style="font-size: 11px; color: #9ca3af; margin-top: 4px;">
+                    @Model.EmailsQueued queued • @Model.EmailsSent sent • @Model.EmailsFailed failed
+                </div>
+            </div>
+        </div>
+    </div>
 </div>
 
 <!-- Page Title and Actions -->
 <div class="d-flex justify-content-between align-items-center mb-3">
     <h4 class="mb-0">
-        <i class="bi bi-server me-2 text-primary"></i>Import Jobs
+        <i class="bi bi-server me-2 text-primary"></i>Background Jobs Monitor
     </h4>
-    <a href="/hangfire" target="_blank" class="btn btn-sm btn-outline-primary" style="border-radius: 12px;">
-        <i class="bi bi-speedometer2 me-1"></i> View Dashboard
-    </a>
+    <div class="d-flex align-items-center gap-2">
+        <!-- Auto-refresh toggle -->
+        <div class="d-flex align-items-center gap-2 me-2">
+            <div class="form-check form-switch mb-0">
+                <input class="form-check-input" type="checkbox" role="switch" id="autoRefreshToggle" checked>
+                <label class="form-check-label small text-muted" for="autoRefreshToggle">
+                    Auto-refresh
+                </label>
+            </div>
+            <span id="refreshCountdown" class="badge bg-light text-dark" style="font-size: 11px; min-width: 50px;">
+                <i class="bi bi-arrow-clockwise me-1"></i><span id="countdownValue">10</span>s
+            </span>
+        </div>
+        <a href="/hangfire" target="_blank" class="btn btn-sm btn-outline-primary" style="border-radius: 12px;">
+            <i class="bi bi-speedometer2 me-1"></i> View Dashboard
+        </a>
+    </div>
 </div>
 
 <!-- Filter Section (Collapsible) -->
@@ -252,89 +296,191 @@
         <div class="d-flex justify-content-between align-items-center">
             <h6 class="mb-0 fw-bold">
                 <i class="bi bi-funnel me-2"></i>Filters
+                @{
+                    var activeFiltersCount = 0;
+                    if (!string.IsNullOrEmpty(Model.SearchTerm)) activeFiltersCount++;
+                    if (Model.FilterStatus != "all") activeFiltersCount++;
+                    if (Model.FilterJobType != "all") activeFiltersCount++;
+                    if (Model.FilterCallLogType != "all") activeFiltersCount++;
+                    if (Model.StartDate.HasValue || Model.EndDate.HasValue) activeFiltersCount++;
+                }
+                @if (activeFiltersCount > 0)
+                {
+                    <span class="badge bg-primary ms-2" style="border-radius: 10px;">@activeFiltersCount active</span>
+                }
             </h6>
             <div class="d-flex align-items-center gap-3">
                 <span class="badge bg-light text-dark" style="font-weight: 500;">
-                    @if (Model.ImportJobs.Any())
+                    @{
+                        var totalResults = Model.TotalFilteredJobs;
+                    }
+                    @if (totalResults > 0)
                     {
-                        <text>@Model.ImportJobs.Count results</text>
+                        <text>@totalResults.ToString("N0") total results</text>
                     }
                     else
                     {
                         <text>No results</text>
                     }
                 </span>
-                <i class="bi bi-chevron-down"></i>
+                <i class="bi bi-chevron-down filter-chevron"></i>
             </div>
         </div>
     </div>
     <div class="collapse" id="filterCollapse">
         <div class="card-body p-4">
             <form method="get" class="filter-form" id="filterForm">
+                <!-- Quick Date Range Buttons -->
+                <div class="mb-4">
+                    <label class="form-label text-muted small fw-semibold mb-2">
+                        <i class="bi bi-calendar-range me-1"></i>Quick Date Range
+                    </label>
+                    <div class="d-flex flex-wrap gap-2">
+                        <button type="button" class="btn btn-sm @(Model.DateRange == "today" ? "btn-primary" : "btn-outline-secondary") date-range-btn"
+                                data-range="today" style="border-radius: 20px;">
+                            Today
+                        </button>
+                        <button type="button" class="btn btn-sm @(Model.DateRange == "yesterday" ? "btn-primary" : "btn-outline-secondary") date-range-btn"
+                                data-range="yesterday" style="border-radius: 20px;">
+                            Yesterday
+                        </button>
+                        <button type="button" class="btn btn-sm @(Model.DateRange == "last7days" ? "btn-primary" : "btn-outline-secondary") date-range-btn"
+                                data-range="last7days" style="border-radius: 20px;">
+                            Last 7 Days
+                        </button>
+                        <button type="button" class="btn btn-sm @(Model.DateRange == "last30days" ? "btn-primary" : "btn-outline-secondary") date-range-btn"
+                                data-range="last30days" style="border-radius: 20px;">
+                            Last 30 Days
+                        </button>
+                        <button type="button" class="btn btn-sm @(Model.DateRange == "thisMonth" ? "btn-primary" : "btn-outline-secondary") date-range-btn"
+                                data-range="thisMonth" style="border-radius: 20px;">
+                            This Month
+                        </button>
+                        <button type="button" class="btn btn-sm @(Model.DateRange == "lastMonth" ? "btn-primary" : "btn-outline-secondary") date-range-btn"
+                                data-range="lastMonth" style="border-radius: 20px;">
+                            Last Month
+                        </button>
+                        <button type="button" class="btn btn-sm @(string.IsNullOrEmpty(Model.DateRange) && !Model.StartDate.HasValue && !Model.EndDate.HasValue ? "btn-primary" : "btn-outline-secondary") date-range-btn"
+                                data-range="" style="border-radius: 20px;">
+                            All Time
+                        </button>
+                    </div>
+                    <input type="hidden" name="DateRange" id="dateRangeInput" value="@Model.DateRange" />
+                </div>
+
+                <hr class="my-3" style="border-color: #e5e7eb;">
+
                 <div class="row g-3">
-                    <div class="col-md-3">
-                        <label class="form-label text-muted small" for="searchFilter">Search</label>
-                        <input type="text" name="SearchTerm" id="searchFilter"
-                               class="form-control border-0 bg-light filter-search-input"
-                               style="border-radius: 12px;"
-                               placeholder="File name or user..." value="@Model.SearchTerm" />
+                    <!-- Search -->
+                    <div class="col-md-4">
+                        <label class="form-label text-muted small fw-semibold" for="searchFilter">
+                            <i class="bi bi-search me-1"></i>Search
+                        </label>
+                        <div class="input-group">
+                            <span class="input-group-text bg-light border-0" style="border-radius: 12px 0 0 12px;">
+                                <i class="bi bi-search text-muted"></i>
+                            </span>
+                            <input type="text" name="SearchTerm" id="searchFilter"
+                                   class="form-control border-0 bg-light filter-search-input"
+                                   style="border-radius: 0 12px 12px 0;"
+                                   placeholder="File name, user, email..." value="@Model.SearchTerm" />
+                        </div>
                     </div>
 
-                    <div class="col-md-3">
-                        <label class="form-label text-muted small" for="statusFilter">Status</label>
+                    <!-- Job Type -->
+                    <div class="col-md-2">
+                        <label class="form-label text-muted small fw-semibold" for="jobTypeFilter">
+                            <i class="bi bi-layers me-1"></i>Job Type
+                        </label>
+                        <select name="FilterJobType" id="jobTypeFilter"
+                                class="form-select border-0 bg-light filter-auto-submit"
+                                style="border-radius: 12px;">
+                            <option value="all" selected="@(Model.FilterJobType == "all")">All Types</option>
+                            <option value="Import" selected="@(Model.FilterJobType == "Import")">📥 Import</option>
+                            <option value="Consolidation" selected="@(Model.FilterJobType == "Consolidation")">📊 Consolidation</option>
+                            <option value="Email" selected="@(Model.FilterJobType == "Email")">📧 Email</option>
+                        </select>
+                    </div>
+
+                    <!-- Status -->
+                    <div class="col-md-2">
+                        <label class="form-label text-muted small fw-semibold" for="statusFilter">
+                            <i class="bi bi-flag me-1"></i>Status
+                        </label>
                         <select name="FilterStatus" id="statusFilter"
                                 class="form-select border-0 bg-light filter-auto-submit"
                                 style="border-radius: 12px;">
                             <option value="all" selected="@(Model.FilterStatus == "all")">All Status</option>
-                            <option value="Queued" selected="@(Model.FilterStatus == "Queued")">Queued</option>
-                            <option value="Processing" selected="@(Model.FilterStatus == "Processing")">Processing</option>
-                            <option value="Completed" selected="@(Model.FilterStatus == "Completed")">Completed</option>
-                            <option value="Failed" selected="@(Model.FilterStatus == "Failed")">Failed</option>
+                            <option value="Queued" selected="@(Model.FilterStatus == "Queued")">⏳ Queued</option>
+                            <option value="Processing" selected="@(Model.FilterStatus == "Processing")">🔄 Processing</option>
+                            <option value="Completed" selected="@(Model.FilterStatus == "Completed")">✅ Completed</option>
+                            <option value="Failed" selected="@(Model.FilterStatus == "Failed")">❌ Failed</option>
                         </select>
                     </div>
 
-                    <div class="col-md-3">
-                        <label class="form-label text-muted small" for="typeFilter">Call Log Type</label>
+                    <!-- Provider -->
+                    <div class="col-md-2">
+                        <label class="form-label text-muted small fw-semibold" for="typeFilter">
+                            <i class="bi bi-sim me-1"></i>Provider
+                        </label>
                         <select name="FilterCallLogType" id="typeFilter"
                                 class="form-select border-0 bg-light filter-auto-submit"
                                 style="border-radius: 12px;">
-                            <option value="all" selected="@(Model.FilterCallLogType == "all")">All Types</option>
-                            <option value="Safaricom" selected="@(Model.FilterCallLogType == "Safaricom")">Safaricom</option>
-                            <option value="Airtel" selected="@(Model.FilterCallLogType == "Airtel")">Airtel</option>
-                            <option value="PSTN" selected="@(Model.FilterCallLogType == "PSTN")">PSTN</option>
-                            <option value="PrivateWire" selected="@(Model.FilterCallLogType == "PrivateWire")">Private Wire</option>
+                            <option value="all" selected="@(Model.FilterCallLogType == "all")">All Providers</option>
+                            <option value="Safaricom" selected="@(Model.FilterCallLogType == "Safaricom")">🟢 Safaricom</option>
+                            <option value="Airtel" selected="@(Model.FilterCallLogType == "Airtel")">🔴 Airtel</option>
+                            <option value="PSTN" selected="@(Model.FilterCallLogType == "PSTN")">📞 PSTN</option>
+                            <option value="PrivateWire" selected="@(Model.FilterCallLogType == "PrivateWire")">🔗 Private Wire</option>
                         </select>
                     </div>
 
-                    <div class="col-md-3">
-                        <label class="form-label text-muted small" for="startDate">Start Date</label>
+                    <!-- Custom Date Range -->
+                    <div class="col-md-2">
+                        <label class="form-label text-muted small fw-semibold" for="startDate">
+                            <i class="bi bi-calendar me-1"></i>From
+                        </label>
                         <input type="date" name="StartDate" id="startDate"
                                class="form-control border-0 bg-light filter-auto-submit"
                                style="border-radius: 12px;"
                                value="@Model.StartDate?.ToString("yyyy-MM-dd")" />
                     </div>
 
-                    <div class="col-md-3">
-                        <label class="form-label text-muted small" for="endDate">End Date</label>
+                    <div class="col-md-2 d-none" id="endDateCol">
+                        <label class="form-label text-muted small fw-semibold" for="endDate">
+                            <i class="bi bi-calendar me-1"></i>To
+                        </label>
                         <input type="date" name="EndDate" id="endDate"
                                class="form-control border-0 bg-light filter-auto-submit"
                                style="border-radius: 12px;"
                                value="@Model.EndDate?.ToString("yyyy-MM-dd")" />
                     </div>
-
-                    <div class="col-md-9 d-flex align-items-end">
-                        <a href="/Admin/ImportJobs" class="btn btn-outline-secondary btn-sm" style="border-radius: 12px;">
-                            <i class="bi bi-x-circle me-1"></i> Clear Filters
-                        </a>
-                    </div>
                 </div>
+
+                <!-- Filter Actions -->
+                <div class="d-flex justify-content-between align-items-center mt-4 pt-3" style="border-top: 1px solid #e5e7eb;">
+                    <div class="d-flex gap-2">
+                        <a href="/Admin/ImportJobs" class="btn btn-outline-secondary btn-sm" style="border-radius: 12px;">
+                            <i class="bi bi-x-circle me-1"></i>Clear All Filters
+                        </a>
+                        <button type="submit" class="btn btn-primary btn-sm" style="border-radius: 12px;">
+                            <i class="bi bi-funnel me-1"></i>Apply Filters
+                        </button>
+                    </div>
+                    <small class="text-muted">
+                        <i class="bi bi-info-circle me-1"></i>Provider filter only applies to Import jobs
+                    </small>
+                </div>
+
+                <!-- Preserve pagination settings when filtering -->
+                <input type="hidden" name="pageSize" value="@Model.PageSize" />
+                <input type="hidden" name="page" value="1" />
             </form>
         </div>
     </div>
 </div>
 
-<!-- Import Jobs Table -->
-@if (!Model.ImportJobs.Any())
+<!-- Combined Jobs Table -->
+@if (!Model.ImportJobs.Any() && !Model.ConsolidationJobs.Any() && !Model.EmailJobs.Any())
 {
     <div class="card border-0 shadow-sm" style="border-radius: 16px;">
         <div class="card-body text-center py-5">
@@ -342,8 +488,8 @@
                  style="width: 80px; height: 80px; box-shadow: 0 4px 12px rgba(0, 0, 0, 0.08);">
                 <i class="bi bi-inbox text-muted" style="font-size: 32px;"></i>
             </div>
-            <h5 class="text-muted mb-2">No Import Jobs Found</h5>
-            <p class="text-muted mb-0">Import jobs will appear here once you upload files.</p>
+            <h5 class="text-muted mb-2">No Jobs Found</h5>
+            <p class="text-muted mb-0">Background jobs will appear here once you start processing.</p>
         </div>
     </div>
 }
@@ -354,7 +500,15 @@ else
              style="background: linear-gradient(135deg, #f8f9fa 0%, #e9ecef 100%); border-radius: 16px 16px 0 0;">
             <div class="d-flex justify-content-between align-items-center">
                 <div class="d-flex align-items-center gap-2">
-                    <label class="mb-0" style="font-size: 14px; color: #4b5563;">Showing @Model.ImportJobs.Count jobs</label>
+                    @{
+                        var totalJobsTable = Model.ImportJobs.Count + Model.ConsolidationJobs.Count + Model.EmailJobs.Count;
+                        var startRecord = (Model.CurrentPage - 1) * Model.PageSize + 1;
+                        var endRecord = Math.Min(Model.CurrentPage * Model.PageSize, Model.TotalFilteredJobs);
+                    }
+                    <label class="mb-0" style="font-size: 14px; color: #4b5563;">
+                        Showing @startRecord-@endRecord of @Model.TotalFilteredJobs.ToString("N0") jobs
+                        <span class="text-muted">(@Model.ImportJobs.Count imports, @Model.ConsolidationJobs.Count consolidations, @Model.EmailJobs.Count emails on this page)</span>
+                    </label>
                 </div>
                 <div class="input-group" style="max-width: 300px;">
                     <span class="input-group-text bg-white border-1">
@@ -372,13 +526,16 @@ else
                     <thead style="background-color: #f8f9fa;">
                         <tr>
                             <th class="border-0 px-3 py-3" style="font-weight: 600; color: #4a5568; text-transform: uppercase; font-size: 12px; letter-spacing: 0.5px;">
+                                <i class="bi bi-tag me-2"></i>Type
+                            </th>
+                            <th class="border-0 px-3 py-3" style="font-weight: 600; color: #4a5568; text-transform: uppercase; font-size: 12px; letter-spacing: 0.5px;">
                                 <i class="bi bi-flag me-2"></i>Status
                             </th>
                             <th class="border-0 px-3 py-3" style="font-weight: 600; color: #4a5568; text-transform: uppercase; font-size: 12px; letter-spacing: 0.5px;">
                                 <i class="bi bi-file-earmark me-2"></i>Job Details
                             </th>
                             <th class="border-0 px-3 py-3" style="font-weight: 600; color: #4a5568; text-transform: uppercase; font-size: 12px; letter-spacing: 0.5px;">
-                                <i class="bi bi-graph-up me-2"></i>Progress
+                                <i class="bi bi-graph-up me-2"></i>Records
                             </th>
                             <th class="border-0 px-3 py-3" style="font-weight: 600; color: #4a5568; text-transform: uppercase; font-size: 12px; letter-spacing: 0.5px;">
                                 <i class="bi bi-clock-history me-2"></i>Timing
@@ -389,9 +546,15 @@ else
                         </tr>
                     </thead>
                     <tbody>
+                        @* Import Jobs *@
                         @foreach (var job in Model.ImportJobs)
                         {
                             <tr class="job-row">
+                                <td class="px-3">
+                                    <span class="badge rounded-pill bg-primary bg-opacity-10 text-primary" style="font-size: 11px;">
+                                        <i class="bi bi-cloud-upload me-1"></i>Bulk Import
+                                    </span>
+                                </td>
                                 <td class="px-3">
                                     @if (job.Status == "Completed")
                                     {
@@ -453,58 +616,31 @@ else
                                                 @job.BillingMonth.ToString("00")/@job.BillingYear
                                             </span>
                                         </div>
+                                        @if (job.Status == "Completed" && job.RecordsSuccess > 0)
+                                        {
+                                            <a href="/Admin/CallLogs?ImportJobId=@job.Id" class="btn btn-sm btn-outline-primary mt-2" style="border-radius: 12px; font-size: 11px; padding: 2px 8px;">
+                                                <i class="bi bi-eye me-1"></i>View Records
+                                            </a>
+                                        }
                                     </div>
                                 </td>
-                                <td class="px-3" style="min-width: 200px;">
-                                    @if (job.Status == "Completed")
-                                    {
-                                        <div>
-                                            <div class="d-flex justify-content-between mb-1">
-                                                <small class="text-muted">@job.RecordsSuccess.GetValueOrDefault().ToString("N0") records</small>
-                                                <small class="text-success fw-semibold">100%</small>
-                                            </div>
-                                            <div class="progress progress-thin">
-                                                <div class="progress-bar bg-success" role="progressbar" style="width: 100%"></div>
-                                            </div>
-                                            @if (job.RecordsError > 0)
-                                            {
-                                                <small class="text-danger"><i class="bi bi-exclamation-triangle me-1"></i>@job.RecordsError errors</small>
-                                            }
-                                        </div>
-                                    }
-                                    else if (job.Status == "Processing")
-                                    {
-                                        var progress = job.ProgressPercentage ?? 0;
-                                        <div>
-                                            <div class="d-flex justify-content-between mb-1">
-                                                <small class="text-muted">@job.RecordsProcessed.GetValueOrDefault().ToString("N0") / @job.RecordsSuccess.GetValueOrDefault().ToString("N0")</small>
-                                                <small class="text-warning fw-semibold">@progress.ToString("F0")%</small>
-                                            </div>
-                                            <div class="progress progress-thin">
-                                                <div class="progress-bar bg-warning progress-bar-animated progress-bar-striped" role="progressbar" style="width: @progress%"></div>
-                                            </div>
-                                        </div>
-                                    }
-                                    else if (job.Status == "Failed")
-                                    {
-                                        <div>
-                                            <span class="badge bg-danger bg-opacity-10 text-danger">
-                                                <i class="bi bi-x-circle me-1"></i>Import failed
-                                            </span>
-                                            @if (!string.IsNullOrEmpty(job.ErrorMessage))
-                                            {
-                                                <div class="mt-1">
-                                                    <small class="text-danger">@job.ErrorMessage.Substring(0, Math.Min(50, job.ErrorMessage.Length))...</small>
-                                                </div>
-                                            }
-                                        </div>
-                                    }
-                                    else
-                                    {
-                                        <span class="badge bg-light text-muted">
-                                            <i class="bi bi-clock me-1"></i>Waiting to start
-                                        </span>
-                                    }
+                                <td class="px-3">
+                                    <div>
+                                        <div class="fw-semibold text-dark">@job.RecordsSuccess.GetValueOrDefault().ToString("N0")</div>
+                                        @if (job.RecordsError > 0)
+                                        {
+                                            <small class="text-danger">
+                                                <i class="bi bi-exclamation-triangle me-1"></i>@job.RecordsError errors
+                                            </small>
+                                        }
+                                        else if (job.Status == "Processing")
+                                        {
+                                            var progress = job.ProgressPercentage ?? 0;
+                                            <small class="text-warning">
+                                                <i class="bi bi-hourglass-split me-1"></i>@progress.ToString("F0")% complete
+                                            </small>
+                                        }
+                                    </div>
                                 </td>
                                 <td class="px-3">
                                     <div>
@@ -531,17 +667,361 @@ else
                                 </td>
                             </tr>
                         }
+
+                        @* Consolidation Jobs *@
+                        @foreach (var batch in Model.ConsolidationJobs)
+                        {
+                            <tr class="job-row">
+                                <td class="px-3">
+                                    <span class="badge rounded-pill bg-success bg-opacity-10 text-success" style="font-size: 11px;">
+                                        <i class="bi bi-layers me-1"></i>Consolidation
+                                    </span>
+                                </td>
+                                <td class="px-3">
+                                    @if (batch.BatchStatus == TAB.Web.Models.BatchStatus.Published || batch.BatchStatus == TAB.Web.Models.BatchStatus.Verified)
+                                            {
+                                                <span class="status-badge status-completed">
+                                                    <i class="bi bi-check-circle me-1"></i>Completed
+                                                </span>
+                                            }
+                                            else if (batch.BatchStatus == TAB.Web.Models.BatchStatus.Processing || !string.IsNullOrEmpty(batch.CurrentOperation))
+                                            {
+                                                <span class="status-badge status-processing">
+                                                    <i class="bi bi-hourglass-split me-1"></i>Processing
+                                                </span>
+                                                @if (!string.IsNullOrEmpty(batch.CurrentOperation))
+                                                {
+                                                    <div class="mt-1">
+                                                        <small class="text-muted" style="font-size: 10px;">
+                                                            <i class="bi bi-arrow-right me-1"></i>@batch.CurrentOperation
+                                                        </small>
+                                                        @if (batch.ProcessingProgress > 0)
+                                                        {
+                                                            <div class="progress progress-thin mt-1" style="width: 100px;">
+                                                                <div class="progress-bar bg-warning progress-bar-animated"
+                                                                     role="progressbar"
+                                                                     style="width: @batch.ProcessingProgress%"
+                                                                     aria-valuenow="@batch.ProcessingProgress"
+                                                                     aria-valuemin="0"
+                                                                     aria-valuemax="100">
+                                                                </div>
+                                                            </div>
+                                                        }
+                                                    </div>
+                                                }
+                                            }
+                                            else if (batch.BatchStatus == TAB.Web.Models.BatchStatus.Created)
+                                            {
+                                                <span class="status-badge status-queued">
+                                                    <i class="bi bi-clock me-1"></i>Queued
+                                                </span>
+                                            }
+                                            else if (batch.BatchStatus == TAB.Web.Models.BatchStatus.Failed)
+                                            {
+                                                <span class="status-badge status-failed">
+                                                    <i class="bi bi-x-circle me-1"></i>Failed
+                                                </span>
+                                                @if (!string.IsNullOrEmpty(batch.CurrentOperation))
+                                                {
+                                                    <div class="mt-1">
+                                                        <small class="text-danger" style="font-size: 10px;">
+                                                            @batch.CurrentOperation
+                                                        </small>
+                                                    </div>
+                                                }
+                                            }
+                                        </td>
+                                        <td class="px-3">
+                                            <div>
+                                                <div class="fw-semibold text-dark">@batch.BatchName</div>
+                                                <div class="d-flex gap-2 mt-1">
+                                                    <span class="badge rounded-pill bg-light text-dark" style="font-size: 11px;">
+                                                        <i class="bi bi-tag me-1"></i>@batch.BatchCategory
+                                                    </span>
+                                                    @if (batch.BillingPeriod != null)
+                                                    {
+                                                        <span class="badge rounded-pill bg-light text-dark" style="font-size: 11px;">
+                                                            <i class="bi bi-calendar-range me-1"></i>@batch.BillingPeriod.PeriodCode
+                                                        </span>
+                                                    }
+                                                    @if (!string.IsNullOrEmpty(batch.SourceSystems))
+                                                    {
+                                                        <span class="badge rounded-pill bg-info bg-opacity-10 text-info" style="font-size: 11px;">
+                                                            <i class="bi bi-database me-1"></i>@batch.SourceSystems
+                                                        </span>
+                                                    }
+                                                    else
+                                                    {
+                                                        <span class="badge rounded-pill bg-info bg-opacity-10 text-info" style="font-size: 11px;">
+                                                            <i class="bi bi-database me-1"></i>All Providers
+                                                        </span>
+                                                    }
+                                                </div>
+                                                @if (!string.IsNullOrEmpty(batch.Notes))
+                                                {
+                                                    <small class="text-muted d-block mt-1">@batch.Notes.Substring(0, Math.Min(60, batch.Notes.Length))@(batch.Notes.Length > 60 ? "..." : "")</small>
+                                                }
+                                            </div>
+                                        </td>
+                                        <td class="px-3">
+                                            <div>
+                                                <div class="fw-semibold text-dark">@batch.TotalRecords.ToString("N0")</div>
+                                                @if (batch.RecordsWithAnomalies > 0)
+                                                {
+                                                    <small class="text-warning">
+                                                        <i class="bi bi-exclamation-triangle me-1"></i>@batch.RecordsWithAnomalies anomalies
+                                                    </small>
+                                                }
+                                            </div>
+                                        </td>
+                                        <td class="px-3">
+                                            <div>
+                                                <div class="fw-semibold text-dark">@batch.CreatedDate.ToString("MMM dd, yyyy")</div>
+                                                <small class="text-muted">@batch.CreatedDate.ToString("hh:mm tt")</small>
+                                                @if (batch.StartProcessingDate.HasValue && batch.EndProcessingDate.HasValue)
+                                                {
+                                                    var duration = (batch.EndProcessingDate.Value - batch.StartProcessingDate.Value).TotalSeconds;
+                                                    <div class="mt-1">
+                                                        <span class="badge bg-light text-dark" style="font-size: 11px;">
+                                                            <i class="bi bi-stopwatch me-1"></i>@FormatDuration((int)duration)
+                                                        </span>
+                                                    </div>
+                                                }
+                                            </div>
+                                        </td>
+                                        <td class="px-3">
+                                            <div>
+                                                <div class="fw-medium">@batch.CreatedBy</div>
+                                            </div>
+                                        </td>
+                                    </tr>
+                        }
+
+                        @* Email Jobs *@
+                        @foreach (var email in Model.EmailJobs)
+                        {
+                            <tr class="job-row">
+                                <td class="px-3">
+                                    <span class="badge rounded-pill" style="font-size: 11px; background-color: rgba(139, 92, 246, 0.1); color: #7c3aed;">
+                                        <i class="bi bi-envelope me-1"></i>Email
+                                    </span>
+                                </td>
+                                <td class="px-3">
+                                    @if (email.Status == "Sent")
+                                    {
+                                        <span class="status-badge status-completed">
+                                            <i class="bi bi-check-circle me-1"></i>Sent
+                                        </span>
+                                    }
+                                    else if (email.Status == "Queued")
+                                    {
+                                        <span class="status-badge status-queued">
+                                            <i class="bi bi-clock me-1"></i>Queued
+                                        </span>
+                                    }
+                                    else if (email.Status == "Sending")
+                                    {
+                                        <span class="status-badge status-processing">
+                                            <i class="bi bi-hourglass-split me-1"></i>Sending
+                                        </span>
+                                    }
+                                    else if (email.Status == "Failed")
+                                    {
+                                        <span class="status-badge status-failed" title="@email.ErrorMessage">
+                                            <i class="bi bi-x-circle me-1"></i>Failed
+                                        </span>
+                                    }
+                                </td>
+                                <td class="px-3">
+                                    <div>
+                                        <div class="fw-semibold text-dark" style="max-width: 300px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap;" title="@email.Subject">
+                                            @email.Subject
+                                        </div>
+                                        <small class="text-muted" style="max-width: 300px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; display: block;" title="@email.ToEmail">
+                                            To: @email.ToEmail
+                                        </small>
+                                        @if (email.EmailTemplateId.HasValue)
+                                        {
+                                            <span class="badge bg-light text-dark mt-1" style="font-size: 10px;">Template #@email.EmailTemplateId</span>
+                                        }
+                                    </div>
+                                </td>
+                                <td class="px-3">
+                                    <div>
+                                        <span class="text-muted">-</span>
+                                    </div>
+                                </td>
+                                <td class="px-3">
+                                    <div>
+                                        <div class="fw-semibold text-dark">@email.CreatedDate.ToString("MMM dd, yyyy")</div>
+                                        <small class="text-muted">@email.CreatedDate.ToString("hh:mm tt")</small>
+                                        @if (email.SentDate.HasValue)
+                                        {
+                                            <div class="mt-1">
+                                                <span class="badge bg-success bg-opacity-10 text-success" style="font-size: 10px;">
+                                                    <i class="bi bi-check2 me-1"></i>Sent @email.SentDate.Value.ToString("hh:mm tt")
+                                                </span>
+                                            </div>
+                                        }
+                                    </div>
+                                </td>
+                                <td class="px-3">
+                                    <div>
+                                        <div class="fw-medium">@(email.CreatedBy ?? "System")</div>
+                                    </div>
+                                </td>
+                            </tr>
+                        }
                     </tbody>
                 </table>
             </div>
         </div>
+
+        <!-- Pagination -->
+        @if (Model.TotalPages > 1)
+        {
+            <div class="card-footer bg-white border-0 py-3" style="border-radius: 0 0 16px 16px;">
+                <div class="d-flex justify-content-between align-items-center">
+                    <!-- Page Size Selector -->
+                    <div class="d-flex align-items-center gap-2">
+                        <label class="text-muted small mb-0">Show:</label>
+                        <select class="form-select form-select-sm" style="width: auto; border-radius: 8px;" onchange="changePageSize(this.value)">
+                            <option value="10" selected="@(Model.PageSize == 10)">10</option>
+                            <option value="25" selected="@(Model.PageSize == 25)">25</option>
+                            <option value="50" selected="@(Model.PageSize == 50)">50</option>
+                            <option value="100" selected="@(Model.PageSize == 100)">100</option>
+                        </select>
+                        <span class="text-muted small">per page</span>
+                    </div>
+
+                    <!-- Pagination Controls -->
+                    <nav aria-label="Jobs pagination">
+                        <ul class="pagination pagination-sm mb-0">
+                            <!-- First Page -->
+                            <li class="page-item @(Model.CurrentPage == 1 ? "disabled" : "")">
+                                <a class="page-link" href="@GetPageUrl(1)" style="border-radius: 8px 0 0 8px;">
+                                    <i class="bi bi-chevron-double-left"></i>
+                                </a>
+                            </li>
+                            <!-- Previous Page -->
+                            <li class="page-item @(!Model.HasPreviousPage ? "disabled" : "")">
+                                <a class="page-link" href="@GetPageUrl(Model.CurrentPage - 1)">
+                                    <i class="bi bi-chevron-left"></i>
+                                </a>
+                            </li>
+
+                            @{
+                                // Calculate page range to display
+                                int startPage = Math.Max(1, Model.CurrentPage - 2);
+                                int endPage = Math.Min(Model.TotalPages, Model.CurrentPage + 2);
+
+                                // Ensure we always show 5 pages if possible
+                                if (endPage - startPage < 4)
+                                {
+                                    if (startPage == 1)
+                                    {
+                                        endPage = Math.Min(Model.TotalPages, startPage + 4);
+                                    }
+                                    else if (endPage == Model.TotalPages)
+                                    {
+                                        startPage = Math.Max(1, endPage - 4);
+                                    }
+                                }
+                            }
+
+                            @if (startPage > 1)
+                            {
+                                <li class="page-item disabled">
+                                    <span class="page-link">...</span>
+                                </li>
+                            }
+
+                            @for (int i = startPage; i <= endPage; i++)
+                            {
+                                <li class="page-item @(i == Model.CurrentPage ? "active" : "")">
+                                    <a class="page-link" href="@GetPageUrl(i)">@i</a>
+                                </li>
+                            }
+
+                            @if (endPage < Model.TotalPages)
+                            {
+                                <li class="page-item disabled">
+                                    <span class="page-link">...</span>
+                                </li>
+                            }
+
+                            <!-- Next Page -->
+                            <li class="page-item @(!Model.HasNextPage ? "disabled" : "")">
+                                <a class="page-link" href="@GetPageUrl(Model.CurrentPage + 1)">
+                                    <i class="bi bi-chevron-right"></i>
+                                </a>
+                            </li>
+                            <!-- Last Page -->
+                            <li class="page-item @(Model.CurrentPage == Model.TotalPages ? "disabled" : "")">
+                                <a class="page-link" href="@GetPageUrl(Model.TotalPages)" style="border-radius: 0 8px 8px 0;">
+                                    <i class="bi bi-chevron-double-right"></i>
+                                </a>
+                            </li>
+                        </ul>
+                    </nav>
+
+                    <!-- Page Info -->
+                    <div class="text-muted small">
+                        Page @Model.CurrentPage of @Model.TotalPages
+                    </div>
+                </div>
+            </div>
+        }
     </div>
 }
 
 @section Scripts {
     <script>
+        // Change page size function
+        function changePageSize(newSize) {
+            const url = new URL(window.location.href);
+            url.searchParams.set('pageSize', newSize);
+            url.searchParams.set('page', '1'); // Reset to first page when changing page size
+            window.location.href = url.toString();
+        }
+
+        // Date range button click handler
+        function setDateRange(range) {
+            document.getElementById('dateRangeInput').value = range;
+            // Clear custom date inputs when using preset
+            if (range !== 'custom') {
+                document.getElementById('startDate').value = '';
+                document.getElementById('endDate').value = '';
+            }
+            document.getElementById('filterForm').submit();
+        }
+
         // Auto-submit functionality for filters
         document.addEventListener('DOMContentLoaded', function() {
+            // Date range button handlers
+            document.querySelectorAll('.date-range-btn').forEach(btn => {
+                btn.addEventListener('click', function() {
+                    const range = this.dataset.range;
+                    setDateRange(range);
+                });
+            });
+
+            // Show end date field when start date is selected (for custom range)
+            const startDateInput = document.getElementById('startDate');
+            const endDateCol = document.getElementById('endDateCol');
+            if (startDateInput && endDateCol) {
+                // Show end date if start date has value
+                if (startDateInput.value) {
+                    endDateCol.classList.remove('d-none');
+                }
+                startDateInput.addEventListener('change', function() {
+                    if (this.value) {
+                        endDateCol.classList.remove('d-none');
+                        // Clear preset when using custom dates
+                        document.getElementById('dateRangeInput').value = 'custom';
+                    }
+                });
+            }
             // Auto-submit for select elements and date inputs
             const autoSubmitElements = document.querySelectorAll('.filter-auto-submit');
             autoSubmitElements.forEach(element => {
@@ -596,7 +1076,7 @@ else
                 }
             }
 
-            // Quick search functionality
+            // Quick search functionality for combined table
             const quickSearch = document.getElementById('quickSearch');
             if (quickSearch) {
                 quickSearch.addEventListener('keyup', function() {
@@ -610,18 +1090,174 @@ else
                 });
             }
 
-            // Auto-refresh for running jobs
-            const hasRunningJobs = @Html.Raw(Model.ImportJobs.Any(j => j.Status == "Processing" || j.Status == "Queued").ToString().ToLower());
-            if (hasRunningJobs) {
-                setTimeout(() => {
-                    location.reload();
-                }, 10000); // Refresh every 10 seconds
+            // Auto-refresh functionality with countdown
+            // Pauses when user is interacting with the page
+            const REFRESH_INTERVAL = 10; // seconds
+            const IDLE_DELAY = 3; // seconds of inactivity before resuming refresh
+            let countdown = REFRESH_INTERVAL;
+            let countdownInterval = null;
+            let idleTimeout = null;
+            let isPaused = false;
+
+            const autoRefreshToggle = document.getElementById('autoRefreshToggle');
+            const countdownValue = document.getElementById('countdownValue');
+            const refreshCountdown = document.getElementById('refreshCountdown');
+
+            // Load saved preference from localStorage
+            const savedAutoRefresh = localStorage.getItem('importJobsAutoRefresh');
+            if (savedAutoRefresh !== null) {
+                autoRefreshToggle.checked = savedAutoRefresh === 'true';
+            }
+
+            function updateCountdownDisplay() {
+                if (countdownValue) {
+                    if (isPaused) {
+                        countdownValue.textContent = '||';
+                    } else {
+                        countdownValue.textContent = countdown;
+                    }
+                }
+            }
+
+            function startAutoRefresh() {
+                if (!autoRefreshToggle.checked) return;
+
+                isPaused = false;
+                countdown = REFRESH_INTERVAL;
+                updateCountdownDisplay();
+
+                if (refreshCountdown) {
+                    refreshCountdown.classList.remove('bg-secondary', 'bg-warning');
+                    refreshCountdown.classList.add('bg-light');
+                }
+
+                // Clear any existing interval
+                if (countdownInterval) {
+                    clearInterval(countdownInterval);
+                }
+
+                // Countdown timer
+                countdownInterval = setInterval(() => {
+                    if (!isPaused) {
+                        countdown--;
+                        updateCountdownDisplay();
+
+                        if (countdown <= 0) {
+                            location.reload();
+                        }
+                    }
+                }, 1000);
+            }
+
+            function pauseAutoRefresh() {
+                if (!autoRefreshToggle.checked) return;
+
+                isPaused = true;
+                updateCountdownDisplay();
+
+                if (refreshCountdown) {
+                    refreshCountdown.classList.remove('bg-light', 'bg-secondary');
+                    refreshCountdown.classList.add('bg-warning');
+                }
+
+                // Clear any existing idle timeout
+                if (idleTimeout) {
+                    clearTimeout(idleTimeout);
+                }
+
+                // Resume after user stops interacting
+                idleTimeout = setTimeout(() => {
+                    resumeAutoRefresh();
+                }, IDLE_DELAY * 1000);
+            }
+
+            function resumeAutoRefresh() {
+                if (!autoRefreshToggle.checked) return;
+
+                isPaused = false;
+                updateCountdownDisplay();
+
+                if (refreshCountdown) {
+                    refreshCountdown.classList.remove('bg-secondary', 'bg-warning');
+                    refreshCountdown.classList.add('bg-light');
+                }
+            }
+
+            function stopAutoRefresh() {
+                if (countdownInterval) {
+                    clearInterval(countdownInterval);
+                    countdownInterval = null;
+                }
+                if (idleTimeout) {
+                    clearTimeout(idleTimeout);
+                    idleTimeout = null;
+                }
+                if (refreshCountdown) {
+                    refreshCountdown.classList.remove('bg-light', 'bg-warning');
+                    refreshCountdown.classList.add('bg-secondary');
+                }
+                if (countdownValue) {
+                    countdownValue.textContent = '--';
+                }
+            }
+
+            // Pause refresh on user interaction
+            ['mousemove', 'click', 'keydown', 'scroll', 'touchstart'].forEach(event => {
+                document.addEventListener(event, () => {
+                    if (autoRefreshToggle && autoRefreshToggle.checked && countdownInterval) {
+                        pauseAutoRefresh();
+                    }
+                });
+            });
+
+            // Toggle handler
+            if (autoRefreshToggle) {
+                autoRefreshToggle.addEventListener('change', function() {
+                    localStorage.setItem('importJobsAutoRefresh', this.checked);
+                    if (this.checked) {
+                        startAutoRefresh();
+                    } else {
+                        stopAutoRefresh();
+                    }
+                });
+
+                // Start auto-refresh if enabled
+                if (autoRefreshToggle.checked) {
+                    startAutoRefresh();
+                } else {
+                    stopAutoRefresh();
+                }
             }
         });
     </script>
 }
 
 @functions {
+    private string GetPageUrl(int page)
+    {
+        var queryParams = new List<string>();
+
+        if (!string.IsNullOrEmpty(Model.SearchTerm))
+            queryParams.Add($"searchTerm={Uri.EscapeDataString(Model.SearchTerm)}");
+        if (Model.FilterStatus != "all")
+            queryParams.Add($"filterStatus={Model.FilterStatus}");
+        if (Model.FilterJobType != "all")
+            queryParams.Add($"filterJobType={Model.FilterJobType}");
+        if (Model.FilterCallLogType != "all")
+            queryParams.Add($"filterCallLogType={Model.FilterCallLogType}");
+        if (!string.IsNullOrEmpty(Model.DateRange))
+            queryParams.Add($"dateRange={Model.DateRange}");
+        if (Model.StartDate.HasValue)
+            queryParams.Add($"startDate={Model.StartDate.Value:yyyy-MM-dd}");
+        if (Model.EndDate.HasValue)
+            queryParams.Add($"endDate={Model.EndDate.Value:yyyy-MM-dd}");
+
+        queryParams.Add($"page={page}");
+        queryParams.Add($"pageSize={Model.PageSize}");
+
+        return "/Admin/ImportJobs?" + string.Join("&", queryParams);
+    }
+
     private string FormatFileSize(long bytes)
     {
         string[] sizes = { "B", "KB", "MB", "GB" };

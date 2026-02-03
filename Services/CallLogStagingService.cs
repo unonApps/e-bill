@@ -7,6 +7,7 @@ using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Logging;
 using Microsoft.Extensions.Configuration;
 using Microsoft.Data.SqlClient;
+using Hangfire;
 using TAB.Web.Data;
 using TAB.Web.Models;
 
@@ -19,19 +20,22 @@ namespace TAB.Web.Services
         private readonly IDeadlineManagementService _deadlineService;
         private readonly IEnhancedEmailService _emailService;
         private readonly IConfiguration _configuration;
+        private readonly IBackgroundJobClient _backgroundJobs;
 
         public CallLogStagingService(
             ApplicationDbContext context,
             ILogger<CallLogStagingService> logger,
             IDeadlineManagementService deadlineService,
             IEnhancedEmailService emailService,
-            IConfiguration configuration)
+            IConfiguration configuration,
+            IBackgroundJobClient backgroundJobs)
         {
             _context = context;
             _logger = logger;
             _deadlineService = deadlineService;
             _emailService = emailService;
             _configuration = configuration;
+            _backgroundJobs = backgroundJobs;
         }
 
         public async Task<StagingBatch> ConsolidateCallLogsAsync(DateTime startDate, DateTime endDate, string createdBy)
@@ -209,6 +213,161 @@ namespace TAB.Web.Services
             }
         }
 
+        /// <summary>
+        /// Background job method for consolidating call logs using Hangfire.
+        /// This is the same as ConsolidateCallLogsAsync but designed to run asynchronously in the background.
+        /// The batch should already be created before calling this method.
+        /// </summary>
+        public async Task ConsolidateCallLogsInBackgroundAsync(Guid batchId, int startMonth, int startYear, int endMonth, int endYear, string createdBy)
+        {
+            _logger.LogInformation("Starting background consolidation for batch {BatchId}: {StartMonth}/{StartYear} to {EndMonth}/{EndYear}",
+                batchId, startMonth, startYear, endMonth, endYear);
+
+            // Get the batch
+            var batch = await _context.StagingBatches.FindAsync(batchId);
+            if (batch == null)
+            {
+                _logger.LogError("Batch {BatchId} not found for background consolidation", batchId);
+                throw new InvalidOperationException($"Batch {batchId} not found");
+            }
+
+            try
+            {
+                // Update batch status to Processing
+                batch.BatchStatus = BatchStatus.Processing;
+                batch.StartProcessingDate = DateTime.UtcNow;
+                batch.CurrentOperation = "Initializing consolidation";
+                batch.ProcessingProgress = 5;
+                await _context.SaveChangesAsync();
+
+                // Update progress: Consolidating records
+                batch.CurrentOperation = "Consolidating records from source tables";
+                batch.ProcessingProgress = 10;
+                await _context.SaveChangesAsync();
+
+                _logger.LogInformation("Calling stored procedure sp_ConsolidateCallLogBatch for batch {BatchId}", batch.Id);
+
+                var batchIdParam = new SqlParameter("@BatchId", batch.Id);
+                var startMonthParam = new SqlParameter("@StartMonth", startMonth);
+                var startYearParam = new SqlParameter("@StartYear", startYear);
+                var endMonthParam = new SqlParameter("@EndMonth", endMonth);
+                var endYearParam = new SqlParameter("@EndYear", endYear);
+                var createdByParam = new SqlParameter("@CreatedBy", createdBy);
+
+                // Execute stored procedure - No timeout limit for background jobs!
+                // The job can run for hours if needed without blocking the user
+                // NOTE: SetCommandTimeout(0) means unlimited timeout, null means "use default"
+                var originalTimeout = _context.Database.GetCommandTimeout();
+                _context.Database.SetCommandTimeout(0); // 0 = No timeout for background jobs
+
+                var result = await _context.Database
+                    .SqlQueryRaw<ConsolidationResult>(
+                        "EXEC sp_ConsolidateCallLogBatch @BatchId, @StartMonth, @StartYear, @EndMonth, @EndYear, @CreatedBy",
+                        batchIdParam, startMonthParam, startYearParam, endMonthParam, endYearParam, createdByParam)
+                    .ToListAsync();
+
+                // Restore original timeout
+                _context.Database.SetCommandTimeout(originalTimeout);
+
+                int totalImported = result.FirstOrDefault()?.TotalRecords ?? 0;
+
+                _logger.LogInformation(
+                    "Stored procedure completed for batch {BatchId}. Total: {Total}, Safaricom: {Safaricom}, Airtel: {Airtel}, PSTN: {PSTN}, PrivateWire: {PrivateWire}",
+                    batchId,
+                    totalImported,
+                    result.FirstOrDefault()?.SafaricomRecords ?? 0,
+                    result.FirstOrDefault()?.AirtelRecords ?? 0,
+                    result.FirstOrDefault()?.PSTNRecords ?? 0,
+                    result.FirstOrDefault()?.PrivateWireRecords ?? 0);
+
+                // Update progress: Consolidation complete
+                batch.CurrentOperation = $"Consolidated {totalImported:N0} records";
+                batch.ProcessingProgress = 50;
+                await _context.SaveChangesAsync();
+
+                // If no records were imported, mark batch as failed
+                if (totalImported == 0)
+                {
+                    batch.BatchStatus = BatchStatus.Failed;
+                    batch.Notes = "No records were imported. The source tables may be empty for this period.";
+                    batch.CurrentOperation = "Failed - No records found";
+                    batch.ProcessingProgress = 0;
+                    batch.EndProcessingDate = DateTime.UtcNow;
+                    await _context.SaveChangesAsync();
+
+                    _logger.LogWarning("Background consolidation for batch {BatchId} completed with 0 records", batchId);
+                    return;
+                }
+
+                // Update progress: Detecting anomalies (fast mode for large batches)
+                batch.CurrentOperation = $"Detecting anomalies for {totalImported:N0} records";
+                batch.ProcessingProgress = 60;
+                await _context.SaveChangesAsync();
+
+                // Use fast anomaly detection for large batches (raw SQL)
+                _logger.LogInformation("Detecting anomalies for batch {BatchId} using fast mode", batchId);
+                int anomalyCount = await DetectBatchAnomaliesFastAsync(batch.Id);
+
+                // Update progress after anomaly detection
+                batch.CurrentOperation = $"Found {anomalyCount:N0} anomalies";
+                batch.ProcessingProgress = 75;
+                await _context.SaveChangesAsync();
+
+                // =============================================
+                // Auto-verify records without anomalies
+                // Records with anomalies remain Pending for manual review
+                // =============================================
+                batch.CurrentOperation = "Auto-verifying clean records...";
+                batch.ProcessingProgress = 80;
+                await _context.SaveChangesAsync();
+
+                _logger.LogInformation("Auto-verifying records without anomalies for batch {BatchId}", batchId);
+                int autoVerifiedCount = await AutoVerifyCleanRecordsAsync(batch.Id, createdBy);
+
+                _logger.LogInformation("Auto-verified {AutoVerifiedCount} records without anomalies for batch {BatchId}",
+                    autoVerifiedCount, batchId);
+
+                // Update progress after auto-verification
+                batch.CurrentOperation = $"Auto-verified {autoVerifiedCount:N0} clean records";
+                batch.ProcessingProgress = 95;
+                await _context.SaveChangesAsync();
+
+                // Calculate final statistics
+                int pendingCount = anomalyCount; // Only records with anomalies remain pending
+                int verifiedCount = autoVerifiedCount;
+
+                // Update batch statistics
+                batch.TotalRecords = totalImported;
+                batch.RecordsWithAnomalies = anomalyCount;
+                batch.PendingRecords = pendingCount;
+                batch.VerifiedRecords = verifiedCount;
+
+                // Set batch status based on whether there are pending records
+                batch.BatchStatus = pendingCount > 0 ? BatchStatus.PartiallyVerified : BatchStatus.Verified;
+                batch.EndProcessingDate = DateTime.UtcNow;
+                batch.CurrentOperation = null; // Clear to hide progress indicator
+                batch.ProcessingProgress = 100;
+
+                await _context.SaveChangesAsync();
+
+                _logger.LogInformation("Background consolidation completed for batch {BatchId}. Total: {TotalRecords}, Auto-verified: {AutoVerified}, Anomalies (pending review): {Anomalies}",
+                    batchId, totalImported, autoVerifiedCount, anomalyCount);
+            }
+            catch (Exception ex)
+            {
+                _logger.LogError(ex, "Error during background consolidation for batch {BatchId}", batchId);
+
+                batch.BatchStatus = BatchStatus.Failed;
+                batch.Notes = $"Error during consolidation: {ex.Message}";
+                batch.CurrentOperation = "Failed - Error occurred";
+                batch.ProcessingProgress = 0;
+                batch.EndProcessingDate = DateTime.UtcNow;
+                await _context.SaveChangesAsync();
+
+                throw; // Re-throw so Hangfire marks the job as failed
+            }
+        }
+
         public async Task<int> ImportFromSafaricomAsync(Guid batchId, DateTime startDate, DateTime endDate)
         {
             int startMonth = startDate.Month;
@@ -238,19 +397,88 @@ namespace TAB.Web.Services
                     up.PhoneNumber == r.Ext ||
                     up.PhoneNumber == r.Ext?.Replace("+254", "0")); // Handle different formats
 
+                // Safaricom: Durx handling based on dialed value
+                // - Internet (dialed starts with "safaricom"): Durx is KB → convert to MB
+                // - Voice (dialed is phone number): Durx is mm:ss decimal → convert to seconds
+                // - Other (SMS, ROAMING, RENT, MMS, Bundle): Durx is count or N/A
+                var dialed = (r.Dialed ?? "").Trim();
+                var dialedLower = dialed.ToLowerInvariant();
+                var durxValue = r.Durx ?? 0;
+                int callDuration;
+                DateTime callEndTime;
+                string callType;
+
+                if (dialedLower.StartsWith("safaricom"))
+                {
+                    // Internet Usage: Durx is in KB, convert to MB
+                    callDuration = (int)(durxValue / 1024m);
+                    callEndTime = (r.CallDate ?? DateTime.MinValue).AddSeconds((int)durxValue);
+                    callType = "Internet Usage";
+                }
+                else if (dialed.Length > 0 && (char.IsDigit(dialed[0]) || dialed[0] == '+'))
+                {
+                    // Voice Call: Durx is mm:ss stored as decimal (e.g., 1.30 = 1min 30sec)
+                    // Parse: integer part = minutes, decimal part * 100 = seconds
+                    var minutes = (int)Math.Floor(durxValue);
+                    var seconds = (int)((durxValue - minutes) * 100);
+                    callDuration = (minutes * 60) + seconds;
+                    callEndTime = (r.CallDate ?? DateTime.MinValue).AddSeconds(callDuration);
+                    callType = "Voice";
+                }
+                else if (dialedLower == "sms")
+                {
+                    callDuration = (int)durxValue; // SMS count
+                    callEndTime = r.CallDate ?? DateTime.MinValue;
+                    callType = "SMS";
+                }
+                else if (dialedLower == "roaming")
+                {
+                    // Roaming could be mm:ss or count
+                    var minutes = (int)Math.Floor(durxValue);
+                    var seconds = (int)((durxValue - minutes) * 100);
+                    callDuration = (minutes * 60) + seconds;
+                    callEndTime = (r.CallDate ?? DateTime.MinValue).AddSeconds(callDuration);
+                    callType = "Roaming";
+                }
+                else if (dialedLower == "rent")
+                {
+                    callDuration = 0;
+                    callEndTime = r.CallDate ?? DateTime.MinValue;
+                    callType = "Rent";
+                }
+                else if (dialedLower == "mms")
+                {
+                    callDuration = (int)durxValue; // MMS count
+                    callEndTime = r.CallDate ?? DateTime.MinValue;
+                    callType = "MMS";
+                }
+                else if (dialedLower.Contains("bundle"))
+                {
+                    callDuration = 0;
+                    callEndTime = r.CallDate ?? DateTime.MinValue;
+                    callType = "Bundle";
+                }
+                else
+                {
+                    // Unknown type, store as-is
+                    callDuration = (int)durxValue;
+                    callEndTime = r.CallDate ?? DateTime.MinValue;
+                    callType = r.CallType ?? "Other";
+                }
+
                 var stagingRecord = new CallLogStaging
                 {
                     ExtensionNumber = r.Ext ?? string.Empty,
                     CallDate = r.CallDate ?? DateTime.MinValue,
                     CallNumber = r.Dialed ?? string.Empty,
                     CallDestination = r.Dest ?? string.Empty,
-                    CallEndTime = (r.CallDate ?? DateTime.MinValue).AddSeconds((int)((r.Dur ?? 0) * 60)), // Duration is in minutes
-                    CallDuration = (int)((r.Dur ?? 0) * 60), // Convert minutes to seconds
+                    CallEndTime = callEndTime,
+                    CallDuration = callDuration,
                     CallCurrencyCode = "KES",
                     CallCost = r.Cost ?? 0,
                     CallCostUSD = (r.Cost ?? 0) / 150m, // Approximate conversion
                     CallCostKSHS = r.Cost ?? 0,
-                    CallType = r.CallType ?? "Voice",
+                    CallType = callType,
                     CallDestinationType = DetermineDestinationType(r.Dest),
                     CallYear = r.CallYear ?? DateTime.Now.Year,
                     CallMonth = r.CallMonth ?? DateTime.Now.Month,
@@ -316,14 +544,19 @@ namespace TAB.Web.Services
                     up.PhoneNumber == r.Ext ||
                     up.PhoneNumber == r.Ext?.Replace("+254", "0")); // Handle different formats
 
+                // Airtel: Dur is in minutes, convert to seconds
+                var durationMinutes = r.Dur ?? 0;
+                int callDuration = (int)(durationMinutes * 60); // Convert minutes to seconds
+                DateTime callEndTime = (r.CallDate ?? DateTime.MinValue).AddSeconds(callDuration);
+
                 var stagingRecord = new CallLogStaging
                 {
                     ExtensionNumber = r.Ext ?? string.Empty,
                     CallDate = r.CallDate ?? DateTime.MinValue,
                     CallNumber = r.Dialed ?? string.Empty,
                     CallDestination = r.Dest ?? string.Empty,
-                    CallEndTime = (r.CallDate ?? DateTime.MinValue).AddSeconds((int)((r.Dur ?? 0) * 60)),
-                    CallDuration = (int)((r.Dur ?? 0) * 60),
+                    CallEndTime = callEndTime,
+                    CallDuration = callDuration,
                     CallCurrencyCode = "KES",
                     CallCost = r.Cost ?? 0,
                     CallCostUSD = (r.Cost ?? 0) / 150m,
@@ -523,33 +756,188 @@ namespace TAB.Web.Services
 
         public async Task<int> DetectBatchAnomaliesAsync(Guid batchId)
         {
-            var logs = await _context.CallLogStagings
+            // Process in batches to avoid loading 183K+ records into memory at once
+            const int BATCH_SIZE = 5000;
+            int anomalyCount = 0;
+            int processedCount = 0;
+
+            // Get total count for logging
+            var totalRecords = await _context.CallLogStagings
                 .Where(l => l.BatchId == batchId)
+                .CountAsync();
+
+            _logger.LogInformation("Starting anomaly detection for batch {BatchId}. Total records: {Total}", batchId, totalRecords);
+
+            // Get all IDs to process
+            var allIds = await _context.CallLogStagings
+                .Where(l => l.BatchId == batchId)
+                .Select(l => l.Id)
                 .ToListAsync();
 
-            int anomalyCount = 0;
+            // Get the batch for progress updates
+            var batch = await _context.StagingBatches.FindAsync(batchId);
 
-            foreach (var log in logs)
+            // Process in batches
+            for (int i = 0; i < allIds.Count; i += BATCH_SIZE)
             {
-                var anomalies = await DetectAnomaliesAsync(log.Id);
-                if (anomalies.Any())
+                var batchIds = allIds.Skip(i).Take(BATCH_SIZE).ToList();
+
+                // Load this batch with includes
+                var logs = await _context.CallLogStagings
+                    .Include(l => l.ResponsibleUser)
+                    .Include(l => l.UserPhone)
+                    .Where(l => batchIds.Contains(l.Id))
+                    .ToListAsync();
+
+                foreach (var log in logs)
                 {
-                    log.HasAnomalies = true;
-                    log.AnomalyTypes = JsonSerializer.Serialize(anomalies.Select(a => a.Code));
-                    log.AnomalyDetails = JsonSerializer.Serialize(anomalies.ToDictionary(a => a.Code, a => (object)a.Description));
-
-                    // Auto-reject critical anomalies
-                    if (anomalies.Any(a => a.Severity == SeverityLevel.Critical))
+                    var anomalies = DetectAnomaliesForLog(log);
+                    if (anomalies.Any())
                     {
-                        log.VerificationStatus = VerificationStatus.Rejected;
-                    }
+                        log.HasAnomalies = true;
+                        log.AnomalyTypes = JsonSerializer.Serialize(anomalies.Select(a => a.Code));
+                        log.AnomalyDetails = JsonSerializer.Serialize(anomalies.ToDictionary(a => a.Code, a => (object)a.Description));
 
-                    anomalyCount++;
+                        // Auto-reject critical anomalies
+                        if (anomalies.Any(a => a.Severity == SeverityLevel.Critical))
+                        {
+                            log.VerificationStatus = VerificationStatus.Rejected;
+                        }
+
+                        anomalyCount++;
+                    }
+                }
+
+                processedCount += logs.Count;
+
+                // Update batch progress (scale from 60% to 95% during anomaly detection)
+                if (batch != null)
+                {
+                    var percentComplete = (processedCount * 100.0 / totalRecords);
+                    batch.CurrentOperation = $"Detecting anomalies: {processedCount:N0}/{totalRecords:N0} ({percentComplete:F0}%)";
+                    batch.ProcessingProgress = 60 + (int)(percentComplete * 0.35); // 60% to 95%
+                }
+
+                // Save each batch to avoid massive transaction at end
+                await _context.SaveChangesAsync();
+
+                // Log progress every 25K records
+                if (processedCount % 25000 < BATCH_SIZE)
+                {
+                    _logger.LogInformation("Anomaly detection progress: {Processed:N0} / {Total:N0} ({Percent:F1}%)",
+                        processedCount, totalRecords, (processedCount * 100.0 / totalRecords));
+                }
+
+                // Detach staging logs to free memory (but not the batch)
+                foreach (var log in logs)
+                {
+                    _context.Entry(log).State = EntityState.Detached;
                 }
             }
 
-            await _context.SaveChangesAsync();
+            _logger.LogInformation("Anomaly detection completed for batch {BatchId}. Anomalies found: {AnomalyCount}", batchId, anomalyCount);
             return anomalyCount;
+        }
+
+        /// <summary>
+        /// Fast anomaly detection using raw SQL for large batches.
+        /// Detects basic anomalies without loading entities:
+        /// - Missing responsible user (ResponsibleIndexNumber is null or empty)
+        /// - Missing phone assignment (UserPhoneId is null)
+        /// - High cost (CallCost > threshold)
+        /// - Long duration (CallDuration > threshold)
+        /// </summary>
+        public async Task<int> DetectBatchAnomaliesFastAsync(Guid batchId)
+        {
+            _logger.LogInformation("Starting fast anomaly detection for batch {BatchId}", batchId);
+
+            // Use raw SQL to update all records at once
+            // This is much faster than loading entities one by one
+            // Note: Double curly braces to escape C# string format placeholders
+            // Check for inactive users by joining with EbillUsers table
+            var sql = @"
+                UPDATE cls
+                SET
+                    HasAnomalies = CASE
+                        WHEN cls.ResponsibleIndexNumber IS NULL OR cls.ResponsibleIndexNumber = '' THEN 1
+                        WHEN cls.UserPhoneId IS NULL THEN 1
+                        WHEN u.IsActive = 0 THEN 1
+                        ELSE 0
+                    END,
+                    AnomalyTypes = CASE
+                        WHEN cls.ResponsibleIndexNumber IS NULL OR cls.ResponsibleIndexNumber = '' THEN '[""MISSING_USER""]'
+                        WHEN cls.UserPhoneId IS NULL THEN '[""UNASSIGNED_PHONE""]'
+                        WHEN u.IsActive = 0 THEN '[""INACTIVE_USER""]'
+                        ELSE NULL
+                    END,
+                    AnomalyDetails = CASE
+                        WHEN cls.ResponsibleIndexNumber IS NULL OR cls.ResponsibleIndexNumber = '' THEN '{{""MISSING_USER"":""No responsible user assigned""}}'
+                        WHEN cls.UserPhoneId IS NULL THEN '{{""UNASSIGNED_PHONE"":""Phone number not assigned to any user""}}'
+                        WHEN u.IsActive = 0 THEN '{{""INACTIVE_USER"":""User is inactive""}}'
+                        ELSE NULL
+                    END
+                FROM CallLogStagings cls
+                LEFT JOIN EbillUsers u ON cls.ResponsibleIndexNumber = u.IndexNumber
+                WHERE cls.BatchId = @BatchId";
+
+            var batchIdParam = new SqlParameter("@BatchId", batchId);
+
+            // Set longer timeout for large batches
+            var originalTimeout = _context.Database.GetCommandTimeout();
+            _context.Database.SetCommandTimeout(300); // 5 minutes
+
+            await _context.Database.ExecuteSqlRawAsync(sql, batchIdParam);
+
+            // Restore timeout
+            _context.Database.SetCommandTimeout(originalTimeout);
+
+            // Count anomalies
+            var anomalyCount = await _context.CallLogStagings
+                .Where(l => l.BatchId == batchId && l.HasAnomalies)
+                .CountAsync();
+
+            _logger.LogInformation("Fast anomaly detection completed for batch {BatchId}. Anomalies found: {AnomalyCount}", batchId, anomalyCount);
+            return anomalyCount;
+        }
+
+        /// <summary>
+        /// Auto-verify records that have no anomalies.
+        /// Records with anomalies remain in Pending status for manual review.
+        /// Uses raw SQL for efficient bulk update of large batches.
+        /// </summary>
+        public async Task<int> AutoVerifyCleanRecordsAsync(Guid batchId, string verifiedBy)
+        {
+            _logger.LogInformation("Starting auto-verification of clean records for batch {BatchId}", batchId);
+
+            // Use interpolated SQL for safe parameter handling
+            var verifiedByValue = $"{verifiedBy} (Auto)";
+            var verificationDate = DateTime.UtcNow;
+            var verifiedStatus = (int)VerificationStatus.Verified;
+            var pendingStatus = (int)VerificationStatus.Pending;
+
+            // Set longer timeout for large batches
+            var originalTimeout = _context.Database.GetCommandTimeout();
+            _context.Database.SetCommandTimeout(300); // 5 minutes
+
+            // Use ExecuteSqlInterpolatedAsync for safe parameter binding
+            var rowsAffected = await _context.Database.ExecuteSqlInterpolatedAsync(
+                $@"UPDATE CallLogStagings
+                   SET
+                       VerificationStatus = {verifiedStatus},
+                       VerificationDate = {verificationDate},
+                       VerifiedBy = {verifiedByValue},
+                       VerificationNotes = 'Auto-verified: No anomalies detected',
+                       ModifiedDate = {verificationDate},
+                       ModifiedBy = {verifiedByValue}
+                   WHERE BatchId = {batchId}
+                     AND HasAnomalies = 0
+                     AND VerificationStatus = {pendingStatus}");
+
+            // Restore timeout
+            _context.Database.SetCommandTimeout(originalTimeout);
+
+            _logger.LogInformation("Auto-verification completed for batch {BatchId}. Records verified: {RowsAffected}", batchId, rowsAffected);
+            return rowsAffected;
         }
 
         public async Task<List<CallLogAnomaly>> DetectAnomaliesAsync(int stagingId)
@@ -562,6 +950,16 @@ namespace TAB.Web.Services
             if (log == null)
                 return new List<CallLogAnomaly>();
 
+            return DetectAnomaliesForLog(log);
+        }
+
+        /// <summary>
+        /// Detects anomalies for an already-loaded CallLogStaging record.
+        /// This avoids the N+1 query problem when processing batches.
+        /// The log must have ResponsibleUser already included/loaded.
+        /// </summary>
+        private List<CallLogAnomaly> DetectAnomaliesForLog(CallLogStaging log)
+        {
             var anomalies = new List<CallLogAnomaly>();
 
             // Check for no UserPhone link
@@ -589,9 +987,8 @@ namespace TAB.Web.Services
             }
             else
             {
-                // Check if user exists and is active
-                var user = await _context.EbillUsers
-                    .FirstOrDefaultAsync(u => u.IndexNumber == log.ResponsibleIndexNumber);
+                // Use the already-loaded ResponsibleUser instead of querying again
+                var user = log.ResponsibleUser;
 
                 if (user == null)
                 {
@@ -615,19 +1012,6 @@ namespace TAB.Web.Services
                 }
             }
 
-            // Check for high cost
-            if (log.CallCostUSD > 100)
-            {
-                anomalies.Add(new CallLogAnomaly
-                {
-                    Code = AnomalyCodes.HighCost,
-                    Name = "High Cost Call",
-                    Description = $"Call cost ${log.CallCostUSD:F2} exceeds threshold",
-                    Severity = SeverityLevel.High,
-                    Details = new Dictionary<string, object> { ["cost_usd"] = log.CallCostUSD }
-                });
-            }
-
             // Check for future date
             if (log.CallDate > DateTime.UtcNow)
             {
@@ -637,18 +1021,6 @@ namespace TAB.Web.Services
                     Name = "Future Date",
                     Description = "Call date is in the future",
                     Severity = SeverityLevel.Critical
-                });
-            }
-
-            // Check for excessive duration
-            if (log.CallDuration > 14400) // 4 hours
-            {
-                anomalies.Add(new CallLogAnomaly
-                {
-                    Code = AnomalyCodes.ExcessiveDuration,
-                    Name = "Excessive Duration",
-                    Description = $"Call duration {log.CallDuration / 3600:F1} hours exceeds limit",
-                    Severity = SeverityLevel.Medium
                 });
             }
 
@@ -705,6 +1077,98 @@ namespace TAB.Web.Services
             return logs.Count;
         }
 
+        public async Task BulkVerifyInBackgroundAsync(Guid batchId, string verifiedBy)
+        {
+            _logger.LogInformation("Starting background verification for batch {BatchId}", batchId);
+
+            try
+            {
+                // Get the batch to update progress
+                var stagingBatch = await _context.StagingBatches.FindAsync(batchId);
+                if (stagingBatch == null)
+                {
+                    _logger.LogError("Batch {BatchId} not found for verification", batchId);
+                    return;
+                }
+
+                // Get count of records that need verification
+                var pendingCount = await _context.CallLogStagings
+                    .Where(c => c.BatchId == batchId &&
+                           (c.VerificationStatus == VerificationStatus.Pending ||
+                            c.VerificationStatus == VerificationStatus.RequiresReview))
+                    .CountAsync();
+
+                if (pendingCount == 0)
+                {
+                    _logger.LogInformation("No records to verify in batch {BatchId}", batchId);
+                    stagingBatch.CurrentOperation = null;
+                    stagingBatch.ProcessingProgress = 100;
+                    await _context.SaveChangesAsync();
+                    return;
+                }
+
+                // Update batch to show verification is in progress
+                stagingBatch.CurrentOperation = $"Verifying {pendingCount} records...";
+                stagingBatch.ProcessingProgress = 10;
+                await _context.SaveChangesAsync();
+
+                _logger.LogInformation("Verifying {PendingCount} records in batch {BatchId} using stored procedure", pendingCount, batchId);
+
+                // Use stored procedure for fast bulk verification
+                var batchIdParam = new SqlParameter("@BatchId", batchId);
+                var verifiedByParam = new SqlParameter("@VerifiedBy", verifiedBy);
+
+                // Set longer timeout for large batch operations (5 minutes)
+                _context.Database.SetCommandTimeout(300);
+
+                var result = await _context.Database
+                    .SqlQueryRaw<VerifyBatchResult>(
+                        "EXEC sp_VerifyBatch @BatchId, @VerifiedBy",
+                        batchIdParam, verifiedByParam)
+                    .AsNoTracking()
+                    .ToListAsync();
+
+                // Reset timeout to default
+                _context.Database.SetCommandTimeout(30);
+
+                var verifyResult = result.FirstOrDefault();
+
+                if (verifyResult == null || verifyResult.Success == 0)
+                {
+                    var errorMessage = verifyResult?.Error ?? "Unknown error during verification";
+                    _logger.LogError("Failed to verify batch {BatchId}: {Error}", batchId, errorMessage);
+                    throw new InvalidOperationException($"Failed to verify batch: {errorMessage}");
+                }
+
+                // Reload batch to update final status (stored procedure already updated stats)
+                stagingBatch = await _context.StagingBatches.FindAsync(batchId);
+                if (stagingBatch != null)
+                {
+                    stagingBatch.CurrentOperation = null;
+                    stagingBatch.ProcessingProgress = 100;
+                    await _context.SaveChangesAsync();
+                }
+
+                _logger.LogInformation("Completed background verification for batch {BatchId}. Verified {RecordsVerified} records. Total verified: {TotalVerified}, Pending: {TotalPending}",
+                    batchId, verifyResult.RecordsVerified, verifyResult.TotalVerified, verifyResult.TotalPending);
+            }
+            catch (Exception ex)
+            {
+                // Update batch to show error (truncate to fit column max length of 100)
+                var stagingBatch = await _context.StagingBatches.FindAsync(batchId);
+                if (stagingBatch != null)
+                {
+                    var errorMessage = $"Verification failed: {ex.Message}";
+                    stagingBatch.CurrentOperation = errorMessage.Length > 100 ? errorMessage.Substring(0, 97) + "..." : errorMessage;
+                    stagingBatch.BatchStatus = BatchStatus.Failed;
+                    await _context.SaveChangesAsync();
+                }
+
+                _logger.LogError(ex, "Error during background verification for batch {BatchId}", batchId);
+                throw;
+            }
+        }
+
         public async Task<bool> RejectCallLogAsync(int stagingId, string rejectedBy, string reason)
         {
             var log = await _context.CallLogStagings.FindAsync(stagingId);
@@ -750,7 +1214,7 @@ namespace TAB.Web.Services
             return logs.Count;
         }
 
-        public async Task<int> PushToProductionAsync(Guid batchId, DateTime? verificationPeriod = null, string? verificationType = null)
+        public async Task<int> PushToProductionAsync(Guid batchId, DateTime? verificationPeriod = null, string? verificationType = null, bool sendNotifications = true)
         {
             var batch = await _context.StagingBatches
                 .Include(b => b.BillingPeriod)
@@ -809,12 +1273,18 @@ namespace TAB.Web.Services
             var approvalPeriodParam = new SqlParameter("@ApprovalPeriod", (object?)approvalPeriod ?? DBNull.Value);
             var publishedByParam = new SqlParameter("@PublishedBy", "System");
 
+            // Set longer timeout for large batch operations (5 minutes)
+            _context.Database.SetCommandTimeout(300);
+
             var result = await _context.Database
                 .SqlQueryRaw<PushToProductionResult>(
                     "EXEC sp_PushBatchToProduction @BatchId, @VerificationPeriod, @VerificationType, @ApprovalPeriod, @PublishedBy",
                     batchIdParam, verificationPeriodParam, verificationTypeParam, approvalPeriodParam, publishedByParam)
                 .AsNoTracking()
                 .ToListAsync();
+
+            // Reset timeout to default
+            _context.Database.SetCommandTimeout(30);
 
             var pushResult = result.FirstOrDefault();
 
@@ -860,26 +1330,163 @@ namespace TAB.Web.Services
                 }
             }
 
-            // Send email notifications to staff members about published records
-            try
+            // Send email notifications to staff members about published records (if enabled)
+            if (sendNotifications)
             {
-                // Query the records that were just pushed to production
-                var publishedRecords = await _context.CallRecords
-                    .Where(r => r.SourceBatchId == batchId)
-                    .ToListAsync();
+                try
+                {
+                    // Query the records that were just pushed to production
+                    var publishedRecords = await _context.CallRecords
+                        .Where(r => r.SourceBatchId == batchId)
+                        .ToListAsync();
 
-                await SendPublishedNotificationsAsync(publishedRecords, batch, verificationPeriod, approvalPeriod);
+                    await SendPublishedNotificationsAsync(publishedRecords, batch, verificationPeriod, approvalPeriod);
+                }
+                catch (Exception ex)
+                {
+                    _logger.LogError(ex, "Error sending published notifications for batch {BatchId}", batchId);
+                    // Don't fail the push operation if email notifications fail
+                }
             }
-            catch (Exception ex)
+            else
             {
-                _logger.LogError(ex, "Error sending published notifications for batch {BatchId}", batchId);
-                // Don't fail the push operation if email notifications fail
+                _logger.LogInformation("Skipping email notifications for batch {BatchId} - notifications disabled", batchId);
             }
 
             _logger.LogInformation("Pushed {Count} verified records to production from batch {BatchId}",
                 pushResult.RecordsPushed, batchId);
 
             return pushResult.RecordsPushed;
+        }
+
+        public async Task PushToProductionInBackgroundAsync(Guid batchId, DateTime? verificationPeriod, string? verificationType, string publishedBy, bool sendNotifications = true)
+        {
+            _logger.LogInformation("Starting background push to production for batch {BatchId}", batchId);
+
+            try
+            {
+                // Get the batch to update progress
+                var batch = await _context.StagingBatches.FindAsync(batchId);
+                if (batch == null)
+                {
+                    _logger.LogError("Batch {BatchId} not found for push to production", batchId);
+                    return;
+                }
+
+                // Get count of verified records to push
+                var verifiedCount = await _context.CallLogStagings
+                    .Where(c => c.BatchId == batchId && c.VerificationStatus == VerificationStatus.Verified)
+                    .CountAsync();
+
+                if (verifiedCount == 0)
+                {
+                    _logger.LogInformation("No verified records to push in batch {BatchId}", batchId);
+                    batch.CurrentOperation = null;
+                    batch.ProcessingProgress = 100;
+                    await _context.SaveChangesAsync();
+                    return;
+                }
+
+                // Update batch to show push is in progress
+                batch.CurrentOperation = $"Pushing {verifiedCount} records to production...";
+                batch.ProcessingProgress = 10;
+                batch.PublishedBy = publishedBy;
+                await _context.SaveChangesAsync();
+
+                _logger.LogInformation("Pushing {VerifiedCount} records to production for batch {BatchId}", verifiedCount, batchId);
+
+                // Update progress - preparing
+                batch.CurrentOperation = "Preparing records for production...";
+                batch.ProcessingProgress = 20;
+                await _context.SaveChangesAsync();
+
+                // Call the actual push to production logic
+                var recordsPushed = await PushToProductionAsync(batchId, verificationPeriod, verificationType, sendNotifications);
+
+                // Update progress - completing
+                batch = await _context.StagingBatches.FindAsync(batchId);
+                if (batch != null)
+                {
+                    batch.CurrentOperation = null;
+                    batch.ProcessingProgress = 100;
+                    await _context.SaveChangesAsync();
+                }
+
+                _logger.LogInformation("Completed background push to production for batch {BatchId}. Pushed {RecordsPushed} records.",
+                    batchId, recordsPushed);
+            }
+            catch (Exception ex)
+            {
+                // Update batch to show error (truncate to fit column max length of 100)
+                var batch = await _context.StagingBatches.FindAsync(batchId);
+                if (batch != null)
+                {
+                    var errorMessage = $"Push failed: {ex.Message}";
+                    batch.CurrentOperation = errorMessage.Length > 100 ? errorMessage.Substring(0, 97) + "..." : errorMessage;
+                    batch.BatchStatus = BatchStatus.Failed;
+                    await _context.SaveChangesAsync();
+                }
+
+                _logger.LogError(ex, "Error during background push to production for batch {BatchId}", batchId);
+                throw;
+            }
+        }
+
+        public async Task<int> SendBatchNotificationsAsync(Guid batchId, DateTime? verificationPeriod = null)
+        {
+            _logger.LogInformation("Starting to send notifications for batch {BatchId}", batchId);
+
+            var batch = await _context.StagingBatches
+                .Include(b => b.BillingPeriod)
+                .FirstOrDefaultAsync(b => b.Id == batchId);
+
+            if (batch == null)
+            {
+                _logger.LogWarning("Cannot send notifications for batch {BatchId} - batch not found", batchId);
+                return 0;
+            }
+
+            // Only allow sending notifications for Published batches
+            if (batch.BatchStatus != BatchStatus.Published)
+            {
+                _logger.LogWarning("Cannot send notifications for batch {BatchId} - status is {Status}, must be Published",
+                    batchId, batch.BatchStatus);
+                return 0;
+            }
+
+            try
+            {
+                // Query the records that were pushed to production
+                var publishedRecords = await _context.CallRecords
+                    .Where(r => r.SourceBatchId == batchId)
+                    .ToListAsync();
+
+                if (!publishedRecords.Any())
+                {
+                    _logger.LogWarning("No published records found for batch {BatchId}", batchId);
+                    return 0;
+                }
+
+                // Calculate approval period (verification + 3 days)
+                var approvalPeriod = verificationPeriod?.AddDays(3);
+
+                await SendPublishedNotificationsAsync(publishedRecords, batch, verificationPeriod, approvalPeriod);
+
+                // Count unique staff members notified
+                var uniqueStaffCount = publishedRecords
+                    .Select(r => r.IndexNumber)
+                    .Distinct()
+                    .Count();
+
+                _logger.LogInformation("Queued notifications for {Count} staff members in batch {BatchId}", uniqueStaffCount, batchId);
+
+                return uniqueStaffCount;
+            }
+            catch (Exception ex)
+            {
+                _logger.LogError(ex, "Error sending notifications for batch {BatchId}", batchId);
+                throw;
+            }
         }
 
         public async Task<bool> RollbackBatchAsync(Guid batchId)
@@ -990,26 +1597,68 @@ namespace TAB.Web.Services
 
         public async Task<StagingBatch?> GetBatchDetailsAsync(Guid batchId)
         {
+            // =============================================
+            // OPTIMIZED: Don't load call logs with the batch!
+            // The batch might have 100K+ call logs - loading them all causes timeout
+            // Call logs are loaded separately with pagination via GetStagedLogsAsync
+            // =============================================
             return await _context.StagingBatches
-                .Include(b => b.CallLogs)
                 .FirstOrDefaultAsync(b => b.Id == batchId);
         }
 
         public async Task<Dictionary<string, int>> GetBatchStatisticsAsync(Guid batchId)
         {
-            var logs = await _context.CallLogStagings
+            // =============================================
+            // OPTIMIZED: Single query with conditional aggregation
+            // Gets all statistics in ONE database call instead of 7 separate queries
+            // This translates to: SELECT COUNT(CASE WHEN ... THEN 1 END) for each stat
+            // =============================================
+
+            var today = DateTime.UtcNow.Date;
+            var stats = await _context.CallLogStagings
                 .Where(l => l.BatchId == batchId)
-                .ToListAsync();
+                .GroupBy(l => 1) // Group all records together
+                .Select(g => new
+                {
+                    Total = g.Count(),
+                    Pending = g.Count(l => l.VerificationStatus == VerificationStatus.Pending),
+                    Verified = g.Count(l => l.VerificationStatus == VerificationStatus.Verified),
+                    Rejected = g.Count(l => l.VerificationStatus == VerificationStatus.Rejected),
+                    RequiresReview = g.Count(l => l.VerificationStatus == VerificationStatus.RequiresReview),
+                    WithAnomalies = g.Count(l => l.HasAnomalies),
+                    Processed = g.Count(l => l.ProcessingStatus == ProcessingStatus.Completed),
+                    VerifiedToday = g.Count(l => l.VerificationStatus == VerificationStatus.Verified &&
+                                                  l.VerificationDate != null &&
+                                                  l.VerificationDate.Value.Date == today)
+                })
+                .FirstOrDefaultAsync();
+
+            // Handle empty batch case
+            if (stats == null)
+            {
+                return new Dictionary<string, int>
+                {
+                    ["Total"] = 0,
+                    ["Pending"] = 0,
+                    ["Verified"] = 0,
+                    ["Rejected"] = 0,
+                    ["RequiresReview"] = 0,
+                    ["WithAnomalies"] = 0,
+                    ["Processed"] = 0,
+                    ["VerifiedToday"] = 0
+                };
+            }
 
             return new Dictionary<string, int>
             {
-                ["Total"] = logs.Count,
-                ["Pending"] = logs.Count(l => l.VerificationStatus == VerificationStatus.Pending),
-                ["Verified"] = logs.Count(l => l.VerificationStatus == VerificationStatus.Verified),
-                ["Rejected"] = logs.Count(l => l.VerificationStatus == VerificationStatus.Rejected),
-                ["RequiresReview"] = logs.Count(l => l.VerificationStatus == VerificationStatus.RequiresReview),
-                ["WithAnomalies"] = logs.Count(l => l.HasAnomalies),
-                ["Processed"] = logs.Count(l => l.ProcessingStatus == ProcessingStatus.Completed)
+                ["Total"] = stats.Total,
+                ["Pending"] = stats.Pending,
+                ["Verified"] = stats.Verified,
+                ["Rejected"] = stats.Rejected,
+                ["RequiresReview"] = stats.RequiresReview,
+                ["WithAnomalies"] = stats.WithAnomalies,
+                ["Processed"] = stats.Processed,
+                ["VerifiedToday"] = stats.VerifiedToday
             };
         }
 
@@ -1074,6 +1723,24 @@ namespace TAB.Web.Services
         {
             try
             {
+                // =============================================
+                // Delete associated Hangfire job if exists
+                // This prevents orphaned jobs from retrying after batch is deleted
+                // =============================================
+                var batch = await _context.StagingBatches.FindAsync(batchId);
+                if (batch != null && !string.IsNullOrEmpty(batch.HangfireJobId))
+                {
+                    try
+                    {
+                        _backgroundJobs.Delete(batch.HangfireJobId);
+                        _logger.LogInformation("Deleted Hangfire job {JobId} for batch {BatchId}", batch.HangfireJobId, batchId);
+                    }
+                    catch (Exception ex)
+                    {
+                        _logger.LogWarning(ex, "Failed to delete Hangfire job {JobId} for batch {BatchId}. Job may have already completed or been deleted.", batch.HangfireJobId, batchId);
+                    }
+                }
+
                 // =============================================
                 // Use stored procedure for efficient bulk deletion
                 // This handles 1M+ records without timeout or memory issues
@@ -1279,29 +1946,19 @@ namespace TAB.Web.Services
                         { "Year", DateTime.Now.Year.ToString() }
                     };
 
-                    // Send email using the template service
-                    var emailSent = await _emailService.SendTemplatedEmailAsync(
+                    // Queue email for background processing (instead of sending synchronously)
+                    var emailLogId = await _emailService.QueueTemplatedEmailAsync(
                         to: staff.Email,
                         templateCode: "CALL_LOG_PUBLISHED",
                         data: emailData,
-                        createdBy: "System",
-                        relatedEntityType: "StagingBatch",
-                        relatedEntityId: batch.Id.ToString()
+                        createdBy: "System"
                     );
 
-                    if (emailSent)
-                    {
-                        _logger.LogInformation("Sent call log published notification to {Email} ({IndexNumber}) - {TotalRecords} records, ${TotalAmount:F2}",
-                            staff.Email, indexNumber, totalRecords, totalAmount);
-                    }
-                    else
-                    {
-                        _logger.LogWarning("Failed to send call log published notification to {Email} ({IndexNumber})",
-                            staff.Email, indexNumber);
-                    }
+                    _logger.LogInformation("Queued call log published notification for {Email} ({IndexNumber}) - EmailLogId: {EmailLogId}, {TotalRecords} records, ${TotalAmount:F2}",
+                        staff.Email, indexNumber, emailLogId, totalRecords, totalAmount);
                 }
 
-                _logger.LogInformation("Completed sending {Count} call log published notifications", recordsByStaff.Count);
+                _logger.LogInformation("Completed queuing {Count} call log published notifications for background processing", recordsByStaff.Count);
             }
             catch (Exception ex)
             {
@@ -1353,6 +2010,16 @@ namespace TAB.Web.Services
         public int PSTNUpdated { get; set; }
         public int PrivateWireUpdated { get; set; }
         public DateTime? CompletedAt { get; set; }
+        public string? Error { get; set; }
+    }
+
+    public class VerifyBatchResult
+    {
+        public int Success { get; set; }
+        public int RecordsVerified { get; set; }
+        public int TotalRecords { get; set; }
+        public int TotalVerified { get; set; }
+        public int TotalPending { get; set; }
         public string? Error { get; set; }
     }
 }

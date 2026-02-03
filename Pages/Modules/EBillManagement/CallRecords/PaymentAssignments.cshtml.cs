@@ -30,6 +30,9 @@ namespace TAB.Web.Pages.Modules.EBillManagement.CallRecords
         public List<CallLogPaymentAssignment> CompletedAssignments { get; set; } = new();
         public string? UserIndexNumber { get; set; }
 
+        // Grouped pending assignments by sender for bulk operations
+        public Dictionary<string, List<CallLogPaymentAssignment>> GroupedPendingAssignments { get; set; } = new();
+
         [TempData]
         public string? StatusMessage { get; set; }
 
@@ -45,12 +48,12 @@ namespace TAB.Web.Pages.Modules.EBillManagement.CallRecords
             var ebillUser = await _context.EbillUsers
                 .FirstOrDefaultAsync(u => u.Email == user.Email);
 
-            // Check if user is Admin - admins can see all assignments even without employee profile
+            // Check if user is Admin - admins can see all assignments even without Staff profile
             bool isAdmin = User.IsInRole("Admin");
 
             if (ebillUser == null && !isAdmin)
             {
-                StatusMessage = "Your profile is not linked to an employee record.";
+                StatusMessage = "Your profile is not linked to an Staff record.";
                 StatusMessageClass = "warning";
                 return Page();
             }
@@ -88,6 +91,11 @@ namespace TAB.Web.Pages.Modules.EBillManagement.CallRecords
                     .ToListAsync();
             }
 
+            // Group pending assignments by sender for bulk operations
+            GroupedPendingAssignments = PendingAssignments
+                .GroupBy(a => a.AssignedFrom)
+                .ToDictionary(g => g.Key, g => g.ToList());
+
             return Page();
         }
 
@@ -102,7 +110,7 @@ namespace TAB.Web.Pages.Modules.EBillManagement.CallRecords
 
             if (ebillUser == null)
             {
-                StatusMessage = "Your profile is not linked to an employee record.";
+                StatusMessage = "Your profile is not linked to an Staff record.";
                 StatusMessageClass = "danger";
                 return RedirectToPage();
             }
@@ -142,7 +150,7 @@ namespace TAB.Web.Pages.Modules.EBillManagement.CallRecords
 
             if (ebillUser == null)
             {
-                StatusMessage = "Your profile is not linked to an employee record.";
+                StatusMessage = "Your profile is not linked to an Staff record.";
                 StatusMessageClass = "danger";
                 return RedirectToPage();
             }
@@ -175,6 +183,110 @@ namespace TAB.Web.Pages.Modules.EBillManagement.CallRecords
             catch (Exception ex)
             {
                 StatusMessage = $"Error rejecting assignment: {ex.Message}";
+                StatusMessageClass = "danger";
+            }
+
+            return RedirectToPage();
+        }
+
+        public async Task<IActionResult> OnPostBulkAcceptAsync(string? assignedFrom = null)
+        {
+            var user = await _userManager.GetUserAsync(User);
+            if (user == null)
+                return Challenge();
+
+            var ebillUser = await _context.EbillUsers
+                .FirstOrDefaultAsync(u => u.Email == user.Email);
+
+            if (ebillUser == null)
+            {
+                StatusMessage = "Your profile is not linked to an Staff record.";
+                StatusMessageClass = "danger";
+                return RedirectToPage();
+            }
+
+            try
+            {
+                var result = await _verificationService.BulkAcceptAssignmentsAsync(
+                    ebillUser.IndexNumber,
+                    assignedFrom);
+
+                if (result.Errors.Any())
+                {
+                    StatusMessage = $"Error during bulk accept: {string.Join(", ", result.Errors)}";
+                    StatusMessageClass = "danger";
+                }
+                else if (result.ProcessedCount > 0)
+                {
+                    var fromText = string.IsNullOrEmpty(assignedFrom) ? "" : $" from {assignedFrom}";
+                    StatusMessage = $"Successfully accepted {result.ProcessedCount} payment assignment(s){fromText}.";
+                    StatusMessageClass = "success";
+                }
+                else
+                {
+                    StatusMessage = "No pending assignments found to accept.";
+                    StatusMessageClass = "warning";
+                }
+            }
+            catch (Exception ex)
+            {
+                StatusMessage = $"Error accepting assignments: {ex.Message}";
+                StatusMessageClass = "danger";
+            }
+
+            return RedirectToPage();
+        }
+
+        public async Task<IActionResult> OnPostBulkRejectAsync(string rejectionReason, string? assignedFrom = null)
+        {
+            var user = await _userManager.GetUserAsync(User);
+            if (user == null)
+                return Challenge();
+
+            var ebillUser = await _context.EbillUsers
+                .FirstOrDefaultAsync(u => u.Email == user.Email);
+
+            if (ebillUser == null)
+            {
+                StatusMessage = "Your profile is not linked to an Staff record.";
+                StatusMessageClass = "danger";
+                return RedirectToPage();
+            }
+
+            if (string.IsNullOrWhiteSpace(rejectionReason))
+            {
+                StatusMessage = "Please provide a reason for rejection.";
+                StatusMessageClass = "warning";
+                return RedirectToPage();
+            }
+
+            try
+            {
+                var result = await _verificationService.BulkRejectAssignmentsAsync(
+                    ebillUser.IndexNumber,
+                    rejectionReason,
+                    assignedFrom);
+
+                if (result.Errors.Any())
+                {
+                    StatusMessage = $"Error during bulk reject: {string.Join(", ", result.Errors)}";
+                    StatusMessageClass = "danger";
+                }
+                else if (result.ProcessedCount > 0)
+                {
+                    var fromText = string.IsNullOrEmpty(assignedFrom) ? "" : $" from {assignedFrom}";
+                    StatusMessage = $"Successfully rejected {result.ProcessedCount} payment assignment(s){fromText}.";
+                    StatusMessageClass = "info";
+                }
+                else
+                {
+                    StatusMessage = "No pending assignments found to reject.";
+                    StatusMessageClass = "warning";
+                }
+            }
+            catch (Exception ex)
+            {
+                StatusMessage = $"Error rejecting assignments: {ex.Message}";
                 StatusMessageClass = "danger";
             }
 

@@ -7,6 +7,10 @@
     ViewData["Breadcrumb"] = "Services / Device Reimbursement / Create Request";
 }
 
+<!-- Select2 CSS -->
+<link href="https://cdn.jsdelivr.net/npm/select2@4.1.0-rc.0/dist/css/select2.min.css" rel="stylesheet" />
+<link href="https://cdn.jsdelivr.net/npm/select2-bootstrap-5-theme@1.3.0/dist/select2-bootstrap-5-theme.min.css" rel="stylesheet" />
+
 <style>
     /* Container and Layout */
     .form-container {
@@ -385,16 +389,40 @@
         font-size: 0.75rem;
         margin-top: 0.25rem;
     }
-    
+
     .form-control.is-invalid,
     .form-select.is-invalid {
         border-color: #ED1847 !important;
     }
-    
+
     .form-control.is-invalid:focus,
     .form-select.is-invalid:focus {
         border-color: #ED1847 !important;
         box-shadow: 0 0 0 0.15rem rgba(237, 24, 71, 0.2) !important;
+    }
+
+    /* Select2 Custom Styling */
+    .select2-container--bootstrap-5 .select2-selection {
+        height: calc(3.5rem + 2px);
+        padding: 1rem 0.75rem 0.25rem;
+        font-size: 1rem;
+        border: 1px solid #e2e8f0;
+        border-radius: 8px;
+    }
+
+    .select2-container--bootstrap-5 .select2-selection--single .select2-selection__rendered {
+        padding: 0;
+        line-height: normal;
+    }
+
+    .org-code-bold {
+        font-weight: 700;
+        color: #1a202c;
+        margin-right: 0.25rem;
+    }
+
+    .select2-results__option {
+        padding: 0.5rem 0.75rem;
     }
     
     /* Navigation helpers */
@@ -480,359 +508,60 @@
         
         <form method="post" enctype="multipart/form-data" id="refundForm" novalidate asp-page-handler="">
             <div class="form-body">
-                <!-- Navigation Tabs -->
-                <ul class="nav nav-tabs" id="formTabs" role="tablist">
-                    <li class="nav-item" role="presentation">
-                        <button class="nav-link active" id="personal-tab" data-bs-toggle="tab" 
-                                data-bs-target="#personal" type="button" role="tab">
-                            <i class="bi bi-person"></i> Personal Information
-                        </button>
-                    </li>
-                    <li class="nav-item" role="presentation">
-                        <button class="nav-link" id="device-tab" data-bs-toggle="tab" 
-                                data-bs-target="#device" type="button" role="tab">
-                            <i class="bi bi-phone"></i> Device Details
-                        </button>
-                    </li>
-                    <li class="nav-item" role="presentation">
-                        <button class="nav-link" id="purchase-tab" data-bs-toggle="tab" 
-                                data-bs-target="#purchase" type="button" role="tab">
-                            <i class="bi bi-receipt"></i> Purchase Information
-                        </button>
-                    </li>
-                    <li class="nav-item" role="presentation">
-                        <button class="nav-link" id="review-tab" data-bs-toggle="tab" 
-                                data-bs-target="#review" type="button" role="tab">
-                            <i class="bi bi-check-circle"></i> Review & Submit
-                        </button>
-                    </li>
-                </ul>
-                
-                <!-- Tab Content -->
-                <div class="tab-content" id="formTabContent">
-                    <!-- Personal Information Tab -->
-                    <div class="tab-pane fade show active" id="personal" role="tabpanel">
-                        <div class="form-section">
-                            <h6 class="section-header">
-                                <i class="bi bi-person-circle section-icon"></i>
-                                Employee Information
-                            </h6>
-                            
-                            <div class="row">
-                                <div class="col-md-6">
-                                    <div class="form-floating">
-                                        <input type="text" class="form-control" id="mobileNumberAssignedTo"
-                                               asp-for="RefundRequest.MobileNumberAssignedTo" placeholder=" " required>
-                                        <label for="mobileNumberAssignedTo" class="required-field">Full Name</label>
-                                        <span class="invalid-feedback"></span>
-                                    </div>
-                                </div>
-                                <div class="col-md-6">
-                                    <div class="form-floating">
-                                        <input type="text" class="form-control" id="indexNo"
-                                               asp-for="RefundRequest.IndexNo" placeholder=" " required
-                                               pattern="[A-Z0-9]+" maxlength="50">
-                                        <label for="indexNo" class="required-field">Index Number</label>
-                                        <span class="invalid-feedback"></span>
-                                    </div>
-                                </div>
-                            </div>
-
-                            <div class="row">
-                                <div class="col-md-6">
-                                    <div class="form-floating">
-                                        <input type="tel" class="form-control" id="primaryMobileNumber"
-                                               asp-for="RefundRequest.PrimaryMobileNumber" placeholder=" " required
-                                               pattern="\d{9,15}" maxlength="15">
-                                        <label for="primaryMobileNumber" class="required-field">Primary Mobile Number</label>
-                                        <span class="invalid-feedback"></span>
-                                    </div>
-                                </div>
-                                <div class="col-md-6">
-                                    <div class="form-floating">
-                                        <input type="text" class="form-control" id="officeExtension"
-                                               asp-for="RefundRequest.OfficeExtension" placeholder=" ">
-                                        <label for="officeExtension">Office Extension</label>
-                                    </div>
-                                </div>
-                            </div>
-                        </div>
-                        
-                        <div class="form-section">
-                            <h6 class="section-header">
-                                <i class="bi bi-building section-icon"></i>
-                                Organization Details
-                            </h6>
-                            
-                            <div class="row">
-                                <div class="col-md-6">
-                                    <div class="form-floating">
-                                        <select class="form-select" id="organization" asp-for="RefundRequest.Organization" required data-organization-id="">
-                                            <option value="">Select Organization</option>
-                                            @foreach (var org in Model.Organizations)
-                                            {
-                                                <option value="@org.Name" data-org-id="@org.Id">@org.Name</option>
-                                            }
-                                        </select>
-                                        <label for="organization" class="required-field">Organization</label>
-                                        <span class="invalid-feedback"></span>
-                                    </div>
-                                </div>
-                                <div class="col-md-6">
-                                    <div class="form-floating">
-                                        <select class="form-select" id="office" asp-for="RefundRequest.Office" required disabled data-preselected-office="@Model.RefundRequest.Office">
-                                            <option value="">Select Organization First</option>
-                                        </select>
-                                        <label for="office" class="required-field">Office</label>
-                                        <span class="invalid-feedback"></span>
-                                    </div>
-                                </div>
-                            </div>
-                            
-                            <div class="row">
-                                <div class="col-md-6">
-                                    <div class="form-floating">
-                                        <input type="email" class="form-control" id="supervisor"
-                                               asp-for="RefundRequest.Supervisor" placeholder=" " required>
-                                        <label for="supervisor" class="required-field">Supervisor Email</label>
-                                        <span class="invalid-feedback"></span>
-                                    </div>
-                                </div>
-                                <div class="col-md-6">
-                                    <div class="form-floating">
-                                        <input type="text" class="form-control" id="supervisorName"
-                                               asp-for="RefundRequest.SupervisorName" placeholder=" ">
-                                        <label for="supervisorName">Supervisor Name</label>
-                                        <span class="invalid-feedback"></span>
-                                    </div>
-                                </div>
-                            </div>
-                        </div>
-                        
-                        <div class="nav-helper">
-                            <div></div>
-                            <button type="button" class="btn btn-primary" onclick="validateAndNext('personal', 'device-tab')">
-                                Next: Device Details <i class="bi bi-arrow-right"></i>
-                            </button>
-                        </div>
-                    </div>
-                    
-                    <!-- Device Details Tab -->
-                    <div class="tab-pane fade" id="device" role="tabpanel">
-                        <div class="form-section">
-                            <h6 class="section-header">
-                                <i class="bi bi-phone-fill section-icon"></i>
-                                Mobile Service Information
-                            </h6>
-                            
-                            <div class="row">
-                                <div class="col-md-6">
-                                    <div class="form-floating">
-                                        <select class="form-select" id="mobileService" name="RefundRequest.MobileService" required>
-                                            <option value="">Select Service Provider</option>
-                                            <option value="Safaricom">Safaricom</option>
-                                            <option value="Airtel">Airtel</option>
-                                            <option value="Telkom">Telkom</option>
-                                            <option value="Other">Other</option>
-                                        </select>
-                                        <label for="mobileService" class="required-field">Mobile Service Provider</label>
-                                        <span class="invalid-feedback"></span>
-                                    </div>
-                                </div>
-                                <div class="col-md-6">
-                                    <div class="form-floating">
-                                        <select class="form-select" id="classOfService" name="RefundRequest.ClassOfService" required>
-                                            <option value="">Select Class of Service</option>
-                                            @foreach (var cos in Model.ClassesOfService)
-                                            {
-                                                <option value="@cos.Class" data-allowance="@cos.HandsetAllowance">
-                                                    @cos.Class - @cos.Service
-                                                </option>
-                                            }
-                                        </select>
-                                        <label for="classOfService" class="required-field">Class of Service</label>
-                                        <span class="invalid-feedback"></span>
-                                    </div>
-                                </div>
-                            </div>
-                            
-                            <div class="row">
-                                <div class="col-md-6">
-                                    <div class="form-floating">
-                                        <input type="number" class="form-control" id="deviceAllowance" 
-                                               name="RefundRequest.DeviceAllowance" placeholder=" " 
-                                               step="0.01" min="0.01" value="0" readonly required>
-                                        <label for="deviceAllowance">Device Allowance (USD)</label>
-                                    </div>
-                                </div>
-                                <div class="col-md-6">
-                                    <div class="form-floating">
-                                        <input type="date" class="form-control" id="previousDeviceDate" 
-                                               name="RefundRequest.PreviousDeviceReimbursedDate" placeholder=" ">
-                                        <label for="previousDeviceDate">Previous Device Reimbursement Date</label>
-                                    </div>
-                                </div>
-                            </div>
-                            
-                            <div class="alert alert-info mt-3">
-                                <i class="bi bi-info-circle"></i>
-                                Your device allowance is determined by your class of service. 
-                                This amount represents the maximum reimbursement available for your device purchase.
-                            </div>
-                        </div>
-                        
-                        <div class="nav-helper">
-                            <button type="button" class="btn btn-outline-secondary" onclick="previousTab('personal-tab')">
-                                <i class="bi bi-arrow-left"></i> Previous
-                            </button>
-                            <button type="button" class="btn btn-primary" onclick="validateAndNext('device', 'purchase-tab')">
-                                Next: Purchase Information <i class="bi bi-arrow-right"></i>
-                            </button>
-                        </div>
-                    </div>
-                    
-                    <!-- Purchase Information Tab -->
-                    <div class="tab-pane fade" id="purchase" role="tabpanel">
-                        <div class="form-section">
-                            <h6 class="section-header">
-                                <i class="bi bi-receipt-cutoff section-icon"></i>
-                                Purchase Details
-                            </h6>
-                            
-                            <div class="row">
-                                <div class="col-md-6">
-                                    <div class="form-floating">
-                                        <select class="form-select" id="purchaseCurrency" 
-                                                name="RefundRequest.DevicePurchaseCurrency" required>
-                                            <option value="">Select Currency</option>
-                                            <option value="USD">USD - US Dollar</option>
-                                            <option value="KES">KES - Kenyan Shilling</option>
-                                            <option value="EUR">EUR - Euro</option>
-                                            <option value="GBP">GBP - British Pound</option>
-                                        </select>
-                                        <label for="purchaseCurrency" class="required-field">Purchase Currency</label>
-                                        <span class="invalid-feedback"></span>
-                                    </div>
-                                </div>
-                                <div class="col-md-6">
-                                    <div class="form-floating">
-                                        <input type="number" class="form-control" id="purchaseAmount" 
-                                               name="RefundRequest.DevicePurchaseAmount" placeholder=" " 
-                                               step="0.01" min="0.01" required>
-                                        <label for="purchaseAmount" class="required-field">Purchase Amount</label>
-                                        <span class="invalid-feedback"></span>
-                                    </div>
-                                </div>
-                            </div>
-                            
-                            <div class="row">
-                                <div class="col-md-12">
-                                    <div class="form-floating">
-                                        <select class="form-select" id="umojaBankName" 
-                                                name="RefundRequest.UmojaBankName" required>
-                                            <option value="">Select Bank</option>
-                                            <option value="Standard Chartered Bank">Standard Chartered Bank</option>
-                                            <option value="Citibank">Citibank</option>
-                                            <option value="JP Morgan Chase">JP Morgan Chase</option>
-                                            <option value="Bank of America">Bank of America</option>
-                                            <option value="Other">Other</option>
-                                        </select>
-                                        <label for="umojaBankName" class="required-field">Umoja Bank Name</label>
-                                        <span class="invalid-feedback"></span>
-                                    </div>
-                                </div>
-                            </div>
-                            
-                            <div class="row">
-                                <div class="col-md-12">
-                                    <label class="form-label">Purchase Receipt <span class="text-danger">*</span></label>
-                                    <div class="file-upload-area" id="fileUploadArea">
-                                        <input type="file" id="purchaseReceipt" name="receiptFile" 
-                                               accept=".pdf,.jpg,.jpeg,.png" style="display: none;" required>
-                                        <i class="bi bi-cloud-upload file-upload-icon"></i>
-                                        <div class="file-upload-text">Click to upload or drag and drop</div>
-                                        <div class="file-upload-hint">PDF, JPG, or PNG (Max 5MB)</div>
-                                        <div id="fileName" class="mt-2 text-success" style="display: none;"></div>
-                                    </div>
-                                </div>
-                            </div>
-                            
-                            <div class="row mt-3">
-                                <div class="col-md-12">
-                                    <div class="form-floating">
-                                        <textarea class="form-control" id="remarks" 
-                                                  name="RefundRequest.Remarks" placeholder=" " 
-                                                  style="height: 100px"></textarea>
-                                        <label for="remarks">Additional Remarks (Optional)</label>
-                                    </div>
-                                </div>
-                            </div>
-                        </div>
-                        
-                        <div class="nav-helper">
-                            <button type="button" class="btn btn-outline-secondary" onclick="previousTab('device-tab')">
-                                <i class="bi bi-arrow-left"></i> Previous
-                            </button>
-                            <button type="button" class="btn btn-primary" onclick="validateAndNext('purchase', 'review-tab')">
-                                Next: Review <i class="bi bi-arrow-right"></i>
-                            </button>
-                        </div>
-                    </div>
-                    
-                    <!-- Review & Submit Tab -->
-                    <div class="tab-pane fade" id="review" role="tabpanel">
-                        <div class="form-section">
-                            <h6 class="section-header">
-                                <i class="bi bi-list-check section-icon"></i>
-                                Review Your Information
-                            </h6>
-                            
-                            <div class="alert alert-warning">
-                                <i class="bi bi-exclamation-triangle"></i>
-                                Please review all information carefully before submitting. 
-                                Once submitted, you cannot edit the request.
-                            </div>
-                            
-                            <div id="validationStatus" class="alert alert-info mt-3" style="display: none;">
-                                <!-- Validation status will be shown here -->
-                            </div>
-                            
-                            <div id="reviewSummary" class="mt-3">
-                                <!-- This will be populated by JavaScript -->
-                            </div>
-                        </div>
-                        
-                        <div class="nav-helper">
-                            <button type="button" class="btn btn-outline-secondary" onclick="previousTab('purchase-tab')">
-                                <i class="bi bi-arrow-left"></i> Previous
-                            </button>
-                        </div>
-                        
-                        <!-- Form Actions - Only visible on Review tab -->
-                        <div class="form-actions mt-3">
-                            <a href="/Modules/RefundManagement/Requests" class="btn btn-outline-secondary">
-                                <i class="bi bi-x-circle"></i> Cancel
-                            </a>
-                            <div class="btn-group-actions">
-                                <button type="submit" name="action" value="draft" class="btn btn-secondary">
-                                    <i class="bi bi-save"></i> Save as Draft
-                                </button>
-                                <button type="submit" name="action" value="submit" class="btn btn-secondary" id="submitBtn">
-                                    <i class="bi bi-send"></i> Submit Request
-                                </button>
-                            </div>
-                        </div>
-                    </div>
-                </div>
+                @await Html.PartialAsync("Partials/_FormFields")
             </div>
         </form>
     </div>
 </div>
 
 @section Scripts {
+    <!-- Select2 JS -->
+    <script src="https://cdn.jsdelivr.net/npm/select2@4.1.0-rc.0/dist/js/select2.min.js"></script>
+
     <script>
         // Initialize on page load
         document.addEventListener('DOMContentLoaded', function() {
+            // Initialize Select2 for organization dropdown with bold abbreviation
+            $('#organization').select2({
+                theme: 'bootstrap-5',
+                width: '100%',
+                placeholder: 'Select Organization',
+                allowClear: false,
+                templateResult: formatOrganization,
+                templateSelection: formatOrganizationSelection
+            });
+
+            function formatOrganization(org) {
+                if (!org.id) {
+                    return org.text;
+                }
+
+                var $org = $(org.element);
+                var orgCode = $org.data('org-code');
+
+                if (orgCode) {
+                    var $result = $('<span><strong class="org-code-bold">' + orgCode + '</strong> - ' + org.text.replace(orgCode + ' - ', '') + '</span>');
+                    return $result;
+                }
+
+                return org.text;
+            }
+
+            function formatOrganizationSelection(org) {
+                if (!org.id) {
+                    return org.text;
+                }
+
+                var $org = $(org.element);
+                var orgCode = $org.data('org-code');
+
+                if (orgCode) {
+                    return $('<span><strong class="org-code-bold">' + orgCode + '</strong> - ' + org.text.replace(orgCode + ' - ', '') + '</span>');
+                }
+
+                return org.text;
+            }
+
             // Initially set submit button state
             const submitBtn = document.getElementById('submitBtn');
             if (submitBtn) {
@@ -842,7 +571,7 @@
                 submitBtn.classList.add('btn-secondary');
                 submitBtn.classList.remove('btn-success');
             }
-            
+
             // Add validation status display
             const statusDiv = document.createElement('div');
             statusDiv.id = 'validationStatus';
@@ -856,64 +585,9 @@
         
         // Tab Navigation with Validation
         function validateAndNext(currentTab, nextTabId) {
-            const tabMap = {
-                'personal': '#personal',
-                'device': '#device',
-                'purchase': '#purchase',
-                'review': '#review'
-            };
-            
-            const currentTabPane = document.querySelector(tabMap[currentTab]);
-            const requiredFields = currentTabPane.querySelectorAll('input:required, select:required, textarea:required');
-            let hasErrors = false;
-            let firstError = null;
-            
-            // Check all required fields
-            requiredFields.forEach(field => {
-                if (!field.value || field.value.trim() === '') {
-                    field.classList.add('is-invalid');
-                    hasErrors = true;
-                    if (!firstError) firstError = field;
-                    
-                    // Add error message if not exists
-                    let feedback = field.parentElement.querySelector('.invalid-feedback');
-                    if (feedback) {
-                        feedback.textContent = 'This field is required';
-                        feedback.style.display = 'block';
-                    }
-                } else {
-                    field.classList.remove('is-invalid');
-                    let feedback = field.parentElement.querySelector('.invalid-feedback');
-                    if (feedback) {
-                        feedback.style.display = 'none';
-                    }
-                }
-            });
-            
-            if (hasErrors) {
-                // Show error message
-                if (firstError) {
-                    firstError.focus();
-                    firstError.scrollIntoView({ behavior: 'smooth', block: 'center' });
-                }
-                
-                // Mark tab as having errors
-                const currentTabButton = document.querySelector(`[data-bs-target="${tabMap[currentTab]}"]`);
-                if (currentTabButton) {
-                    currentTabButton.classList.add('has-errors');
-                }
-                
-                alert('Please fill in all required fields before proceeding.');
-                return;
-            }
-            
-            // Mark current tab as completed
-            const currentTabButton = document.querySelector(`[data-bs-target="${tabMap[currentTab]}"]`);
-            if (currentTabButton) {
-                currentTabButton.classList.remove('has-errors');
-                currentTabButton.classList.add('completed');
-            }
-            
+            // Allow free navigation between tabs without validation
+            // This enables users to save drafts with partial data
+
             // Navigate to next tab
             nextTab(nextTabId);
             
@@ -1079,9 +753,11 @@
         const organizationSelect = document.getElementById('organization');
         const officeSelect = document.getElementById('office');
 
-        // Load offices on organization change
-        organizationSelect.addEventListener('change', function() {
-            loadOfficesForOrganization(this, officeSelect);
+        // Load offices on organization change (using jQuery for Select2 compatibility)
+        $('#organization').on('select2:select', function(e) {
+            // Get the underlying select element, not the Select2 wrapper
+            const selectElement = document.getElementById('organization');
+            loadOfficesForOrganization(selectElement, officeSelect);
         });
 
         // Auto-load offices if organization is pre-selected
@@ -1242,17 +918,45 @@
         // Form Validation and Submission
         document.getElementById('refundForm').addEventListener('submit', function(e) {
             const action = e.submitter ? e.submitter.value : clickedAction;
-            
+
             if (action === 'submit') {
-                // Allow submission - validation will be done server-side
-                // We're removing client-side validation temporarily to diagnose the issue
+                // For submit, validate all required fields
+                const requiredFields = this.querySelectorAll('input:required, select:required, textarea:required');
+                let hasErrors = false;
+
+                requiredFields.forEach(field => {
+                    if (!field.value || field.value.trim() === '') {
+                        field.classList.add('is-invalid');
+                        hasErrors = true;
+
+                        let feedback = field.parentElement.querySelector('.invalid-feedback');
+                        if (feedback) {
+                            feedback.textContent = 'This field is required';
+                            feedback.style.display = 'block';
+                        }
+                    }
+                });
+
+                if (hasErrors) {
+                    e.preventDefault();
+                    alert('Please fill in all required fields before submitting.');
+                    return false;
+                }
+
                 return true;
             } else if (action === 'draft') {
-                // For draft, temporarily remove file requirement
-                const fileInput = this.querySelector('input[type="file"]');
-                if (fileInput) {
-                    fileInput.removeAttribute('required');
-                }
+                // For draft, remove all validation - allow partial saves
+                const allFields = this.querySelectorAll('input, select, textarea');
+                allFields.forEach(field => {
+                    field.classList.remove('is-invalid');
+                    field.removeAttribute('required');
+
+                    let feedback = field.parentElement.querySelector('.invalid-feedback');
+                    if (feedback) {
+                        feedback.style.display = 'none';
+                    }
+                });
+
                 return true;
             } else {
                 // If no action specified, allow submission

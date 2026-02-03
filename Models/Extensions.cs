@@ -7,10 +7,16 @@ namespace TAB.Web.Models
     {
         public static string GetDisplayName(this Enum enumValue)
         {
-            var displayAttribute = enumValue.GetType()
+            var member = enumValue.GetType()
                 .GetMember(enumValue.ToString())
-                .First()
-                .GetCustomAttribute<DisplayAttribute>();
+                .FirstOrDefault();
+
+            if (member == null)
+            {
+                return enumValue.ToString();
+            }
+
+            var displayAttribute = member.GetCustomAttribute<DisplayAttribute>();
 
             return displayAttribute?.Name ?? enumValue.ToString();
         }

@@ -26,8 +26,8 @@ SET IDENTITY_INSERT ClassOfService ON;
 
 INSERT INTO ClassOfService (Id, ServiceCode, ServiceName, Description, MonthlyAllowance, InternationalCallsAllowed, DataAllowanceGB, HandsetAllowance, IsActive, CreatedDate)
 VALUES
-(101, 'BASIC', 'Basic Plan', 'Basic employee phone plan', 50.00, 0, 5, 0, 1, GETDATE()),
-(102, 'STANDARD', 'Standard Plan', 'Standard employee phone plan with international', 150.00, 1, 15, 500.00, 1, GETDATE()),
+(101, 'BASIC', 'Basic Plan', 'Basic Staff phone plan', 50.00, 0, 5, 0, 1, GETDATE()),
+(102, 'STANDARD', 'Standard Plan', 'Standard Staff phone plan with international', 150.00, 1, 15, 500.00, 1, GETDATE()),
 (103, 'EXECUTIVE', 'Executive Plan', 'Executive unlimited plan', 500.00, 1, 50, 1500.00, 1, GETDATE());
 
 SET IDENTITY_INSERT ClassOfService OFF;

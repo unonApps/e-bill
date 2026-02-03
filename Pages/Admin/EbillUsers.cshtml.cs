@@ -49,6 +49,7 @@ namespace TAB.Web.Pages.Admin
         public int ActiveUsers { get; set; }
         public int InactiveUsers { get; set; }
         public int UsersWithSupervisors { get; set; }
+        public int AutoCreatedUsers { get; set; }
         
         // Filter properties
         [BindProperty(SupportsGet = true)]
@@ -65,6 +66,9 @@ namespace TAB.Web.Pages.Admin
 
         [BindProperty(SupportsGet = true)]
         public bool? IsActive { get; set; }
+
+        [BindProperty(SupportsGet = true)]
+        public string? CreationType { get; set; } // "auto" or "manual" or null (all)
 
         // Pagination properties
         [BindProperty(SupportsGet = true)]
@@ -106,9 +110,8 @@ namespace TAB.Web.Pages.Admin
             [Display(Name = "Index Number")]
             public string IndexNumber { get; set; } = string.Empty;
 
-            [Required(ErrorMessage = "Mobile Number is required")]
             [Display(Name = "Official Mobile Number")]
-            public string OfficialMobileNumber { get; set; } = string.Empty;
+            public string? OfficialMobileNumber { get; set; }
 
             [Display(Name = "Device ID")]
             public string? IssuedDeviceID { get; set; }
@@ -122,6 +125,7 @@ namespace TAB.Web.Pages.Admin
             [Display(Name = "Location")]
             public string? Location { get; set; }
 
+            [Required(ErrorMessage = "Organization is required")]
             [Display(Name = "Organization")]
             public int? OrganizationId { get; set; }
 
@@ -130,12 +134,20 @@ namespace TAB.Web.Pages.Admin
 
             [Display(Name = "Sub Office")]
             public int? SubOfficeId { get; set; }
-            
+
             [Display(Name = "Is Active")]
             public bool IsActive { get; set; } = true;
 
-            [Display(Name = "Supervisor")]
-            public string? SupervisorIndexNumber { get; set; }
+            [Required(ErrorMessage = "Supervisor Name is required")]
+            [Display(Name = "Supervisor Name")]
+            [StringLength(200)]
+            public string SupervisorName { get; set; } = string.Empty;
+
+            [Required(ErrorMessage = "Supervisor Email is required")]
+            [Display(Name = "Supervisor Email")]
+            [EmailAddress]
+            [StringLength(256)]
+            public string SupervisorEmail { get; set; } = string.Empty;
 
             // Login Account Fields
             [Display(Name = "Create Login Account")]
@@ -151,9 +163,57 @@ namespace TAB.Web.Pages.Admin
             public string? ConfirmPassword { get; set; }
         }
 
-        public class EditEbillUserInput : CreateEbillUserInput
+        public class EditEbillUserInput
         {
             public int Id { get; set; }
+
+            [Required(ErrorMessage = "First Name is required")]
+            [Display(Name = "First Name")]
+            public string FirstName { get; set; } = string.Empty;
+
+            [Required(ErrorMessage = "Last Name is required")]
+            [Display(Name = "Last Name")]
+            public string LastName { get; set; } = string.Empty;
+
+            [Required(ErrorMessage = "Index Number is required")]
+            [Display(Name = "Index Number")]
+            public string IndexNumber { get; set; } = string.Empty;
+
+            // OfficialMobileNumber is optional for editing (managed via User Phones)
+            [Display(Name = "Official Mobile Number")]
+            public string? OfficialMobileNumber { get; set; }
+
+            [Display(Name = "Device ID")]
+            public string? IssuedDeviceID { get; set; }
+
+            [Required(ErrorMessage = "Email is required")]
+            [EmailAddress(ErrorMessage = "Invalid email format")]
+            [Display(Name = "Email Address")]
+            public string Email { get; set; } = string.Empty;
+
+            [Display(Name = "Location")]
+            public string? Location { get; set; }
+
+            [Display(Name = "Organization")]
+            public int? OrganizationId { get; set; }
+
+            [Display(Name = "Office")]
+            public int? OfficeId { get; set; }
+
+            [Display(Name = "Sub Office")]
+            public int? SubOfficeId { get; set; }
+
+            [Display(Name = "Is Active")]
+            public bool IsActive { get; set; } = true;
+
+            [Display(Name = "Supervisor Name")]
+            [StringLength(200)]
+            public string? SupervisorName { get; set; }
+
+            [Display(Name = "Supervisor Email")]
+            [EmailAddress]
+            [StringLength(256)]
+            public string? SupervisorEmail { get; set; }
         }
 
         public async Task OnGetAsync()
@@ -180,27 +240,28 @@ namespace TAB.Web.Pages.Admin
 
         public async Task<IActionResult> OnPostCreateUserAsync()
         {
+            var isAjax = Request.Headers["X-Requested-With"] == "XMLHttpRequest";
+
             // Remove validation errors for the wrong model path
             var keysToRemove = ModelState.Keys.Where(k => !k.StartsWith("Input.")).ToList();
             foreach (var key in keysToRemove)
             {
                 ModelState.Remove(key);
             }
-            
+
             if (!ModelState.IsValid)
             {
                 _logger.LogWarning("EbillUser creation failed due to invalid ModelState");
-                foreach (var key in ModelState.Keys)
+                var errors = ModelState
+                    .Where(x => x.Value?.Errors.Count > 0)
+                    .SelectMany(x => x.Value!.Errors.Select(e => e.ErrorMessage))
+                    .ToList();
+
+                if (isAjax)
                 {
-                    var state = ModelState[key];
-                    if (state == null) continue;
-                    foreach (var error in state.Errors)
-                    {
-                        _logger.LogWarning($"Validation error for {key}: {error.ErrorMessage}");
-                    }
+                    return new JsonResult(new { success = false, errors = errors, message = string.Join(", ", errors) });
                 }
-                
-                // Set a flag to show the modal again
+
                 ViewData["ShowCreateModal"] = true;
                 await LoadPageDataAsync();
                 return Page();
@@ -211,7 +272,12 @@ namespace TAB.Web.Pages.Admin
                 // Check if IndexNumber already exists
                 if (await _context.EbillUsers.AnyAsync(e => e.IndexNumber == Input.IndexNumber))
                 {
-                    StatusMessage = $"An Ebill user with Index Number '{Input.IndexNumber}' already exists.";
+                    var errorMsg = $"An Ebill user with Index Number '{Input.IndexNumber}' already exists.";
+                    if (isAjax)
+                    {
+                        return new JsonResult(new { success = false, message = errorMsg });
+                    }
+                    StatusMessage = errorMsg;
                     StatusMessageClass = "danger";
                     ViewData["ShowCreateModal"] = true;
                     await LoadPageDataAsync();
@@ -221,7 +287,12 @@ namespace TAB.Web.Pages.Admin
                 // Check if Email already exists
                 if (await _context.EbillUsers.AnyAsync(e => e.Email == Input.Email))
                 {
-                    StatusMessage = $"An Ebill user with email '{Input.Email}' already exists.";
+                    var errorMsg = $"An Ebill user with email '{Input.Email}' already exists.";
+                    if (isAjax)
+                    {
+                        return new JsonResult(new { success = false, message = errorMsg });
+                    }
+                    StatusMessage = errorMsg;
                     StatusMessageClass = "danger";
                     ViewData["ShowCreateModal"] = true;
                     await LoadPageDataAsync();
@@ -241,7 +312,12 @@ namespace TAB.Web.Pages.Admin
                             ? $"{existingPhoneAssignment.EbillUser.FirstName} {existingPhoneAssignment.EbillUser.LastName}"
                             : "another user";
 
-                        StatusMessage = $"Phone number '{Input.OfficialMobileNumber}' is already assigned to {assignedUserName} (Index: {existingPhoneAssignment.IndexNumber}).";
+                        var errorMsg = $"Phone number '{Input.OfficialMobileNumber}' is already assigned to {assignedUserName} (Index: {existingPhoneAssignment.IndexNumber}).";
+                        if (isAjax)
+                        {
+                            return new JsonResult(new { success = false, message = errorMsg });
+                        }
+                        StatusMessage = errorMsg;
                         StatusMessageClass = "danger";
                         ViewData["ShowCreateModal"] = true;
                         await LoadPageDataAsync();
@@ -262,22 +338,10 @@ namespace TAB.Web.Pages.Admin
                     OfficeId = Input.OfficeId,
                     SubOfficeId = Input.SubOfficeId,
                     IsActive = Input.IsActive,
-                    SupervisorIndexNumber = Input.SupervisorIndexNumber,
+                    SupervisorName = Input.SupervisorName,
+                    SupervisorEmail = Input.SupervisorEmail,
                     CreatedDate = DateTime.UtcNow
                 };
-
-                // Auto-populate supervisor details if supervisor is selected
-                if (!string.IsNullOrEmpty(Input.SupervisorIndexNumber))
-                {
-                    var supervisor = await _context.Users
-                        .FirstOrDefaultAsync(u => u.UserName == Input.SupervisorIndexNumber);
-                    
-                    if (supervisor != null)
-                    {
-                        ebillUser.SupervisorName = $"{supervisor.FirstName} {supervisor.LastName}";
-                        ebillUser.SupervisorEmail = supervisor.Email;
-                    }
-                }
 
                 _context.EbillUsers.Add(ebillUser);
                 await _context.SaveChangesAsync();
@@ -366,12 +430,30 @@ namespace TAB.Web.Pages.Admin
                 StatusMessageClass = StatusMessageClass ?? "success";
 
                 _logger.LogInformation("Redirecting to page after successful creation");
+
+                if (isAjax)
+                {
+                    return new JsonResult(new { success = true, message = StatusMessage });
+                }
                 return RedirectToPage();
             }
             catch (Exception ex)
             {
                 _logger.LogError(ex, "Error creating EbillUser");
-                ModelState.AddModelError(string.Empty, "An error occurred while creating the user. Please try again.");
+                var errorMsg = $"Error: {ex.Message}";
+
+                // Include inner exception if available
+                if (ex.InnerException != null)
+                {
+                    errorMsg += $" Inner: {ex.InnerException.Message}";
+                }
+
+                if (isAjax)
+                {
+                    return new JsonResult(new { success = false, message = errorMsg });
+                }
+
+                ModelState.AddModelError(string.Empty, errorMsg);
                 await LoadPageDataAsync();
                 return Page();
             }
@@ -379,6 +461,8 @@ namespace TAB.Web.Pages.Admin
 
         public async Task<IActionResult> OnPostEditUserAsync()
         {
+            var isAjax = Request.Headers["X-Requested-With"] == "XMLHttpRequest";
+
             _logger.LogInformation("=== EditUser Form Data ===");
             foreach (var key in Request.Form.Keys)
             {
@@ -392,7 +476,8 @@ namespace TAB.Web.Pages.Admin
                 FirstName = Request.Form["EditInput.FirstName"].FirstOrDefault() ?? string.Empty,
                 LastName = Request.Form["EditInput.LastName"].FirstOrDefault() ?? string.Empty,
                 IndexNumber = Request.Form["EditInput.IndexNumber"].FirstOrDefault() ?? string.Empty,
-                OfficialMobileNumber = Request.Form["EditInput.OfficialMobileNumber"].FirstOrDefault() ?? string.Empty,
+                // OfficialMobileNumber is managed via User Phones, so we'll preserve existing value
+                OfficialMobileNumber = Request.Form["EditInput.OfficialMobileNumber"].FirstOrDefault(),
                 IssuedDeviceID = Request.Form["EditInput.IssuedDeviceID"].FirstOrDefault(),
                 Email = Request.Form["EditInput.Email"].FirstOrDefault() ?? string.Empty,
                 Location = Request.Form["EditInput.Location"].FirstOrDefault(),
@@ -406,7 +491,8 @@ namespace TAB.Web.Pages.Admin
                     ? null
                     : int.TryParse(Request.Form["EditInput.SubOfficeId"], out var subId) ? subId : null,
                 IsActive = Request.Form["EditInput.IsActive"].Contains("true"),
-                SupervisorIndexNumber = Request.Form["EditInput.SupervisorIndexNumber"].FirstOrDefault()
+                SupervisorName = Request.Form["EditInput.SupervisorName"].FirstOrDefault(),
+                SupervisorEmail = Request.Form["EditInput.SupervisorEmail"].FirstOrDefault()
             };
 
             _logger.LogInformation("Manually created EditInput - Id: {Id}, FirstName: {FirstName}, LastName: {LastName}, Email: {Email}",
@@ -419,15 +505,16 @@ namespace TAB.Web.Pages.Admin
             if (!ModelState.IsValid)
             {
                 _logger.LogWarning("ModelState is invalid for EditUser after manual creation");
-                foreach (var state in ModelState)
+                var errors = ModelState
+                    .Where(x => x.Value?.Errors.Count > 0)
+                    .SelectMany(x => x.Value!.Errors.Select(e => e.ErrorMessage))
+                    .ToList();
+
+                if (isAjax)
                 {
-                    if (state.Value.Errors.Count > 0)
-                    {
-                        _logger.LogWarning("Validation error for {Key}: {Errors}",
-                            state.Key,
-                            string.Join(", ", state.Value.Errors.Select(e => e.ErrorMessage)));
-                    }
+                    return new JsonResult(new { success = false, errors = errors, message = string.Join(", ", errors) });
                 }
+
                 await LoadPageDataAsync();
                 return Page();
             }
@@ -437,7 +524,12 @@ namespace TAB.Web.Pages.Admin
                 var ebillUser = await _context.EbillUsers.FindAsync(EditInput.Id);
                 if (ebillUser == null)
                 {
-                    StatusMessage = "Ebill user not found.";
+                    var errorMsg = "Ebill user not found.";
+                    if (isAjax)
+                    {
+                        return new JsonResult(new { success = false, message = errorMsg });
+                    }
+                    StatusMessage = errorMsg;
                     StatusMessageClass = "danger";
                     return RedirectToPage();
                 }
@@ -445,7 +537,12 @@ namespace TAB.Web.Pages.Admin
                 // Check if IndexNumber already exists (excluding current user)
                 if (await _context.EbillUsers.AnyAsync(e => e.IndexNumber == EditInput.IndexNumber && e.Id != EditInput.Id))
                 {
-                    ModelState.AddModelError(string.Empty, "Another Ebill user with this Index Number already exists.");
+                    var errorMsg = "Another Ebill user with this Index Number already exists.";
+                    if (isAjax)
+                    {
+                        return new JsonResult(new { success = false, message = errorMsg });
+                    }
+                    ModelState.AddModelError(string.Empty, errorMsg);
                     await LoadPageDataAsync();
                     return Page();
                 }
@@ -453,7 +550,12 @@ namespace TAB.Web.Pages.Admin
                 // Check if Email already exists (excluding current user)
                 if (await _context.EbillUsers.AnyAsync(e => e.Email == EditInput.Email && e.Id != EditInput.Id))
                 {
-                    ModelState.AddModelError(string.Empty, "Another Ebill user with this email already exists.");
+                    var errorMsg = "Another Ebill user with this email already exists.";
+                    if (isAjax)
+                    {
+                        return new JsonResult(new { success = false, message = errorMsg });
+                    }
+                    ModelState.AddModelError(string.Empty, errorMsg);
                     await LoadPageDataAsync();
                     return Page();
                 }
@@ -465,7 +567,7 @@ namespace TAB.Web.Pages.Admin
                     { "FirstName", ebillUser.FirstName },
                     { "LastName", ebillUser.LastName },
                     { "IndexNumber", ebillUser.IndexNumber },
-                    { "Email", ebillUser.Email },
+                    { "Email", ebillUser.Email ?? "" },
                     { "OfficialMobileNumber", ebillUser.OfficialMobileNumber ?? "" },
                     { "IssuedDeviceID", ebillUser.IssuedDeviceID ?? "" },
                     { "Location", ebillUser.Location ?? "" },
@@ -473,7 +575,9 @@ namespace TAB.Web.Pages.Admin
                     { "OfficeId", ebillUser.OfficeId?.ToString() ?? "" },
                     { "SubOfficeId", ebillUser.SubOfficeId?.ToString() ?? "" },
                     { "IsActive", ebillUser.IsActive },
-                    { "SupervisorIndexNumber", ebillUser.SupervisorIndexNumber ?? "" }
+                    { "SupervisorIndexNumber", ebillUser.SupervisorIndexNumber ?? "" },
+                    { "SupervisorName", ebillUser.SupervisorName ?? "" },
+                    { "SupervisorEmail", ebillUser.SupervisorEmail ?? "" }
                 };
 
                 // Check if the phone number is already assigned to another user (excluding current user)
@@ -491,7 +595,12 @@ namespace TAB.Web.Pages.Admin
                             ? $"{existingPhoneAssignment.EbillUser.FirstName} {existingPhoneAssignment.EbillUser.LastName}"
                             : "another user";
 
-                        StatusMessage = $"Phone number '{EditInput.OfficialMobileNumber}' is already assigned to {assignedUserName} (Index: {existingPhoneAssignment.IndexNumber}).";
+                        var errorMsg = $"Phone number '{EditInput.OfficialMobileNumber}' is already assigned to {assignedUserName} (Index: {existingPhoneAssignment.IndexNumber}).";
+                        if (isAjax)
+                        {
+                            return new JsonResult(new { success = false, message = errorMsg });
+                        }
+                        StatusMessage = errorMsg;
                         StatusMessageClass = "danger";
                         await LoadPageDataAsync();
                         return Page();
@@ -501,7 +610,11 @@ namespace TAB.Web.Pages.Admin
                 ebillUser.FirstName = EditInput.FirstName;
                 ebillUser.LastName = EditInput.LastName;
                 ebillUser.IndexNumber = EditInput.IndexNumber;
-                ebillUser.OfficialMobileNumber = EditInput.OfficialMobileNumber;
+                // OfficialMobileNumber is managed via User Phones - only update if explicitly provided
+                if (!string.IsNullOrEmpty(EditInput.OfficialMobileNumber))
+                {
+                    ebillUser.OfficialMobileNumber = EditInput.OfficialMobileNumber;
+                }
                 ebillUser.IssuedDeviceID = EditInput.IssuedDeviceID;
                 ebillUser.Email = EditInput.Email;
                 ebillUser.Location = EditInput.Location;
@@ -509,31 +622,14 @@ namespace TAB.Web.Pages.Admin
                 ebillUser.OfficeId = EditInput.OfficeId;
                 ebillUser.SubOfficeId = EditInput.SubOfficeId;
                 ebillUser.IsActive = EditInput.IsActive;
-                ebillUser.SupervisorIndexNumber = EditInput.SupervisorIndexNumber;
+                ebillUser.SupervisorName = EditInput.SupervisorName;
+                ebillUser.SupervisorEmail = EditInput.SupervisorEmail;
                 ebillUser.LastModifiedDate = DateTime.UtcNow;
-
-                // Auto-populate supervisor details
-                if (!string.IsNullOrEmpty(EditInput.SupervisorIndexNumber))
-                {
-                    var supervisor = await _context.Users
-                        .FirstOrDefaultAsync(u => u.UserName == EditInput.SupervisorIndexNumber);
-                    
-                    if (supervisor != null)
-                    {
-                        ebillUser.SupervisorName = $"{supervisor.FirstName} {supervisor.LastName}";
-                        ebillUser.SupervisorEmail = supervisor.Email;
-                    }
-                }
-                else
-                {
-                    ebillUser.SupervisorName = null;
-                    ebillUser.SupervisorEmail = null;
-                }
 
                 await _context.SaveChangesAsync();
 
                 // Handle phone number changes - update UserPhones if the official mobile number changed
-                if (oldMobileNumber != EditInput.OfficialMobileNumber)
+                if (!string.IsNullOrEmpty(EditInput.OfficialMobileNumber) && oldMobileNumber != EditInput.OfficialMobileNumber)
                 {
                     // If there was an old number, deactivate it if it was marked as primary
                     if (!string.IsNullOrWhiteSpace(oldMobileNumber))
@@ -611,7 +707,8 @@ namespace TAB.Web.Pages.Admin
                     { "OfficeId", EditInput.OfficeId?.ToString() ?? "" },
                     { "SubOfficeId", EditInput.SubOfficeId?.ToString() ?? "" },
                     { "IsActive", EditInput.IsActive },
-                    { "SupervisorIndexNumber", EditInput.SupervisorIndexNumber ?? "" }
+                    { "SupervisorName", EditInput.SupervisorName ?? "" },
+                    { "SupervisorEmail", EditInput.SupervisorEmail ?? "" }
                 };
 
                 await _auditLogService.LogUserEditedAsync(
@@ -626,12 +723,29 @@ namespace TAB.Web.Pages.Admin
                 StatusMessage = "Ebill user updated successfully.";
                 StatusMessageClass = "success";
 
+                if (isAjax)
+                {
+                    return new JsonResult(new { success = true, message = StatusMessage });
+                }
                 return RedirectToPage();
             }
             catch (Exception ex)
             {
                 _logger.LogError(ex, "Error updating EbillUser");
-                ModelState.AddModelError(string.Empty, "An error occurred while updating the user. Please try again.");
+                var errorMsg = $"Error: {ex.Message}";
+
+                // Include inner exception if available
+                if (ex.InnerException != null)
+                {
+                    errorMsg += $" Inner: {ex.InnerException.Message}";
+                }
+
+                if (isAjax)
+                {
+                    return new JsonResult(new { success = false, message = errorMsg });
+                }
+
+                ModelState.AddModelError(string.Empty, errorMsg);
                 await LoadPageDataAsync();
                 return Page();
             }
@@ -1176,15 +1290,22 @@ namespace TAB.Web.Pages.Admin
             // Apply search filter
             if (!string.IsNullOrWhiteSpace(SearchTerm))
             {
-                var searchLower = SearchTerm.ToLower();
-                query = query.Where(e =>
-                    e.FirstName.ToLower().Contains(searchLower) ||
-                    e.LastName.ToLower().Contains(searchLower) ||
-                    e.IndexNumber.ToLower().Contains(searchLower) ||
-                    e.Email.ToLower().Contains(searchLower) ||
-                    e.OfficialMobileNumber.ToLower().Contains(searchLower) ||
-                    (e.OrganizationEntity != null && e.OrganizationEntity.Name.ToLower().Contains(searchLower)) ||
-                    (e.OfficeEntity != null && e.OfficeEntity.Name.ToLower().Contains(searchLower)));
+                var searchLower = SearchTerm.ToLower().Trim();
+                var searchTerms = searchLower.Split(' ', StringSplitOptions.RemoveEmptyEntries);
+
+                // If multiple words, search for each word (AND logic - all words must match somewhere)
+                foreach (var term in searchTerms)
+                {
+                    var currentTerm = term; // Capture for closure
+                    query = query.Where(e =>
+                        e.FirstName.ToLower().Contains(currentTerm) ||
+                        e.LastName.ToLower().Contains(currentTerm) ||
+                        e.IndexNumber.ToLower().Contains(currentTerm) ||
+                        (e.Email != null && e.Email.ToLower().Contains(currentTerm)) ||
+                        (e.OfficialMobileNumber != null && e.OfficialMobileNumber.ToLower().Contains(currentTerm)) ||
+                        (e.OrganizationEntity != null && e.OrganizationEntity.Name != null && e.OrganizationEntity.Name.ToLower().Contains(currentTerm)) ||
+                        (e.OfficeEntity != null && e.OfficeEntity.Name != null && e.OfficeEntity.Name.ToLower().Contains(currentTerm)));
+                }
             }
 
 
@@ -1212,6 +1333,19 @@ namespace TAB.Web.Pages.Admin
                 query = query.Where(e => e.IsActive == IsActive.Value);
             }
 
+            // Apply creation type filter
+            if (!string.IsNullOrWhiteSpace(CreationType))
+            {
+                if (CreationType.ToLower() == "auto")
+                {
+                    query = query.Where(e => e.IsAutoCreated);
+                }
+                else if (CreationType.ToLower() == "manual")
+                {
+                    query = query.Where(e => !e.IsAutoCreated);
+                }
+            }
+
             // Get total count for pagination before applying paging
             TotalCount = await query.CountAsync();
 
@@ -1230,10 +1364,10 @@ namespace TAB.Web.Pages.Admin
                 .Take(PageSize)
                 .ToListAsync();
 
-            // Load all user phones for the current page only
+            // Load all ACTIVE user phones for the current page only
             var indexNumbers = EbillUsers.Select(u => u.IndexNumber).ToList();
             var allPhones = await _context.UserPhones
-                .Where(p => indexNumbers.Contains(p.IndexNumber))
+                .Where(p => indexNumbers.Contains(p.IndexNumber) && p.IsActive)
                 .ToListAsync();
 
             UserPhonesMap = allPhones.GroupBy(p => p.IndexNumber)
@@ -1245,13 +1379,19 @@ namespace TAB.Web.Pages.Admin
             // Apply the same filters for statistics
             if (!string.IsNullOrWhiteSpace(SearchTerm))
             {
-                var searchLower = SearchTerm.ToLower();
-                statsQuery = statsQuery.Where(e =>
-                    e.FirstName.ToLower().Contains(searchLower) ||
-                    e.LastName.ToLower().Contains(searchLower) ||
-                    e.IndexNumber.ToLower().Contains(searchLower) ||
-                    e.Email.ToLower().Contains(searchLower) ||
-                    e.OfficialMobileNumber.ToLower().Contains(searchLower));
+                var searchLower = SearchTerm.ToLower().Trim();
+                var searchTerms = searchLower.Split(' ', StringSplitOptions.RemoveEmptyEntries);
+
+                foreach (var term in searchTerms)
+                {
+                    var currentTerm = term;
+                    statsQuery = statsQuery.Where(e =>
+                        e.FirstName.ToLower().Contains(currentTerm) ||
+                        e.LastName.ToLower().Contains(currentTerm) ||
+                        e.IndexNumber.ToLower().Contains(currentTerm) ||
+                        (e.Email != null && e.Email.ToLower().Contains(currentTerm)) ||
+                        (e.OfficialMobileNumber != null && e.OfficialMobileNumber.ToLower().Contains(currentTerm)));
+                }
             }
 
 
@@ -1275,10 +1415,23 @@ namespace TAB.Web.Pages.Admin
                 statsQuery = statsQuery.Where(e => e.IsActive == IsActive.Value);
             }
 
+            if (!string.IsNullOrWhiteSpace(CreationType))
+            {
+                if (CreationType.ToLower() == "auto")
+                {
+                    statsQuery = statsQuery.Where(e => e.IsAutoCreated);
+                }
+                else if (CreationType.ToLower() == "manual")
+                {
+                    statsQuery = statsQuery.Where(e => !e.IsAutoCreated);
+                }
+            }
+
             TotalUsers = await statsQuery.CountAsync();
             ActiveUsers = await statsQuery.CountAsync(e => e.IsActive);
             InactiveUsers = await statsQuery.CountAsync(e => !e.IsActive);
-            UsersWithSupervisors = await statsQuery.CountAsync(e => !string.IsNullOrEmpty(e.SupervisorIndexNumber));
+            UsersWithSupervisors = await statsQuery.CountAsync(e => !string.IsNullOrEmpty(e.SupervisorEmail));
+            AutoCreatedUsers = await statsQuery.CountAsync(e => e.IsAutoCreated);
 
             // Prepare dropdown lists
 

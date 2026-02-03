@@ -49,6 +49,7 @@ namespace TAB.Web.Pages.Admin
         public List<UserPhone> UserPhones { get; set; } = new();
         public List<UserPhone> AllPhones { get; set; } = new();
         public List<ClassOfService> ClassesOfService { get; set; } = new();
+        public List<EbillUser> AllUsers { get; set; } = new();
 
         [TempData]
         public string StatusMessage { get; set; } = string.Empty;
@@ -71,6 +72,14 @@ namespace TAB.Web.Pages.Admin
             [Required]
             [Display(Name = "Phone Type")]
             public string PhoneType { get; set; } = "Mobile";
+
+            [Required]
+            [Display(Name = "Ownership Type")]
+            public PhoneOwnershipType OwnershipType { get; set; } = PhoneOwnershipType.Personal;
+
+            [Display(Name = "Purpose")]
+            [StringLength(200)]
+            public string? Purpose { get; set; }
 
             [Required]
             [Display(Name = "Line Type")]
@@ -106,6 +115,14 @@ namespace TAB.Web.Pages.Admin
             [Required]
             [Display(Name = "Phone Type")]
             public string PhoneType { get; set; } = "Mobile";
+
+            [Required]
+            [Display(Name = "Ownership Type")]
+            public PhoneOwnershipType OwnershipType { get; set; } = PhoneOwnershipType.Personal;
+
+            [Display(Name = "Purpose")]
+            [StringLength(200)]
+            public string? Purpose { get; set; }
 
             [Required]
             [Display(Name = "Line Type")]
@@ -153,6 +170,10 @@ namespace TAB.Web.Pages.Admin
             {
                 PhoneNumber = Request.Form["Input.PhoneNumber"].FirstOrDefault() ?? string.Empty,
                 PhoneType = Request.Form["Input.PhoneType"].FirstOrDefault() ?? "Mobile",
+                OwnershipType = Enum.TryParse<PhoneOwnershipType>(Request.Form["Input.OwnershipType"], out var ownershipType)
+                    ? ownershipType
+                    : PhoneOwnershipType.Personal,
+                Purpose = Request.Form["Input.Purpose"].FirstOrDefault(),
                 LineType = Enum.TryParse<LineType>(Request.Form["Input.LineType"], out var lineType)
                     ? lineType
                     : LineType.Secondary,
@@ -166,6 +187,28 @@ namespace TAB.Web.Pages.Admin
                     ? status
                     : PhoneStatus.Active
             };
+
+            // Count digits in phone number for validation
+            var digitCount = Input.PhoneNumber.Count(char.IsDigit);
+
+            // Auto-correct phone type based on digit count
+            // Also map old types (Desk, Extension) to Fixed
+            if (Input.PhoneType == "Desk" || Input.PhoneType == "Extension")
+            {
+                Input.PhoneType = "Fixed";
+            }
+            if (digitCount < 9 && Input.PhoneType == "Mobile")
+            {
+                Input.PhoneType = "Fixed";
+                _logger.LogInformation("Auto-corrected phone type to Fixed for {PhoneNumber} (only {DigitCount} digits)", Input.PhoneNumber, digitCount);
+            }
+
+            // For Fixed lines, clear Line Type and Class of Service
+            if (Input.PhoneType == "Fixed")
+            {
+                Input.LineType = LineType.Secondary; // Default value for fixed lines
+                Input.ClassOfServiceId = null;
+            }
 
             // Sync LineType with IsPrimary - they must match
             if (Input.LineType == LineType.Primary)
@@ -273,6 +316,15 @@ namespace TAB.Web.Pages.Admin
             // Assign the phone (with forceReassign if confirmed)
             _logger.LogInformation("Attempting to assign phone {PhoneNumber} to user {IndexNumber}", Input.PhoneNumber, IndexNumber);
 
+            // Get the previous user info from TempData for reassignment history
+            string? fromUserName = null;
+            string? fromIndexNumber = null;
+            if (forceReassign)
+            {
+                fromUserName = TempData.Peek("ExistingUserName")?.ToString();
+                fromIndexNumber = TempData.Peek("ExistingUserIndex")?.ToString();
+            }
+
             try
             {
                 var success = await _phoneService.AssignPhoneAsync(
@@ -285,7 +337,11 @@ namespace TAB.Web.Pages.Admin
                     Input.ClassOfServiceId,
                     forceReassign,
                     Input.Status,
-                    Input.LineType
+                    Input.LineType,
+                    Input.OwnershipType,
+                    Input.Purpose,
+                    reassignedFromIndex: fromIndexNumber,
+                    reassignedFromName: fromUserName
                 );
 
                 if (success)
@@ -299,16 +355,12 @@ namespace TAB.Web.Pages.Admin
                     var ipAddress = HttpContext.Connection.RemoteIpAddress?.ToString();
 
                     // Log to audit trail
-                    if (forceReassign)
+                    if (forceReassign && !string.IsNullOrEmpty(fromIndexNumber))
                     {
-                        // Get the previous user info from TempData
-                        var fromUserName = TempData["ExistingUserName"]?.ToString() ?? "Unknown";
-                        var fromIndexNumber = TempData["ExistingUserIndex"]?.ToString() ?? "Unknown";
-
                         await _auditLogService.LogPhoneReassignedAsync(
                             Input.PhoneNumber,
                             fromIndexNumber,
-                            fromUserName,
+                            fromUserName ?? "Unknown",
                             IndexNumber,
                             userName,
                             performedBy,
@@ -435,6 +487,160 @@ namespace TAB.Web.Pages.Admin
             return RedirectToPage(new { IndexNumber });
         }
 
+        public async Task<IActionResult> OnPostReassignPhoneAsync(List<int> phoneIds, string newIndexNumber)
+        {
+            // Validate inputs
+            if (phoneIds == null || !phoneIds.Any() || string.IsNullOrWhiteSpace(newIndexNumber))
+            {
+                StatusMessage = "Please select at least one phone number and specify the user to reassign to.";
+                StatusType = "danger";
+                return RedirectToPage(new { IndexNumber });
+            }
+
+            // Check if new user exists
+            var newUser = await _context.EbillUsers
+                .FirstOrDefaultAsync(u => u.IndexNumber == newIndexNumber);
+
+            if (newUser == null)
+            {
+                StatusMessage = $"User with Index Number '{newIndexNumber}' not found.";
+                StatusType = "danger";
+                return RedirectToPage(new { IndexNumber });
+            }
+
+            var performedBy = base.User.Identity?.Name ?? "System";
+            var ipAddress = HttpContext.Connection.RemoteIpAddress?.ToString();
+            var successCount = 0;
+            var failedPhones = new List<string>();
+
+            foreach (var phoneId in phoneIds)
+            {
+                try
+                {
+                    // Get phone details before reassigning
+                    var phone = await _context.UserPhones
+                        .Include(p => p.EbillUser)
+                        .FirstOrDefaultAsync(p => p.Id == phoneId);
+
+                    if (phone == null)
+                    {
+                        failedPhones.Add($"Phone ID {phoneId} not found");
+                        continue;
+                    }
+
+                    // Skip if trying to reassign to the same user
+                    if (phone.IndexNumber == newIndexNumber)
+                    {
+                        failedPhones.Add($"{phone.PhoneNumber} is already assigned to {newUser.FirstName} {newUser.LastName}");
+                        continue;
+                    }
+
+                    // Store old values for audit logging
+                    var oldIndexNumber = phone.IndexNumber;
+                    var oldUserName = phone.EbillUser != null
+                        ? $"{phone.EbillUser.FirstName} {phone.EbillUser.LastName}"
+                        : oldIndexNumber;
+                    var phoneNumber = phone.PhoneNumber;
+                    var phoneType = phone.PhoneType;
+                    var wasPrimary = phone.IsPrimary;
+
+                    // Unassign from current user
+                    var unassignSuccess = await _phoneService.UnassignPhoneAsync(phoneId);
+
+                    if (!unassignSuccess)
+                    {
+                        failedPhones.Add($"{phoneNumber} - failed to unassign");
+                        continue;
+                    }
+
+                    // Assign to new user - pass previous user info for proper history tracking
+                    var assignSuccess = await _phoneService.AssignPhoneAsync(
+                        newIndexNumber,
+                        phoneNumber,
+                        phoneType,
+                        wasPrimary,
+                        phone.Location,
+                        phone.Notes,
+                        phone.ClassOfServiceId,
+                        forceReassign: true,
+                        phone.Status,
+                        phone.LineType,
+                        phone.OwnershipType,
+                        phone.Purpose,
+                        reassignedFromIndex: oldIndexNumber,
+                        reassignedFromName: oldUserName,
+                        oldPhoneIdForHistory: phoneId  // Pass old phone ID to copy history
+                    );
+
+                    if (assignSuccess)
+                    {
+                        // Log reassignment to audit trail
+                        var newUserName = $"{newUser.FirstName} {newUser.LastName}";
+                        await _auditLogService.LogPhoneReassignedAsync(
+                            phoneNumber,
+                            oldIndexNumber,
+                            oldUserName,
+                            newIndexNumber,
+                            newUserName,
+                            performedBy,
+                            ipAddress
+                        );
+
+                        // Note: History entry is now added by AssignPhoneAsync with "Reassigned" action
+
+                        // Send notification to old user
+                        if (phone.EbillUser?.ApplicationUserId != null)
+                        {
+                            await _notificationService.NotifyPhoneUnassignedAsync(
+                                phone.EbillUser.ApplicationUserId,
+                                phoneNumber
+                            );
+                        }
+
+                        // Send notification to new user
+                        if (newUser.ApplicationUserId != null)
+                        {
+                            await _notificationService.NotifyPhoneAssignedAsync(
+                                newUser.ApplicationUserId,
+                                phoneNumber,
+                                phoneType
+                            );
+                        }
+
+                        successCount++;
+                    }
+                    else
+                    {
+                        failedPhones.Add($"{phoneNumber} - failed to assign to new user");
+                    }
+                }
+                catch (Exception ex)
+                {
+                    _logger.LogError(ex, "Error reassigning phone {PhoneId} to {NewUser}", phoneId, newIndexNumber);
+                    failedPhones.Add($"Phone ID {phoneId} - error occurred");
+                }
+            }
+
+            // Build status message
+            if (successCount > 0 && failedPhones.Count == 0)
+            {
+                StatusMessage = $"Successfully reassigned {successCount} phone number{(successCount > 1 ? "s" : "")} to {newUser.FirstName} {newUser.LastName} ({newIndexNumber}).";
+                StatusType = "success";
+            }
+            else if (successCount > 0 && failedPhones.Count > 0)
+            {
+                StatusMessage = $"Reassigned {successCount} phone number{(successCount > 1 ? "s" : "")}. Failed: {string.Join(", ", failedPhones)}";
+                StatusType = "warning";
+            }
+            else
+            {
+                StatusMessage = $"Failed to reassign phones. Errors: {string.Join(", ", failedPhones)}";
+                StatusType = "danger";
+            }
+
+            return RedirectToPage(new { IndexNumber });
+        }
+
         public async Task<IActionResult> OnPostEditPhoneAsync()
         {
             // Log the raw form data to debug binding issues
@@ -488,6 +694,28 @@ namespace TAB.Web.Pages.Admin
 
             try
             {
+                // Count digits in phone number for validation
+                var digitCount = EditInput.PhoneNumber.Count(char.IsDigit);
+
+                // Auto-correct phone type based on digit count
+                // Also map old types (Desk, Extension) to Fixed
+                if (EditInput.PhoneType == "Desk" || EditInput.PhoneType == "Extension")
+                {
+                    EditInput.PhoneType = "Fixed";
+                }
+                if (digitCount < 9 && EditInput.PhoneType == "Mobile")
+                {
+                    EditInput.PhoneType = "Fixed";
+                    _logger.LogInformation("Auto-corrected phone type to Fixed for {PhoneNumber} (only {DigitCount} digits)", EditInput.PhoneNumber, digitCount);
+                }
+
+                // For Fixed lines, clear Line Type and Class of Service
+                if (EditInput.PhoneType == "Fixed")
+                {
+                    EditInput.LineType = LineType.Secondary; // Default value for fixed lines
+                    EditInput.ClassOfServiceId = null;
+                }
+
                 // Sync LineType with IsPrimary - they must match
                 if (EditInput.LineType == LineType.Primary)
                 {
@@ -513,6 +741,8 @@ namespace TAB.Web.Pages.Admin
                 {
                     { "PhoneNumber", phone.PhoneNumber },
                     { "PhoneType", phone.PhoneType },
+                    { "OwnershipType", phone.OwnershipType.ToString() },
+                    { "Purpose", phone.Purpose ?? "" },
                     { "LineType", phone.LineType.ToString() },
                     { "Location", phone.Location ?? "" },
                     { "Notes", phone.Notes ?? "" },
@@ -527,6 +757,8 @@ namespace TAB.Web.Pages.Admin
                 // Update the phone properties
                 phone.PhoneNumber = EditInput.PhoneNumber;
                 phone.PhoneType = EditInput.PhoneType;
+                phone.OwnershipType = EditInput.OwnershipType;
+                phone.Purpose = EditInput.Purpose;
                 phone.LineType = EditInput.LineType;
                 phone.Location = EditInput.Location;
                 phone.Notes = EditInput.Notes;
@@ -735,6 +967,12 @@ namespace TAB.Web.Pages.Admin
             AllPhones = await _context.UserPhones
                 .Where(p => p.IsActive)
                 .OrderBy(p => p.PhoneNumber)
+                .ToListAsync();
+
+            // Load all users for reassignment dropdown
+            AllUsers = await _context.EbillUsers
+                .OrderBy(u => u.FirstName)
+                .ThenBy(u => u.LastName)
                 .ToListAsync();
         }
 

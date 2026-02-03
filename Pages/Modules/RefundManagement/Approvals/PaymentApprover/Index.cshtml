@@ -473,6 +473,44 @@
         border-bottom-color: #009EDB;
         font-weight: 600;
     }
+
+    /* Detail View Tabs - Neutral styling */
+    .detail-view-tabs {
+        background: #f8fafc;
+        padding: 0.75rem 1.25rem 0;
+        border-bottom: 2px solid #e2e8f0;
+        margin-bottom: 0;
+        border-radius: 12px 12px 0 0;
+    }
+
+    .detail-view-tabs .nav-link {
+        color: #64748b;
+        border: none;
+        border-bottom: 3px solid transparent;
+        padding: 0.75rem 1.5rem;
+        font-weight: 500;
+        font-size: 0.875rem;
+        transition: all 0.2s ease;
+    }
+
+    .detail-view-tabs .nav-link:hover {
+        color: #475569;
+        background: #f1f5f9;
+        border-bottom-color: #cbd5e1;
+    }
+
+    .detail-view-tabs .nav-link.active {
+        color: #334155;
+        background: white;
+        border-bottom-color: #64748b;
+        font-weight: 600;
+    }
+
+    /* Payment Approval tab - Green accent */
+    .detail-view-tabs .nav-link[data-bs-target="#detail-payment"].active {
+        color: #047857;
+        border-bottom-color: #059669;
+    }
 </style>
 
 @if (!Model.IsDetailView)
@@ -480,8 +518,8 @@
 <div class="container-fluid px-4">
     <!-- Back Button -->
     <div class="mb-3">
-        <a href="/Modules/RefundManagement/Approvals" class="btn btn-outline-secondary btn-sm">
-            <i class="bi bi-arrow-left me-2"></i>Back to Overview
+        <a href="/Dashboard/Approver" class="btn btn-outline-secondary btn-sm">
+            <i class="bi bi-arrow-left me-2"></i>Back to Dashboard
         </a>
     </div>
 
@@ -500,7 +538,7 @@
             <div class="text-end">
                 <span class="badge bg-light text-dark px-3 py-2">
                     <i class="bi bi-shield-check me-2"></i>
-                    <span>ICTS Payment Approver</span>
+                    <span>Claims Unit Approver</span>
                 </span>
             </div>
         </div>
@@ -943,51 +981,46 @@
             </h2>
             <p class="mb-0" style="color: #6b7280;">@Model.CurrentRequest.MobileNumberAssignedTo</p>
         </div>
-        <a href="/Modules/RefundManagement/Approvals/PaymentApprover" class="btn btn-outline-secondary">
-            <i class="bi bi-arrow-left me-2"></i>Back to Payment Approvals
+        <a href="/Dashboard/Approver" class="btn btn-outline-secondary">
+            <i class="bi bi-arrow-left me-2"></i>Back to Dashboard
         </a>
     </div>
 
     <!-- Tab Navigation -->
-    <ul class="nav nav-tabs" style="background: #f8fafc; padding: 0.75rem 1.25rem 0; border-bottom: 2px solid #e2e8f0; margin-bottom: 0; border-radius: 12px 12px 0 0;">
+    <ul class="nav nav-tabs detail-view-tabs">
         <li class="nav-item">
-            <button class="nav-link active" id="detail-overview-tab" data-bs-toggle="tab" data-bs-target="#detail-overview" type="button" style="color: #64748b; border: none; border-bottom: 3px solid transparent; padding: 0.75rem 1.5rem; font-weight: 500; font-size: 0.875rem;">
+            <button class="nav-link active" id="detail-overview-tab" data-bs-toggle="tab" data-bs-target="#detail-overview" type="button">
                 <i class="bi bi-info-circle me-2"></i>Overview
             </button>
         </li>
         <li class="nav-item">
-            <button class="nav-link" id="detail-financial-tab" data-bs-toggle="tab" data-bs-target="#detail-financial" type="button" style="color: #64748b; border: none; border-bottom: 3px solid transparent; padding: 0.75rem 1.5rem; font-weight: 500; font-size: 0.875rem;">
+            <button class="nav-link" id="detail-financial-tab" data-bs-toggle="tab" data-bs-target="#detail-financial" type="button">
                 <i class="bi bi-currency-dollar me-2"></i>Financial Details
             </button>
         </li>
         <li class="nav-item">
-            <button class="nav-link" id="detail-supervisor-tab" data-bs-toggle="tab" data-bs-target="#detail-supervisor" type="button" style="color: #64748b; border: none; border-bottom: 3px solid transparent; padding: 0.75rem 1.5rem; font-weight: 500; font-size: 0.875rem;">
+            <button class="nav-link" id="detail-supervisor-tab" data-bs-toggle="tab" data-bs-target="#detail-supervisor" type="button">
                 <i class="bi bi-check-circle me-2"></i>Supervisor Approval
             </button>
         </li>
         <li class="nav-item">
-            <button class="nav-link" id="detail-budget-tab" data-bs-toggle="tab" data-bs-target="#detail-budget" type="button" style="color: #64748b; border: none; border-bottom: 3px solid transparent; padding: 0.75rem 1.5rem; font-weight: 500; font-size: 0.875rem;">
+            <button class="nav-link" id="detail-budget-tab" data-bs-toggle="tab" data-bs-target="#detail-budget" type="button">
                 <i class="bi bi-calculator me-2"></i>Budget Officer
             </button>
         </li>
         <li class="nav-item">
-            <button class="nav-link" id="detail-claims-tab" data-bs-toggle="tab" data-bs-target="#detail-claims" type="button" style="color: #64748b; border: none; border-bottom: 3px solid transparent; padding: 0.75rem 1.5rem; font-weight: 500; font-size: 0.875rem;">
+            <button class="nav-link" id="detail-claims-tab" data-bs-toggle="tab" data-bs-target="#detail-claims" type="button">
                 <i class="bi bi-receipt me-2"></i>Claims Processing
             </button>
         </li>
         <li class="nav-item">
-            <button class="nav-link" id="detail-payment-tab" data-bs-toggle="tab" data-bs-target="#detail-payment" type="button" style="color: #64748b; border: none; border-bottom: 3px solid transparent; padding: 0.75rem 1.5rem; font-weight: 500; font-size: 0.875rem;">
+            <button class="nav-link" id="detail-payment-tab" data-bs-toggle="tab" data-bs-target="#detail-payment" type="button">
                 <i class="bi bi-credit-card me-2"></i>Payment Approval
             </button>
         </li>
         <li class="nav-item">
-            <button class="nav-link" id="detail-workflow-tab" data-bs-toggle="tab" data-bs-target="#detail-workflow" type="button" style="color: #64748b; border: none; border-bottom: 3px solid transparent; padding: 0.75rem 1.5rem; font-weight: 500; font-size: 0.875rem;">
+            <button class="nav-link" id="detail-workflow-tab" data-bs-toggle="tab" data-bs-target="#detail-workflow" type="button">
                 <i class="bi bi-diagram-3 me-2"></i>Workflow History
-            </button>
-        </li>
-        <li class="nav-item">
-            <button class="nav-link" id="detail-remarks-tab" data-bs-toggle="tab" data-bs-target="#detail-remarks" type="button" style="color: #64748b; border: none; border-bottom: 3px solid transparent; padding: 0.75rem 1.5rem; font-weight: 500; font-size: 0.875rem;">
-                <i class="bi bi-chat-square-text me-2"></i>Remarks
             </button>
         </li>
     </ul>
@@ -997,10 +1030,10 @@
         <!-- Overview Tab -->
         <div class="tab-pane fade show active" id="detail-overview">
             <!-- Staff Information Section -->
-            <div class="mb-4" style="background: #eff6ff; border-radius: 16px; padding: 24px; border: 1px solid #bfdbfe;">
+            <div class="mb-4" style="background: #f8fafc; border-radius: 16px; padding: 24px; border: 1px solid #e2e8f0;">
                 <div class="d-flex align-items-center mb-3">
-                    <i class="bi bi-person-circle me-3" style="font-size: 20px; color: #2563eb;"></i>
-                    <h6 class="mb-0" style="font-weight: 600; color: #1e40af;">Staff Information</h6>
+                    <i class="bi bi-person-circle me-3" style="font-size: 20px; color: #64748b;"></i>
+                    <h6 class="mb-0" style="font-weight: 600; color: #475569;">Staff Information</h6>
                 </div>
                 <div class="row g-3">
                     <div class="col-md-4">
@@ -1027,8 +1060,8 @@
             <!-- Mobile Service Details Section -->
             <div class="mb-4" style="background: #f8fafc; border-radius: 16px; padding: 24px; border: 1px solid #e2e8f0;">
                 <div class="d-flex align-items-center mb-3">
-                    <i class="bi bi-phone me-3" style="font-size: 20px; color: #059669;"></i>
-                    <h6 class="mb-0" style="font-weight: 600; color: #047857;">Mobile Service Details</h6>
+                    <i class="bi bi-phone me-3" style="font-size: 20px; color: #64748b;"></i>
+                    <h6 class="mb-0" style="font-weight: 600; color: #475569;">Mobile Service Details</h6>
                 </div>
                 <div class="row g-3">
                     <div class="col-md-3">
@@ -1073,10 +1106,10 @@
             </div>
 
             <!-- Financial Information Section -->
-            <div class="mb-4" style="background: #fefce8; border-radius: 16px; padding: 24px; border: 1px solid #fde047;">
+            <div class="mb-4" style="background: #f8fafc; border-radius: 16px; padding: 24px; border: 1px solid #e2e8f0;">
                 <div class="d-flex align-items-center mb-3">
-                    <i class="bi bi-currency-dollar me-3" style="font-size: 20px; color: #ca8a04;"></i>
-                    <h6 class="mb-0" style="font-weight: 600; color: #713f12;">Financial Information</h6>
+                    <i class="bi bi-currency-dollar me-3" style="font-size: 20px; color: #64748b;"></i>
+                    <h6 class="mb-0" style="font-weight: 600; color: #475569;">Financial Information</h6>
                 </div>
                 <div class="row g-3">
                     <div class="col-md-4">
@@ -1101,24 +1134,24 @@
             </div>
 
             <!-- Purchase Receipt Section -->
-            <div class="mb-4" style="background: #f0fdf4; border-radius: 16px; padding: 24px; border: 1px solid #bbf7d0;">
+            <div class="mb-4" style="background: #f8fafc; border-radius: 16px; padding: 24px; border: 1px solid #e2e8f0;">
                 <div class="d-flex align-items-center mb-3">
-                    <i class="bi bi-file-earmark-pdf me-3" style="font-size: 20px; color: #059669;"></i>
-                    <h6 class="mb-0" style="font-weight: 600; color: #047857;">Purchase Receipt</h6>
+                    <i class="bi bi-file-earmark-pdf me-3" style="font-size: 20px; color: #64748b;"></i>
+                    <h6 class="mb-0" style="font-weight: 600; color: #475569;">Purchase Receipt</h6>
                 </div>
                 <div class="row g-3">
                     <div class="col-md-8">
                         <div class="mb-2">
                             <span class="detail-label">Receipt File</span>
-                            @if (!string.IsNullOrEmpty(Model.CurrentRequest.PurchaseReceiptPath))
+                            @if (!string.IsNullOrEmpty(Model.CurrentRequest.PurchaseReceiptFileName))
                             {
                                 <div class="detail-value d-flex align-items-center justify-content-between">
-                                    <span>@System.IO.Path.GetFileName(Model.CurrentRequest.PurchaseReceiptPath)</span>
+                                    <span>@Model.CurrentRequest.PurchaseReceiptFileName</span>
                                     <div>
-                                        <a href="@Model.CurrentRequest.PurchaseReceiptPath" target="_blank" class="btn btn-sm btn-outline-success me-2" style="border-radius: 8px; font-size: 12px;">
+                                        <a href="/Modules/RefundManagement/Requests/DownloadReceipt/@Model.CurrentRequest.Id" target="_blank" class="btn btn-sm btn-outline-secondary me-2" style="border-radius: 8px; font-size: 12px;">
                                             <i class="bi bi-eye me-1"></i>View
                                         </a>
-                                        <a href="@Model.CurrentRequest.PurchaseReceiptPath" download class="btn btn-sm btn-success" style="border-radius: 8px; font-size: 12px;">
+                                        <a href="/Modules/RefundManagement/Requests/DownloadReceipt/@Model.CurrentRequest.Id" download class="btn btn-sm btn-secondary" style="border-radius: 8px; font-size: 12px;">
                                             <i class="bi bi-download me-1"></i>Download
                                         </a>
                                     </div>
@@ -1143,10 +1176,10 @@
         <!-- Financial Details Tab -->
         <div class="tab-pane fade" id="detail-financial">
             <!-- Cost Accounting Section -->
-            <div class="mb-4" style="background: #f0f9ff; border-radius: 16px; padding: 24px; border: 1px solid #0ea5e9;">
+            <div class="mb-4" style="background: #f8fafc; border-radius: 16px; padding: 24px; border: 1px solid #e2e8f0;">
                 <div class="d-flex align-items-center mb-3">
-                    <i class="bi bi-calculator me-3" style="font-size: 20px; color: #0284c7;"></i>
-                    <h6 class="mb-0" style="font-weight: 600; color: #0369a1;">Cost Accounting Details</h6>
+                    <i class="bi bi-calculator me-3" style="font-size: 20px; color: #64748b;"></i>
+                    <h6 class="mb-0" style="font-weight: 600; color: #475569;">Cost Accounting Details</h6>
                 </div>
                 <div class="row g-3">
                     <div class="col-md-4">
@@ -1171,10 +1204,10 @@
             </div>
 
             <!-- Refund Amount Details -->
-            <div class="mb-4" style="background: #fefce8; border-radius: 16px; padding: 24px; border: 1px solid #fde047;">
+            <div class="mb-4" style="background: #f8fafc; border-radius: 16px; padding: 24px; border: 1px solid #e2e8f0;">
                 <div class="d-flex align-items-center mb-3">
-                    <i class="bi bi-currency-dollar me-3" style="font-size: 20px; color: #ca8a04;"></i>
-                    <h6 class="mb-0" style="font-weight: 600; color: #713f12;">Refund Amount Details</h6>
+                    <i class="bi bi-currency-dollar me-3" style="font-size: 20px; color: #64748b;"></i>
+                    <h6 class="mb-0" style="font-weight: 600; color: #475569;">Refund Amount Details</h6>
                 </div>
                 <div class="row g-3">
                     <div class="col-md-4">
@@ -1199,10 +1232,10 @@
             </div>
 
             <!-- Payment Information -->
-            <div class="mb-4" style="background: #f0fdf4; border-radius: 16px; padding: 24px; border: 1px solid #bbf7d0;">
+            <div class="mb-4" style="background: #f8fafc; border-radius: 16px; padding: 24px; border: 1px solid #e2e8f0;">
                 <div class="d-flex align-items-center mb-3">
-                    <i class="bi bi-bank me-3" style="font-size: 20px; color: #059669;"></i>
-                    <h6 class="mb-0" style="font-weight: 600; color: #047857;">Payment Information</h6>
+                    <i class="bi bi-bank me-3" style="font-size: 20px; color: #64748b;"></i>
+                    <h6 class="mb-0" style="font-weight: 600; color: #475569;">Payment Information</h6>
                 </div>
                 <div class="row g-3">
                     <div class="col-md-6">
@@ -1348,9 +1381,85 @@
 
         <!-- Payment Approval Tab -->
         <div class="tab-pane fade" id="detail-payment">
+            <!-- Request Summary Section -->
+            <div class="mb-4" style="background: #f8fafc; border-radius: 16px; padding: 24px; border: 1px solid #e2e8f0;">
+                <div class="d-flex align-items-center mb-3">
+                    <i class="bi bi-info-circle me-3" style="font-size: 20px; color: #64748b;"></i>
+                    <h6 class="mb-0" style="font-weight: 600; color: #475569;">Request Summary</h6>
+                </div>
+                <div class="row g-3">
+                    <div class="col-md-4">
+                        <span class="detail-label">Class of Service</span>
+                        <div class="detail-value">@(Model.CurrentRequest.ClassOfService ?? "N/A")</div>
+                    </div>
+                    <div class="col-md-4">
+                        <span class="detail-label">Mobile Service</span>
+                        <div class="detail-value">@(Model.CurrentRequest.MobileService ?? "N/A")</div>
+                    </div>
+                    <div class="col-md-4">
+                        <span class="detail-label">Handset Allowance</span>
+                        <div class="detail-value">@Model.CurrentRequest.DeviceAllowance.ToString("C")</div>
+                    </div>
+                </div>
+                <div class="row g-3 mt-2">
+                    <div class="col-md-6">
+                        <span class="detail-label">Device Purchase Currency & Amount</span>
+                        <div class="detail-value" style="font-weight: 600; color: #111827;">@Model.CurrentRequest.DevicePurchaseCurrency @Model.CurrentRequest.DevicePurchaseAmount.ToString("N2")</div>
+                    </div>
+                    <div class="col-md-6">
+                        <span class="detail-label">Refund USD Amount</span>
+                        <div class="detail-value" style="font-weight: 600; color: #111827;">@(Model.CurrentRequest.RefundUsdAmount.HasValue ? Model.CurrentRequest.RefundUsdAmount.Value.ToString("C") : "N/A")</div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Budget Officer Details Section -->
+            <div class="mb-4" style="background: #f8fafc; border-radius: 16px; padding: 24px; border: 1px solid #e2e8f0;">
+                <div class="d-flex align-items-center mb-3">
+                    <i class="bi bi-calculator me-3" style="font-size: 20px; color: #64748b;"></i>
+                    <h6 class="mb-0" style="font-weight: 600; color: #475569;">Budget Officer Details</h6>
+                </div>
+                <div class="row g-3">
+                    <div class="col-md-4">
+                        <span class="detail-label">Cost Object</span>
+                        <div class="detail-value">@(Model.CurrentRequest.CostObject ?? "N/A")</div>
+                    </div>
+                    <div class="col-md-4">
+                        <span class="detail-label">Cost Center</span>
+                        <div class="detail-value">@(Model.CurrentRequest.CostCenter ?? "N/A")</div>
+                    </div>
+                    <div class="col-md-4">
+                        <span class="detail-label">Fund Commitment</span>
+                        <div class="detail-value">@(Model.CurrentRequest.FundCommitment ?? "N/A")</div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Claims Unit Details Section -->
+            <div class="mb-4" style="background: #f8fafc; border-radius: 16px; padding: 24px; border: 1px solid #e2e8f0;">
+                <div class="d-flex align-items-center mb-3">
+                    <i class="bi bi-receipt me-3" style="font-size: 20px; color: #64748b;"></i>
+                    <h6 class="mb-0" style="font-weight: 600; color: #475569;">Claims Unit Details</h6>
+                </div>
+                <div class="row g-3">
+                    <div class="col-md-4">
+                        <span class="detail-label">Umoja Bank Name</span>
+                        <div class="detail-value">@(Model.CurrentRequest.UmojaBankName ?? "N/A")</div>
+                    </div>
+                    <div class="col-md-4">
+                        <span class="detail-label">Umoja Payment Document ID</span>
+                        <div class="detail-value">@(Model.CurrentRequest.UmojaPaymentDocumentId ?? "N/A")</div>
+                    </div>
+                    <div class="col-md-4">
+                        <span class="detail-label">Processed By</span>
+                        <div class="detail-value">@(Model.CurrentRequest.StaffClaimsOfficerName ?? "N/A")</div>
+                    </div>
+                </div>
+            </div>
+
             @if (Model.CurrentRequest.Status == TAB.Web.Models.RefundRequestStatus.PendingPaymentApproval)
             {
-                @if (Model.CurrentUserRole.Contains("ICTS"))
+                @if (Model.CurrentUserRole.Contains("Claims Unit Approver") || Model.CurrentUserRole.Contains("Admin"))
                 {
                     <!-- Payment Approval Form -->
                     <div class="mb-4" style="background: #f0fdf4; border-radius: 16px; padding: 24px; border: 1px solid #bbf7d0;">
@@ -1391,7 +1500,7 @@
                 {
                     <div class="alert alert-info" style="border-radius: 12px;">
                         <i class="bi bi-info-circle me-2"></i>
-                        This request is awaiting payment approval. Only ICTS payment approvers can approve or reject this payment.
+                        This request is awaiting payment approval. Only Claims Unit Approvers can approve or reject this payment.
                     </div>
                 }
             }
@@ -1585,6 +1694,49 @@
                 }
             </div>
 
+            @if (Model.RequestHistory.Any())
+            {
+                <!-- Detailed Action History -->
+                <div class="mt-4" style="background: #f8fafc; border-radius: 16px; padding: 24px; border: 1px solid #e2e8f0;">
+                    <div class="d-flex align-items-center mb-3">
+                        <i class="bi bi-clock-history me-3" style="font-size: 20px; color: #64748b;"></i>
+                        <h6 class="mb-0" style="font-weight: 600; color: #475569;">Detailed Action History</h6>
+                    </div>
+                    <div class="timeline">
+                        @foreach (var historyItem in Model.RequestHistory)
+                        {
+                            var isRevert = historyItem.Action.Contains("Reverted");
+                            var isReject = historyItem.Action.Contains("Rejected");
+                            var markerColor = isReject ? "#ef4444" : (isRevert ? "#f59e0b" : "#10b981");
+                            var iconClass = isReject ? "x-circle" : (isRevert ? "arrow-counterclockwise" : "check-circle");
+
+                            <div class="timeline-item">
+                                <div class="timeline-marker" style="background: @markerColor;">
+                                    <i class="bi bi-@iconClass text-white"></i>
+                                </div>
+                                <div class="timeline-content">
+                                    <h6 class="mb-1" style="color: @(isReject ? "#dc2626" : (isRevert ? "#d97706" : "#111827"));">@historyItem.Action</h6>
+                                    <p class="mb-1 text-muted" style="font-size: 0.875rem;">@historyItem.Timestamp.ToString("MMM dd, yyyy HH:mm")</p>
+                                    <p class="mb-0" style="font-size: 0.875rem;">By @historyItem.UserName</p>
+                                    @if (!string.IsNullOrEmpty(historyItem.Comments))
+                                    {
+                                        <div class="mt-2 p-2" style="background: @(isReject ? "#fef2f2" : (isRevert ? "#fffbeb" : "#f3f4f6")); border-radius: 8px; font-size: 12px; color: #6b7280;">
+                                            <strong>Comments:</strong> @historyItem.Comments
+                                        </div>
+                                    }
+                                    @if (!string.IsNullOrEmpty(historyItem.PreviousStatus) && !string.IsNullOrEmpty(historyItem.NewStatus))
+                                    {
+                                        <p class="mb-0 mt-1" style="font-size: 0.75rem; color: #9ca3af;">
+                                            Status: @historyItem.PreviousStatus <i class="bi bi-arrow-right"></i> @historyItem.NewStatus
+                                        </p>
+                                    }
+                                </div>
+                            </div>
+                        }
+                    </div>
+                </div>
+            }
+
             <style>
                 .timeline {
                     position: relative;
@@ -1626,96 +1778,6 @@
             </style>
         </div>
 
-        <!-- Remarks Tab -->
-        <div class="tab-pane fade" id="detail-remarks">
-            <div class="row g-4">
-                @if (!string.IsNullOrEmpty(Model.CurrentRequest.SupervisorRemarks))
-                {
-                    <div class="col-12">
-                        <div class="p-4" style="background: #f0fdf4; border-radius: 12px; border: 1px solid #bbf7d0;">
-                            <h6 style="font-weight: 600; color: #047857; margin-bottom: 12px;">
-                                <i class="bi bi-person-check me-2"></i>Supervisor Remarks
-                            </h6>
-                            <p style="color: #374151; margin: 0;">@Model.CurrentRequest.SupervisorRemarks</p>
-                            @if (Model.CurrentRequest.SupervisorApprovalDate.HasValue)
-                            {
-                                <p style="font-size: 12px; color: #6b7280; margin-top: 8px; margin-bottom: 0;">
-                                    <i class="bi bi-clock me-1"></i>@Model.CurrentRequest.SupervisorApprovalDate.Value.ToString("MMM dd, yyyy HH:mm")
-                                </p>
-                            }
-                        </div>
-                    </div>
-                }
-
-                @if (!string.IsNullOrEmpty(Model.CurrentRequest.BudgetOfficerRemarks))
-                {
-                    <div class="col-12">
-                        <div class="p-4" style="background: #f0f9ff; border-radius: 12px; border: 1px solid #bfdbfe;">
-                            <h6 style="font-weight: 600; color: #0369a1; margin-bottom: 12px;">
-                                <i class="bi bi-calculator me-2"></i>Budget Officer Remarks
-                            </h6>
-                            <p style="color: #374151; margin: 0;">@Model.CurrentRequest.BudgetOfficerRemarks</p>
-                            @if (Model.CurrentRequest.BudgetOfficerApprovalDate.HasValue)
-                            {
-                                <p style="font-size: 12px; color: #6b7280; margin-top: 8px; margin-bottom: 0;">
-                                    <i class="bi bi-clock me-1"></i>@Model.CurrentRequest.BudgetOfficerApprovalDate.Value.ToString("MMM dd, yyyy HH:mm")
-                                </p>
-                            }
-                        </div>
-                    </div>
-                }
-
-                @if (!string.IsNullOrEmpty(Model.CurrentRequest.StaffClaimsRemarks))
-                {
-                    <div class="col-12">
-                        <div class="p-4" style="background: #fefce8; border-radius: 12px; border: 1px solid #fde047;">
-                            <h6 style="font-weight: 600; color: #713f12; margin-bottom: 12px;">
-                                <i class="bi bi-receipt me-2"></i>Claims Unit Remarks
-                            </h6>
-                            <p style="color: #374151; margin: 0;">@Model.CurrentRequest.StaffClaimsRemarks</p>
-                            @if (Model.CurrentRequest.StaffClaimsApprovalDate.HasValue)
-                            {
-                                <p style="font-size: 12px; color: #6b7280; margin-top: 8px; margin-bottom: 0;">
-                                    <i class="bi bi-clock me-1"></i>@Model.CurrentRequest.StaffClaimsApprovalDate.Value.ToString("MMM dd, yyyy HH:mm")
-                                </p>
-                            }
-                        </div>
-                    </div>
-                }
-
-                @if (!string.IsNullOrEmpty(Model.CurrentRequest.PaymentApprovalRemarks))
-                {
-                    <div class="col-12">
-                        <div class="p-4" style="background: #f5f3ff; border-radius: 12px; border: 1px solid #c4b5fd;">
-                            <h6 style="font-weight: 600; color: #5b21b6; margin-bottom: 12px;">
-                                <i class="bi bi-credit-card me-2"></i>Payment Approval Remarks
-                            </h6>
-                            <p style="color: #374151; margin: 0;">@Model.CurrentRequest.PaymentApprovalRemarks</p>
-                            @if (Model.CurrentRequest.PaymentApprovalDate.HasValue)
-                            {
-                                <p style="font-size: 12px; color: #6b7280; margin-top: 8px; margin-bottom: 0;">
-                                    <i class="bi bi-clock me-1"></i>@Model.CurrentRequest.PaymentApprovalDate.Value.ToString("MMM dd, yyyy HH:mm")
-                                </p>
-                            }
-                        </div>
-                    </div>
-                }
-
-                @if (string.IsNullOrEmpty(Model.CurrentRequest.SupervisorRemarks) &&
-                     string.IsNullOrEmpty(Model.CurrentRequest.BudgetOfficerRemarks) &&
-                     string.IsNullOrEmpty(Model.CurrentRequest.StaffClaimsRemarks) &&
-                     string.IsNullOrEmpty(Model.CurrentRequest.PaymentApprovalRemarks))
-                {
-                    <div class="col-12">
-                        <div class="text-center py-5">
-                            <i class="bi bi-chat-square-text" style="font-size: 3rem; color: #cbd5e1;"></i>
-                            <h5 class="text-muted mt-3 mb-2">No Remarks Available</h5>
-                            <p class="text-muted" style="font-size: 0.875rem;">Approvers have not provided any remarks for this request yet.</p>
-                        </div>
-                    </div>
-                }
-            </div>
-        </div>
     </div>
 </div>
 
@@ -2399,6 +2461,36 @@
 </form>
 
 <script>
+    // Handle tab activation from URL parameter
+    document.addEventListener('DOMContentLoaded', function() {
+        const urlParams = new URLSearchParams(window.location.search);
+        const tabParam = urlParams.get('tab');
+        const requestId = urlParams.get('requestId');
+
+        // If requestId is provided and tab parameter exists, activate the correct tab
+        if (requestId && tabParam) {
+            const tabMap = {
+                'supervisor': 'detail-supervisor-tab',
+                'budget': 'detail-budget-tab',
+                'claims': 'detail-claims-tab',
+                'financial': 'detail-financial-tab',
+                'payment': 'detail-payment-tab',
+                'workflow': 'detail-workflow-tab',
+                'remarks': 'detail-remarks-tab'
+            };
+
+            const tabId = tabMap[tabParam];
+            if (tabId) {
+                const tabElement = document.getElementById(tabId);
+                if (tabElement) {
+                    // Activate the tab
+                    const tab = new bootstrap.Tab(tabElement);
+                    tab.show();
+                }
+            }
+        }
+    });
+
     let currentRequestId = null;
 
     function viewRequest(requestId) {

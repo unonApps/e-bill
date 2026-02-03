@@ -86,7 +86,7 @@ namespace TAB.Web.Pages.Modules.EBillManagement.CallRecords
 
             if (ebillUser == null)
             {
-                StatusMessage = "Your profile is not linked to an employee record.";
+                StatusMessage = "Your profile is not linked to an Staff record.";
                 StatusMessageClass = "danger";
                 return RedirectToPage("/Modules/EBillManagement/CallRecords/MyCallLogs");
             }
@@ -243,7 +243,7 @@ namespace TAB.Web.Pages.Modules.EBillManagement.CallRecords
 
             if (ebillUser == null)
             {
-                StatusMessage = "Your profile is not linked to an employee record.";
+                StatusMessage = "Your profile is not linked to an Staff record.";
                 StatusMessageClass = "danger";
                 return RedirectToPage("/Modules/EBillManagement/CallRecords/MyCallLogs");
             }
@@ -374,7 +374,7 @@ namespace TAB.Web.Pages.Modules.EBillManagement.CallRecords
                 .FirstOrDefaultAsync(u => u.Email == user.Email);
 
             if (ebillUser == null)
-                return BadRequest("Your profile is not linked to an employee record.");
+                return BadRequest("Your profile is not linked to an Staff record.");
 
             try
             {
@@ -410,7 +410,7 @@ namespace TAB.Web.Pages.Modules.EBillManagement.CallRecords
 
             if (ebillUser == null)
             {
-                StatusMessage = "Your profile is not linked to an employee record.";
+                StatusMessage = "Your profile is not linked to an Staff record.";
                 StatusMessageClass = "danger";
                 return RedirectToPage("/Modules/EBillManagement/CallRecords/MyCallLogs");
             }
@@ -421,11 +421,23 @@ namespace TAB.Web.Pages.Modules.EBillManagement.CallRecords
                 var assignToIndexNumber = Request.Form["assignToIndexNumber"].ToString();
                 var assignmentReason = Request.Form["assignmentReason"].ToString();
 
-                if (string.IsNullOrWhiteSpace(dialedNumber) ||
-                    string.IsNullOrWhiteSpace(assignToIndexNumber) ||
-                    string.IsNullOrWhiteSpace(assignmentReason))
+                if (string.IsNullOrWhiteSpace(dialedNumber))
                 {
-                    StatusMessage = "Please provide all required information for reassignment.";
+                    StatusMessage = "Dialed number is required for reassignment.";
+                    StatusMessageClass = "warning";
+                    return RedirectToPage(new { id });
+                }
+
+                if (string.IsNullOrWhiteSpace(assignToIndexNumber))
+                {
+                    StatusMessage = "Please search for and select a user to reassign the calls to.";
+                    StatusMessageClass = "warning";
+                    return RedirectToPage(new { id });
+                }
+
+                if (string.IsNullOrWhiteSpace(assignmentReason))
+                {
+                    StatusMessage = "Please provide a reason for the reassignment.";
                     StatusMessageClass = "warning";
                     return RedirectToPage(new { id });
                 }

@@ -237,6 +237,22 @@
         cursor: pointer;
     }
 
+    .dialed-number-header {
+        transition: background-color 0.2s ease;
+    }
+
+    .dialed-number-header:hover {
+        background-color: #e2e8f0 !important;
+    }
+
+    .dialed-number-header[aria-expanded="true"] .dialed-chevron {
+        transform: rotate(90deg);
+    }
+
+    .dialed-chevron {
+        color: #6b7280;
+    }
+
     .approve-selected-btn {
         position: sticky;
         bottom: 0;
@@ -445,6 +461,11 @@ else if (approachingApprovals.Any())
                 <i class="bi bi-person-check me-2 text-primary"></i>Supervisor Approvals
             </h5>
             <p class="text-muted mb-0" style="font-size: 0.875rem;">Review and approve call verifications from your team</p>
+        </div>
+        <div>
+            <a href="/Dashboard/Approver" class="btn btn-outline-secondary btn-sm">
+                <i class="bi bi-arrow-left me-1"></i>Back to Dashboard
+            </a>
         </div>
     </div>
 </div>
@@ -807,91 +828,125 @@ else if (approachingApprovals.Any())
                                     </div>
 
                                     <div class="table-container">
-                                        <table class="table modern-table mb-0">
-                                            <thead>
-                                                <tr>
-                                                    <th style="width: 50px;">
-                                                        <i class="bi bi-check-square text-muted"></i>
-                                                    </th>
-                                                    <th>Date & Time</th>
-                                                    <th>Dialed Number</th>
-                                                    <th>Destination</th>
-                                                    <th>Type</th>
-                                                    <th>Class of Service</th>
-                                                    <th>Duration</th>
-                                                    <th>Cost</th>
-                                                    <th>Verification</th>
-                                                </tr>
-                                            </thead>
-                                            <tbody>
-                                                @foreach (var verification in extensionCalls)
-                                                {
+                                        @foreach (var dialedGroup in extensionCalls.GroupBy(v => v.CallRecord.CallNumber).OrderBy(g => g.Key))
+                                        {
+                                            var dialedNumber = dialedGroup.Key;
+                                            var dialedCalls = dialedGroup.ToList();
+                                            var dialedTotal = dialedCalls.Sum(v => v.ActualAmount);
+                                            var dialedCount = dialedCalls.Count;
+                                            var dialedId = $"dialed_{submission.UserIndexNumber}_{extensionNumber}_{dialedNumber}".Replace(" ", "_").Replace("+", "").Replace("-", "");
+                                            var firstCall = dialedCalls.First();
+                                            var destination = firstCall.CallRecord.CallDestination;
+
+                                            <div class="dialed-number-header" style="background-color: #f1f5f9; border-bottom: 1px solid #e2e8f0; padding: 0.5rem 0.875rem; cursor: pointer;"
+                                                 data-bs-toggle="collapse" data-bs-target="#collapse_@dialedId" aria-expanded="false">
+                                                <div class="d-flex justify-content-between align-items-center">
+                                                    <div class="d-flex align-items-center gap-2">
+                                                        <input type="checkbox"
+                                                               class="dialed-checkbox"
+                                                               id="@dialedId"
+                                                               data-extension="@extensionId"
+                                                               onchange="toggleDialedCalls('@dialedId'); event.stopPropagation();"
+                                                               onclick="event.stopPropagation();"
+                                                               title="Select all calls to this number"
+                                                               style="width: 16px; height: 16px; cursor: pointer;">
+                                                        <i class="bi bi-chevron-right dialed-chevron" style="transition: transform 0.2s; font-size: 0.8rem;"></i>
+                                                        <i class="bi bi-telephone-outbound text-secondary"></i>
+                                                        <span class="fw-semibold" style="font-size: 0.9rem;">@dialedNumber</span>
+                                                        <span class="text-muted" style="font-size: 0.85rem;">(@destination)</span>
+                                                        <span class="badge bg-secondary bg-opacity-10 text-secondary" style="font-size: 0.75rem;">@dialedCount call(s)</span>
+                                                    </div>
+                                                    <div class="fw-semibold text-primary" style="font-size: 0.9rem;">
+                                                        $@dialedTotal.ToString("N2")
+                                                    </div>
+                                                </div>
+                                            </div>
+
+                                            <div class="collapse" id="collapse_@dialedId">
+                                            <table class="table modern-table mb-0">
+                                                <thead>
                                                     <tr>
-                                                        <td class="text-center">
-                                                            <input type="checkbox"
-                                                                   class="call-checkbox"
-                                                                   data-extension="@extensionId"
-                                                                   data-verification-id="@verification.Id"
-                                                                   data-amount="@verification.ActualAmount"
-                                                                   data-call-number="@verification.CallRecord.CallNumber"
-                                                                   data-destination="@verification.CallRecord.CallDestination"
-                                                                   onchange="updateSelectionSummary()">
-                                                        </td>
-                                                        <td>
-                                                            <div class="fw-semibold">@verification.CallRecord.CallDate.ToString("MMM dd, yyyy")</div>
-                                                            <small class="text-muted">@verification.CallRecord.CallDate.ToString("hh:mm tt")</small>
-                                                        </td>
-                                                        <td>
-                                                            <div class="dial-number">@verification.CallRecord.CallNumber</div>
-                                                        </td>
-                                                        <td>
-                                                            <div class="fw-semibold">@verification.CallRecord.CallDestination</div>
-                                                            <small class="text-muted">@verification.CallRecord.CallDestinationType</small>
-                                                        </td>
-                                                        <td>
-                                                            <span class="call-type-badge bg-primary bg-opacity-10 text-primary">
-                                                                @verification.CallRecord.CallType
-                                                            </span>
-                                                        </td>
-                                                        <td>
-                                                            @if (verification.CallRecord.UserPhone?.ClassOfService != null)
-                                                            {
-                                                                <div>
-                                                                    <span class="badge bg-info bg-opacity-10 text-info">
-                                                                        @verification.CallRecord.UserPhone.ClassOfService.Class
-                                                                    </span>
-                                                                    @if (verification.CallRecord.UserPhone.ClassOfService.AirtimeAllowanceAmount.HasValue && verification.CallRecord.UserPhone.ClassOfService.AirtimeAllowanceAmount.Value > 0)
-                                                                    {
-                                                                        <br />
-                                                                        <small class="text-muted">Limit: $@verification.CallRecord.UserPhone.ClassOfService.AirtimeAllowanceAmount.Value.ToString("N2")</small>
-                                                                    }
-                                                                    else
-                                                                    {
-                                                                        <br />
-                                                                        <small class="text-muted">Unlimited</small>
-                                                                    }
-                                                                </div>
-                                                            }
-                                                            else
-                                                            {
-                                                                <span class="text-muted">-</span>
-                                                            }
-                                                        </td>
-                                                        <td>
-                                                            <span class="fw-semibold">@verification.CallRecord.GetDurationFormatted()</span>
-                                                        </td>
-                                                        <td>
-                                                            <div class="amount-cell">$@verification.ActualAmount.ToString("N2")</div>
-                                                        </td>
-                                                        <td>
-                                                            <span class="verification-badge bg-info bg-opacity-10 text-info">
-                                                                @verification.VerificationType
-                                                            </span>
-                                                        </td>
+                                                        <th style="width: 50px;">
+                                                            <i class="bi bi-check-square text-muted"></i>
+                                                        </th>
+                                                        <th>Date & Time</th>
+                                                        <th>Destination</th>
+                                                        <th>Type</th>
+                                                        <th>Class of Service</th>
+                                                        <th>Duration</th>
+                                                        <th>Cost</th>
+                                                        <th>Verification</th>
                                                     </tr>
-                                                }
-                                            </tbody>
-                                        </table>
+                                                </thead>
+                                                <tbody>
+                                                    @foreach (var verification in dialedCalls)
+                                                    {
+                                                        <tr>
+                                                            <td class="text-center">
+                                                                <input type="checkbox"
+                                                                       class="call-checkbox"
+                                                                       data-extension="@extensionId"
+                                                                       data-dialed="@dialedId"
+                                                                       data-verification-id="@verification.Id"
+                                                                       data-amount="@verification.ActualAmount"
+                                                                       data-call-number="@verification.CallRecord.CallNumber"
+                                                                       data-destination="@verification.CallRecord.CallDestination"
+                                                                       onchange="updateSelectionSummary()">
+                                                            </td>
+                                                            <td>
+                                                                <div class="fw-semibold">@verification.CallRecord.CallDate.ToString("MMM dd, yyyy")</div>
+                                                                <small class="text-muted">@verification.CallRecord.CallDate.ToString("hh:mm tt")</small>
+                                                            </td>
+                                                            <td>
+                                                                <div class="fw-semibold">@verification.CallRecord.CallDestination</div>
+                                                                <small class="text-muted">@verification.CallRecord.CallDestinationType</small>
+                                                            </td>
+                                                            <td>
+                                                                <span class="call-type-badge bg-primary bg-opacity-10 text-primary">
+                                                                    @verification.CallRecord.CallType
+                                                                </span>
+                                                            </td>
+                                                            <td>
+                                                                @if (verification.CallRecord.UserPhone?.ClassOfService != null)
+                                                                {
+                                                                    <div>
+                                                                        <span class="badge bg-info bg-opacity-10 text-info">
+                                                                            @verification.CallRecord.UserPhone.ClassOfService.Class
+                                                                        </span>
+                                                                        @if (verification.CallRecord.UserPhone.ClassOfService.AirtimeAllowanceAmount.HasValue && verification.CallRecord.UserPhone.ClassOfService.AirtimeAllowanceAmount.Value > 0)
+                                                                        {
+                                                                            <br />
+                                                                            <small class="text-muted">Limit: $@verification.CallRecord.UserPhone.ClassOfService.AirtimeAllowanceAmount.Value.ToString("N2")</small>
+                                                                        }
+                                                                        else
+                                                                        {
+                                                                            <br />
+                                                                            <small class="text-muted">Unlimited</small>
+                                                                        }
+                                                                    </div>
+                                                                }
+                                                                else
+                                                                {
+                                                                    <span class="text-muted">-</span>
+                                                                }
+                                                            </td>
+                                                            <td>
+                                                                <span class="fw-semibold">@verification.CallRecord.GetDurationFormatted()</span>
+                                                            </td>
+                                                            <td>
+                                                                <div class="amount-cell">$@verification.ActualAmount.ToString("N2")</div>
+                                                            </td>
+                                                            <td>
+                                                                <span class="verification-badge bg-info bg-opacity-10 text-info">
+                                                                    @verification.VerificationType
+                                                                </span>
+                                                            </td>
+                                                        </tr>
+                                                    }
+                                                </tbody>
+                                            </table>
+                                            </div>
+                                        }
                                     </div>
 
                                     @* Phone Overage Justification Modal *@
@@ -1059,6 +1114,7 @@ else if (approachingApprovals.Any())
                                                     disabled>
                                                 <i class="bi bi-arrow-counterclockwise me-1"></i>Revert
                                             </button>
+                                            @* Hidden for now
                                             <button type="button"
                                                     class="btn btn-outline-secondary btn-sm"
                                                     style="border-radius: 10px;"
@@ -1067,6 +1123,7 @@ else if (approachingApprovals.Any())
                                                     disabled>
                                                 <i class="bi bi-eye me-1"></i>Review Selected
                                             </button>
+                                            *@
                                         </div>
                                     </div>
                                 </div>
@@ -1381,6 +1438,27 @@ else if (approachingApprovals.Any())
                 checkbox.checked = isChecked;
             });
 
+            // Also update dialed number checkboxes for this extension
+            const dialedCheckboxes = document.querySelectorAll(`input.dialed-checkbox[data-extension="${extensionId}"]`);
+            dialedCheckboxes.forEach(checkbox => {
+                checkbox.checked = isChecked;
+                checkbox.indeterminate = false;
+            });
+
+            updateSelectionSummary();
+        }
+
+        // Toggle all calls for a specific dialed number
+        function toggleDialedCalls(dialedId) {
+            const dialedCheckbox = document.getElementById(dialedId);
+            const isChecked = dialedCheckbox.checked;
+
+            // Find all call checkboxes for this dialed number
+            const callCheckboxes = document.querySelectorAll(`input.call-checkbox[data-dialed="${dialedId}"]`);
+            callCheckboxes.forEach(checkbox => {
+                checkbox.checked = isChecked;
+            });
+
             updateSelectionSummary();
         }
 
@@ -1446,10 +1524,32 @@ else if (approachingApprovals.Any())
             });
         }
 
-        // Update extension checkbox states based on their calls
+        // Update extension and dialed number checkbox states based on their calls
         function updateExtensionCheckboxStates(accordion) {
-            const extensionCheckboxes = accordion.querySelectorAll('input.extension-checkbox');
+            // Update dialed number checkboxes first
+            const dialedCheckboxes = accordion.querySelectorAll('input.dialed-checkbox');
+            dialedCheckboxes.forEach(dialedCheckbox => {
+                const dialedId = dialedCheckbox.id;
+                const callCheckboxes = accordion.querySelectorAll(`input.call-checkbox[data-dialed="${dialedId}"]`);
 
+                if (callCheckboxes.length === 0) return;
+
+                const checkedCount = Array.from(callCheckboxes).filter(cb => cb.checked).length;
+
+                if (checkedCount === callCheckboxes.length) {
+                    dialedCheckbox.checked = true;
+                    dialedCheckbox.indeterminate = false;
+                } else if (checkedCount > 0) {
+                    dialedCheckbox.checked = false;
+                    dialedCheckbox.indeterminate = true;
+                } else {
+                    dialedCheckbox.checked = false;
+                    dialedCheckbox.indeterminate = false;
+                }
+            });
+
+            // Update extension checkboxes
+            const extensionCheckboxes = accordion.querySelectorAll('input.extension-checkbox');
             extensionCheckboxes.forEach(extCheckbox => {
                 const extensionId = extCheckbox.id;
                 const callCheckboxes = accordion.querySelectorAll(`input.call-checkbox[data-extension="${extensionId}"]`);
@@ -1497,13 +1597,12 @@ else if (approachingApprovals.Any())
                 // Get call details from the row
                 const row = checkbox.closest('tr');
                 const dateCell = row.querySelector('td:nth-child(2)');
-                const dialedNumberCell = row.querySelector('td:nth-child(3)');
-                const destinationCell = row.querySelector('td:nth-child(4)');
-                const amountCell = row.querySelector('td:nth-child(8)');
+                const destinationCell = row.querySelector('td:nth-child(3)');
+                const amountCell = row.querySelector('td:nth-child(7)');
 
                 callDetails.push({
                     date: dateCell ? dateCell.textContent.trim().split('\n')[0].trim() : 'N/A',
-                    dialedNumber: dialedNumberCell ? dialedNumberCell.textContent.trim() : 'N/A',
+                    dialedNumber: checkbox.dataset.callNumber || 'N/A',
                     destination: destinationCell ? destinationCell.textContent.trim().split('\n')[0].trim() : 'N/A',
                     amount: checkbox.dataset.amount
                 });
@@ -1892,6 +1991,23 @@ else if (approachingApprovals.Any())
                     chevronIcon.style.transition = 'transform 0.3s ease';
                 });
             }
+
+            // Handle dialed number collapse chevron rotation
+            document.querySelectorAll('.dialed-number-header').forEach(header => {
+                const targetId = header.getAttribute('data-bs-target');
+                if (targetId) {
+                    const collapseEl = document.querySelector(targetId);
+                    const chevron = header.querySelector('.dialed-chevron');
+                    if (collapseEl && chevron) {
+                        collapseEl.addEventListener('show.bs.collapse', function() {
+                            chevron.style.transform = 'rotate(90deg)';
+                        });
+                        collapseEl.addEventListener('hide.bs.collapse', function() {
+                            chevron.style.transform = 'rotate(0deg)';
+                        });
+                    }
+                }
+            });
         });
     </script>
 }
