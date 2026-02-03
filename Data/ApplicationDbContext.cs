@@ -86,7 +86,10 @@ namespace TAB.Web.Data
         protected override void OnModelCreating(ModelBuilder builder)
         {
             base.OnModelCreating(builder);
-            
+
+            // Set default schema for all tables
+            builder.HasDefaultSchema("ebill");
+
             // Configure Organization entity
             builder.Entity<Organization>(entity =>
             {
