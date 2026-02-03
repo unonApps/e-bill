@@ -6,7 +6,7 @@ on:
       - main
 
 env:
-  AZURE_WEBAPP_NAME: unonebill-h3e8hkezhbajcpaa
+  AZURE_WEBAPP_NAME: unoneBill
   DOTNET_VERSION: '8.0.x'
 
 jobs:
