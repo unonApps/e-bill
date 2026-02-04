@@ -30,6 +30,7 @@
     </PackageReference>
     <PackageReference Include="Microsoft.Identity.Web" Version="3.14.1" />
     <PackageReference Include="Microsoft.Identity.Web.UI" Version="3.14.1" />
+    <PackageReference Include="Azure.Storage.Blobs" Version="12.19.1" />
   </ItemGroup>
 
   <ItemGroup>

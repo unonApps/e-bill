@@ -104,6 +104,11 @@ builder.Services.AddScoped<ICurrencyConversionService, CurrencyConversionService
 // Register Recovery Automation Background Service
 builder.Services.AddHostedService<RecoveryAutomationJob>();
 
+// Register Azure Blob Storage Service for reliable file storage on Azure
+builder.Services.AddOptions<TAB.Web.Options.BlobStorageOptions>()
+    .BindConfiguration("AzureBlobStorage");
+builder.Services.AddSingleton<IBlobStorageService, BlobStorageService>();
+
 // Register Bulk Import Service for enterprise-level upload processing
 builder.Services.AddScoped<IBulkImportService, BulkImportService>();
 

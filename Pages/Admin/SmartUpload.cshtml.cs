@@ -21,17 +21,20 @@ namespace TAB.Web.Pages.Admin
         private readonly IConfiguration _configuration;
         private readonly ILogger<SmartUploadModel> _logger;
         private readonly IBackgroundJobClient _backgroundJobs;
+        private readonly IBlobStorageService _blobStorageService;
 
         public SmartUploadModel(
             ApplicationDbContext context,
             IConfiguration configuration,
             ILogger<SmartUploadModel> logger,
-            IBackgroundJobClient backgroundJobs)
+            IBackgroundJobClient backgroundJobs,
+            IBlobStorageService blobStorageService)
         {
             _context = context;
             _configuration = configuration;
             _logger = logger;
             _backgroundJobs = backgroundJobs;
+            _blobStorageService = blobStorageService;
         }
 
         [TempData]
@@ -208,6 +211,34 @@ namespace TAB.Web.Pages.Admin
 
                 // Create import job record for tracking
                 var jobId = Guid.NewGuid();
+
+                // Upload file to Azure Blob Storage for reliable access by background worker
+                var blobPath = $"imports/{jobId:N}/{originalFileName}";
+                string? blobUrl = null;
+
+                using (var fileStream = System.IO.File.OpenRead(tempFilePath))
+                {
+                    var contentType = isExcelFile
+                        ? (fileExtension == ".xlsx" ? "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet" : "application/vnd.ms-excel")
+                        : "text/csv";
+
+                    var uploadResult = await _blobStorageService.UploadStreamAsync(fileStream, blobPath, contentType);
+
+                    if (!uploadResult.Success)
+                    {
+                        _logger.LogError("Failed to upload file to Blob Storage: {Error}", uploadResult.ErrorMessage);
+                        StatusMessage = $"Failed to upload file: {uploadResult.ErrorMessage}";
+                        StatusMessageClass = "danger";
+                        return RedirectToPage();
+                    }
+
+                    blobUrl = uploadResult.Url;
+                    _logger.LogInformation("Uploaded file to Blob Storage: {BlobPath}", blobPath);
+                }
+
+                // Clean up temp file now that it's in Blob Storage
+                try { System.IO.File.Delete(tempFilePath); } catch { }
+
                 var importJob = new ImportJob
                 {
                     Id = jobId,
@@ -227,13 +258,13 @@ namespace TAB.Web.Pages.Admin
 
                 _logger.LogInformation("Created import job {JobId} for SmartUpload {Provider} file (Excel: {IsExcel})", jobId, provider, isExcelFile);
 
-                // Queue Hangfire background job - use ISmartUploadImportService for ALL SmartUpload files
+                // Queue Hangfire background job - pass blob path instead of temp file path
                 // SmartUpload handles specific column formats (CallingNo, Date, CallCharges, etc.)
                 // which are different from BulkImportService's expected format (ext, call_date, cost, etc.)
                 string hangfireJobId = _backgroundJobs.Enqueue<ISmartUploadImportService>(
                     service => service.ImportFileAsync(
                         jobId,
-                        tempFilePath,
+                        blobPath,  // Pass blob path instead of temp file path
                         billingMonth,
                         billingYear,
                         provider,
@@ -245,8 +276,8 @@ namespace TAB.Web.Pages.Admin
                 await _context.SaveChangesAsync();
 
                 _logger.LogInformation(
-                    "Queued {Provider} SmartUpload import job {JobId} with Hangfire job ID {HangfireJobId}",
-                    provider, jobId, hangfireJobId);
+                    "Queued {Provider} SmartUpload import job {JobId} with Hangfire job ID {HangfireJobId}, Blob: {BlobPath}",
+                    provider, jobId, hangfireJobId, blobPath);
 
                 StatusMessage = $"Import queued successfully! {provider} file ({fileInfo.Length / 1024:N0} KB) is being processed in the background. " +
                                 $"Monitor progress on the Import Jobs page.";

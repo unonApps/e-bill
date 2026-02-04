@@ -27,23 +27,29 @@ namespace TAB.Web.Services
         private readonly ApplicationDbContext _context;
         private readonly ILogger<SmartUploadImportService> _logger;
         private readonly ISmartUploadUserCreationService _userCreationService;
+        private readonly IBlobStorageService _blobStorageService;
 
         public SmartUploadImportService(
             ApplicationDbContext context,
             ILogger<SmartUploadImportService> logger,
-            ISmartUploadUserCreationService userCreationService)
+            ISmartUploadUserCreationService userCreationService,
+            IBlobStorageService blobStorageService)
         {
             _context = context;
             _logger = logger;
             _userCreationService = userCreationService;
+            _blobStorageService = blobStorageService;
         }
 
         /// <summary>
         /// Main entry point for SmartUpload imports - handles both CSV and Excel files
+        /// Now supports Azure Blob Storage: filePath can be either a local path or a blob path (imports/{jobId}/filename)
         /// </summary>
         public async Task<ImportResult> ImportFileAsync(Guid jobId, string filePath, int billingMonth, int billingYear, string provider, bool isExcelFile, IJobCancellationToken cancellationToken)
         {
             var result = new ImportResult { StartTime = DateTime.UtcNow };
+            string? localFilePath = null;
+            bool downloadedFromBlob = false;
 
             try
             {
@@ -53,6 +59,36 @@ namespace TAB.Web.Services
                 // Update job status to Processing
                 await UpdateJobStatus(jobId, "Processing", null, null, null);
 
+                // Check if filePath is a blob path (starts with "imports/") or local path
+                if (filePath.StartsWith("imports/"))
+                {
+                    // Download from Azure Blob Storage
+                    _logger.LogInformation("Downloading file from Blob Storage: {BlobPath}", filePath);
+
+                    var downloadResult = await _blobStorageService.DownloadAsync(filePath);
+                    if (!downloadResult.Success || downloadResult.Stream == null)
+                    {
+                        throw new InvalidOperationException($"Failed to download file from Blob Storage: {downloadResult.ErrorMessage}");
+                    }
+
+                    // Save to temp file for processing
+                    var extension = isExcelFile ? (filePath.EndsWith(".xlsx") ? ".xlsx" : ".xls") : ".csv";
+                    localFilePath = Path.Combine(Path.GetTempPath(), $"import_{jobId:N}{extension}");
+
+                    using (var fileStream = new FileStream(localFilePath, FileMode.Create, FileAccess.Write))
+                    {
+                        await downloadResult.Stream.CopyToAsync(fileStream);
+                    }
+
+                    downloadedFromBlob = true;
+                    _logger.LogInformation("Downloaded blob to temp file: {TempPath}", localFilePath);
+                }
+                else
+                {
+                    // Legacy: use local file path directly
+                    localFilePath = filePath;
+                }
+
                 // Route to appropriate handler based on file type and provider
                 if (isExcelFile)
                 {
@@ -61,13 +97,13 @@ namespace TAB.Web.Services
                     {
                         case "safaricom":
                         case "airtel":
-                            result = await ImportMobileExcelAsync(jobId, filePath, billingMonth, billingYear, provider, cancellationToken);
+                            result = await ImportMobileExcelAsync(jobId, localFilePath, billingMonth, billingYear, provider, cancellationToken);
                             break;
                         case "pstn":
-                            result = await ImportPstnExcelAsync(jobId, filePath, billingMonth, billingYear, cancellationToken);
+                            result = await ImportPstnExcelAsync(jobId, localFilePath, billingMonth, billingYear, cancellationToken);
                             break;
                         case "privatewire":
-                            result = await ImportPrivateWireExcelAsync(jobId, filePath, billingMonth, billingYear, cancellationToken);
+                            result = await ImportPrivateWireExcelAsync(jobId, localFilePath, billingMonth, billingYear, cancellationToken);
                             break;
                         default:
                             throw new InvalidOperationException($"Unsupported provider: {provider}");
@@ -80,13 +116,13 @@ namespace TAB.Web.Services
                     {
                         case "safaricom":
                         case "airtel":
-                            result = await ImportMobileCsvAsync(jobId, filePath, billingMonth, billingYear, provider, cancellationToken);
+                            result = await ImportMobileCsvAsync(jobId, localFilePath, billingMonth, billingYear, provider, cancellationToken);
                             break;
                         case "pstn":
-                            result = await ImportPstnCsvAsync(jobId, filePath, billingMonth, billingYear, cancellationToken);
+                            result = await ImportPstnCsvAsync(jobId, localFilePath, billingMonth, billingYear, cancellationToken);
                             break;
                         case "privatewire":
-                            result = await ImportPrivateWireCsvAsync(jobId, filePath, billingMonth, billingYear, cancellationToken);
+                            result = await ImportPrivateWireCsvAsync(jobId, localFilePath, billingMonth, billingYear, cancellationToken);
                             break;
                         default:
                             throw new InvalidOperationException($"Unsupported provider: {provider}");
@@ -100,8 +136,15 @@ namespace TAB.Web.Services
                 _logger.LogInformation("SmartUpload import completed for job {JobId}: {SuccessCount} success, {ErrorCount} errors",
                     jobId, result.SuccessCount, result.ErrorCount);
 
-                // Clean up temp file
-                try { File.Delete(filePath); } catch { }
+                // Clean up: delete temp file and blob
+                if (localFilePath != null)
+                {
+                    try { File.Delete(localFilePath); } catch { }
+                }
+                if (downloadedFromBlob)
+                {
+                    try { await _blobStorageService.DeleteBlobAsync(filePath); } catch { }
+                }
 
                 return result;
             }
@@ -110,8 +153,15 @@ namespace TAB.Web.Services
                 _logger.LogError(ex, "SmartUpload import failed for job {JobId}", jobId);
                 await UpdateJobStatus(jobId, "Failed", result.SuccessCount, result.ErrorCount, ex.Message);
 
-                // Clean up temp file
-                try { File.Delete(filePath); } catch { }
+                // Clean up: delete temp file and blob
+                if (localFilePath != null)
+                {
+                    try { File.Delete(localFilePath); } catch { }
+                }
+                if (downloadedFromBlob)
+                {
+                    try { await _blobStorageService.DeleteBlobAsync(filePath); } catch { }
+                }
 
                 throw;
             }
