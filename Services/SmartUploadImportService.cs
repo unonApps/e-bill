@@ -45,6 +45,8 @@ namespace TAB.Web.Services
         /// Main entry point for SmartUpload imports - handles both CSV and Excel files
         /// Now supports Azure Blob Storage: filePath can be either a local path or a blob path (imports/{jobId}/filename)
         /// </summary>
+        [AutomaticRetry(Attempts = 3, DelaysInSeconds = new int[] { 60, 300, 900 })]
+        [Queue("imports")]
         public async Task<ImportResult> ImportFileAsync(Guid jobId, string filePath, int billingMonth, int billingYear, string provider, bool isExcelFile, IJobCancellationToken cancellationToken)
         {
             var result = new ImportResult { StartTime = DateTime.UtcNow };
@@ -75,6 +77,7 @@ namespace TAB.Web.Services
                     var extension = isExcelFile ? (filePath.EndsWith(".xlsx") ? ".xlsx" : ".xls") : ".csv";
                     localFilePath = Path.Combine(Path.GetTempPath(), $"import_{jobId:N}{extension}");
 
+                    using (downloadResult.Stream)
                     using (var fileStream = new FileStream(localFilePath, FileMode.Create, FileAccess.Write))
                     {
                         await downloadResult.Stream.CopyToAsync(fileStream);
@@ -139,11 +142,11 @@ namespace TAB.Web.Services
                 // Clean up: delete temp file and blob
                 if (localFilePath != null)
                 {
-                    try { File.Delete(localFilePath); } catch { }
+                    try { File.Delete(localFilePath); } catch (Exception ex) { _logger.LogWarning(ex, "Failed to delete temp file {FilePath}", localFilePath); }
                 }
                 if (downloadedFromBlob)
                 {
-                    try { await _blobStorageService.DeleteBlobAsync(filePath); } catch { }
+                    try { await _blobStorageService.DeleteBlobAsync(filePath); } catch (Exception ex) { _logger.LogWarning(ex, "Failed to delete blob {BlobPath}", filePath); }
                 }
 
                 return result;
@@ -153,20 +156,18 @@ namespace TAB.Web.Services
                 _logger.LogError(ex, "SmartUpload import failed for job {JobId}", jobId);
                 await UpdateJobStatus(jobId, "Failed", result.SuccessCount, result.ErrorCount, ex.Message);
 
-                // Clean up: delete temp file and blob
+                // Clean up: delete temp file only (keep blob for Hangfire retry)
                 if (localFilePath != null)
                 {
-                    try { File.Delete(localFilePath); } catch { }
-                }
-                if (downloadedFromBlob)
-                {
-                    try { await _blobStorageService.DeleteBlobAsync(filePath); } catch { }
+                    try { File.Delete(localFilePath); } catch (Exception cleanupEx) { _logger.LogWarning(cleanupEx, "Failed to delete temp file {FilePath}", localFilePath); }
                 }
 
                 throw;
             }
         }
 
+        [AutomaticRetry(Attempts = 3, DelaysInSeconds = new int[] { 60, 300, 900 })]
+        [Queue("imports")]
         public async Task<ImportResult> ImportExcelAsync(Guid jobId, string filePath, int billingMonth, int billingYear, string provider, IJobCancellationToken cancellationToken)
         {
             var result = new ImportResult { StartTime = DateTime.UtcNow };
@@ -206,7 +207,7 @@ namespace TAB.Web.Services
                     jobId, result.SuccessCount, result.ErrorCount);
 
                 // Clean up temp file
-                try { File.Delete(filePath); } catch { }
+                try { File.Delete(filePath); } catch (Exception cleanupEx) { _logger.LogWarning(cleanupEx, "Failed to delete temp file {FilePath}", filePath); }
 
                 return result;
             }
@@ -216,7 +217,7 @@ namespace TAB.Web.Services
                 await UpdateJobStatus(jobId, "Failed", result.SuccessCount, result.ErrorCount, ex.Message);
 
                 // Clean up temp file
-                try { File.Delete(filePath); } catch { }
+                try { File.Delete(filePath); } catch (Exception cleanupEx) { _logger.LogWarning(cleanupEx, "Failed to delete temp file {FilePath}", filePath); }
 
                 throw;
             }
@@ -1862,27 +1863,42 @@ namespace TAB.Web.Services
 
         private async Task UpdateJobStatus(Guid jobId, string status, int? recordsSuccess, int? recordsError, string? errorMessage)
         {
-            var job = await _context.ImportJobs.FindAsync(jobId);
-            if (job != null)
+            try
             {
-                job.Status = status;
-                if (status == "Processing" && job.StartedDate == null)
-                    job.StartedDate = DateTime.UtcNow;
-                if (status == "Completed" || status == "Failed")
-                {
-                    job.CompletedDate = DateTime.UtcNow;
-                    if (job.StartedDate.HasValue)
-                        job.DurationSeconds = (int)(job.CompletedDate.Value - job.StartedDate.Value).TotalSeconds;
-                }
-                if (recordsSuccess.HasValue)
-                    job.RecordsSuccess = recordsSuccess.Value;
-                if (recordsError.HasValue)
-                    job.RecordsError = recordsError.Value;
-                job.RecordsProcessed = (recordsSuccess ?? 0) + (recordsError ?? 0);
-                if (!string.IsNullOrEmpty(errorMessage))
-                    job.ErrorMessage = errorMessage.Length > 4000 ? errorMessage.Substring(0, 4000) : errorMessage;
+                var connectionString = _context.Database.GetConnectionString();
+                using var connection = new SqlConnection(connectionString);
+                await connection.OpenAsync();
 
-                await _context.SaveChangesAsync();
+                var now = DateTime.UtcNow;
+                var truncatedError = string.IsNullOrEmpty(errorMessage)
+                    ? (string?)null
+                    : (errorMessage.Length > 4000 ? errorMessage.Substring(0, 4000) : errorMessage);
+
+                var sql = @"
+                    UPDATE [ebill].[ImportJobs]
+                    SET [Status] = @Status,
+                        [StartedDate] = CASE WHEN @Status = 'Processing' AND [StartedDate] IS NULL THEN @Now ELSE [StartedDate] END,
+                        [CompletedDate] = CASE WHEN @Status IN ('Completed', 'Failed') THEN @Now ELSE [CompletedDate] END,
+                        [DurationSeconds] = CASE WHEN @Status IN ('Completed', 'Failed') AND [StartedDate] IS NOT NULL THEN DATEDIFF(SECOND, [StartedDate], @Now) ELSE [DurationSeconds] END,
+                        [RecordsSuccess] = COALESCE(@RecordsSuccess, [RecordsSuccess]),
+                        [RecordsError] = COALESCE(@RecordsError, [RecordsError]),
+                        [RecordsProcessed] = COALESCE(@RecordsSuccess, 0) + COALESCE(@RecordsError, 0),
+                        [ErrorMessage] = COALESCE(@ErrorMessage, [ErrorMessage])
+                    WHERE [Id] = @JobId";
+
+                using var command = new SqlCommand(sql, connection);
+                command.Parameters.AddWithValue("@JobId", jobId);
+                command.Parameters.AddWithValue("@Status", status);
+                command.Parameters.AddWithValue("@Now", now);
+                command.Parameters.AddWithValue("@RecordsSuccess", (object?)recordsSuccess ?? DBNull.Value);
+                command.Parameters.AddWithValue("@RecordsError", (object?)recordsError ?? DBNull.Value);
+                command.Parameters.AddWithValue("@ErrorMessage", (object?)truncatedError ?? DBNull.Value);
+
+                await command.ExecuteNonQueryAsync();
+            }
+            catch (Exception ex)
+            {
+                _logger.LogError(ex, "Failed to update job status for {JobId} to {Status}", jobId, status);
             }
         }
 

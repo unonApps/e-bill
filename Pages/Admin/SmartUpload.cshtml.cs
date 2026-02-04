@@ -159,8 +159,11 @@ namespace TAB.Web.Pages.Admin
                     var uploadResult = await _blobStorageService.UploadStreamAsync(uploadStream, blobFileName, contentType);
                     if (!uploadResult.Success)
                     {
-                        _logger.LogWarning("Failed to upload preview file to Blob Storage: {Error}. Falling back to temp file.", uploadResult.ErrorMessage);
-                        blobFileName = tempPath; // Fall back to temp path for local dev
+                        _logger.LogError("Failed to upload preview file to Blob Storage: {Error}", uploadResult.ErrorMessage);
+                        try { System.IO.File.Delete(tempPath); } catch { }
+                        StatusMessage = $"Failed to upload file to storage: {uploadResult.ErrorMessage}";
+                        StatusMessageClass = "danger";
+                        return Page();
                     }
                     else
                     {
