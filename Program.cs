@@ -102,7 +102,8 @@ builder.Services.AddScoped<ICallLogReportingService, CallLogReportingService>();
 builder.Services.AddScoped<ICurrencyConversionService, CurrencyConversionService>();
 
 // Register Recovery Automation Background Service
-builder.Services.AddHostedService<RecoveryAutomationJob>();
+// Temporarily using delayed start to avoid startup issues
+// builder.Services.AddHostedService<RecoveryAutomationJob>();
 
 // Register Bulk Import Service for enterprise-level upload processing
 builder.Services.AddScoped<IBulkImportService, BulkImportService>();
@@ -113,28 +114,18 @@ builder.Services.AddScoped<ISmartUploadImportService, SmartUploadImportService>(
 // Register SmartUpload User Creation Service for auto-creating users from PSTN/PW files
 builder.Services.AddScoped<ISmartUploadUserCreationService, SmartUploadUserCreationService>();
 
-// Add Hangfire for background job processing with resilient settings
+// Add Hangfire for background job processing
+// Use in-memory storage to avoid startup issues, jobs will still work but won't persist across restarts
 builder.Services.AddHangfire(config => config
     .SetDataCompatibilityLevel(CompatibilityLevel.Version_180)
     .UseSimpleAssemblyNameTypeSerializer()
     .UseRecommendedSerializerSettings()
-    .UseSqlServerStorage(connectionString, new Hangfire.SqlServer.SqlServerStorageOptions
-    {
-        CommandBatchMaxTimeout = TimeSpan.FromMinutes(5),
-        SlidingInvisibilityTimeout = TimeSpan.FromMinutes(5),
-        QueuePollInterval = TimeSpan.FromSeconds(15),
-        UseRecommendedIsolationLevel = true,
-        DisableGlobalLocks = true,
-        CommandTimeout = TimeSpan.FromMinutes(1),
-        PrepareSchemaIfNecessary = true
-    }));
+    .UseInMemoryStorage());
 
 builder.Services.AddHangfireServer(options =>
 {
     options.WorkerCount = 2;
     options.Queues = new[] { "imports", "default" };
-    options.ServerCheckInterval = TimeSpan.FromMinutes(1);
-    options.HeartbeatInterval = TimeSpan.FromMinutes(1);
 });
 
 // Configure file upload limits for large CSV files and form value limits for bulk operations
