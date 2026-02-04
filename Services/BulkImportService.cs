@@ -694,7 +694,7 @@ namespace TAB.Web.Services
 
             using var bulkCopy = new SqlBulkCopy(connection, SqlBulkCopyOptions.Default, null)
             {
-                DestinationTableName = tableName,
+                DestinationTableName = $"[ebill].[{tableName}]",
                 BatchSize = 10000,
                 BulkCopyTimeout = 600,
                 EnableStreaming = true

@@ -2149,8 +2149,8 @@ namespace TAB.Web.Services
             await connection.OpenAsync();
 
             using var bulkCopy = new SqlBulkCopy(connection);
-            // Use correct table name based on provider
-            bulkCopy.DestinationTableName = provider.ToLower() == "safaricom" ? "Safaricom" : "Airtel";
+            // Use correct table name based on provider (with ebill schema for Azure)
+            bulkCopy.DestinationTableName = provider.ToLower() == "safaricom" ? "[ebill].[Safaricom]" : "[ebill].[Airtel]";
             bulkCopy.BatchSize = 10000;
             bulkCopy.BulkCopyTimeout = 300;
 
@@ -2182,7 +2182,7 @@ namespace TAB.Web.Services
             await connection.OpenAsync();
 
             using var bulkCopy = new SqlBulkCopy(connection);
-            bulkCopy.DestinationTableName = "PSTNs";
+            bulkCopy.DestinationTableName = "[ebill].[PSTNs]";
             bulkCopy.BatchSize = 10000;
             bulkCopy.BulkCopyTimeout = 300;
 
@@ -2217,7 +2217,7 @@ namespace TAB.Web.Services
             await connection.OpenAsync();
 
             using var bulkCopy = new SqlBulkCopy(connection);
-            bulkCopy.DestinationTableName = "PrivateWires";
+            bulkCopy.DestinationTableName = "[ebill].[PrivateWires]";
             bulkCopy.BatchSize = 10000;
             bulkCopy.BulkCopyTimeout = 300;
 
