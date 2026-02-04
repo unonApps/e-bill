@@ -1,6 +1,7 @@
 using Azure.Storage.Blobs;
 using Azure.Storage.Blobs.Models;
 using Microsoft.AspNetCore.Http;
+using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.Logging;
 using Microsoft.Extensions.Options;
 using TAB.Web.Options;
@@ -22,16 +23,23 @@ public class BlobStorageService : IBlobStorageService
     // Maximum file size: 500 MB (matching Kestrel config)
     private const long MaxFileSize = 500 * 1024 * 1024;
 
-    public BlobStorageService(IOptions<BlobStorageOptions> options, ILogger<BlobStorageService> logger)
+    public BlobStorageService(IOptions<BlobStorageOptions> options, IConfiguration configuration, ILogger<BlobStorageService> logger)
     {
         _options = options.Value ?? new BlobStorageOptions();
         _logger = logger;
 
-        if (!string.IsNullOrEmpty(_options.StorageConnection) && !string.IsNullOrEmpty(_options.ContainerName))
+        // Try options first, then fall back to ConnectionStrings:BlobStorage
+        var connectionString = _options.StorageConnection
+            ?? configuration.GetConnectionString("BlobStorage");
+        var containerName = _options.ContainerName ?? "ebill-imports";
+
+        if (!string.IsNullOrEmpty(connectionString))
         {
-            var blobServiceClient = new BlobServiceClient(_options.StorageConnection);
-            _containerClient = blobServiceClient.GetBlobContainerClient(_options.ContainerName);
-            _logger.LogInformation("Azure Blob Storage configured with container: {Container}", _options.ContainerName);
+            _options.StorageConnection = connectionString;
+            _options.ContainerName = containerName;
+            var blobServiceClient = new BlobServiceClient(connectionString);
+            _containerClient = blobServiceClient.GetBlobContainerClient(containerName);
+            _logger.LogInformation("Azure Blob Storage configured with container: {Container}", containerName);
         }
         else
         {
