@@ -437,12 +437,23 @@ app.UseHangfireDashboard("/hangfire", new Hangfire.DashboardOptions
     Authorization = new[] { new HangfireAuthorizationFilter() }
 });
 
-// Add Hangfire recurring job for email queue processing
-// Processes 50 queued emails every 5 minutes (reduced frequency to prevent connection exhaustion)
-RecurringJob.AddOrUpdate<IEnhancedEmailService>(
-    "process-email-queue",
-    service => service.ProcessQueueAsync(50),
-    "*/5 * * * *"); // Every 5 minutes instead of 2
+// Defer Hangfire recurring job registration to avoid blocking startup
+_ = Task.Run(async () =>
+{
+    await Task.Delay(10000); // Wait 10 seconds for app to start
+    try
+    {
+        RecurringJob.AddOrUpdate<IEnhancedEmailService>(
+            "process-email-queue",
+            service => service.ProcessQueueAsync(50),
+            "*/5 * * * *"); // Every 5 minutes
+    }
+    catch (Exception ex)
+    {
+        var logger = app.Services.GetRequiredService<ILogger<Program>>();
+        logger.LogError(ex, "Failed to register Hangfire recurring job");
+    }
+});
 
 // Add password change middleware
 app.UsePasswordChangeMiddleware();
@@ -450,14 +461,21 @@ app.UsePasswordChangeMiddleware();
 app.MapRazorPages();
 app.MapControllers(); // Map API controllers
 
-// Ensure database created and apply migrations
-using (var scope = app.Services.CreateScope())
+// Run database initialization in background so app starts immediately
+_ = Task.Run(async () =>
 {
+    // Wait a few seconds for app to fully start
+    await Task.Delay(5000);
+
+    using var scope = app.Services.CreateScope();
     var services = scope.ServiceProvider;
+    var logger = services.GetRequiredService<ILogger<Program>>();
+
     try
     {
+        logger.LogInformation("Starting background database initialization...");
+
         var dbContext = services.GetRequiredService<ApplicationDbContext>();
-        var logger = services.GetRequiredService<ILogger<Program>>();
 
         // Apply pending migrations (this is better than EnsureCreated for production)
         if (dbContext.Database.GetPendingMigrations().Any())
@@ -469,10 +487,10 @@ using (var scope = app.Services.CreateScope())
         {
             logger.LogInformation("No pending migrations");
         }
-        
+
         var roleManager = services.GetRequiredService<RoleManager<IdentityRole>>();
         var userManager = services.GetRequiredService<UserManager<ApplicationUser>>();
-        
+
         // Create roles if they don't exist
         string[] roleNames = { "Admin", "User", "ICTS", "ICTS Service Desk", "Budget Officer", "Staff Claims Unit", "Claims Unit Approver", "Supervisor" };
         foreach (var roleName in roleNames)
@@ -483,7 +501,7 @@ using (var scope = app.Services.CreateScope())
                 logger.LogInformation("Created role {Role}", roleName);
             }
         }
-        
+
         // Create admin user if it doesn't exist
         var adminUser = await userManager.FindByEmailAsync("admin@example.com");
         if (adminUser == null)
@@ -496,7 +514,7 @@ using (var scope = app.Services.CreateScope())
                 FirstName = "Admin",
                 LastName = "User"
             };
-            
+
             var result = await userManager.CreateAsync(adminUser, "Admin123!");
             if (result.Succeeded)
             {
@@ -509,7 +527,7 @@ using (var scope = app.Services.CreateScope())
                 logger.LogError("Error creating admin user: {Errors}", string.Join(", ", result.Errors.Select(e => e.Description)));
             }
         }
-        
+
         // Create sample budget officers if they don't exist
         var budgetOfficers = new[]
         {
@@ -517,7 +535,7 @@ using (var scope = app.Services.CreateScope())
             new { Email = "budget.officer2@example.com", FirstName = "Jane", LastName = "Finance" },
             new { Email = "budget.officer3@example.com", FirstName = "Mike", LastName = "Accounting" }
         };
-        
+
         foreach (var officer in budgetOfficers)
         {
             var existingUser = await userManager.FindByEmailAsync(officer.Email);
@@ -531,7 +549,7 @@ using (var scope = app.Services.CreateScope())
                     FirstName = officer.FirstName,
                     LastName = officer.LastName
                 };
-                
+
                 var result = await userManager.CreateAsync(budgetUser, "Budget123!");
                 if (result.Succeeded)
                 {
@@ -540,7 +558,7 @@ using (var scope = app.Services.CreateScope())
                 }
                 else
                 {
-                    logger.LogError("Error creating budget officer {Email}: {Errors}", 
+                    logger.LogError("Error creating budget officer {Email}: {Errors}",
                         officer.Email, string.Join(", ", result.Errors.Select(e => e.Description)));
                 }
             }
@@ -553,7 +571,7 @@ using (var scope = app.Services.CreateScope())
             new { Email = "claims.approver2@example.com", FirstName = "David", LastName = "Review" },
             new { Email = "amichuki@gmail.com", FirstName = "Boniface", LastName = "Michuki" }
         };
-        
+
         foreach (var approver in claimsApprovers)
         {
             var existingUser = await userManager.FindByEmailAsync(approver.Email);
@@ -567,7 +585,7 @@ using (var scope = app.Services.CreateScope())
                     FirstName = approver.FirstName,
                     LastName = approver.LastName
                 };
-                
+
                 var result = await userManager.CreateAsync(claimsUser, "Claims123!");
                 if (result.Succeeded)
                 {
@@ -576,7 +594,7 @@ using (var scope = app.Services.CreateScope())
                 }
                 else
                 {
-                    logger.LogError("Error creating claims unit approver {Email}: {Errors}", 
+                    logger.LogError("Error creating claims unit approver {Email}: {Errors}",
                         approver.Email, string.Join(", ", result.Errors.Select(e => e.Description)));
                 }
             }
@@ -614,12 +632,13 @@ using (var scope = app.Services.CreateScope())
         {
             logger.LogInformation("RecoveryConfiguration (SystemConfiguration) already exists");
         }
+
+        logger.LogInformation("Background database initialization completed successfully");
     }
     catch (Exception ex)
     {
-        var logger = services.GetRequiredService<ILogger<Program>>();
-        logger.LogError(ex, "An error occurred while initializing the database.");
+        logger.LogError(ex, "An error occurred while initializing the database in background.");
     }
-}
+});
 
 app.Run();
