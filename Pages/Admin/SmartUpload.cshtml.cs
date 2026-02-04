@@ -149,6 +149,25 @@ namespace TAB.Web.Pages.Admin
                     return Page();
                 }
 
+                // Upload to Blob Storage so the file persists between preview and import
+                var blobFileName = $"uploads/{Path.GetFileName(tempPath)}";
+                using (var uploadStream = System.IO.File.OpenRead(tempPath))
+                {
+                    var contentType = isExcelFile
+                        ? (fileExtension == ".xlsx" ? "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet" : "application/vnd.ms-excel")
+                        : "text/csv";
+                    var uploadResult = await _blobStorageService.UploadStreamAsync(uploadStream, blobFileName, contentType);
+                    if (!uploadResult.Success)
+                    {
+                        _logger.LogWarning("Failed to upload preview file to Blob Storage: {Error}. Falling back to temp file.", uploadResult.ErrorMessage);
+                        blobFileName = tempPath; // Fall back to temp path for local dev
+                    }
+                    else
+                    {
+                        try { System.IO.File.Delete(tempPath); } catch { }
+                    }
+                }
+
                 // Set preview data
                 ShowPreview = true;
                 HeaderRowNumber = analysisResult.HeaderRowNumber;
@@ -156,7 +175,7 @@ namespace TAB.Web.Pages.Admin
                 ValidRows = analysisResult.ValidRows;
                 SkippedRows = analysisResult.SkippedRows;
                 PreviewRows = analysisResult.PreviewRows;
-                TempFilePath = tempPath;
+                TempFilePath = blobFileName;
                 PreviewBillingMonth = billingMonth;
                 PreviewBillingYear = billingYear;
                 PreviewProvider = provider;
@@ -196,54 +215,93 @@ namespace TAB.Web.Pages.Admin
         {
             try
             {
-                if (string.IsNullOrEmpty(tempFilePath) || !System.IO.File.Exists(tempFilePath))
+                bool isBlobPath = tempFilePath?.StartsWith("uploads/") == true;
+
+                if (string.IsNullOrEmpty(tempFilePath))
                 {
                     StatusMessage = "Preview file not found. Please upload again.";
                     StatusMessageClass = "danger";
                     return RedirectToPage();
                 }
 
-                // Get file info
-                var fileInfo = new FileInfo(tempFilePath);
+                // If it's a local file, check it exists
+                if (!isBlobPath && !System.IO.File.Exists(tempFilePath))
+                {
+                    StatusMessage = "Preview file not found. Please upload again.";
+                    StatusMessageClass = "danger";
+                    return RedirectToPage();
+                }
+
                 var fileExtension = Path.GetExtension(tempFilePath).ToLower();
                 var isExcelFile = fileExtension == ".xlsx" || fileExtension == ".xls";
                 var originalFileName = $"SmartUpload_{provider}_{billingYear}_{billingMonth:D2}{fileExtension}";
 
-                // Create import job record for tracking
                 var jobId = Guid.NewGuid();
-
-                // Upload file to Azure Blob Storage for reliable access by background worker
                 var blobPath = $"imports/{jobId:N}/{originalFileName}";
-                string? blobUrl = null;
+                long fileSize = 0;
 
-                using (var fileStream = System.IO.File.OpenRead(tempFilePath))
+                if (isBlobPath)
                 {
-                    var contentType = isExcelFile
-                        ? (fileExtension == ".xlsx" ? "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet" : "application/vnd.ms-excel")
-                        : "text/csv";
-
-                    var uploadResult = await _blobStorageService.UploadStreamAsync(fileStream, blobPath, contentType);
-
-                    if (!uploadResult.Success)
+                    // File is already in blob storage from preview - download and re-upload to imports/ path
+                    var downloadResult = await _blobStorageService.DownloadAsync(tempFilePath);
+                    if (!downloadResult.Success)
                     {
-                        _logger.LogError("Failed to upload file to Blob Storage: {Error}", uploadResult.ErrorMessage);
-                        StatusMessage = $"Failed to upload file: {uploadResult.ErrorMessage}";
+                        StatusMessage = "Preview file not found in storage. Please upload again.";
                         StatusMessageClass = "danger";
                         return RedirectToPage();
                     }
 
-                    blobUrl = uploadResult.Url;
-                    _logger.LogInformation("Uploaded file to Blob Storage: {BlobPath}", blobPath);
-                }
+                    using (var stream = downloadResult.Stream!)
+                    {
+                        // Get size by reading into memory stream
+                        using var memStream = new MemoryStream();
+                        await stream.CopyToAsync(memStream);
+                        fileSize = memStream.Length;
+                        memStream.Position = 0;
 
-                // Clean up temp file now that it's in Blob Storage
-                try { System.IO.File.Delete(tempFilePath); } catch { }
+                        var contentType = isExcelFile
+                            ? (fileExtension == ".xlsx" ? "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet" : "application/vnd.ms-excel")
+                            : "text/csv";
+                        var uploadResult = await _blobStorageService.UploadStreamAsync(memStream, blobPath, contentType);
+                        if (!uploadResult.Success)
+                        {
+                            StatusMessage = $"Failed to prepare file for import: {uploadResult.ErrorMessage}";
+                            StatusMessageClass = "danger";
+                            return RedirectToPage();
+                        }
+                    }
+
+                    // Clean up the preview blob
+                    await _blobStorageService.DeleteBlobAsync(tempFilePath);
+                }
+                else
+                {
+                    // Local file (dev environment) - upload to blob
+                    var fileInfo = new FileInfo(tempFilePath);
+                    fileSize = fileInfo.Length;
+
+                    using (var fileStream = System.IO.File.OpenRead(tempFilePath))
+                    {
+                        var contentType = isExcelFile
+                            ? (fileExtension == ".xlsx" ? "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet" : "application/vnd.ms-excel")
+                            : "text/csv";
+                        var uploadResult = await _blobStorageService.UploadStreamAsync(fileStream, blobPath, contentType);
+                        if (!uploadResult.Success)
+                        {
+                            _logger.LogError("Failed to upload file to Blob Storage: {Error}", uploadResult.ErrorMessage);
+                            StatusMessage = $"Failed to upload file: {uploadResult.ErrorMessage}";
+                            StatusMessageClass = "danger";
+                            return RedirectToPage();
+                        }
+                    }
+                    try { System.IO.File.Delete(tempFilePath); } catch { }
+                }
 
                 var importJob = new ImportJob
                 {
                     Id = jobId,
                     FileName = originalFileName,
-                    FileSize = fileInfo.Length,
+                    FileSize = fileSize,
                     CallLogType = provider,
                     BillingMonth = billingMonth,
                     BillingYear = billingYear,
@@ -279,7 +337,7 @@ namespace TAB.Web.Pages.Admin
                     "Queued {Provider} SmartUpload import job {JobId} with Hangfire job ID {HangfireJobId}, Blob: {BlobPath}",
                     provider, jobId, hangfireJobId, blobPath);
 
-                StatusMessage = $"Import queued successfully! {provider} file ({fileInfo.Length / 1024:N0} KB) is being processed in the background. " +
+                StatusMessage = $"Import queued successfully! {provider} file ({fileSize / 1024:N0} KB) is being processed in the background. " +
                                 $"Monitor progress on the Import Jobs page.";
                 StatusMessageClass = "success";
 
