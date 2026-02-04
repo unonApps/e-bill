@@ -102,8 +102,7 @@ builder.Services.AddScoped<ICallLogReportingService, CallLogReportingService>();
 builder.Services.AddScoped<ICurrencyConversionService, CurrencyConversionService>();
 
 // Register Recovery Automation Background Service
-// TEMPORARILY DISABLED - will be re-enabled after startup issues are resolved
-// builder.Services.AddHostedService<RecoveryAutomationJob>();
+builder.Services.AddHostedService<RecoveryAutomationJob>();
 
 // Register Bulk Import Service for enterprise-level upload processing
 builder.Services.AddScoped<IBulkImportService, BulkImportService>();
@@ -115,9 +114,6 @@ builder.Services.AddScoped<ISmartUploadImportService, SmartUploadImportService>(
 builder.Services.AddScoped<ISmartUploadUserCreationService, SmartUploadUserCreationService>();
 
 // Add Hangfire for background job processing with resilient settings
-// TEMPORARILY DISABLED - will be re-enabled after startup issues are resolved
-// Hangfire tries to connect to DB during startup which causes timeout
-/*
 builder.Services.AddHangfire(config => config
     .SetDataCompatibilityLevel(CompatibilityLevel.Version_180)
     .UseSimpleAssemblyNameTypeSerializer()
@@ -140,7 +136,6 @@ builder.Services.AddHangfireServer(options =>
     options.ServerCheckInterval = TimeSpan.FromMinutes(1);
     options.HeartbeatInterval = TimeSpan.FromMinutes(1);
 });
-*/
 
 // Configure file upload limits for large CSV files and form value limits for bulk operations
 builder.Services.Configure<Microsoft.AspNetCore.Http.Features.FormOptions>(options =>
@@ -437,11 +432,16 @@ app.UseAuthentication();
 app.UseAuthorization();
 
 // Add Hangfire Dashboard (only accessible by Admin users)
-// TEMPORARILY DISABLED - Hangfire is disabled for startup debugging
-// app.UseHangfireDashboard("/hangfire", new Hangfire.DashboardOptions
-// {
-//     Authorization = new[] { new HangfireAuthorizationFilter() }
-// });
+app.UseHangfireDashboard("/hangfire", new Hangfire.DashboardOptions
+{
+    Authorization = new[] { new HangfireAuthorizationFilter() }
+});
+
+// Add Hangfire recurring job for email queue processing
+RecurringJob.AddOrUpdate<IEnhancedEmailService>(
+    "process-email-queue",
+    service => service.ProcessQueueAsync(50),
+    "*/5 * * * *");
 
 // Add password change middleware
 app.UsePasswordChangeMiddleware();

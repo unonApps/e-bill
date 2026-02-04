@@ -34,8 +34,8 @@ namespace TAB.Web.Migrations
                         WHEN clv.SupervisorIndexNumber LIKE '%@%' THEN clv.SupervisorIndexNumber
                         ELSE eu.Email
                     END
-                FROM [dbo].[CallLogVerifications] clv
-                LEFT JOIN [dbo].[EbillUsers] eu ON eu.IndexNumber = clv.SupervisorIndexNumber
+                FROM [ebill].[CallLogVerifications] clv
+                LEFT JOIN [ebill].[EbillUsers] eu ON eu.IndexNumber = clv.SupervisorIndexNumber
                 WHERE clv.SupervisorEmail IS NULL
                   AND clv.SupervisorIndexNumber IS NOT NULL
                   AND clv.SubmittedToSupervisor = 1;
