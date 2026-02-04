@@ -63,11 +63,9 @@ namespace TAB.Web.Pages.Admin
             FilterMonth = filterMonth;
             FilterYear = filterYear;
 
-            // Run both data loads in parallel
-            var staffTask = LoadEOSStaffDataAsync();
-            var statsTask = LoadStatisticsAsync();
-
-            await Task.WhenAll(staffTask, statsTask);
+            // Run queries sequentially - DbContext is not thread-safe
+            await LoadEOSStaffDataAsync();
+            await LoadStatisticsAsync();
         }
 
         /// <summary>

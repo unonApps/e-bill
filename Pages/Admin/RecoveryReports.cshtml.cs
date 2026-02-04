@@ -97,26 +97,15 @@ namespace TAB.Web.Pages.Admin
             if (!EndDate.HasValue)
                 EndDate = DateTime.UtcNow;
 
-            // Load filter options and data in parallel
-            var batchesTask = LoadAvailableBatchesAsync();
-            var filterOptionsTask = LoadFilterOptionsAsync();
-            var summaryTask = LoadReportSummaryAsync();
-            var batchDetailsTask = LoadBatchDetailsAsync();
-            var userDetailsTask = LoadUserRecoveryDetailsAsync();
-            var jobsTask = LoadJobExecutionsAsync();
-            var deadlinesTask = LoadDeadlinePerformanceAsync();
-            var financeTask = LoadFinanceRecoveryDetailsAsync();
-
-            await Task.WhenAll(
-                batchesTask,
-                filterOptionsTask,
-                summaryTask,
-                batchDetailsTask,
-                userDetailsTask,
-                jobsTask,
-                deadlinesTask,
-                financeTask
-            );
+            // Load filter options and data sequentially - DbContext is not thread-safe
+            await LoadAvailableBatchesAsync();
+            await LoadFilterOptionsAsync();
+            await LoadReportSummaryAsync();
+            await LoadBatchDetailsAsync();
+            await LoadUserRecoveryDetailsAsync();
+            await LoadJobExecutionsAsync();
+            await LoadDeadlinePerformanceAsync();
+            await LoadFinanceRecoveryDetailsAsync();
         }
 
         private async Task LoadAvailableBatchesAsync()
@@ -138,8 +127,8 @@ namespace TAB.Web.Pages.Admin
 
         private async Task LoadFilterOptionsAsync()
         {
-            // Run all three filter option queries in parallel
-            var orgsTask = _context.EbillUsers
+            // Run queries sequentially - DbContext is not thread-safe
+            AvailableOrganizations = await _context.EbillUsers
                 .AsNoTracking()
                 .Where(u => u.OrganizationId.HasValue)
                 .Select(u => new { u.OrganizationId, u.OrganizationEntity!.Name })
@@ -148,7 +137,7 @@ namespace TAB.Web.Pages.Admin
                 .Select(o => new OrganizationOption { Id = o.OrganizationId!.Value, Name = o.Name })
                 .ToListAsync();
 
-            var officesTask = _context.EbillUsers
+            AvailableOffices = await _context.EbillUsers
                 .AsNoTracking()
                 .Where(u => u.OfficeId.HasValue)
                 .Select(u => new { u.OfficeId, u.OfficeEntity!.Name })
@@ -157,7 +146,7 @@ namespace TAB.Web.Pages.Admin
                 .Select(o => new OfficeOption { Id = o.OfficeId!.Value, Name = o.Name })
                 .ToListAsync();
 
-            var subOfficesTask = _context.EbillUsers
+            AvailableSubOffices = await _context.EbillUsers
                 .AsNoTracking()
                 .Where(u => u.SubOfficeId.HasValue)
                 .Select(u => new { u.SubOfficeId, u.SubOfficeEntity!.Name })
@@ -165,12 +154,6 @@ namespace TAB.Web.Pages.Admin
                 .OrderBy(o => o.Name)
                 .Select(o => new SubOfficeOption { Id = o.SubOfficeId!.Value, Name = o.Name })
                 .ToListAsync();
-
-            await Task.WhenAll(orgsTask, officesTask, subOfficesTask);
-
-            AvailableOrganizations = await orgsTask;
-            AvailableOffices = await officesTask;
-            AvailableSubOffices = await subOfficesTask;
         }
 
         private async Task LoadReportSummaryAsync()
