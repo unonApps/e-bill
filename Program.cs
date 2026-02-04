@@ -438,30 +438,10 @@ app.UseAuthorization();
 
 // Add Hangfire Dashboard (only accessible by Admin users)
 // TEMPORARILY DISABLED - Hangfire is disabled for startup debugging
-/*
-app.UseHangfireDashboard("/hangfire", new Hangfire.DashboardOptions
-{
-    Authorization = new[] { new HangfireAuthorizationFilter() }
-});
-
-// Defer Hangfire recurring job registration to avoid blocking startup
-_ = Task.Run(async () =>
-{
-    await Task.Delay(10000); // Wait 10 seconds for app to start
-    try
-    {
-        RecurringJob.AddOrUpdate<IEnhancedEmailService>(
-            "process-email-queue",
-            service => service.ProcessQueueAsync(50),
-            "*/5 * * * *"); // Every 5 minutes
-    }
-    catch (Exception ex)
-    {
-        var logger = app.Services.GetRequiredService<ILogger<Program>>();
-        logger.LogError(ex, "Failed to register Hangfire recurring job");
-    }
-});
-*/
+// app.UseHangfireDashboard("/hangfire", new Hangfire.DashboardOptions
+// {
+//     Authorization = new[] { new HangfireAuthorizationFilter() }
+// });
 
 // Add password change middleware
 app.UsePasswordChangeMiddleware();
