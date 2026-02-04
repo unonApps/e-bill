@@ -102,7 +102,8 @@ builder.Services.AddScoped<ICallLogReportingService, CallLogReportingService>();
 builder.Services.AddScoped<ICurrencyConversionService, CurrencyConversionService>();
 
 // Register Recovery Automation Background Service
-builder.Services.AddHostedService<RecoveryAutomationJob>();
+// TEMPORARILY DISABLED - will be re-enabled after startup issues are resolved
+// builder.Services.AddHostedService<RecoveryAutomationJob>();
 
 // Register Bulk Import Service for enterprise-level upload processing
 builder.Services.AddScoped<IBulkImportService, BulkImportService>();
@@ -114,6 +115,9 @@ builder.Services.AddScoped<ISmartUploadImportService, SmartUploadImportService>(
 builder.Services.AddScoped<ISmartUploadUserCreationService, SmartUploadUserCreationService>();
 
 // Add Hangfire for background job processing with resilient settings
+// TEMPORARILY DISABLED - will be re-enabled after startup issues are resolved
+// Hangfire tries to connect to DB during startup which causes timeout
+/*
 builder.Services.AddHangfire(config => config
     .SetDataCompatibilityLevel(CompatibilityLevel.Version_180)
     .UseSimpleAssemblyNameTypeSerializer()
@@ -122,20 +126,21 @@ builder.Services.AddHangfire(config => config
     {
         CommandBatchMaxTimeout = TimeSpan.FromMinutes(5),
         SlidingInvisibilityTimeout = TimeSpan.FromMinutes(5),
-        QueuePollInterval = TimeSpan.FromSeconds(15), // Poll every 15 seconds instead of constantly
+        QueuePollInterval = TimeSpan.FromSeconds(15),
         UseRecommendedIsolationLevel = true,
         DisableGlobalLocks = true,
-        CommandTimeout = TimeSpan.FromMinutes(1), // Command timeout for Hangfire queries
+        CommandTimeout = TimeSpan.FromMinutes(1),
         PrepareSchemaIfNecessary = true
     }));
 
 builder.Services.AddHangfireServer(options =>
 {
-    options.WorkerCount = 2; // Reduced from 4 to prevent connection exhaustion
-    options.Queues = new[] { "imports", "default" }; // Separate queue for imports
-    options.ServerCheckInterval = TimeSpan.FromMinutes(1); // Check server health less frequently
-    options.HeartbeatInterval = TimeSpan.FromMinutes(1); // Heartbeat less frequently
+    options.WorkerCount = 2;
+    options.Queues = new[] { "imports", "default" };
+    options.ServerCheckInterval = TimeSpan.FromMinutes(1);
+    options.HeartbeatInterval = TimeSpan.FromMinutes(1);
 });
+*/
 
 // Configure file upload limits for large CSV files and form value limits for bulk operations
 builder.Services.Configure<Microsoft.AspNetCore.Http.Features.FormOptions>(options =>
@@ -432,6 +437,8 @@ app.UseAuthentication();
 app.UseAuthorization();
 
 // Add Hangfire Dashboard (only accessible by Admin users)
+// TEMPORARILY DISABLED - Hangfire is disabled for startup debugging
+/*
 app.UseHangfireDashboard("/hangfire", new Hangfire.DashboardOptions
 {
     Authorization = new[] { new HangfireAuthorizationFilter() }
@@ -454,6 +461,7 @@ _ = Task.Run(async () =>
         logger.LogError(ex, "Failed to register Hangfire recurring job");
     }
 });
+*/
 
 // Add password change middleware
 app.UsePasswordChangeMiddleware();
