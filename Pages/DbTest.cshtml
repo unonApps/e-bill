@@ -1,0 +1,61 @@
+@page
+@model TAB.Web.Pages.DbTestModel
+@{
+    Layout = null;
+}
+<!DOCTYPE html>
+<html>
+<head>
+    <title>Database Connection Test</title>
+    <style>
+        body { font-family: Arial, sans-serif; padding: 40px; background: #f5f5f5; }
+        .container { max-width: 800px; margin: 0 auto; background: white; padding: 30px; border-radius: 8px; box-shadow: 0 2px 10px rgba(0,0,0,0.1); }
+        h1 { color: #333; }
+        .success { color: #28a745; background: #d4edda; padding: 15px; border-radius: 5px; }
+        .error { color: #721c24; background: #f8d7da; padding: 15px; border-radius: 5px; }
+        .info { color: #0c5460; background: #d1ecf1; padding: 15px; border-radius: 5px; margin-top: 20px; }
+        pre { background: #f4f4f4; padding: 15px; overflow-x: auto; font-size: 12px; }
+        .timestamp { color: #666; font-size: 14px; }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>🔌 Database Connection Test</h1>
+        <p class="timestamp">Tested at: @DateTime.UtcNow.ToString("yyyy-MM-dd HH:mm:ss") UTC</p>
+
+        @if (Model.IsConnected)
+        {
+            <div class="success">
+                <h2>✅ SUCCESS - Database Connected!</h2>
+                <p>Connection to SQL Server established successfully.</p>
+                <p><strong>Tables found:</strong> @Model.TableCount</p>
+                <p><strong>Users in database:</strong> @Model.UserCount</p>
+            </div>
+        }
+        else
+        {
+            <div class="error">
+                <h2>❌ FAILED - Cannot Connect to Database</h2>
+                <p><strong>Error:</strong> @Model.ErrorMessage</p>
+            </div>
+
+            <div class="info">
+                <h3>🔧 How to Fix</h3>
+                <p>The App Service cannot reach the SQL Server. Ask your DBA to:</p>
+                <ol>
+                    <li>Go to Azure Portal → SQL Server → <strong>Networking</strong></li>
+                    <li>Enable <strong>"Allow Azure services and resources to access this server"</strong></li>
+                    <li>Click <strong>Save</strong></li>
+                </ol>
+            </div>
+        }
+
+        <div class="info">
+            <h3>📋 Connection Details</h3>
+            <p><strong>Server:</strong> @Model.ServerName</p>
+            <p><strong>Database:</strong> @Model.DatabaseName</p>
+            <p><strong>App Service IP:</strong> This request came from Azure App Service</p>
+        </div>
+    </div>
+</body>
+</html>
