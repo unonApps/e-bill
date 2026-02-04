@@ -14,7 +14,7 @@ public class BlobStorageService : IBlobStorageService
 {
     private readonly BlobStorageOptions _options;
     private readonly ILogger<BlobStorageService> _logger;
-    private readonly BlobContainerClient _containerClient;
+    private BlobContainerClient? _containerClient;
 
     // Allowed file extensions for import files
     private static readonly string[] AllowedExtensions = { ".csv", ".xlsx", ".xls" };
@@ -24,17 +24,26 @@ public class BlobStorageService : IBlobStorageService
 
     public BlobStorageService(IOptions<BlobStorageOptions> options, ILogger<BlobStorageService> logger)
     {
-        _options = options.Value ?? throw new ArgumentNullException(nameof(options));
+        _options = options.Value ?? new BlobStorageOptions();
         _logger = logger;
 
-        if (string.IsNullOrEmpty(_options.ConnectionString))
-            throw new ArgumentException("Azure Blob Storage connection string is not configured");
+        if (!string.IsNullOrEmpty(_options.StorageConnection) && !string.IsNullOrEmpty(_options.ContainerName))
+        {
+            var blobServiceClient = new BlobServiceClient(_options.StorageConnection);
+            _containerClient = blobServiceClient.GetBlobContainerClient(_options.ContainerName);
+            _logger.LogInformation("Azure Blob Storage configured with container: {Container}", _options.ContainerName);
+        }
+        else
+        {
+            _logger.LogWarning("Azure Blob Storage is not configured. Import file uploads will fail until configuration is provided.");
+        }
+    }
 
-        if (string.IsNullOrEmpty(_options.ContainerName))
-            throw new ArgumentException("Azure Blob Storage container name is not configured");
-
-        var blobServiceClient = new BlobServiceClient(_options.ConnectionString);
-        _containerClient = blobServiceClient.GetBlobContainerClient(_options.ContainerName);
+    private BlobContainerClient GetContainerClient()
+    {
+        if (_containerClient == null)
+            throw new InvalidOperationException("Azure Blob Storage is not configured. Please add AzureBlobStorage settings to app configuration or environment variables.");
+        return _containerClient;
     }
 
     /// <summary>
@@ -51,11 +60,13 @@ public class BlobStorageService : IBlobStorageService
                 return (false, null, validationError);
             }
 
+            var container = GetContainerClient();
+
             // Ensure container exists
-            await _containerClient.CreateIfNotExistsAsync(PublicAccessType.None);
+            await container.CreateIfNotExistsAsync(PublicAccessType.None);
 
             // Get blob client
-            var blobClient = _containerClient.GetBlobClient(blobPath);
+            var blobClient = container.GetBlobClient(blobPath);
 
             // Upload with content type
             var contentType = GetContentType(file.FileName);
@@ -82,11 +93,13 @@ public class BlobStorageService : IBlobStorageService
     {
         try
         {
+            var container = GetContainerClient();
+
             // Ensure container exists
-            await _containerClient.CreateIfNotExistsAsync(PublicAccessType.None);
+            await container.CreateIfNotExistsAsync(PublicAccessType.None);
 
             // Get blob client
-            var blobClient = _containerClient.GetBlobClient(blobPath);
+            var blobClient = container.GetBlobClient(blobPath);
 
             // Upload with content type
             await blobClient.UploadAsync(stream, new BlobHttpHeaders { ContentType = contentType });
@@ -110,7 +123,8 @@ public class BlobStorageService : IBlobStorageService
     {
         try
         {
-            var blobClient = _containerClient.GetBlobClient(blobPath);
+            var container = GetContainerClient();
+            var blobClient = container.GetBlobClient(blobPath);
 
             if (!await blobClient.ExistsAsync())
             {
@@ -161,7 +175,8 @@ public class BlobStorageService : IBlobStorageService
     {
         try
         {
-            var blobClient = _containerClient.GetBlobClient(blobPath);
+            var container = GetContainerClient();
+            var blobClient = container.GetBlobClient(blobPath);
             var response = await blobClient.DeleteIfExistsAsync();
 
             if (response.Value)
@@ -185,7 +200,8 @@ public class BlobStorageService : IBlobStorageService
     {
         try
         {
-            var blobClient = _containerClient.GetBlobClient(blobPath);
+            var container = GetContainerClient();
+            var blobClient = container.GetBlobClient(blobPath);
             return await blobClient.ExistsAsync();
         }
         catch (Exception ex)
