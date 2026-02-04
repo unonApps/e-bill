@@ -102,7 +102,8 @@ builder.Services.AddScoped<ICallLogReportingService, CallLogReportingService>();
 builder.Services.AddScoped<ICurrencyConversionService, CurrencyConversionService>();
 
 // Register Recovery Automation Background Service
-builder.Services.AddHostedService<RecoveryAutomationJob>();
+// Temporarily disabled - causes startup timeout when DB is slow
+// builder.Services.AddHostedService<RecoveryAutomationJob>();
 
 // Register Bulk Import Service for enterprise-level upload processing
 builder.Services.AddScoped<IBulkImportService, BulkImportService>();
