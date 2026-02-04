@@ -101,46 +101,26 @@ namespace TAB.Web.Pages.Admin
             // Cache exchange rates upfront to avoid repeated lookups
             await CacheExchangeRatesAsync();
 
-            // Run independent queries in parallel for better performance
-            var dashboardMetricsTask = LoadDashboardMetricsAsync();
-            var recoveryTrendsTask = LoadRecoveryTrendsAsync();
-            var deadlineComplianceTask = LoadDeadlineComplianceAsync();
-            var topBatchesTask = LoadTopBatchesAsync();
-            var recentActivitiesTask = LoadRecentActivitiesAsync();
-            var recoveryBreakdownTask = LoadRecoveryBreakdownAsync();
-            var alertsTask = LoadAlertsAsync();
-
-            await Task.WhenAll(
-                dashboardMetricsTask,
-                recoveryTrendsTask,
-                deadlineComplianceTask,
-                topBatchesTask,
-                recentActivitiesTask,
-                recoveryBreakdownTask,
-                alertsTask
-            );
+            // Run queries sequentially - DbContext is not thread-safe
+            await LoadDashboardMetricsAsync();
+            await LoadRecoveryTrendsAsync();
+            await LoadDeadlineComplianceAsync();
+            await LoadTopBatchesAsync();
+            await LoadRecentActivitiesAsync();
+            await LoadRecoveryBreakdownAsync();
+            await LoadAlertsAsync();
 
             // These depend on base metrics being loaded
             await LoadEnhancedMetricsAsync();
 
-            // Run second batch in parallel
-            var recoveryByTypeTask = LoadRecoveryByTypeAsync();
-            var recoveryByProviderTask = LoadRecoveryByProviderAsync();
-            var recoveryByOrgTask = LoadRecoveryByOrganizationAsync();
-            var topUserTask = LoadTopUserRecoveriesAsync();
-            var officialCallsTask = LoadOfficialCallsMetricsAsync();
-            var providerSummaryTask = LoadProviderSummaryAsync();
-            var monthlyTrendsTask = LoadMonthlyRecoveryTrendsAsync();
-
-            await Task.WhenAll(
-                recoveryByTypeTask,
-                recoveryByProviderTask,
-                recoveryByOrgTask,
-                topUserTask,
-                officialCallsTask,
-                providerSummaryTask,
-                monthlyTrendsTask
-            );
+            // Continue with remaining queries
+            await LoadRecoveryByTypeAsync();
+            await LoadRecoveryByProviderAsync();
+            await LoadRecoveryByOrganizationAsync();
+            await LoadTopUserRecoveriesAsync();
+            await LoadOfficialCallsMetricsAsync();
+            await LoadProviderSummaryAsync();
+            await LoadMonthlyRecoveryTrendsAsync();
         }
 
         private async Task CacheExchangeRatesAsync()
@@ -837,25 +817,20 @@ namespace TAB.Web.Pages.Admin
             var alerts = new List<DashboardAlertDTO>();
             var next48Hours = DateTime.UtcNow.AddHours(48);
 
-            // Get both counts in parallel
-            var pendingTask = _context.CallRecords
+            // Run queries sequentially - DbContext is not thread-safe
+            var pendingResult = await _context.CallRecords
                 .AsNoTracking()
                 .Where(c => c.RecoveryStatus == "Pending")
                 .GroupBy(c => 1)
                 .Select(g => new { Count = g.Count(), Amount = g.Sum(c => c.RecoveryAmount ?? 0) })
                 .FirstOrDefaultAsync();
 
-            var deadlineTask = _context.DeadlineTracking
+            var upcomingDeadlines = await _context.DeadlineTracking
                 .AsNoTracking()
                 .Where(d => d.DeadlineDate > DateTime.UtcNow &&
                            d.DeadlineDate <= next48Hours &&
                            d.DeadlineStatus == "Pending")
                 .CountAsync();
-
-            await Task.WhenAll(pendingTask, deadlineTask);
-
-            var pendingResult = await pendingTask;
-            var upcomingDeadlines = await deadlineTask;
 
             if (pendingResult != null && pendingResult.Count > 0)
             {
