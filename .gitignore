@@ -23,9 +23,9 @@ App_Data/
 # User uploads (keep structure, ignore content)
 wwwroot/uploads/**/
 
-# App settings (contain secrets)
-appsettings.json
-appsettings.*.json
+# App settings with secrets (environment-specific)
+appsettings.Development.json
+appsettings.Production.json
 
 # Development Team
 .claude/
