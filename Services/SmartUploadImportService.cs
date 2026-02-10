@@ -55,23 +55,25 @@ namespace TAB.Web.Services
 
             try
             {
-                _logger.LogInformation("Starting SmartUpload import for job {JobId}: {Provider} from {FilePath} (Excel: {IsExcel})",
+                _logger.LogInformation("[STEP 1/6] Starting SmartUpload import for job {JobId}: {Provider} from {FilePath} (Excel: {IsExcel})",
                     jobId, provider, filePath, isExcelFile);
 
                 // Update job status to Processing
                 await UpdateJobStatus(jobId, "Processing", null, null, null);
+                _logger.LogInformation("[STEP 2/6] Job {JobId}: Status set to Processing", jobId);
 
                 // Check if filePath is a blob path (starts with "imports/") or local path
                 if (filePath.StartsWith("imports/"))
                 {
                     // Download from Azure Blob Storage
-                    _logger.LogInformation("Downloading file from Blob Storage: {BlobPath}", filePath);
+                    _logger.LogInformation("[STEP 3/6] Job {JobId}: Downloading file from Blob Storage: {BlobPath}", jobId, filePath);
 
                     var downloadResult = await _blobStorageService.DownloadAsync(filePath);
                     if (!downloadResult.Success || downloadResult.Stream == null)
                     {
                         throw new InvalidOperationException($"Failed to download file from Blob Storage: {downloadResult.ErrorMessage}");
                     }
+                    _logger.LogInformation("[STEP 3/6] Job {JobId}: Blob download successful, saving to temp file", jobId);
 
                     // Save to temp file for processing
                     var extension = isExcelFile ? (filePath.EndsWith(".xlsx") ? ".xlsx" : ".xls") : ".csv";
@@ -83,14 +85,17 @@ namespace TAB.Web.Services
                         await downloadResult.Stream.CopyToAsync(fileStream);
                     }
 
+                    var fileSize = new FileInfo(localFilePath).Length;
                     downloadedFromBlob = true;
-                    _logger.LogInformation("Downloaded blob to temp file: {TempPath}", localFilePath);
+                    _logger.LogInformation("[STEP 3/6] Job {JobId}: Downloaded blob to temp file: {TempPath} ({FileSize} bytes)", jobId, localFilePath, fileSize);
                 }
                 else
                 {
                     // Legacy: use local file path directly
                     localFilePath = filePath;
                 }
+
+                _logger.LogInformation("[STEP 4/6] Job {JobId}: Routing to {Provider} handler (Excel: {IsExcel})", jobId, provider, isExcelFile);
 
                 // Route to appropriate handler based on file type and provider
                 if (isExcelFile)
@@ -1365,7 +1370,9 @@ namespace TAB.Web.Services
             var result = new ImportResult { StartTime = DateTime.UtcNow };
 
             // Pre-load user phone lookups
+            _logger.LogInformation("[STEP 5/6] Job {JobId}: Loading user phone lookups...", jobId);
             var userPhoneLookup = await LoadUserPhoneLookup(cancellationToken.ShutdownToken);
+            _logger.LogInformation("[STEP 5/6] Job {JobId}: Loaded {Count} user phone lookups", jobId, userPhoneLookup.Count);
 
             var dataTable = CreateMobileDataTable();
             var billingPeriodString = new DateTime(billingYear, billingMonth, 1).ToString("yyyy-MM-dd");
@@ -1376,7 +1383,7 @@ namespace TAB.Web.Services
             Dictionary<string, int>? columnIndices = null;
             bool headerLogged = false;
 
-            _logger.LogInformation("Starting CSV import from {FilePath} for {Provider}", filePath, provider);
+            _logger.LogInformation("[STEP 6/6] Job {JobId}: Starting CSV import from {FilePath} for {Provider}", jobId, filePath, provider);
 
             while ((line = await reader.ReadLineAsync()) != null)
             {
@@ -1447,7 +1454,9 @@ namespace TAB.Web.Services
                     // Bulk insert in batches
                     if (dataTable.Rows.Count >= BATCH_SIZE)
                     {
+                        _logger.LogInformation("Job {JobId}: Bulk inserting batch of {Count} rows (total parsed: {Total})...", jobId, dataTable.Rows.Count, result.SuccessCount);
                         await BulkInsertMobileAsync(dataTable, provider);
+                        _logger.LogInformation("Job {JobId}: Batch insert complete. Total success: {Total}", jobId, result.SuccessCount);
                         await UpdateJobStatus(jobId, "Processing", result.SuccessCount, result.ErrorCount, null);
                         dataTable.Clear();
                     }
@@ -1462,14 +1471,16 @@ namespace TAB.Web.Services
             // Insert remaining rows
             if (dataTable.Rows.Count > 0)
             {
+                _logger.LogInformation("Job {JobId}: Inserting final batch of {Count} rows...", jobId, dataTable.Rows.Count);
                 await BulkInsertMobileAsync(dataTable, provider);
+                _logger.LogInformation("Job {JobId}: Final batch insert complete", jobId);
             }
 
             // Log completion status
             if (columnIndices == null)
             {
-                _logger.LogError("No header row was found in the CSV file for {Provider}. File: {FilePath}, Lines checked: {LineNumber}",
-                    provider, filePath, lineNumber);
+                _logger.LogError("Job {JobId}: No header row was found in the CSV file for {Provider}. File: {FilePath}, Lines checked: {LineNumber}",
+                    jobId, provider, filePath, lineNumber);
             }
             else
             {
