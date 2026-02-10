@@ -604,6 +604,7 @@ namespace TAB.Web.Services
                         dataRow["CallMonth"] = billingMonth;
                         dataRow["CallYear"] = billingYear;
                         dataRow["CreatedDate"] = DateTime.UtcNow;
+                        dataRow["ProcessingStatus"] = 0; // Staged
                         dataRow["ImportJobId"] = jobId;
 
                         dataTable.Rows.Add(dataRow);
@@ -824,6 +825,7 @@ namespace TAB.Web.Services
                         dataRow["CallMonth"] = billingMonth;
                         dataRow["CallYear"] = billingYear;
                         dataRow["CreatedDate"] = DateTime.UtcNow;
+                        dataRow["ProcessingStatus"] = 0; // Staged
                         dataRow["ImportJobId"] = jobId;
 
                         dataTable.Rows.Add(dataRow);
@@ -1103,6 +1105,7 @@ namespace TAB.Web.Services
                         dataRow["CallMonth"] = billingMonth;
                         dataRow["CallYear"] = billingYear;
                         dataRow["CreatedDate"] = DateTime.UtcNow;
+                        dataRow["ProcessingStatus"] = 0; // Staged
                         dataRow["ImportJobId"] = jobId;
 
                         dataTable.Rows.Add(dataRow);
@@ -1312,6 +1315,7 @@ namespace TAB.Web.Services
                         dataRow["CallMonth"] = billingMonth;
                         dataRow["CallYear"] = billingYear;
                         dataRow["CreatedDate"] = DateTime.UtcNow;
+                        dataRow["ProcessingStatus"] = 0; // Staged
                         dataRow["ImportJobId"] = jobId;
 
                         dataTable.Rows.Add(dataRow);
@@ -1576,6 +1580,7 @@ namespace TAB.Web.Services
                     dataRow["CallMonth"] = billingMonth;
                     dataRow["CallYear"] = billingYear;
                     dataRow["CreatedDate"] = DateTime.UtcNow;
+                    dataRow["ProcessingStatus"] = 0; // Staged
                     dataRow["ImportJobId"] = jobId;
 
                     dataTable.Rows.Add(dataRow);
@@ -1678,6 +1683,7 @@ namespace TAB.Web.Services
                     dataRow["CallMonth"] = billingMonth;
                     dataRow["CallYear"] = billingYear;
                     dataRow["CreatedDate"] = DateTime.UtcNow;
+                    dataRow["ProcessingStatus"] = 0; // Staged
                     dataRow["ImportJobId"] = jobId;
 
                     dataTable.Rows.Add(dataRow);
@@ -2196,6 +2202,7 @@ namespace TAB.Web.Services
             dt.Columns.Add("CallMonth", typeof(int));
             dt.Columns.Add("CallYear", typeof(int));
             dt.Columns.Add("CreatedDate", typeof(DateTime));
+            dt.Columns.Add("ProcessingStatus", typeof(int));
             dt.Columns.Add("ImportJobId", typeof(Guid));
             return dt;
         }
@@ -2221,6 +2228,7 @@ namespace TAB.Web.Services
             dt.Columns.Add("CallMonth", typeof(int));
             dt.Columns.Add("CallYear", typeof(int));
             dt.Columns.Add("CreatedDate", typeof(DateTime));
+            dt.Columns.Add("ProcessingStatus", typeof(int));
             dt.Columns.Add("ImportJobId", typeof(Guid));
             return dt;
         }
@@ -2292,6 +2300,7 @@ namespace TAB.Web.Services
             bulkCopy.ColumnMappings.Add("CallMonth", "CallMonth");
             bulkCopy.ColumnMappings.Add("CallYear", "CallYear");
             bulkCopy.ColumnMappings.Add("CreatedDate", "CreatedDate");
+            bulkCopy.ColumnMappings.Add("ProcessingStatus", "ProcessingStatus");
             bulkCopy.ColumnMappings.Add("ImportJobId", "ImportJobId");
 
             await bulkCopy.WriteToServerAsync(dataTable);
@@ -2326,6 +2335,7 @@ namespace TAB.Web.Services
             bulkCopy.ColumnMappings.Add("CallMonth", "CallMonth");
             bulkCopy.ColumnMappings.Add("CallYear", "CallYear");
             bulkCopy.ColumnMappings.Add("CreatedDate", "CreatedDate");
+            bulkCopy.ColumnMappings.Add("ProcessingStatus", "ProcessingStatus");
             bulkCopy.ColumnMappings.Add("ImportJobId", "ImportJobId");
 
             await bulkCopy.WriteToServerAsync(dataTable);
