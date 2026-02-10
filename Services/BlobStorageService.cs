@@ -32,7 +32,9 @@ public class BlobStorageService : IBlobStorageService
         var connectionString = !string.IsNullOrEmpty(_options.StorageConnection)
             ? _options.StorageConnection
             : configuration.GetConnectionString("BlobStorage");
-        var containerName = _options.ContainerName ?? "ebill-imports";
+        var containerName = !string.IsNullOrEmpty(_options.ContainerName)
+            ? _options.ContainerName
+            : "ebill-imports";
 
         if (!string.IsNullOrEmpty(connectionString))
         {
