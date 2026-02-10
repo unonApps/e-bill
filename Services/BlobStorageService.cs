@@ -29,8 +29,9 @@ public class BlobStorageService : IBlobStorageService
         _logger = logger;
 
         // Try options first, then fall back to ConnectionStrings:BlobStorage
-        var connectionString = _options.StorageConnection
-            ?? configuration.GetConnectionString("BlobStorage");
+        var connectionString = !string.IsNullOrEmpty(_options.StorageConnection)
+            ? _options.StorageConnection
+            : configuration.GetConnectionString("BlobStorage");
         var containerName = _options.ContainerName ?? "ebill-imports";
 
         if (!string.IsNullOrEmpty(connectionString))
