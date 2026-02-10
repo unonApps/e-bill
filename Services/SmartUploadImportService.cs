@@ -58,14 +58,15 @@ namespace TAB.Web.Services
                 _logger.LogInformation("[STEP 1/6] Starting SmartUpload import for job {JobId}: {Provider} from {FilePath} (Excel: {IsExcel})",
                     jobId, provider, filePath, isExcelFile);
 
-                // Update job status to Processing
-                await UpdateJobStatus(jobId, "Processing", null, null, null);
+                // Update job status to Processing - write step info to ErrorMessage so it's visible on ImportJobs page
+                await UpdateJobStatus(jobId, "Processing", null, null, "Step 1: Job started");
                 _logger.LogInformation("[STEP 2/6] Job {JobId}: Status set to Processing", jobId);
 
                 // Check if filePath is a blob path (starts with "imports/") or local path
                 if (filePath.StartsWith("imports/"))
                 {
                     // Download from Azure Blob Storage
+                    await UpdateJobStatus(jobId, "Processing", null, null, "Step 2: Downloading file from Blob Storage...");
                     _logger.LogInformation("[STEP 3/6] Job {JobId}: Downloading file from Blob Storage: {BlobPath}", jobId, filePath);
 
                     var downloadResult = await _blobStorageService.DownloadAsync(filePath);
@@ -87,6 +88,7 @@ namespace TAB.Web.Services
 
                     var fileSize = new FileInfo(localFilePath).Length;
                     downloadedFromBlob = true;
+                    await UpdateJobStatus(jobId, "Processing", null, null, $"Step 3: Blob downloaded ({fileSize} bytes). Saving to temp file...");
                     _logger.LogInformation("[STEP 3/6] Job {JobId}: Downloaded blob to temp file: {TempPath} ({FileSize} bytes)", jobId, localFilePath, fileSize);
                 }
                 else
@@ -95,6 +97,7 @@ namespace TAB.Web.Services
                     localFilePath = filePath;
                 }
 
+                await UpdateJobStatus(jobId, "Processing", null, null, $"Step 4: File ready. Routing to {provider} handler (Excel: {isExcelFile})...");
                 _logger.LogInformation("[STEP 4/6] Job {JobId}: Routing to {Provider} handler (Excel: {IsExcel})", jobId, provider, isExcelFile);
 
                 // Route to appropriate handler based on file type and provider
@@ -1370,8 +1373,10 @@ namespace TAB.Web.Services
             var result = new ImportResult { StartTime = DateTime.UtcNow };
 
             // Pre-load user phone lookups
+            await UpdateJobStatus(jobId, "Processing", null, null, "Step 5: Loading user phone lookups from database...");
             _logger.LogInformation("[STEP 5/6] Job {JobId}: Loading user phone lookups...", jobId);
             var userPhoneLookup = await LoadUserPhoneLookup(cancellationToken.ShutdownToken);
+            await UpdateJobStatus(jobId, "Processing", null, null, $"Step 5: Loaded {userPhoneLookup.Count} phone lookups. Opening CSV file...");
             _logger.LogInformation("[STEP 5/6] Job {JobId}: Loaded {Count} user phone lookups", jobId, userPhoneLookup.Count);
 
             var dataTable = CreateMobileDataTable();
@@ -1383,6 +1388,7 @@ namespace TAB.Web.Services
             Dictionary<string, int>? columnIndices = null;
             bool headerLogged = false;
 
+            await UpdateJobStatus(jobId, "Processing", null, null, "Step 6: Reading CSV lines...");
             _logger.LogInformation("[STEP 6/6] Job {JobId}: Starting CSV import from {FilePath} for {Provider}", jobId, filePath, provider);
 
             while ((line = await reader.ReadLineAsync()) != null)
@@ -1454,10 +1460,11 @@ namespace TAB.Web.Services
                     // Bulk insert in batches
                     if (dataTable.Rows.Count >= BATCH_SIZE)
                     {
+                        await UpdateJobStatus(jobId, "Processing", result.SuccessCount, result.ErrorCount, $"Step 7: Bulk inserting batch ({result.SuccessCount} rows parsed so far)...");
                         _logger.LogInformation("Job {JobId}: Bulk inserting batch of {Count} rows (total parsed: {Total})...", jobId, dataTable.Rows.Count, result.SuccessCount);
                         await BulkInsertMobileAsync(dataTable, provider);
                         _logger.LogInformation("Job {JobId}: Batch insert complete. Total success: {Total}", jobId, result.SuccessCount);
-                        await UpdateJobStatus(jobId, "Processing", result.SuccessCount, result.ErrorCount, null);
+                        await UpdateJobStatus(jobId, "Processing", result.SuccessCount, result.ErrorCount, $"Step 7: Batch inserted. {result.SuccessCount} rows so far.");
                         dataTable.Clear();
                     }
                 }
@@ -1471,6 +1478,7 @@ namespace TAB.Web.Services
             // Insert remaining rows
             if (dataTable.Rows.Count > 0)
             {
+                await UpdateJobStatus(jobId, "Processing", result.SuccessCount, result.ErrorCount, $"Step 8: Final batch insert ({dataTable.Rows.Count} rows)...");
                 _logger.LogInformation("Job {JobId}: Inserting final batch of {Count} rows...", jobId, dataTable.Rows.Count);
                 await BulkInsertMobileAsync(dataTable, provider);
                 _logger.LogInformation("Job {JobId}: Final batch insert complete", jobId);
@@ -1481,9 +1489,11 @@ namespace TAB.Web.Services
             {
                 _logger.LogError("Job {JobId}: No header row was found in the CSV file for {Provider}. File: {FilePath}, Lines checked: {LineNumber}",
                     jobId, provider, filePath, lineNumber);
+                await UpdateJobStatus(jobId, "Processing", result.SuccessCount, result.ErrorCount, $"WARNING: No CSV header found after {lineNumber} lines! File may be in wrong format.");
             }
             else
             {
+                await UpdateJobStatus(jobId, "Processing", result.SuccessCount, result.ErrorCount, $"Step 9: CSV done. Lines: {lineNumber}, Success: {result.SuccessCount}, Errors: {result.ErrorCount}");
                 _logger.LogInformation("CSV import completed for {Provider}. Total lines: {LineNumber}, Success: {Success}, Errors: {Errors}",
                     provider, lineNumber, result.SuccessCount, result.ErrorCount);
             }
@@ -1894,7 +1904,7 @@ namespace TAB.Web.Services
                         [RecordsSuccess] = COALESCE(@RecordsSuccess, [RecordsSuccess]),
                         [RecordsError] = COALESCE(@RecordsError, [RecordsError]),
                         [RecordsProcessed] = COALESCE(@RecordsSuccess, 0) + COALESCE(@RecordsError, 0),
-                        [ErrorMessage] = COALESCE(@ErrorMessage, [ErrorMessage])
+                        [ErrorMessage] = CASE WHEN @Status = 'Processing' THEN @ErrorMessage ELSE COALESCE(@ErrorMessage, [ErrorMessage]) END
                     WHERE [Id] = @JobId";
 
                 using var command = new SqlCommand(sql, connection);
