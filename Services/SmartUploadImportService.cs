@@ -319,12 +319,12 @@ namespace TAB.Web.Services
                         var phoneFound = userPhoneLookup.TryGetValue(callingNo, out var userPhone);
 
                         var dataRow = dataTable.NewRow();
-                        dataRow["ext"] = callingNo;
+                        dataRow["Ext"] = callingNo;
                         dataRow["call_date"] = ParseReaderDate(reader, columnIndices, "date", provider);
                         dataRow["call_time"] = ParseReaderTime(reader, columnIndices, "time", provider);
-                        dataRow["dialed"] = GetReaderValue(reader, columnIndices, "dialedno", provider) ?? "";
-                        dataRow["dur"] = ParseReaderDecimal(reader, columnIndices, "duration", provider);
-                        dataRow["cost"] = ParseReaderDecimal(reader, columnIndices, "charges", provider);
+                        dataRow["Dialed"] = GetReaderValue(reader, columnIndices, "dialedno", provider) ?? "";
+                        dataRow["Dur"] = ParseReaderDecimal(reader, columnIndices, "duration", provider);
+                        dataRow["Cost"] = ParseReaderDecimal(reader, columnIndices, "charges", provider);
                         dataRow["call_type"] = GetReaderValue(reader, columnIndices, "calltype", provider) ?? "";
                         dataRow["IndexNumber"] = phoneFound ? userPhone.IndexNumber ?? "" : "";
                         dataRow["UserPhoneId"] = phoneFound ? (object)userPhone.Id : DBNull.Value;
@@ -1437,12 +1437,12 @@ namespace TAB.Web.Services
                     var phoneFound = userPhoneLookup.TryGetValue(callingNo, out var userPhone);
 
                     var dataRow = dataTable.NewRow();
-                    dataRow["ext"] = callingNo;
+                    dataRow["Ext"] = callingNo;
                     dataRow["call_date"] = ParseCsvDate(values, columnIndices, "date", provider);
                     dataRow["call_time"] = ParseCsvTime(values, columnIndices, "time", provider);
-                    dataRow["dialed"] = GetCsvValue(values, columnIndices, "dialedno", provider) ?? "";
-                    dataRow["dur"] = ParseCsvDecimal(values, columnIndices, "duration", provider);
-                    dataRow["cost"] = ParseCsvDecimal(values, columnIndices, "charges", provider);
+                    dataRow["Dialed"] = GetCsvValue(values, columnIndices, "dialedno", provider) ?? "";
+                    dataRow["Dur"] = ParseCsvDecimal(values, columnIndices, "duration", provider);
+                    dataRow["Cost"] = ParseCsvDecimal(values, columnIndices, "charges", provider);
                     dataRow["call_type"] = GetCsvValue(values, columnIndices, "calltype", provider) ?? "";
                     dataRow["IndexNumber"] = phoneFound ? userPhone.IndexNumber ?? "" : "";
                     dataRow["UserPhoneId"] = phoneFound ? (object)userPhone.Id : DBNull.Value;
@@ -2154,23 +2154,23 @@ namespace TAB.Web.Services
 
         private DataTable CreateMobileDataTable()
         {
-            // Match Safaricom/Airtel table structure (using actual DB column names - lowercase)
+            // Match Safaricom/Airtel table structure (using exact DB column names from EF model)
             var dt = new DataTable();
-            dt.Columns.Add("ext", typeof(string));           // Extension/phone number
-            dt.Columns.Add("call_date", typeof(DateTime));   // Call date
-            dt.Columns.Add("call_time", typeof(TimeSpan));   // Call time
-            dt.Columns.Add("dialed", typeof(string));        // Dialed number
-            dt.Columns.Add("dur", typeof(decimal));          // Duration
-            dt.Columns.Add("cost", typeof(decimal));         // Cost in KES
-            dt.Columns.Add("call_type", typeof(string));     // Call type
+            dt.Columns.Add("Ext", typeof(string));             // Extension/phone number (property: Ext)
+            dt.Columns.Add("call_date", typeof(DateTime));     // Call date ([Column("call_date")])
+            dt.Columns.Add("call_time", typeof(TimeSpan));     // Call time ([Column("call_time")])
+            dt.Columns.Add("Dialed", typeof(string));          // Dialed number (property: Dialed)
+            dt.Columns.Add("Dur", typeof(decimal));            // Duration (property: Dur)
+            dt.Columns.Add("Cost", typeof(decimal));           // Cost in KES (property: Cost)
+            dt.Columns.Add("call_type", typeof(string));       // Call type ([Column("call_type")])
             dt.Columns.Add("IndexNumber", typeof(string));
             dt.Columns.Add("UserPhoneId", typeof(int));
             dt.Columns.Add("EbillUserId", typeof(int));
             dt.Columns.Add("BillingPeriod", typeof(string));
-            dt.Columns.Add("call_month", typeof(int));
-            dt.Columns.Add("call_year", typeof(int));
+            dt.Columns.Add("call_month", typeof(int));         // [Column("call_month")]
+            dt.Columns.Add("call_year", typeof(int));           // [Column("call_year")]
             dt.Columns.Add("CreatedDate", typeof(DateTime));
-            dt.Columns.Add("ProcessingStatus", typeof(int)); // Default to Staged (0)
+            dt.Columns.Add("ProcessingStatus", typeof(int));   // Default to Staged (0)
             dt.Columns.Add("ImportJobId", typeof(Guid));
             return dt;
         }
@@ -2241,13 +2241,13 @@ namespace TAB.Web.Services
             bulkCopy.BatchSize = 10000;
             bulkCopy.BulkCopyTimeout = 300;
 
-            // Map columns to match Safaricom/Airtel table structure (lowercase column names)
-            bulkCopy.ColumnMappings.Add("ext", "ext");
+            // Map columns to match Safaricom/Airtel table structure (exact DB column names from EF model)
+            bulkCopy.ColumnMappings.Add("Ext", "Ext");
             bulkCopy.ColumnMappings.Add("call_date", "call_date");
             bulkCopy.ColumnMappings.Add("call_time", "call_time");
-            bulkCopy.ColumnMappings.Add("dialed", "dialed");
-            bulkCopy.ColumnMappings.Add("dur", "dur");
-            bulkCopy.ColumnMappings.Add("cost", "cost");
+            bulkCopy.ColumnMappings.Add("Dialed", "Dialed");
+            bulkCopy.ColumnMappings.Add("Dur", "Dur");
+            bulkCopy.ColumnMappings.Add("Cost", "Cost");
             bulkCopy.ColumnMappings.Add("call_type", "call_type");
             bulkCopy.ColumnMappings.Add("IndexNumber", "IndexNumber");
             bulkCopy.ColumnMappings.Add("UserPhoneId", "UserPhoneId");
