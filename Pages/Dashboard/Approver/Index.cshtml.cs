@@ -644,13 +644,22 @@ namespace TAB.Web.Pages.Dashboard.Approver
 
         private async Task LoadPendingCallLogStaffAsync(string userEmail)
         {
+            var currentUser = await _userManager.GetUserAsync(User);
+            bool isAdmin = currentUser != null && await _userManager.IsInRoleAsync(currentUser, "Admin");
+
             // Get pending call log submissions grouped by staff
-            var pendingVerifications = await _context.CallLogVerifications
+            // Admins see all pending call logs; other roles see only those assigned to them
+            var query = _context.CallLogVerifications
                 .Include(v => v.CallRecord)
                 .Where(v => v.SubmittedToSupervisor
-                    && v.SupervisorEmail == userEmail
-                    && (v.SupervisorApprovalStatus == null || v.SupervisorApprovalStatus == "Pending"))
-                .ToListAsync();
+                    && (v.SupervisorApprovalStatus == null || v.SupervisorApprovalStatus == "Pending"));
+
+            if (!isAdmin)
+            {
+                query = query.Where(v => v.SupervisorEmail == userEmail);
+            }
+
+            var pendingVerifications = await query.ToListAsync();
 
             // Group by staff (VerifiedBy)
             var staffGroups = pendingVerifications
