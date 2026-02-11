@@ -78,6 +78,8 @@ namespace TAB.Web.ViewComponents
                 counts.EBillRequestCount = await _context.CallLogVerifications
                     .Where(v => v.SubmittedToSupervisor
                         && (v.SupervisorApprovalStatus == null || v.SupervisorApprovalStatus == "Pending"))
+                    .Select(v => v.VerifiedBy)
+                    .Distinct()
                     .CountAsync();
 
                 counts.TotalPendingCount = counts.SimRequestCount + counts.RefundRequestCount + counts.EBillRequestCount;
@@ -109,6 +111,8 @@ namespace TAB.Web.ViewComponents
                     .Where(v => v.SubmittedToSupervisor
                         && v.SupervisorEmail == userEmail
                         && (v.SupervisorApprovalStatus == null || v.SupervisorApprovalStatus == "Pending"))
+                    .Select(v => v.VerifiedBy)
+                    .Distinct()
                     .CountAsync();
 
                 counts.TotalPendingCount = counts.SimRequestCount + counts.RefundRequestCount + counts.EBillRequestCount;
@@ -150,6 +154,8 @@ namespace TAB.Web.ViewComponents
                     .Where(v => v.SubmittedToSupervisor
                         && v.SupervisorEmail == userEmail
                         && (v.SupervisorApprovalStatus == null || v.SupervisorApprovalStatus == "Pending"))
+                    .Select(v => v.VerifiedBy)
+                    .Distinct()
                     .CountAsync();
 
                 counts.TotalPendingCount = counts.SimRequestCount + counts.RefundRequestCount + counts.EBillRequestCount;
@@ -176,6 +182,8 @@ namespace TAB.Web.ViewComponents
                     .Where(v => v.SubmittedToSupervisor
                         && v.SupervisorEmail == userEmail
                         && (v.SupervisorApprovalStatus == null || v.SupervisorApprovalStatus == "Pending"))
+                    .Select(v => v.VerifiedBy)
+                    .Distinct()
                     .CountAsync();
 
                 counts.TotalPendingCount = counts.SimRequestCount + counts.RefundRequestCount + counts.EBillRequestCount;
