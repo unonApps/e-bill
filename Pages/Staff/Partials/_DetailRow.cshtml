@@ -33,40 +33,45 @@
 @* Detail Data Row (Level 2) - Hidden by default *@
 <tr class="detail-row" data-group="@groupId" style="display: none;">
     <td></td>
-    <td class="px-2">
+    <td class="px-2" data-label="Call Date">
         <div>@detail.CallDate.ToString("MMM dd, yyyy")</div>
         <small class="text-muted">@detail.CallDate.ToString("hh:mm tt")</small>
     </td>
-    <td class="px-2">
+    <td class="px-2 detail-cell-month" data-label="Month">
         <span class="badge bg-primary bg-opacity-10 text-primary">
             @(new DateTime(detail.CallYear, detail.CallMonth, 1).ToString("MMM"))
         </span>
     </td>
-    <td class="px-2">
+    <td class="px-2 detail-cell-year" data-label="Year">
         <span class="badge bg-secondary bg-opacity-10 text-secondary">
             @detail.CallYear
         </span>
     </td>
-    <td class="px-2"><code style="color: #009EDB;">@detail.CallNumber</code></td>
-    <td class="px-2">@detail.CallDestination</td>
-    <td class="px-2">@TimeSpan.FromSeconds(detail.CallDuration).ToString(@"hh\:mm\:ss")</td>
-    <td class="px-2 text-end">@detail.CallCost.ToString("N2")</td>
-    <td class="px-2">
+    <td class="px-2" data-label="Number"><code style="color: #009EDB;">@detail.CallNumber</code></td>
+    <td class="px-2" data-label="Destination">@detail.CallDestination</td>
+    <td class="px-2" data-label="Duration">@TimeSpan.FromSeconds(detail.CallDuration).ToString(@"hh\:mm\:ss")</td>
+    <td class="px-2 text-end" data-label="Cost">
+        <span>@detail.CallCost.ToString("N2")</span>
+        <span class="badge bg-@(detail.Currency == "USD" ? "success" : "secondary") bg-opacity-10 text-@(detail.Currency == "USD" ? "success" : "secondary") ms-1">
+            @detail.Currency
+        </span>
+    </td>
+    <td class="px-2 detail-cell-currency" data-label="Currency">
         <span class="badge bg-@(detail.Currency == "USD" ? "success" : "secondary") bg-opacity-10 text-@(detail.Currency == "USD" ? "success" : "secondary")">
             @detail.Currency
         </span>
     </td>
-    <td class="px-2 text-end">
+    <td class="px-2 text-end" data-label="Recovered">
         <strong class="text-danger">@detail.RecoveryAmount.ToString("N2")</strong>
     </td>
-    <td class="px-2">
+    <td class="px-2" data-label="Recovery Date">
         @if (detail.RecoveryDate.HasValue)
         {
             <div>@detail.RecoveryDate.Value.ToString("MMM dd, yyyy")</div>
             <small class="text-muted">@detail.RecoveryDate.Value.ToString("hh:mm tt")</small>
         }
     </td>
-    <td class="px-2">
+    <td class="px-2" data-label="Reason">
         <div class="d-flex flex-column gap-1">
             <span class="badge @badgeClass" style="font-size: 0.75rem;">
                 <i class="bi bi-@(detail.RecoveryType switch {
@@ -88,7 +93,7 @@
             }
         </div>
     </td>
-    <td class="px-2">
+    <td class="px-2" data-label="Assignment">
         @if (detail.FinalAssignment == "Personal")
         {
             <span class="badge bg-danger bg-opacity-10 text-danger">Personal</span>

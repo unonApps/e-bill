@@ -252,8 +252,250 @@
         letter-spacing: 0.5px;
     }
 
-    /* Responsive */
-    @@media (max-width: 768px) {
+    /* Cost column inline currency - hidden on desktop, visible on mobile */
+    td[data-label="Cost"] > .badge {
+        display: none;
+    }
+
+    /* ===================== */
+    /* RESPONSIVE - MOBILE  */
+    /* ===================== */
+    @@media (max-width: 767.98px) {
+        /* Page Header */
+        .page-header-bar {
+            flex-direction: column;
+            align-items: stretch !important;
+            padding-bottom: 1rem;
+            margin-bottom: 1.25rem;
+            gap: 0.75rem;
+        }
+
+        .page-title-main {
+            font-size: 1.25rem;
+        }
+
+        .module-badge {
+            font-size: 0.65rem;
+            padding: 0.25rem 0.625rem;
+        }
+
+        .current-date {
+            font-size: 0.8rem;
+            padding: 0.5rem 0.75rem;
+            flex: 1;
+        }
+
+        .page-header-bar > .d-flex {
+            flex-wrap: wrap;
+        }
+
+        /* Filter Section */
+        .filter-body {
+            padding: 1rem;
+        }
+
+        .filter-body .row.mt-3 .col {
+            display: flex;
+            flex-direction: column;
+            gap: 0.5rem;
+        }
+
+        .filter-body .btn {
+            width: 100%;
+        }
+
+        /* Table Section */
+        .table-header {
+            padding: 1rem;
+        }
+
+        .table-header h5 {
+            font-size: 1rem;
+        }
+
+        .table-header p {
+            font-size: 0.8rem;
+        }
+
+        /* Hide main table header on mobile - replaced by card layout */
+        .data-table-card .table > thead {
+            display: none;
+        }
+
+        .data-table-card .table {
+            border-collapse: separate;
+            border-spacing: 0;
+        }
+
+        /* Hide detail header rows on mobile - replaced by data-labels */
+        .detail-header-row {
+            display: none !important;
+        }
+
+        /* Month Summary Row - compact card style */
+        .month-summary-row {
+            display: flex !important;
+            flex-wrap: wrap;
+            align-items: center;
+            border-bottom: 2px solid #dee2e6 !important;
+            border-left: 4px solid #009EDB !important;
+            padding: 0.625rem 0.5rem !important;
+            margin-bottom: 2px;
+        }
+
+        .month-summary-row > td {
+            display: block !important;
+            border: none !important;
+            background: transparent !important;
+        }
+
+        /* Expand/collapse icon */
+        .month-summary-row > td:nth-child(1) {
+            flex: 0 0 28px;
+            padding: 0 0.25rem !important;
+        }
+
+        /* Month / Year name */
+        .month-summary-row > td:nth-child(2) {
+            flex: 1 1 auto;
+            padding: 0.125rem 0.5rem !important;
+        }
+
+        /* Calls count */
+        .month-summary-row > td:nth-child(3) {
+            flex: 0 0 auto;
+            padding: 0.125rem 0.5rem !important;
+        }
+
+        /* Total recovered amount - full width */
+        .month-summary-row > td:nth-child(4) {
+            flex: 0 0 100%;
+            padding: 0.25rem 0.5rem 0 2rem !important;
+            font-size: 0.9rem;
+        }
+
+        /* Recovery breakdown badges - full width */
+        .month-summary-row > td:nth-child(5) {
+            flex: 0 0 100%;
+            padding: 0.25rem 0.5rem 0.125rem 2rem !important;
+        }
+
+        .month-summary-row > td:nth-child(5) .badge {
+            font-size: 0.65rem !important;
+            margin-bottom: 2px;
+        }
+
+        /* Detail Row - card layout */
+        .detail-row {
+            display: block !important;
+            background: white !important;
+            border: 1px solid #e5e7eb !important;
+            border-radius: 10px !important;
+            margin: 0.5rem 0.75rem !important;
+            padding: 0 !important;
+            box-shadow: 0 1px 4px rgba(0, 0, 0, 0.06);
+            overflow: hidden;
+        }
+
+        .detail-row > td {
+            display: flex !important;
+            justify-content: space-between;
+            align-items: flex-start;
+            padding: 0.5rem 0.875rem !important;
+            border: none !important;
+            border-bottom: 1px solid #f3f4f6 !important;
+            text-align: right;
+            gap: 0.75rem;
+        }
+
+        /* Hide the empty first cell */
+        .detail-row > td:first-child {
+            display: none !important;
+        }
+
+        .detail-row > td:last-child {
+            border-bottom: none !important;
+        }
+
+        /* Data label pseudo-element */
+        .detail-row > td[data-label]::before {
+            content: attr(data-label);
+            font-weight: 600;
+            font-size: 0.7rem;
+            color: #6b7280;
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
+            flex-shrink: 0;
+            padding-top: 0.125rem;
+            white-space: nowrap;
+        }
+
+        /* Hide Month, Year & standalone Currency on mobile (redundant) */
+        .detail-row > td.detail-cell-month,
+        .detail-row > td.detail-cell-year,
+        .detail-row > td.detail-cell-currency {
+            display: none !important;
+        }
+
+        /* Show inline currency badge next to cost on mobile */
+        td[data-label="Cost"] > .badge {
+            display: inline-flex !important;
+        }
+
+        /* Table Footer - stack totals */
+        .data-table-card .table > tfoot > tr {
+            display: flex !important;
+            flex-wrap: wrap;
+            align-items: center;
+            padding: 0.5rem 0.75rem;
+            border-bottom: 1px solid #e5e7eb;
+        }
+
+        .data-table-card .table > tfoot > tr > th {
+            border: none !important;
+            padding: 0.25rem 0.5rem !important;
+        }
+
+        .data-table-card .table > tfoot > tr > th:first-child {
+            flex: 1 1 auto;
+            text-align: left !important;
+            font-size: 0.85rem;
+        }
+
+        .data-table-card .table > tfoot > tr > th:last-child {
+            flex: 0 0 auto;
+        }
+
+        /* Help card */
+        .alert ul {
+            padding-left: 1.25rem;
+        }
+
+        .alert li {
+            font-size: 0.85rem;
+            margin-bottom: 0.25rem;
+        }
+
+        /* Stats container fallback */
+        .stats-container {
+            grid-template-columns: 1fr;
+        }
+
+        .stat-value {
+            font-size: 1.5rem;
+        }
+
+        /* Info alert inside table */
+        .data-table-card .alert {
+            margin: 0.75rem !important;
+            font-size: 0.85rem;
+        }
+    }
+
+    /* ===================== */
+    /* RESPONSIVE - TABLET   */
+    /* ===================== */
+    @@media (min-width: 768px) and (max-width: 991.98px) {
         .page-header-bar {
             flex-direction: column;
             align-items: flex-start;
@@ -264,11 +506,7 @@
         }
 
         .stats-container {
-            grid-template-columns: 1fr;
-        }
-
-        .stat-value {
-            font-size: 1.5rem;
+            grid-template-columns: repeat(2, 1fr);
         }
     }
 </style>
