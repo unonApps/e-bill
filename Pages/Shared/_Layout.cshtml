@@ -226,6 +226,12 @@
                             </a>
                         </li>
                         <li>
+                            <a asp-page="/Admin/EOSProcessing" class="nested-submenu-item @(ViewContext.RouteData.Values["Page"]?.ToString() == "/Admin/EOSProcessing" ? "active" : "")">
+                                <i class="menu-icon bi bi-person-x"></i>
+                                <span>EOS Processing</span>
+                            </a>
+                        </li>
+                        <li>
                             <a asp-page="/Admin/BillingReports" class="nested-submenu-item @(ViewContext.RouteData.Values["Page"]?.ToString() == "/Admin/BillingReports" ? "active" : "")">
                                 <i class="menu-icon bi bi-bar-chart-line"></i>
                                 <span>Billing Reports</span>
