@@ -870,9 +870,7 @@ else if (approachingApprovals.Any())
                                                             <i class="bi bi-check-square text-muted"></i>
                                                         </th>
                                                         <th>Date & Time</th>
-                                                        <th>Destination</th>
                                                         <th>Type</th>
-                                                        <th>Class of Service</th>
                                                         <th>Duration</th>
                                                         <th>Cost</th>
                                                         <th>Verification</th>
@@ -894,41 +892,20 @@ else if (approachingApprovals.Any())
                                                                        onchange="updateSelectionSummary()">
                                                             </td>
                                                             <td>
-                                                                <div class="fw-semibold">@verification.CallRecord.CallDate.ToString("MMM dd, yyyy")</div>
-                                                                <small class="text-muted">@verification.CallRecord.CallDate.ToString("hh:mm tt")</small>
-                                                            </td>
-                                                            <td>
-                                                                <div class="fw-semibold">@verification.CallRecord.CallDestination</div>
-                                                                <small class="text-muted">@verification.CallRecord.CallDestinationType</small>
-                                                            </td>
-                                                            <td>
-                                                                <span class="call-type-badge bg-primary bg-opacity-10 text-primary">
-                                                                    @verification.CallRecord.CallType
-                                                                </span>
-                                                            </td>
-                                                            <td>
-                                                                @if (verification.CallRecord.UserPhone?.ClassOfService != null)
+                                                                @if (verification.CallRecord.CallDate > DateTime.MinValue)
                                                                 {
-                                                                    <div>
-                                                                        <span class="badge bg-info bg-opacity-10 text-info">
-                                                                            @verification.CallRecord.UserPhone.ClassOfService.Class
-                                                                        </span>
-                                                                        @if (verification.CallRecord.UserPhone.ClassOfService.AirtimeAllowanceAmount.HasValue && verification.CallRecord.UserPhone.ClassOfService.AirtimeAllowanceAmount.Value > 0)
-                                                                        {
-                                                                            <br />
-                                                                            <small class="text-muted">Limit: $@verification.CallRecord.UserPhone.ClassOfService.AirtimeAllowanceAmount.Value.ToString("N2")</small>
-                                                                        }
-                                                                        else
-                                                                        {
-                                                                            <br />
-                                                                            <small class="text-muted">Unlimited</small>
-                                                                        }
-                                                                    </div>
+                                                                    <div class="fw-semibold">@verification.CallRecord.CallDate.ToString("MMM dd, yyyy")</div>
+                                                                    <small class="text-muted">@verification.CallRecord.CallDate.ToString("hh:mm tt")</small>
                                                                 }
                                                                 else
                                                                 {
                                                                     <span class="text-muted">-</span>
                                                                 }
+                                                            </td>
+                                                            <td>
+                                                                <span class="call-type-badge bg-primary bg-opacity-10 text-primary">
+                                                                    @verification.CallRecord.CallType
+                                                                </span>
                                                             </td>
                                                             <td>
                                                                 <span class="fw-semibold">@verification.CallRecord.GetDurationFormatted()</span>
