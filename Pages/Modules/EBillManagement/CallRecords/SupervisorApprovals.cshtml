@@ -849,7 +849,7 @@ else if (approachingApprovals.Any())
                                                                onchange="toggleDialedCalls('@dialedId'); event.stopPropagation();"
                                                                onclick="event.stopPropagation();"
                                                                title="Select all calls to this number"
-                                                               style="width: 16px; height: 16px; cursor: pointer;">
+                                                               style="width: 16px; height: 16px; cursor: pointer; display: none;">
                                                         <i class="bi bi-chevron-right dialed-chevron" style="transition: transform 0.2s; font-size: 0.8rem;"></i>
                                                         <i class="bi bi-telephone-outbound text-secondary"></i>
                                                         <span class="fw-semibold" style="font-size: 0.9rem;">@dialedNumber</span>
@@ -866,7 +866,7 @@ else if (approachingApprovals.Any())
                                             <table class="table modern-table mb-0">
                                                 <thead>
                                                     <tr>
-                                                        <th style="width: 50px;">
+                                                        <th style="width: 50px; display: none;">
                                                             <i class="bi bi-check-square text-muted"></i>
                                                         </th>
                                                         <th>Date & Time</th>
@@ -882,7 +882,7 @@ else if (approachingApprovals.Any())
                                                     @foreach (var verification in dialedCalls)
                                                     {
                                                         <tr>
-                                                            <td class="text-center">
+                                                            <td class="text-center" style="display: none;">
                                                                 <input type="checkbox"
                                                                        class="call-checkbox"
                                                                        data-extension="@extensionId"
