@@ -77,7 +77,7 @@ namespace TAB.Web.ViewComponents
 
                 counts.EBillRequestCount = await _context.CallLogVerifications
                     .Where(v => v.SubmittedToSupervisor
-                        && (v.SupervisorApprovalStatus == null || v.SupervisorApprovalStatus == "Pending"))
+                        && (v.SupervisorApprovalStatus == null || v.SupervisorApprovalStatus == "" || v.SupervisorApprovalStatus == "Pending"))
                     .Select(v => v.VerifiedBy)
                     .Distinct()
                     .CountAsync();
@@ -110,7 +110,7 @@ namespace TAB.Web.ViewComponents
                 counts.EBillRequestCount = await _context.CallLogVerifications
                     .Where(v => v.SubmittedToSupervisor
                         && v.SupervisorEmail == userEmail
-                        && (v.SupervisorApprovalStatus == null || v.SupervisorApprovalStatus == "Pending"))
+                        && (v.SupervisorApprovalStatus == null || v.SupervisorApprovalStatus == "" || v.SupervisorApprovalStatus == "Pending"))
                     .Select(v => v.VerifiedBy)
                     .Distinct()
                     .CountAsync();
@@ -153,7 +153,7 @@ namespace TAB.Web.ViewComponents
                 counts.EBillRequestCount = await _context.CallLogVerifications
                     .Where(v => v.SubmittedToSupervisor
                         && v.SupervisorEmail == userEmail
-                        && (v.SupervisorApprovalStatus == null || v.SupervisorApprovalStatus == "Pending"))
+                        && (v.SupervisorApprovalStatus == null || v.SupervisorApprovalStatus == "" || v.SupervisorApprovalStatus == "Pending"))
                     .Select(v => v.VerifiedBy)
                     .Distinct()
                     .CountAsync();
@@ -181,7 +181,7 @@ namespace TAB.Web.ViewComponents
                 counts.EBillRequestCount = await _context.CallLogVerifications
                     .Where(v => v.SubmittedToSupervisor
                         && v.SupervisorEmail == userEmail
-                        && (v.SupervisorApprovalStatus == null || v.SupervisorApprovalStatus == "Pending"))
+                        && (v.SupervisorApprovalStatus == null || v.SupervisorApprovalStatus == "" || v.SupervisorApprovalStatus == "Pending"))
                     .Select(v => v.VerifiedBy)
                     .Distinct()
                     .CountAsync();

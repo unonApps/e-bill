@@ -1752,33 +1752,28 @@ namespace TAB.Web.Pages.Modules.EBillManagement.CallRecords
                 // Get data for these specific calls only (much more efficient)
                 var callIds = callRecords.Select(c => c.Id).ToList();
 
-                // Fetch verification, incoming assignment, and outgoing assignment data in parallel
-                var verificationTask = _context.CallLogVerifications
+                // Fetch verification, incoming assignment, and outgoing assignment data sequentially
+                // (DbContext is not thread-safe, cannot run concurrent queries)
+                var verificationData = await _context.CallLogVerifications
                     .Where(v => callIds.Contains(v.CallRecordId) && v.SubmittedToSupervisor)
                     .Select(v => new { v.CallRecordId, v.ApprovalStatus })
                     .ToDictionaryAsync(v => v.CallRecordId, v => v.ApprovalStatus);
 
-                var incomingAssignmentTask = !isAdmin && !string.IsNullOrEmpty(userIndexNumber)
-                    ? _context.Set<CallLogPaymentAssignment>()
+                assignmentData = !isAdmin && !string.IsNullOrEmpty(userIndexNumber)
+                    ? await _context.Set<CallLogPaymentAssignment>()
                         .Where(a => callIds.Contains(a.CallRecordId) &&
                                a.AssignedTo == userIndexNumber &&
                                (a.AssignmentStatus == "Pending" || a.AssignmentStatus == "Accepted"))
                         .ToDictionaryAsync(a => a.CallRecordId, a => a.AssignedFrom ?? "Unknown")
-                    : Task.FromResult(new Dictionary<int, string>());
+                    : new Dictionary<int, string>();
 
-                var outgoingAssignmentTask = !isAdmin && !string.IsNullOrEmpty(userIndexNumber)
-                    ? _context.Set<CallLogPaymentAssignment>()
+                outgoingAssignmentData = !isAdmin && !string.IsNullOrEmpty(userIndexNumber)
+                    ? await _context.Set<CallLogPaymentAssignment>()
                         .Where(a => callIds.Contains(a.CallRecordId) &&
                                a.AssignedFrom == userIndexNumber &&
                                (a.AssignmentStatus == "Pending" || a.AssignmentStatus == "Accepted"))
                         .ToDictionaryAsync(a => a.CallRecordId, a => (a.AssignmentStatus, a.AssignedTo ?? "Unknown"))
-                    : Task.FromResult(new Dictionary<int, (string, string)>());
-
-                await Task.WhenAll(verificationTask, incomingAssignmentTask, outgoingAssignmentTask);
-
-                var verificationData = await verificationTask;
-                assignmentData = await incomingAssignmentTask;
-                outgoingAssignmentData = await outgoingAssignmentTask;
+                    : new Dictionary<int, (string, string)>();
                 var assignedCallIds = assignmentData.Keys.ToHashSet();
 
                 // Convert to CallLogItemDto
