@@ -7,6 +7,8 @@ namespace TAB.Web.Services
 {
     public class CallLogVerificationService : ICallLogVerificationService
     {
+        private const string AutoOfficialCallType = "Corporate Value Pack Data 25GB";
+
         private readonly ApplicationDbContext _context;
         private readonly ILogger<CallLogVerificationService> _logger;
         private readonly IAuditLogService _auditLogService;
@@ -95,6 +97,10 @@ namespace TAB.Web.Services
                         .Include(up => up.ClassOfService)
                         .FirstOrDefaultAsync(up => up.Id == callRecord.UserPhoneId.Value && up.IsActive);
                 }
+
+                // Block Personal verification for auto-official CallType
+                if (callRecord.CallType == AutoOfficialCallType && verificationType == VerificationType.Personal)
+                    throw new InvalidOperationException("Calls with type 'Corporate Value Pack Data 25GB' are auto-official and cannot be marked as Personal.");
 
                 decimal allowanceAmount = 0;
                 int? classOfServiceId = null;
@@ -245,6 +251,13 @@ namespace TAB.Web.Services
 
                 foreach (var callRecord in callRecords)
                 {
+                    // Skip auto-official calls when verifying as Personal
+                    if (verificationType == VerificationType.Personal && callRecord.CallType == AutoOfficialCallType)
+                    {
+                        result.SkippedCount++;
+                        continue;
+                    }
+
                     // Permission check
                     bool isResponsibleUser = callRecord.ResponsibleIndexNumber == indexNumber;
                     bool isPayingUser = callRecord.PayingIndexNumber == indexNumber && callRecord.AssignmentStatus == "Accepted";
@@ -408,6 +421,11 @@ namespace TAB.Web.Services
                     "DIAGNOSTIC: Found {Count} records WITHOUT indexNumber filter (extension={Extension}, month={Month}, year={Year})",
                     countWithoutIndexFilter, extension, month, year);
 
+                // Auto-official exclusion: skip auto-official calls when verifying as Personal
+                var autoOfficialExclusion = verificationType == VerificationType.Personal
+                    ? $" AND ISNULL(cr.call_type, '') != '{AutoOfficialCallType}'"
+                    : "";
+
                 // Use execution strategy to handle retries with transactions
                 var strategy = _context.Database.CreateExecutionStrategy();
                 var callRecordsUpdated = 0;
@@ -421,7 +439,7 @@ namespace TAB.Web.Services
                     // JOIN with UserPhones because extension in UI comes from UserPhones.PhoneNumber
                     // Handle 'Unknown' case: when UserPhone is NULL, the UI shows 'Unknown'
                     // NOTE: Using actual database column names (from [Column] attributes), not C# property names!
-                    var updateCallRecordsSql = @"
+                    var updateCallRecordsSql = $@"
                         UPDATE cr
                         SET cr.call_ver_ind = 1,
                             cr.call_ver_date = @now,
@@ -437,7 +455,7 @@ namespace TAB.Web.Services
                           AND cr.call_year = @year
                           AND cr.ext_resp_index = @indexNumber
                           AND (cr.supervisor_approval_status IS NULL OR cr.supervisor_approval_status = '' OR cr.supervisor_approval_status = 'Pending')
-                          AND (cr.verification_period IS NULL OR cr.verification_period > @now)";
+                          AND (cr.verification_period IS NULL OR cr.verification_period > @now){autoOfficialExclusion}";
 
                     callRecordsUpdated = await _context.Database.ExecuteSqlRawAsync(
                         updateCallRecordsSql,
@@ -451,7 +469,7 @@ namespace TAB.Web.Services
                     // Step 2: Update existing CallLogVerifications
                     // CallLogVerifications table uses property names (no [Column] attributes)
                     // But CallRecords join uses actual database column names
-                    var updateVerificationsSql = @"
+                    var updateVerificationsSql = $@"
                         UPDATE clv
                         SET clv.VerificationType = @verificationTypeInt,
                             clv.JustificationText = @justification,
@@ -475,7 +493,7 @@ namespace TAB.Web.Services
                           AND cr.call_month = @month
                           AND cr.call_year = @year
                           AND cr.ext_resp_index = @indexNumber
-                          AND (cr.supervisor_approval_status IS NULL OR cr.supervisor_approval_status = '' OR cr.supervisor_approval_status = 'Pending')";
+                          AND (cr.supervisor_approval_status IS NULL OR cr.supervisor_approval_status = '' OR cr.supervisor_approval_status = 'Pending'){autoOfficialExclusion}";
 
                     await _context.Database.ExecuteSqlRawAsync(
                         updateVerificationsSql,
@@ -489,7 +507,7 @@ namespace TAB.Web.Services
 
                     // Step 3: Insert new CallLogVerifications for records that don't have one
                     // CallLogVerifications columns use property names, CallRecords columns use database names
-                    var insertVerificationsSql = @"
+                    var insertVerificationsSql = $@"
                         INSERT INTO CallLogVerifications (CallRecordId, VerifiedBy, VerifiedDate, VerificationType,
                             ActualAmount, IsOverage, JustificationText, ApprovalStatus, CreatedDate, SubmittedToSupervisor)
                         SELECT cr.Id, @indexNumber, @now, @verificationTypeInt,
@@ -506,7 +524,7 @@ namespace TAB.Web.Services
                           AND cr.ext_resp_index = @indexNumber
                           AND (cr.supervisor_approval_status IS NULL OR cr.supervisor_approval_status = '' OR cr.supervisor_approval_status = 'Pending')
                           AND (cr.verification_period IS NULL OR cr.verification_period > @now)
-                          AND NOT EXISTS (SELECT 1 FROM CallLogVerifications clv WHERE clv.CallRecordId = cr.Id)";
+                          AND NOT EXISTS (SELECT 1 FROM CallLogVerifications clv WHERE clv.CallRecordId = cr.Id){autoOfficialExclusion}";
 
                     await _context.Database.ExecuteSqlRawAsync(
                         insertVerificationsSql,
@@ -584,13 +602,18 @@ namespace TAB.Web.Services
                 var callRecordsUpdated = 0;
                 var verificationTypeInt = (int)verificationType;
 
+                // Auto-official exclusion: skip auto-official calls when verifying as Personal
+                var autoOfficialExclusion = verificationType == VerificationType.Personal
+                    ? $" AND ISNULL(cr.call_type, '') != '{AutoOfficialCallType}'"
+                    : "";
+
                 await strategy.ExecuteAsync(async () =>
                 {
                     using var transaction = await _context.Database.BeginTransactionAsync();
 
                     // Step 1: Update CallRecords
                     // NOTE: Using actual database column names (from [Column] attributes)
-                    var updateCallRecordsSql = @"
+                    var updateCallRecordsSql = $@"
                         UPDATE cr
                         SET cr.call_ver_ind = 1,
                             cr.call_ver_date = @now,
@@ -603,7 +626,7 @@ namespace TAB.Web.Services
                           AND ISNULL(cr.call_number, 'Unknown') = @dialedNumber
                           AND cr.ext_resp_index = @indexNumber
                           AND (cr.supervisor_approval_status IS NULL OR cr.supervisor_approval_status = '' OR cr.supervisor_approval_status = 'Pending')
-                          AND (cr.verification_period IS NULL OR cr.verification_period > @now)";
+                          AND (cr.verification_period IS NULL OR cr.verification_period > @now){autoOfficialExclusion}";
 
                     callRecordsUpdated = await _context.Database.ExecuteSqlRawAsync(
                         updateCallRecordsSql,
@@ -616,7 +639,7 @@ namespace TAB.Web.Services
                         new Microsoft.Data.SqlClient.SqlParameter("@indexNumber", indexNumber));
 
                     // Step 2: Update existing verifications
-                    var updateVerificationsSql = @"
+                    var updateVerificationsSql = $@"
                         UPDATE clv
                         SET clv.VerificationType = @verificationTypeInt,
                             clv.JustificationText = @justification,
@@ -636,7 +659,7 @@ namespace TAB.Web.Services
                           AND cr.call_month = @month
                           AND cr.call_year = @year
                           AND ISNULL(cr.call_number, 'Unknown') = @dialedNumber
-                          AND cr.ext_resp_index = @indexNumber";
+                          AND cr.ext_resp_index = @indexNumber{autoOfficialExclusion}";
 
                     await _context.Database.ExecuteSqlRawAsync(
                         updateVerificationsSql,
@@ -650,7 +673,7 @@ namespace TAB.Web.Services
                         new Microsoft.Data.SqlClient.SqlParameter("@indexNumber", indexNumber));
 
                     // Step 3: Insert new verifications
-                    var insertVerificationsSql = @"
+                    var insertVerificationsSql = $@"
                         INSERT INTO CallLogVerifications (CallRecordId, VerifiedBy, VerifiedDate, VerificationType,
                             ActualAmount, IsOverage, JustificationText, ApprovalStatus, CreatedDate, SubmittedToSupervisor)
                         SELECT cr.Id, @indexNumber, @now, @verificationTypeInt,
@@ -664,7 +687,7 @@ namespace TAB.Web.Services
                           AND cr.ext_resp_index = @indexNumber
                           AND (cr.supervisor_approval_status IS NULL OR cr.supervisor_approval_status = '' OR cr.supervisor_approval_status = 'Pending')
                           AND (cr.verification_period IS NULL OR cr.verification_period > @now)
-                          AND NOT EXISTS (SELECT 1 FROM CallLogVerifications clv WHERE clv.CallRecordId = cr.Id)";
+                          AND NOT EXISTS (SELECT 1 FROM CallLogVerifications clv WHERE clv.CallRecordId = cr.Id){autoOfficialExclusion}";
 
                     await _context.Database.ExecuteSqlRawAsync(
                         insertVerificationsSql,

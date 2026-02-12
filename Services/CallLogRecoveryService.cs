@@ -16,6 +16,8 @@ namespace TAB.Web.Services
     /// </summary>
     public class CallLogRecoveryService : ICallLogRecoveryService
     {
+        private const string AutoOfficialCallType = "Corporate Value Pack Data 25GB";
+
         private readonly ApplicationDbContext _context;
         private readonly ILogger<CallLogRecoveryService> _logger;
         private readonly INotificationService _notificationService;
@@ -86,6 +88,33 @@ namespace TAB.Web.Services
 
                     foreach (var call in staffCalls)
                     {
+                        // Skip auto-official calls — always treated as Official
+                        if (call.CallType == AutoOfficialCallType)
+                        {
+                            call.AssignmentStatus = "Official";
+                            call.FinalAssignmentType = "Official";
+                            call.RecoveryStatus = "Processed";
+                            call.RecoveryDate = DateTime.UtcNow;
+                            call.RecoveryProcessedBy = "System-AutoRecovery";
+                            call.RecoveryAmount = 0;
+
+                            recoveryLogs.Add(new RecoveryLog
+                            {
+                                CallRecordId = call.Id,
+                                BatchId = call.SourceBatchId ?? Guid.Empty,
+                                RecoveryType = "AutoOfficialExemption",
+                                RecoveryAction = "Official",
+                                RecoveryDate = DateTime.UtcNow,
+                                RecoveryReason = $"Call type '{AutoOfficialCallType}' is auto-official and exempt from personal recovery.",
+                                AmountRecovered = 0,
+                                RecoveredFrom = staffIndex,
+                                ProcessedBy = "System-AutoRecovery",
+                                DeadlineDate = call.VerificationPeriod!.Value,
+                                IsAutomated = true
+                            });
+                            continue;
+                        }
+
                         call.AssignmentStatus = "Personal";
                         call.FinalAssignmentType = "Personal";
                         call.RecoveryStatus = "Processed";
@@ -217,6 +246,33 @@ namespace TAB.Web.Services
 
                     foreach (var call in staffCalls)
                     {
+                        // Skip auto-official calls — always treated as Official
+                        if (call.CallType == AutoOfficialCallType)
+                        {
+                            call.AssignmentStatus = "Official";
+                            call.FinalAssignmentType = "Official";
+                            call.RecoveryStatus = "Processed";
+                            call.RecoveryDate = DateTime.UtcNow;
+                            call.RecoveryProcessedBy = "System-AutoRecovery";
+                            call.RecoveryAmount = 0;
+
+                            recoveryLogs.Add(new RecoveryLog
+                            {
+                                CallRecordId = call.Id,
+                                BatchId = call.SourceBatchId ?? Guid.Empty,
+                                RecoveryType = "AutoOfficialExemption",
+                                RecoveryAction = "Official",
+                                RecoveryDate = DateTime.UtcNow,
+                                RecoveryReason = $"Call type '{AutoOfficialCallType}' is auto-official and exempt from personal recovery.",
+                                AmountRecovered = 0,
+                                RecoveredFrom = staffIndex,
+                                ProcessedBy = "System-AutoRecovery",
+                                DeadlineDate = call.VerificationPeriod!.Value,
+                                IsAutomated = true
+                            });
+                            continue;
+                        }
+
                         // Determine recovery reason based on verification type
                         string recoveryReason;
                         string recoveryType;
@@ -502,11 +558,21 @@ namespace TAB.Web.Services
                     }
                     else
                     {
-                        // Non-approved calls become Personal
-                        call.AssignmentStatus = "Personal";
-                        call.FinalAssignmentType = "Personal";
-                        call.SupervisorApprovalStatus = "PartiallyApproved";
-                        notApprovedCount++;
+                        // Non-approved calls become Personal, unless auto-official
+                        if (call.CallType == AutoOfficialCallType)
+                        {
+                            call.AssignmentStatus = "Official";
+                            call.FinalAssignmentType = "Official";
+                            call.SupervisorApprovalStatus = "Approved";
+                            approvedCount++;
+                        }
+                        else
+                        {
+                            call.AssignmentStatus = "Personal";
+                            call.FinalAssignmentType = "Personal";
+                            call.SupervisorApprovalStatus = "PartiallyApproved";
+                            notApprovedCount++;
+                        }
                     }
 
                     call.RecoveryStatus = "Processed";
@@ -596,6 +662,35 @@ namespace TAB.Web.Services
                 foreach (var verification in revertedExpired)
                 {
                     var call = verification.CallRecord;
+
+                    // Skip auto-official calls — always treated as Official
+                    if (call.CallType == AutoOfficialCallType)
+                    {
+                        call.AssignmentStatus = "Official";
+                        call.FinalAssignmentType = "Official";
+                        call.RecoveryStatus = "Processed";
+                        call.RecoveryDate = DateTime.UtcNow;
+                        call.RecoveryProcessedBy = "System-AutoRecovery";
+                        call.RecoveryAmount = 0;
+
+                        recoveryLogs.Add(new RecoveryLog
+                        {
+                            CallRecordId = call.Id,
+                            BatchId = call.SourceBatchId ?? Guid.Empty,
+                            RecoveryType = "AutoOfficialExemption",
+                            RecoveryAction = "Official",
+                            RecoveryDate = DateTime.UtcNow,
+                            RecoveryReason = $"Call type '{AutoOfficialCallType}' is auto-official and exempt from personal recovery.",
+                            AmountRecovered = 0,
+                            RecoveredFrom = call.ResponsibleIndexNumber,
+                            ProcessedBy = "System-AutoRecovery",
+                            DeadlineDate = verification.RevertDeadline,
+                            IsAutomated = true
+                        });
+                        verification.DeadlineMissed = true;
+                        callsProcessed++;
+                        continue;
+                    }
 
                     call.AssignmentStatus = "Personal";
                     call.FinalAssignmentType = "Personal";
@@ -758,6 +853,41 @@ namespace TAB.Web.Services
                 }
 
                 var call = verification.CallRecord;
+
+                // Auto-official calls cannot be rejected to Personal
+                if (call.CallType == AutoOfficialCallType)
+                {
+                    call.AssignmentStatus = "Official";
+                    call.FinalAssignmentType = "Official";
+                    call.RecoveryStatus = "Processed";
+                    call.RecoveryDate = DateTime.UtcNow;
+                    call.RecoveryProcessedBy = supervisorIndexNumber;
+                    call.RecoveryAmount = 0;
+                    call.SupervisorApprovalStatus = "Approved";
+                    call.SupervisorApprovedBy = supervisorIndexNumber;
+                    call.SupervisorApprovedDate = DateTime.UtcNow;
+
+                    verification.SupervisorApprovalStatus = "Approved";
+                    verification.SupervisorApprovedBy = supervisorIndexNumber;
+                    verification.SupervisorApprovedDate = DateTime.UtcNow;
+
+                    _context.RecoveryLogs.Add(new RecoveryLog
+                    {
+                        CallRecordId = call.Id,
+                        BatchId = call.SourceBatchId ?? Guid.Empty,
+                        RecoveryType = "AutoOfficialExemption",
+                        RecoveryAction = "Official",
+                        RecoveryDate = DateTime.UtcNow,
+                        RecoveryReason = $"Call type '{AutoOfficialCallType}' is auto-official. Rejection overridden to Official.",
+                        AmountRecovered = 0,
+                        RecoveredFrom = call.ResponsibleIndexNumber,
+                        ProcessedBy = supervisorIndexNumber,
+                        IsAutomated = false
+                    });
+                    await _context.SaveChangesAsync();
+
+                    return RecoveryResult.CreateSuccess(1, 0, "Auto-official call cannot be rejected. Marked as Official.");
+                }
 
                 // Reject - mark as personal
                 call.AssignmentStatus = "Personal";

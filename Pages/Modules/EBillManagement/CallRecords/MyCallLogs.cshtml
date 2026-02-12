@@ -819,6 +819,21 @@
         </div>
     </div>
     <div class="card-body p-0">
+        @{
+            var totalCalls = Model.ExtensionGroups.Sum(g => g.CallCount);
+            var totalSubmitted = Model.ExtensionGroups.Sum(g => g.SubmittedCount);
+            var totalUnsubmitted = totalCalls - totalSubmitted;
+        }
+        @if (Model.ExtensionGroups.Any() && totalUnsubmitted > 0)
+        {
+            <div class="alert alert-info d-flex align-items-center mx-3 mt-3 mb-0 py-2" role="alert" style="border-radius: 8px; font-size: 0.875rem;">
+                <i class="bi bi-info-circle-fill me-2 fs-5"></i>
+                <div>
+                    <strong>Action Required:</strong> You have <strong>@totalUnsubmitted</strong> call(s) not yet submitted to your supervisor.
+                    Please verify your calls and click <strong>"Submit to Supervisor"</strong> to send them for approval.
+                </div>
+            </div>
+        }
         <div class="table-responsive">
             <table class="table table-hover mb-0">
                 <thead style="background-color: #f8f9fa;">
@@ -2287,7 +2302,11 @@
                                     <i class="bi bi-arrow-return-left me-1"></i>Recall
                                 </button>
                               ` :
-                              !canModify ? '<span class="text-muted small"><i class="bi bi-hourglass-split"></i> Awaiting Approval</span>' : `
+                              !canModify ? '<span class="text-muted small"><i class="bi bi-hourglass-split"></i> Awaiting Approval</span>' :
+                              call.callType === 'Corporate Value Pack Data 25GB' ? `
+                                <span class="badge bg-dark" style="font-size: 0.7rem;" title="Auto-Official: Corporate Value Pack Data calls cannot be marked as Personal">
+                                    <i class="bi bi-shield-lock-fill me-1"></i>Official (Auto)
+                                </span>` : `
                                 <select class="form-select form-select-sm" style="width: 90px; font-size: 0.75rem;"
                                         onchange="quickVerifyCallAjax(${call.id}, this.value)">
                                     <option value="Official" ${call.verificationType !== 'Personal' ? 'selected' : ''}>Official</option>
