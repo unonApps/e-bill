@@ -1,0 +1,1434 @@
+@page
+@model TAB.Web.Pages.JobAid.EBillManagementModel
+@{
+    ViewData["Title"] = "E-Bill Management Guide";
+    ViewData["PageIcon"] = "bi-book";
+    ViewData["PageTitle"] = "E-Bill Management Guide";
+    ViewData["Breadcrumb"] = "Job Aid / E-Bill Management";
+}
+
+<!-- Back Link -->
+<div class="mb-3">
+    <a href="/JobAid" class="ebill-guide-back-link">
+        <i class="bi bi-arrow-left"></i> Back to Job Aid Hub
+    </a>
+</div>
+
+<!-- Hero -->
+<div class="ebill-guide-hero">
+    <div class="ebill-guide-hero-content">
+        <div class="ebill-guide-hero-icon">
+            <i class="bi bi-file-text"></i>
+        </div>
+        <div class="ebill-guide-hero-text">
+            <h1 class="ebill-guide-hero-title">E-Bill Management Guide</h1>
+            <p class="ebill-guide-hero-subtitle">Complete guide to verifying calls, managing payments, handling overages, and navigating the approval workflow</p>
+        </div>
+    </div>
+</div>
+
+<!-- Two-Column Layout -->
+<div class="ebill-guide-layout">
+    <!-- Table of Contents — Sidebar -->
+    <nav class="ebill-guide-toc" id="guide-toc">
+        <div class="ebill-guide-toc-title">Contents</div>
+        <a href="#overview" class="ebill-guide-toc-link active" data-section="overview">
+            <i class="bi bi-info-circle"></i> Overview
+        </a>
+        <a href="#workflow" class="ebill-guide-toc-link" data-section="workflow">
+            <i class="bi bi-diagram-3"></i> Verification Workflow
+        </a>
+        <a href="#viewing-calls" class="ebill-guide-toc-link" data-section="viewing-calls">
+            <i class="bi bi-telephone"></i> Viewing Call Logs
+        </a>
+        <a href="#verifying-calls" class="ebill-guide-toc-link" data-section="verifying-calls">
+            <i class="bi bi-check2-square"></i> Verifying Calls
+        </a>
+        <a href="#payment-assignments" class="ebill-guide-toc-link" data-section="payment-assignments">
+            <i class="bi bi-arrow-left-right"></i> Payment Assignments
+        </a>
+        <a href="#overage" class="ebill-guide-toc-link" data-section="overage">
+            <i class="bi bi-exclamation-diamond"></i> Overage & Justification
+        </a>
+        <a href="#submitting" class="ebill-guide-toc-link" data-section="submitting">
+            <i class="bi bi-send"></i> Submitting to Supervisor
+        </a>
+        <a href="#roles" class="ebill-guide-toc-link" data-section="roles">
+            <i class="bi bi-people"></i> Role Responsibilities
+        </a>
+        <a href="#statuses" class="ebill-guide-toc-link" data-section="statuses">
+            <i class="bi bi-tags"></i> Status Explanations
+        </a>
+        <a href="#faq" class="ebill-guide-toc-link" data-section="faq">
+            <i class="bi bi-question-circle"></i> FAQ
+        </a>
+        <a href="#troubleshooting" class="ebill-guide-toc-link" data-section="troubleshooting">
+            <i class="bi bi-wrench"></i> Troubleshooting
+        </a>
+    </nav>
+
+    <!-- Guide Content -->
+    <div class="ebill-guide-content">
+
+        <!-- 1. Overview -->
+        <section id="overview" class="ebill-guide-section">
+            <h2 class="ebill-guide-section-title">
+                <i class="bi bi-info-circle"></i> Overview
+            </h2>
+            <div class="ebill-guide-card">
+                <p>The <strong>E-Bill Management</strong> module allows staff to review, verify, and manage their monthly telephone call records. Each billing period, staff must verify whether calls made on their assigned phone lines were <strong>Official</strong> or <strong>Personal</strong>, justify any overage beyond their allowance, and submit their verification for supervisor approval.</p>
+
+                <h5 class="mt-4 mb-3" style="color: #004987; font-weight: 600;">Who Can Use This Module?</h5>
+                <p>All staff members with an assigned e-bill account (phone line) can access and verify their call logs. Supervisors review and approve verifications for staff under their supervision. Administrators manage the overall billing cycle and handle escalations.</p>
+
+                <h5 class="mt-4 mb-3" style="color: #004987; font-weight: 600;">Key Concepts</h5>
+                <div class="row g-3">
+                    <div class="col-md-6">
+                        <div class="ebill-guide-info-box">
+                            <div class="ebill-guide-info-box-header">
+                                <i class="bi bi-check2-square" style="color: #009edb;"></i>
+                                <strong>Verification</strong>
+                            </div>
+                            <p class="mb-0 text-muted" style="font-size: 0.875rem;">Reviewing each call and marking it as Official (work-related) or Personal (private use, payable by staff).</p>
+                        </div>
+                    </div>
+                    <div class="col-md-6">
+                        <div class="ebill-guide-info-box">
+                            <div class="ebill-guide-info-box-header">
+                                <i class="bi bi-arrow-left-right" style="color: #F58220;"></i>
+                                <strong>Payment Assignment</strong>
+                            </div>
+                            <p class="mb-0 text-muted" style="font-size: 0.875rem;">Transferring payment responsibility for a call to another staff member who actually made the call.</p>
+                        </div>
+                    </div>
+                    <div class="col-md-6">
+                        <div class="ebill-guide-info-box">
+                            <div class="ebill-guide-info-box-header">
+                                <i class="bi bi-exclamation-diamond" style="color: #ED1847;"></i>
+                                <strong>Overage</strong>
+                            </div>
+                            <p class="mb-0 text-muted" style="font-size: 0.875rem;">When total personal call costs exceed the monthly allowance for a phone line, requiring justification.</p>
+                        </div>
+                    </div>
+                    <div class="col-md-6">
+                        <div class="ebill-guide-info-box">
+                            <div class="ebill-guide-info-box-header">
+                                <i class="bi bi-cash-coin" style="color: #72BF44;"></i>
+                                <strong>Recovery</strong>
+                            </div>
+                            <p class="mb-0 text-muted" style="font-size: 0.875rem;">The process of recovering costs for personal calls that exceed the allowance — applied when deadlines are missed or verifications are rejected.</p>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </section>
+
+        <!-- 2. Call Verification Workflow -->
+        <section id="workflow" class="ebill-guide-section">
+            <h2 class="ebill-guide-section-title">
+                <i class="bi bi-diagram-3"></i> Call Verification Workflow
+            </h2>
+            <div class="ebill-guide-card">
+                <p class="mb-4">Every billing period follows this lifecycle from call log availability to resolution:</p>
+
+                <div class="ebill-guide-timeline">
+                    <div class="ebill-guide-timeline-item">
+                        <div class="ebill-guide-timeline-marker ebill-guide-marker-blue">
+                            <i class="bi bi-telephone"></i>
+                        </div>
+                        <div class="ebill-guide-timeline-content">
+                            <div class="ebill-guide-timeline-title">1. View Call Logs</div>
+                            <div class="ebill-guide-timeline-desc">Call records are imported and made available to staff. Navigate to <strong>My Call Logs</strong> to see your extensions, dialed numbers, and individual calls for the billing period.</div>
+                        </div>
+                    </div>
+
+                    <div class="ebill-guide-timeline-item">
+                        <div class="ebill-guide-timeline-marker ebill-guide-marker-orange">
+                            <i class="bi bi-check2-square"></i>
+                        </div>
+                        <div class="ebill-guide-timeline-content">
+                            <div class="ebill-guide-timeline-title">2. Verify Calls</div>
+                            <div class="ebill-guide-timeline-desc">Mark each call as <span class="ebill-guide-status-badge badge-official">Official</span> or <span class="ebill-guide-status-badge badge-personal">Personal</span>. Use bulk verification for efficiency. Assign calls to other staff if needed.</div>
+                        </div>
+                    </div>
+
+                    <div class="ebill-guide-timeline-item">
+                        <div class="ebill-guide-timeline-marker ebill-guide-marker-red">
+                            <i class="bi bi-exclamation-diamond"></i>
+                        </div>
+                        <div class="ebill-guide-timeline-content">
+                            <div class="ebill-guide-timeline-title">3. Justify Overage (If Applicable)</div>
+                            <div class="ebill-guide-timeline-desc">If personal calls exceed your allowance on any phone line, provide a written justification and supporting documents before submitting.</div>
+                        </div>
+                    </div>
+
+                    <div class="ebill-guide-timeline-item">
+                        <div class="ebill-guide-timeline-marker ebill-guide-marker-purple">
+                            <i class="bi bi-send"></i>
+                        </div>
+                        <div class="ebill-guide-timeline-content">
+                            <div class="ebill-guide-timeline-title">4. Submit to Supervisor</div>
+                            <div class="ebill-guide-timeline-desc">Once all calls are verified, submit the batch to your supervisor for review. The status changes to <span class="ebill-guide-status-badge badge-ebill-pending">Pending</span> approval.</div>
+                        </div>
+                    </div>
+
+                    <div class="ebill-guide-timeline-item">
+                        <div class="ebill-guide-timeline-marker ebill-guide-marker-orange">
+                            <i class="bi bi-person-check"></i>
+                        </div>
+                        <div class="ebill-guide-timeline-content">
+                            <div class="ebill-guide-timeline-title">5. Supervisor Reviews</div>
+                            <div class="ebill-guide-timeline-desc">
+                                The supervisor reviews your verifications and takes one of these actions:
+                                <ul class="mt-2 mb-0">
+                                    <li><strong>Approve</strong> — all verifications accepted, status becomes <span class="ebill-guide-status-badge badge-ebill-approved">Approved</span></li>
+                                    <li><strong>Partially Approve</strong> — some items adjusted, status becomes <span class="ebill-guide-status-badge badge-ebill-partial">Partially Approved</span></li>
+                                    <li><strong>Reject</strong> — verifications not accepted, status becomes <span class="ebill-guide-status-badge badge-ebill-rejected">Rejected</span></li>
+                                    <li><strong>Revert</strong> — returned for corrections, status becomes <span class="ebill-guide-status-badge badge-ebill-reverted">Reverted</span></li>
+                                </ul>
+                            </div>
+                        </div>
+                    </div>
+
+                    <div class="ebill-guide-timeline-item">
+                        <div class="ebill-guide-timeline-marker ebill-guide-marker-green">
+                            <i class="bi bi-check-lg"></i>
+                        </div>
+                        <div class="ebill-guide-timeline-content">
+                            <div class="ebill-guide-timeline-title">6. Resolution</div>
+                            <div class="ebill-guide-timeline-desc">Once approved, the billing cycle is complete. Any personal overage amounts are processed for recovery. If deadlines are missed at any stage, automatic recovery rules apply.</div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </section>
+
+        <!-- 3. Viewing Your Call Logs -->
+        <section id="viewing-calls" class="ebill-guide-section">
+            <h2 class="ebill-guide-section-title">
+                <i class="bi bi-telephone"></i> Viewing Your Call Logs
+            </h2>
+            <div class="ebill-guide-card">
+                <p class="mb-4">Call logs are organized in a hierarchical structure for easy navigation:</p>
+
+                <div class="ebill-guide-steps">
+                    <div class="ebill-guide-step">
+                        <div class="ebill-guide-step-number">1</div>
+                        <div class="ebill-guide-step-content">
+                            <strong>Navigate to My Call Logs</strong>
+                            <p class="mb-0 text-muted">From the sidebar, click <strong>"My Call Logs"</strong> to see all phone lines assigned to you for the current billing period.</p>
+                        </div>
+                    </div>
+
+                    <div class="ebill-guide-step">
+                        <div class="ebill-guide-step-number">2</div>
+                        <div class="ebill-guide-step-content">
+                            <strong>View Your Extensions</strong>
+                            <p class="mb-0 text-muted">The top level shows each phone extension assigned to you, along with the total number of calls and total cost for the period.</p>
+                        </div>
+                    </div>
+
+                    <div class="ebill-guide-step">
+                        <div class="ebill-guide-step-number">3</div>
+                        <div class="ebill-guide-step-content">
+                            <strong>Expand Dialed Numbers</strong>
+                            <p class="mb-0 text-muted">Click on an extension to see all unique dialed numbers, grouped with call count and total cost per number.</p>
+                        </div>
+                    </div>
+
+                    <div class="ebill-guide-step">
+                        <div class="ebill-guide-step-number">4</div>
+                        <div class="ebill-guide-step-content">
+                            <strong>View Individual Calls</strong>
+                            <p class="mb-0 text-muted">Expand a dialed number to see each individual call with date, time, duration, and cost details.</p>
+                        </div>
+                    </div>
+                </div>
+
+                <h5 class="mt-4 mb-3" style="color: #004987; font-weight: 600;">Summary Information</h5>
+                <p class="text-muted" style="font-size: 0.875rem;">At the top of your call logs you will see a summary showing: total calls, total cost, verified vs. unverified counts, personal vs. official breakdown, and your allowance balance.</p>
+
+                <h5 class="mt-4 mb-3" style="color: #004987; font-weight: 600;">Filtering &amp; Search</h5>
+                <p class="mb-0 text-muted" style="font-size: 0.875rem;">Use the filter controls to narrow call logs by billing period (month/year), verification status, or call type. You can also search for specific dialed numbers.</p>
+            </div>
+        </section>
+
+        <!-- 4. Verifying Calls -->
+        <section id="verifying-calls" class="ebill-guide-section">
+            <h2 class="ebill-guide-section-title">
+                <i class="bi bi-check2-square"></i> Verifying Calls
+            </h2>
+            <div class="ebill-guide-card">
+                <p class="mb-4">Each call must be classified as either Official or Personal:</p>
+
+                <div class="row g-3 mb-4">
+                    <div class="col-md-6">
+                        <div class="ebill-guide-info-box">
+                            <div class="ebill-guide-info-box-header">
+                                <i class="bi bi-building" style="color: #009edb;"></i>
+                                <strong>Official</strong>
+                            </div>
+                            <p class="mb-0 text-muted" style="font-size: 0.875rem;">Work-related calls made in the course of official duties. These are covered by the organization and do not count toward your personal allowance.</p>
+                        </div>
+                    </div>
+                    <div class="col-md-6">
+                        <div class="ebill-guide-info-box">
+                            <div class="ebill-guide-info-box-header">
+                                <i class="bi bi-person" style="color: #F58220;"></i>
+                                <strong>Personal</strong>
+                            </div>
+                            <p class="mb-0 text-muted" style="font-size: 0.875rem;">Private calls not related to official work. These count against your monthly personal allowance. Costs beyond the allowance must be justified or recovered.</p>
+                        </div>
+                    </div>
+                </div>
+
+                <h5 class="mt-2 mb-3" style="color: #004987; font-weight: 600;">Step-by-Step Verification</h5>
+                <div class="ebill-guide-steps">
+                    <div class="ebill-guide-step">
+                        <div class="ebill-guide-step-number">1</div>
+                        <div class="ebill-guide-step-content">
+                            <strong>Select Calls</strong>
+                            <p class="mb-0 text-muted">Use the checkboxes to select individual calls, or use <strong>"Select All"</strong> to select all calls for a dialed number or extension.</p>
+                        </div>
+                    </div>
+
+                    <div class="ebill-guide-step">
+                        <div class="ebill-guide-step-number">2</div>
+                        <div class="ebill-guide-step-content">
+                            <strong>Choose Verification Type</strong>
+                            <p class="mb-0 text-muted">Click <strong>"Mark as Official"</strong> or <strong>"Mark as Personal"</strong> to classify the selected calls. Bulk verification applies to all selected calls at once.</p>
+                        </div>
+                    </div>
+
+                    <div class="ebill-guide-step">
+                        <div class="ebill-guide-step-number">3</div>
+                        <div class="ebill-guide-step-content">
+                            <strong>Add Justification (If Needed)</strong>
+                            <p class="mb-0 text-muted">If marking calls as official requires additional context, or if overage justification is needed, provide a text explanation and optionally attach supporting documents.</p>
+                        </div>
+                    </div>
+
+                    <div class="ebill-guide-step">
+                        <div class="ebill-guide-step-number">4</div>
+                        <div class="ebill-guide-step-content">
+                            <strong>Review Progress</strong>
+                            <p class="mb-0 text-muted">Track your verification progress in the summary bar. All calls must be verified before you can submit to your supervisor.</p>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </section>
+
+        <!-- 5. Payment Assignments -->
+        <section id="payment-assignments" class="ebill-guide-section">
+            <h2 class="ebill-guide-section-title">
+                <i class="bi bi-arrow-left-right"></i> Payment Assignments
+            </h2>
+            <div class="ebill-guide-card">
+                <p>If someone else used your phone to make a personal call, you can <strong>assign payment</strong> for that call to the person who made it. The recipient must accept or reject the assignment.</p>
+
+                <h5 class="mt-4 mb-3" style="color: #004987; font-weight: 600;">How Payment Assignments Work</h5>
+                <div class="ebill-guide-steps">
+                    <div class="ebill-guide-step">
+                        <div class="ebill-guide-step-number">1</div>
+                        <div class="ebill-guide-step-content">
+                            <strong>Create Assignment</strong>
+                            <p class="mb-0 text-muted">Select a call and click <strong>"Assign Payment"</strong>. Search for the staff member and provide a reason for the assignment.</p>
+                        </div>
+                    </div>
+
+                    <div class="ebill-guide-step">
+                        <div class="ebill-guide-step-number">2</div>
+                        <div class="ebill-guide-step-content">
+                            <strong>Recipient Is Notified</strong>
+                            <p class="mb-0 text-muted">The assigned staff member receives a notification and can view the call details and your reason for the assignment.</p>
+                        </div>
+                    </div>
+
+                    <div class="ebill-guide-step">
+                        <div class="ebill-guide-step-number">3</div>
+                        <div class="ebill-guide-step-content">
+                            <strong>Recipient Accepts or Rejects</strong>
+                            <p class="mb-0 text-muted">The recipient reviews and either <strong>accepts</strong> (taking payment responsibility) or <strong>rejects</strong> (returns responsibility to you) the assignment.</p>
+                        </div>
+                    </div>
+                </div>
+
+                <h5 class="mt-4 mb-3" style="color: #004987; font-weight: 600;">Assignment Statuses</h5>
+                <div class="row g-3">
+                    <div class="col-md-6 col-lg-3">
+                        <div class="ebill-guide-info-box text-center">
+                            <span class="ebill-guide-status-badge badge-ebill-pending">Pending</span>
+                            <p class="mb-0 text-muted mt-2" style="font-size: 0.8125rem;">Awaiting recipient response</p>
+                        </div>
+                    </div>
+                    <div class="col-md-6 col-lg-3">
+                        <div class="ebill-guide-info-box text-center">
+                            <span class="ebill-guide-status-badge badge-ebill-approved">Accepted</span>
+                            <p class="mb-0 text-muted mt-2" style="font-size: 0.8125rem;">Recipient took responsibility</p>
+                        </div>
+                    </div>
+                    <div class="col-md-6 col-lg-3">
+                        <div class="ebill-guide-info-box text-center">
+                            <span class="ebill-guide-status-badge badge-ebill-rejected">Rejected</span>
+                            <p class="mb-0 text-muted mt-2" style="font-size: 0.8125rem;">Returned to original owner</p>
+                        </div>
+                    </div>
+                    <div class="col-md-6 col-lg-3">
+                        <div class="ebill-guide-info-box text-center">
+                            <span class="ebill-guide-status-badge badge-ebill-reassigned">Reassigned</span>
+                            <p class="mb-0 text-muted mt-2" style="font-size: 0.8125rem;">Passed to another user</p>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </section>
+
+        <!-- 6. Overage & Justification -->
+        <section id="overage" class="ebill-guide-section">
+            <h2 class="ebill-guide-section-title">
+                <i class="bi bi-exclamation-diamond"></i> Overage &amp; Justification
+            </h2>
+            <div class="ebill-guide-card">
+                <p><strong>Overage</strong> occurs when the total cost of personal calls on a phone line exceeds the monthly allowance for that line. Overage is calculated at the <strong>phone level</strong>, not per individual call.</p>
+
+                <div class="ebill-guide-callout ebill-guide-callout-warning mb-4">
+                    <i class="bi bi-exclamation-triangle"></i>
+                    <div>
+                        <strong>Important:</strong> Overage justification must be submitted before the verification deadline. If the deadline is missed, all unverified calls are automatically treated as personal and recovery is initiated.
+                    </div>
+                </div>
+
+                <h5 class="mt-2 mb-3" style="color: #004987; font-weight: 600;">How Overage Is Calculated</h5>
+                <div class="ebill-guide-info-box mb-4">
+                    <div class="row text-center">
+                        <div class="col-4">
+                            <div style="font-size: 0.75rem; color: #718096; text-transform: uppercase; letter-spacing: 0.5px;">Total Personal Calls</div>
+                            <div style="font-size: 1.125rem; font-weight: 600; color: #1a202c;">$150.00</div>
+                        </div>
+                        <div class="col-4">
+                            <div style="font-size: 0.75rem; color: #718096; text-transform: uppercase; letter-spacing: 0.5px;">Monthly Allowance</div>
+                            <div style="font-size: 1.125rem; font-weight: 600; color: #72BF44;">&minus; $100.00</div>
+                        </div>
+                        <div class="col-4">
+                            <div style="font-size: 0.75rem; color: #718096; text-transform: uppercase; letter-spacing: 0.5px;">Overage Amount</div>
+                            <div style="font-size: 1.125rem; font-weight: 600; color: #ED1847;">= $50.00</div>
+                        </div>
+                    </div>
+                </div>
+
+                <h5 class="mt-2 mb-3" style="color: #004987; font-weight: 600;">Justifying Overage</h5>
+                <div class="ebill-guide-steps">
+                    <div class="ebill-guide-step">
+                        <div class="ebill-guide-step-number">1</div>
+                        <div class="ebill-guide-step-content">
+                            <strong>Review Overage Summary</strong>
+                            <p class="mb-0 text-muted">When overage is detected on a phone line, you will see an overage alert with the amount. Click to view the justification form.</p>
+                        </div>
+                    </div>
+
+                    <div class="ebill-guide-step">
+                        <div class="ebill-guide-step-number">2</div>
+                        <div class="ebill-guide-step-content">
+                            <strong>Provide Written Justification</strong>
+                            <p class="mb-0 text-muted">Enter a clear explanation for the overage. Explain the circumstances — for example, emergency calls, temporary need, or other valid reasons.</p>
+                        </div>
+                    </div>
+
+                    <div class="ebill-guide-step">
+                        <div class="ebill-guide-step-number">3</div>
+                        <div class="ebill-guide-step-content">
+                            <strong>Attach Supporting Documents (Optional)</strong>
+                            <p class="mb-0 text-muted">Upload any relevant documents such as approval letters, receipts, or correspondence that support your justification.</p>
+                        </div>
+                    </div>
+                </div>
+
+                <h5 class="mt-4 mb-3" style="color: #004987; font-weight: 600;">Unlimited vs. Limited Plans</h5>
+                <div class="row g-3">
+                    <div class="col-md-6">
+                        <div class="ebill-guide-info-box">
+                            <div class="ebill-guide-info-box-header">
+                                <i class="bi bi-infinity" style="color: #72BF44;"></i>
+                                <strong>Unlimited Plan</strong>
+                            </div>
+                            <p class="mb-0 text-muted" style="font-size: 0.875rem;">No overage calculation applies. Calls still require verification, but there is no cost threshold to exceed.</p>
+                        </div>
+                    </div>
+                    <div class="col-md-6">
+                        <div class="ebill-guide-info-box">
+                            <div class="ebill-guide-info-box-header">
+                                <i class="bi bi-speedometer2" style="color: #F58220;"></i>
+                                <strong>Limited Plan</strong>
+                            </div>
+                            <p class="mb-0 text-muted" style="font-size: 0.875rem;">A fixed monthly allowance applies. Personal calls exceeding the allowance trigger overage and require justification.</p>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </section>
+
+        <!-- 7. Submitting to Supervisor -->
+        <section id="submitting" class="ebill-guide-section">
+            <h2 class="ebill-guide-section-title">
+                <i class="bi bi-send"></i> Submitting to Supervisor
+            </h2>
+            <div class="ebill-guide-card">
+                <p class="mb-4">Once all calls have been verified (and any overage justified), you can submit your verifications as a batch to your supervisor.</p>
+
+                <div class="ebill-guide-steps">
+                    <div class="ebill-guide-step">
+                        <div class="ebill-guide-step-number">1</div>
+                        <div class="ebill-guide-step-content">
+                            <strong>Ensure All Calls Are Verified</strong>
+                            <p class="mb-0 text-muted">The submit button is only enabled when 100% of calls for the billing period have been verified. Check the progress bar for any remaining unverified calls.</p>
+                        </div>
+                    </div>
+
+                    <div class="ebill-guide-step">
+                        <div class="ebill-guide-step-number">2</div>
+                        <div class="ebill-guide-step-content">
+                            <strong>Click "Submit to Supervisor"</strong>
+                            <p class="mb-0 text-muted">All verified calls are grouped into a batch and sent to your assigned supervisor. You will receive a confirmation with the batch reference number.</p>
+                        </div>
+                    </div>
+
+                    <div class="ebill-guide-step">
+                        <div class="ebill-guide-step-number">3</div>
+                        <div class="ebill-guide-step-content">
+                            <strong>Await Supervisor Decision</strong>
+                            <p class="mb-0 text-muted">Your supervisor reviews the batch and may approve, partially approve, reject, or revert. You will be notified of the outcome.</p>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="ebill-guide-callout ebill-guide-callout-info mt-4">
+                    <i class="bi bi-clock"></i>
+                    <div>
+                        <strong>Deadlines:</strong> Each billing period has a verification submission deadline and a supervisor approval deadline. Missing a deadline may result in automatic recovery actions. Check the deadline indicators on your call log page for exact dates.
+                    </div>
+                </div>
+            </div>
+        </section>
+
+        <!-- 8. Role Responsibilities -->
+        <section id="roles" class="ebill-guide-section">
+            <h2 class="ebill-guide-section-title">
+                <i class="bi bi-people"></i> Role Responsibilities
+            </h2>
+            <div class="ebill-guide-roles-grid">
+                <!-- Staff Member -->
+                <div class="ebill-guide-role-card">
+                    <div class="ebill-guide-role-icon" style="background: #E3EDF6; color: #009edb;">
+                        <i class="bi bi-person"></i>
+                    </div>
+                    <h5 class="ebill-guide-role-title">Staff Member</h5>
+                    <ul class="ebill-guide-role-list">
+                        <li>Views and verifies monthly call logs</li>
+                        <li>Marks calls as Official or Personal</li>
+                        <li>Assigns payments to other staff when applicable</li>
+                        <li>Justifies overage with documentation</li>
+                        <li>Submits verified calls to supervisor before the deadline</li>
+                        <li>Responds to reverted verifications</li>
+                    </ul>
+                </div>
+
+                <!-- Supervisor -->
+                <div class="ebill-guide-role-card">
+                    <div class="ebill-guide-role-icon" style="background: #FFEAD5; color: #F58220;">
+                        <i class="bi bi-person-check"></i>
+                    </div>
+                    <h5 class="ebill-guide-role-title">Supervisor</h5>
+                    <ul class="ebill-guide-role-list">
+                        <li>Reviews staff verification submissions</li>
+                        <li>Approves, partially approves, rejects, or reverts verifications</li>
+                        <li>Reviews overage justifications and supporting documents</li>
+                        <li>Provides comments on decisions</li>
+                        <li>Must act before the supervisor approval deadline</li>
+                    </ul>
+                </div>
+
+                <!-- Administrator -->
+                <div class="ebill-guide-role-card">
+                    <div class="ebill-guide-role-icon" style="background: #F7DFDF; color: #ED1847;">
+                        <i class="bi bi-shield-check"></i>
+                    </div>
+                    <h5 class="ebill-guide-role-title">Administrator</h5>
+                    <ul class="ebill-guide-role-list">
+                        <li>Manages billing periods and deadlines</li>
+                        <li>Imports and stages call log data</li>
+                        <li>Processes cost recovery for missed deadlines</li>
+                        <li>Handles manual overrides and escalations</li>
+                        <li>Generates billing reports</li>
+                    </ul>
+                </div>
+            </div>
+        </section>
+
+        <!-- 9. Status Explanations -->
+        <section id="statuses" class="ebill-guide-section">
+            <h2 class="ebill-guide-section-title">
+                <i class="bi bi-tags"></i> Status Explanations
+            </h2>
+            <div class="ebill-guide-card">
+                <h5 class="mb-3" style="color: #004987; font-weight: 600;">Verification Statuses</h5>
+                <p class="text-muted mb-3" style="font-size: 0.875rem;">These statuses indicate how an individual call has been classified:</p>
+                <div class="table-responsive mb-4">
+                    <table class="table ebill-guide-status-table">
+                        <thead>
+                            <tr>
+                                <th>Status</th>
+                                <th>Description</th>
+                                <th>Action By</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            <tr>
+                                <td><span class="ebill-guide-status-badge badge-ebill-unverified">Unverified</span></td>
+                                <td>Call has not been reviewed yet. Must be verified before submission.</td>
+                                <td>Staff</td>
+                            </tr>
+                            <tr>
+                                <td><span class="ebill-guide-status-badge badge-official">Official</span></td>
+                                <td>Call marked as work-related. Does not count toward personal allowance.</td>
+                                <td>Staff</td>
+                            </tr>
+                            <tr>
+                                <td><span class="ebill-guide-status-badge badge-personal">Personal</span></td>
+                                <td>Call marked as private. Counts toward personal allowance.</td>
+                                <td>Staff</td>
+                            </tr>
+                            <tr>
+                                <td><span class="ebill-guide-status-badge badge-ebill-assigned">Assigned</span></td>
+                                <td>Payment responsibility transferred to another staff member.</td>
+                                <td>Staff</td>
+                            </tr>
+                        </tbody>
+                    </table>
+                </div>
+
+                <h5 class="mb-3" style="color: #004987; font-weight: 600;">Approval Statuses</h5>
+                <p class="text-muted mb-3" style="font-size: 0.875rem;">These statuses track the supervisor approval workflow after submission:</p>
+                <div class="table-responsive">
+                    <table class="table ebill-guide-status-table">
+                        <thead>
+                            <tr>
+                                <th>Status</th>
+                                <th>Description</th>
+                                <th>Next Step</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            <tr>
+                                <td><span class="ebill-guide-status-badge badge-ebill-pending">Pending</span></td>
+                                <td>Submitted and awaiting supervisor review.</td>
+                                <td>Supervisor reviews</td>
+                            </tr>
+                            <tr>
+                                <td><span class="ebill-guide-status-badge badge-ebill-approved">Approved</span></td>
+                                <td>Supervisor accepted all verifications. Billing cycle complete.</td>
+                                <td>No action needed</td>
+                            </tr>
+                            <tr>
+                                <td><span class="ebill-guide-status-badge badge-ebill-partial">Partially Approved</span></td>
+                                <td>Supervisor approved some items but adjusted others (e.g., reclassified calls).</td>
+                                <td>Review adjustments</td>
+                            </tr>
+                            <tr>
+                                <td><span class="ebill-guide-status-badge badge-ebill-rejected">Rejected</span></td>
+                                <td>Supervisor did not accept the verifications. Recovery may be initiated.</td>
+                                <td>Review feedback</td>
+                            </tr>
+                            <tr>
+                                <td><span class="ebill-guide-status-badge badge-ebill-reverted">Reverted</span></td>
+                                <td>Returned to staff for corrections. Must re-verify and resubmit.</td>
+                                <td>Staff corrects &amp; resubmits</td>
+                            </tr>
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+        </section>
+
+        <!-- 10. FAQ -->
+        <section id="faq" class="ebill-guide-section">
+            <h2 class="ebill-guide-section-title">
+                <i class="bi bi-question-circle"></i> Frequently Asked Questions
+            </h2>
+            <div class="ebill-guide-card">
+                <div class="accordion" id="ebillFaqAccordion">
+                    <div class="accordion-item ebill-guide-accordion-item">
+                        <h2 class="accordion-header">
+                            <button class="accordion-button collapsed ebill-guide-accordion-btn" type="button" data-bs-toggle="collapse" data-bs-target="#ebillFaq1">
+                                What happens if I miss the verification deadline?
+                            </button>
+                        </h2>
+                        <div id="ebillFaq1" class="accordion-collapse collapse" data-bs-parent="#ebillFaqAccordion">
+                            <div class="accordion-body">
+                                If you miss the verification deadline, all <strong>unverified calls</strong> are automatically treated as personal calls. The full cost of these calls (minus any allowance) is processed for recovery. To avoid this, verify and submit your calls before the deadline shown on your call log page.
+                            </div>
+                        </div>
+                    </div>
+
+                    <div class="accordion-item ebill-guide-accordion-item">
+                        <h2 class="accordion-header">
+                            <button class="accordion-button collapsed ebill-guide-accordion-btn" type="button" data-bs-toggle="collapse" data-bs-target="#ebillFaq2">
+                                Can I change a call's verification after submitting to my supervisor?
+                            </button>
+                        </h2>
+                        <div id="ebillFaq2" class="accordion-collapse collapse" data-bs-parent="#ebillFaqAccordion">
+                            <div class="accordion-body">
+                                No. Once submitted, you cannot change verifications directly. However, your supervisor can <strong>revert</strong> the submission back to you, which allows you to make corrections and resubmit. Contact your supervisor if changes are needed.
+                            </div>
+                        </div>
+                    </div>
+
+                    <div class="accordion-item ebill-guide-accordion-item">
+                        <h2 class="accordion-header">
+                            <button class="accordion-button collapsed ebill-guide-accordion-btn" type="button" data-bs-toggle="collapse" data-bs-target="#ebillFaq3">
+                                How do I assign a call to someone else?
+                            </button>
+                        </h2>
+                        <div id="ebillFaq3" class="accordion-collapse collapse" data-bs-parent="#ebillFaqAccordion">
+                            <div class="accordion-body">
+                                Select the call, click <strong>"Assign Payment"</strong>, search for the staff member by name or index number, and provide a reason. The recipient will receive a notification and must accept or reject the assignment. If rejected, the call returns to your responsibility.
+                            </div>
+                        </div>
+                    </div>
+
+                    <div class="accordion-item ebill-guide-accordion-item">
+                        <h2 class="accordion-header">
+                            <button class="accordion-button collapsed ebill-guide-accordion-btn" type="button" data-bs-toggle="collapse" data-bs-target="#ebillFaq4">
+                                What does "Partially Approved" mean?
+                            </button>
+                        </h2>
+                        <div id="ebillFaq4" class="accordion-collapse collapse" data-bs-parent="#ebillFaqAccordion">
+                            <div class="accordion-body">
+                                <strong>Partially Approved</strong> means your supervisor accepted most of your verifications but adjusted some — for example, reclassifying calls you marked as official to personal, or adjusting the approved overage amount. Review the supervisor's comments for details on what was changed.
+                            </div>
+                        </div>
+                    </div>
+
+                    <div class="accordion-item ebill-guide-accordion-item">
+                        <h2 class="accordion-header">
+                            <button class="accordion-button collapsed ebill-guide-accordion-btn" type="button" data-bs-toggle="collapse" data-bs-target="#ebillFaq5">
+                                What is cost recovery and when does it happen?
+                            </button>
+                        </h2>
+                        <div id="ebillFaq5" class="accordion-collapse collapse" data-bs-parent="#ebillFaqAccordion">
+                            <div class="accordion-body">
+                                Cost recovery is the process of deducting personal call costs that exceed your allowance. It is triggered when: (1) you miss the verification deadline, (2) your supervisor rejects your verifications, (3) your supervisor does not act by the approval deadline, or (4) personal overage is confirmed after approval. The recovery amount is calculated based on the applicable rules for each scenario.
+                            </div>
+                        </div>
+                    </div>
+
+                    <div class="accordion-item ebill-guide-accordion-item">
+                        <h2 class="accordion-header">
+                            <button class="accordion-button collapsed ebill-guide-accordion-btn" type="button" data-bs-toggle="collapse" data-bs-target="#ebillFaq6">
+                                How is overage calculated if I have multiple phone lines?
+                            </button>
+                        </h2>
+                        <div id="ebillFaq6" class="accordion-collapse collapse" data-bs-parent="#ebillFaqAccordion">
+                            <div class="accordion-body">
+                                Overage is calculated <strong>per phone line</strong>, not across all your lines combined. Each line has its own allowance based on its class of service. If one line is over the allowance and another is under, they do <strong>not</strong> offset each other — you must justify the overage on the line that exceeded its limit.
+                            </div>
+                        </div>
+                    </div>
+
+                    <div class="accordion-item ebill-guide-accordion-item">
+                        <h2 class="accordion-header">
+                            <button class="accordion-button collapsed ebill-guide-accordion-btn" type="button" data-bs-toggle="collapse" data-bs-target="#ebillFaq7">
+                                Can my supervisor change my verification types?
+                            </button>
+                        </h2>
+                        <div id="ebillFaq7" class="accordion-collapse collapse" data-bs-parent="#ebillFaqAccordion">
+                            <div class="accordion-body">
+                                Yes. When partially approving, supervisors can reclassify calls — for example, changing a call you marked as official to personal if they disagree. The supervisor must provide comments explaining any changes. You will be notified of adjustments.
+                            </div>
+                        </div>
+                    </div>
+
+                    <div class="accordion-item ebill-guide-accordion-item">
+                        <h2 class="accordion-header">
+                            <button class="accordion-button collapsed ebill-guide-accordion-btn" type="button" data-bs-toggle="collapse" data-bs-target="#ebillFaq8">
+                                Who should I contact for help with e-bill issues?
+                            </button>
+                        </h2>
+                        <div id="ebillFaq8" class="accordion-collapse collapse" data-bs-parent="#ebillFaqAccordion">
+                            <div class="accordion-body">
+                                <ul class="mb-0">
+                                    <li><strong>Verification questions:</strong> Contact your supervisor</li>
+                                    <li><strong>Payment assignment issues:</strong> Contact the assigned staff member or your supervisor</li>
+                                    <li><strong>Missing call records:</strong> Contact the ICTS administrator</li>
+                                    <li><strong>Deadline extensions:</strong> Contact the administrator before the deadline expires</li>
+                                    <li><strong>System errors:</strong> Contact the system administrator</li>
+                                </ul>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </section>
+
+        <!-- 11. Troubleshooting -->
+        <section id="troubleshooting" class="ebill-guide-section">
+            <h2 class="ebill-guide-section-title">
+                <i class="bi bi-wrench"></i> Troubleshooting
+            </h2>
+            <div class="ebill-guide-card">
+                <div class="ebill-guide-trouble-list">
+                    <div class="ebill-guide-trouble-item">
+                        <div class="ebill-guide-trouble-problem">
+                            <i class="bi bi-exclamation-triangle" style="color: #F58220;"></i>
+                            <strong>No call logs are showing for the current period</strong>
+                        </div>
+                        <div class="ebill-guide-trouble-solution">
+                            Call records may not have been imported yet for the current billing period. Check that you have selected the correct month and year in the filter. If records are still missing, contact the administrator — they may need to import and stage the call data.
+                        </div>
+                    </div>
+
+                    <div class="ebill-guide-trouble-item">
+                        <div class="ebill-guide-trouble-problem">
+                            <i class="bi bi-exclamation-triangle" style="color: #F58220;"></i>
+                            <strong>The "Submit to Supervisor" button is disabled</strong>
+                        </div>
+                        <div class="ebill-guide-trouble-solution">
+                            The submit button requires all calls to be verified. Check if any calls are still unverified — look at the progress bar at the top of the page. Also ensure any overage on your phone lines has been justified. Both conditions must be met before submission.
+                        </div>
+                    </div>
+
+                    <div class="ebill-guide-trouble-item">
+                        <div class="ebill-guide-trouble-problem">
+                            <i class="bi bi-exclamation-triangle" style="color: #F58220;"></i>
+                            <strong>Payment assignment was rejected</strong>
+                        </div>
+                        <div class="ebill-guide-trouble-solution">
+                            When a payment assignment is rejected, the call reverts to your responsibility. You can either: (1) try assigning to a different staff member if the original assignment was incorrect, (2) mark the call as personal and accept the charge, or (3) contact your supervisor for guidance.
+                        </div>
+                    </div>
+
+                    <div class="ebill-guide-trouble-item">
+                        <div class="ebill-guide-trouble-problem">
+                            <i class="bi bi-exclamation-triangle" style="color: #F58220;"></i>
+                            <strong>Verification was reverted by supervisor</strong>
+                        </div>
+                        <div class="ebill-guide-trouble-solution">
+                            Your supervisor has returned your submission for corrections. Check the supervisor's comments to understand what needs to be changed. Make the necessary adjustments to your call verifications and resubmit before the re-verification deadline.
+                        </div>
+                    </div>
+
+                    <div class="ebill-guide-trouble-item">
+                        <div class="ebill-guide-trouble-problem">
+                            <i class="bi bi-exclamation-triangle" style="color: #F58220;"></i>
+                            <strong>Overage showing even though I have an unlimited plan</strong>
+                        </div>
+                        <div class="ebill-guide-trouble-solution">
+                            If your class of service should be unlimited but overage is displayed, the plan settings may not be configured correctly. Contact the administrator to verify your class of service settings for the affected phone line.
+                        </div>
+                    </div>
+
+                    <div class="ebill-guide-trouble-item">
+                        <div class="ebill-guide-trouble-problem">
+                            <i class="bi bi-exclamation-triangle" style="color: #F58220;"></i>
+                            <strong>Cannot see calls on a phone line I use</strong>
+                        </div>
+                        <div class="ebill-guide-trouble-solution">
+                            Call logs are shown based on phone lines assigned to your account. If you use a shared phone or a line not formally assigned to you, the calls will appear under the assigned owner's account. Ask the line owner to assign specific calls to you using the payment assignment feature.
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </section>
+
+    </div>
+</div>
+
+@section Scripts {
+<script>
+    // Scroll-spy: highlight active TOC link based on visible section
+    document.addEventListener('DOMContentLoaded', function () {
+        var tocLinks = document.querySelectorAll('.ebill-guide-toc-link');
+        var sections = document.querySelectorAll('.ebill-guide-section');
+
+        if (!sections.length || !tocLinks.length) return;
+
+        var observer = new IntersectionObserver(function (entries) {
+            entries.forEach(function (entry) {
+                if (entry.isIntersecting) {
+                    var id = entry.target.getAttribute('id');
+                    tocLinks.forEach(function (link) {
+                        link.classList.toggle('active', link.getAttribute('data-section') === id);
+                    });
+                }
+            });
+        }, {
+            rootMargin: '-80px 0px -60% 0px',
+            threshold: 0
+        });
+
+        sections.forEach(function (section) {
+            observer.observe(section);
+        });
+
+        // Smooth scroll for TOC links
+        tocLinks.forEach(function (link) {
+            link.addEventListener('click', function (e) {
+                e.preventDefault();
+                var targetId = this.getAttribute('data-section');
+                var target = document.getElementById(targetId);
+                if (target) {
+                    target.scrollIntoView({ behavior: 'smooth', block: 'start' });
+                }
+            });
+        });
+    });
+</script>
+}
+
+<style>
+/* Back Link */
+.ebill-guide-back-link {
+    display: inline-flex;
+    align-items: center;
+    gap: 0.5rem;
+    color: #009edb;
+    text-decoration: none;
+    font-size: 0.875rem;
+    font-weight: 500;
+    transition: color 0.2s;
+}
+
+.ebill-guide-back-link:hover {
+    color: #0077b5;
+    text-decoration: none;
+}
+
+/* Hero */
+.ebill-guide-hero {
+    background: linear-gradient(135deg, #009edb 0%, #0077b5 100%);
+    border-radius: 10px;
+    padding: 1.25rem 1.5rem;
+    margin-bottom: 2rem;
+    box-shadow: 0 2px 6px rgba(0, 102, 204, 0.12);
+}
+
+.ebill-guide-hero-content {
+    display: flex;
+    align-items: center;
+    gap: 1.25rem;
+}
+
+.ebill-guide-hero-icon {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    width: 45px;
+    height: 45px;
+    background: rgba(255, 255, 255, 0.25);
+    border-radius: 10px;
+    backdrop-filter: blur(10px);
+    flex-shrink: 0;
+}
+
+.ebill-guide-hero-icon i {
+    font-size: 1.25rem;
+    color: white;
+}
+
+.ebill-guide-hero-text {
+    text-align: left;
+}
+
+.ebill-guide-hero-title {
+    font-size: 1.25rem;
+    font-weight: 600;
+    color: white;
+    margin-bottom: 0.25rem;
+    letter-spacing: -0.01em;
+}
+
+.ebill-guide-hero-subtitle {
+    font-size: 0.875rem;
+    color: rgba(255, 255, 255, 0.95);
+    margin: 0;
+    line-height: 1.3;
+}
+
+/* Two-Column Layout */
+.ebill-guide-layout {
+    display: flex;
+    gap: 2rem;
+    align-items: flex-start;
+}
+
+/* Table of Contents */
+.ebill-guide-toc {
+    position: sticky;
+    top: 80px;
+    width: 250px;
+    min-width: 250px;
+    background: white;
+    border-radius: 12px;
+    padding: 1.25rem;
+    box-shadow: 0 1px 3px rgba(0, 0, 0, 0.1);
+    border: 1px solid rgba(0, 0, 0, 0.05);
+}
+
+.ebill-guide-toc-title {
+    font-size: 0.75rem;
+    font-weight: 600;
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
+    color: #AEA29A;
+    margin-bottom: 0.75rem;
+    padding-bottom: 0.5rem;
+    border-bottom: 2px solid #E3EDF6;
+}
+
+.ebill-guide-toc-link {
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+    padding: 0.5rem 0.75rem;
+    margin-bottom: 0.125rem;
+    color: #6E6259;
+    text-decoration: none;
+    font-size: 0.8125rem;
+    font-weight: 500;
+    border-radius: 6px;
+    transition: all 0.2s ease;
+    border-left: 3px solid transparent;
+}
+
+.ebill-guide-toc-link:hover {
+    background: #E3EDF6;
+    color: #009edb;
+    text-decoration: none;
+}
+
+.ebill-guide-toc-link.active {
+    background: rgba(0, 158, 219, 0.08);
+    color: #009edb;
+    font-weight: 600;
+    border-left-color: #009edb;
+}
+
+.ebill-guide-toc-link i {
+    font-size: 0.875rem;
+    width: 1rem;
+    text-align: center;
+    flex-shrink: 0;
+}
+
+/* Guide Content */
+.ebill-guide-content {
+    flex: 1;
+    min-width: 0;
+}
+
+.ebill-guide-section {
+    margin-bottom: 2.5rem;
+    scroll-margin-top: 80px;
+}
+
+.ebill-guide-section-title {
+    font-size: 1.25rem;
+    font-weight: 600;
+    color: #004987;
+    margin-bottom: 1rem;
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+}
+
+.ebill-guide-section-title i {
+    color: #009edb;
+    font-size: 1.1rem;
+}
+
+.ebill-guide-card {
+    background: white;
+    border-radius: 12px;
+    padding: 1.5rem;
+    box-shadow: 0 1px 3px rgba(0, 0, 0, 0.1);
+    border: 1px solid rgba(0, 0, 0, 0.05);
+}
+
+/* Info Boxes */
+.ebill-guide-info-box {
+    background: #f8fafc;
+    border: 1px solid #e2e8f0;
+    border-radius: 8px;
+    padding: 1rem;
+}
+
+.ebill-guide-info-box-header {
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+    margin-bottom: 0.5rem;
+}
+
+/* Callout Boxes */
+.ebill-guide-callout {
+    display: flex;
+    gap: 0.75rem;
+    padding: 1rem 1.25rem;
+    border-radius: 8px;
+    font-size: 0.875rem;
+    line-height: 1.5;
+}
+
+.ebill-guide-callout > i {
+    font-size: 1.1rem;
+    flex-shrink: 0;
+    margin-top: 0.1rem;
+}
+
+.ebill-guide-callout-warning {
+    background: #FFFBF5;
+    border: 1px solid #FFEAD5;
+    color: #8a4600;
+}
+
+.ebill-guide-callout-warning > i {
+    color: #F58220;
+}
+
+.ebill-guide-callout-info {
+    background: #f0f7ff;
+    border: 1px solid #d0e4f5;
+    color: #004987;
+}
+
+.ebill-guide-callout-info > i {
+    color: #009edb;
+}
+
+/* Workflow Timeline */
+.ebill-guide-timeline {
+    position: relative;
+    padding-left: 0;
+}
+
+.ebill-guide-timeline-item {
+    display: flex;
+    gap: 1rem;
+    position: relative;
+    padding-bottom: 1.5rem;
+    padding-left: 0;
+}
+
+.ebill-guide-timeline-item:not(:last-child)::after {
+    content: '';
+    position: absolute;
+    left: 17px;
+    top: 38px;
+    bottom: 0;
+    width: 2px;
+    background: #DED9D5;
+}
+
+.ebill-guide-timeline-marker {
+    width: 36px;
+    height: 36px;
+    min-width: 36px;
+    border-radius: 50%;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    color: white;
+    font-size: 0.875rem;
+    z-index: 1;
+}
+
+.ebill-guide-marker-blue { background: #009edb; }
+.ebill-guide-marker-orange { background: #F58220; }
+.ebill-guide-marker-red { background: #ED1847; }
+.ebill-guide-marker-purple { background: #A05FB4; }
+.ebill-guide-marker-green { background: #72BF44; }
+
+.ebill-guide-timeline-content {
+    flex: 1;
+    padding-top: 0.25rem;
+}
+
+.ebill-guide-timeline-title {
+    font-weight: 600;
+    color: #1a202c;
+    font-size: 0.9375rem;
+    margin-bottom: 0.25rem;
+}
+
+.ebill-guide-timeline-desc {
+    color: #718096;
+    font-size: 0.875rem;
+    line-height: 1.5;
+}
+
+/* Status Badges */
+.ebill-guide-status-badge {
+    display: inline-block;
+    padding: 0.15rem 0.5rem;
+    border-radius: 4px;
+    font-size: 0.75rem;
+    font-weight: 600;
+    white-space: nowrap;
+}
+
+.badge-official {
+    background: #E3EDF6;
+    color: #004987;
+}
+
+.badge-personal {
+    background: #FFEAD5;
+    color: #c46200;
+}
+
+.badge-ebill-unverified {
+    background: #EBEAE6;
+    color: #6E6259;
+}
+
+.badge-ebill-assigned {
+    background: #E4D7E8;
+    color: #7a3d8a;
+}
+
+.badge-ebill-pending {
+    background: #FFEAD5;
+    color: #c46200;
+}
+
+.badge-ebill-approved {
+    background: #E6EFD0;
+    color: #4a8c1c;
+}
+
+.badge-ebill-partial {
+    background: #FFF3CD;
+    color: #856404;
+}
+
+.badge-ebill-rejected {
+    background: #F7DFDF;
+    color: #c41230;
+}
+
+.badge-ebill-reverted {
+    background: #EBEAE6;
+    color: #6E6259;
+}
+
+.badge-ebill-reassigned {
+    background: #E4D7E8;
+    color: #7a3d8a;
+}
+
+/* Steps */
+.ebill-guide-steps {
+    counter-reset: none;
+}
+
+.ebill-guide-step {
+    display: flex;
+    gap: 1rem;
+    margin-bottom: 1.5rem;
+}
+
+.ebill-guide-step:last-child {
+    margin-bottom: 0;
+}
+
+.ebill-guide-step-number {
+    width: 32px;
+    height: 32px;
+    min-width: 32px;
+    background: #009edb;
+    color: white;
+    border-radius: 50%;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-weight: 600;
+    font-size: 0.875rem;
+}
+
+.ebill-guide-step-content {
+    flex: 1;
+    padding-top: 0.2rem;
+    font-size: 0.9rem;
+}
+
+/* Roles Grid */
+.ebill-guide-roles-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
+    gap: 1.5rem;
+}
+
+.ebill-guide-role-card {
+    background: white;
+    border-radius: 12px;
+    padding: 1.5rem;
+    box-shadow: 0 1px 3px rgba(0, 0, 0, 0.1);
+    border: 1px solid rgba(0, 0, 0, 0.05);
+    text-align: center;
+}
+
+.ebill-guide-role-icon {
+    width: 50px;
+    height: 50px;
+    border-radius: 12px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 1.25rem;
+    margin: 0 auto 1rem;
+}
+
+.ebill-guide-role-title {
+    font-size: 1rem;
+    font-weight: 600;
+    color: #1a202c;
+    margin-bottom: 0.75rem;
+}
+
+.ebill-guide-role-list {
+    text-align: left;
+    padding-left: 1.25rem;
+    margin: 0;
+    color: #718096;
+    font-size: 0.8125rem;
+    line-height: 1.8;
+}
+
+/* Status Table */
+.ebill-guide-status-table {
+    font-size: 0.875rem;
+}
+
+.ebill-guide-status-table thead th {
+    background: #E3EDF6;
+    color: #004987;
+    font-weight: 600;
+    font-size: 0.8125rem;
+    text-transform: uppercase;
+    letter-spacing: 0.3px;
+    border-bottom: 2px solid #C5DFEF;
+    padding: 0.75rem 1rem;
+}
+
+.ebill-guide-status-table tbody td {
+    padding: 0.75rem 1rem;
+    vertical-align: middle;
+    border-bottom: 1px solid #f1f5f9;
+    color: #4a5568;
+}
+
+.ebill-guide-status-table tbody tr:hover {
+    background: #f8fafc;
+}
+
+/* FAQ Accordion */
+.ebill-guide-accordion-item {
+    border: 1px solid #e2e8f0 !important;
+    border-radius: 8px !important;
+    margin-bottom: 0.5rem;
+    overflow: hidden;
+}
+
+.ebill-guide-accordion-item:last-child {
+    margin-bottom: 0;
+}
+
+.ebill-guide-accordion-btn {
+    font-weight: 600;
+    font-size: 0.9rem;
+    color: #1a202c;
+    padding: 1rem 1.25rem;
+    background: white;
+}
+
+.ebill-guide-accordion-btn:not(.collapsed) {
+    color: #009edb;
+    background: rgba(0, 158, 219, 0.04);
+    box-shadow: none;
+}
+
+.ebill-guide-accordion-btn:focus {
+    box-shadow: none;
+}
+
+/* Troubleshooting */
+.ebill-guide-trouble-list {
+    display: flex;
+    flex-direction: column;
+    gap: 1rem;
+}
+
+.ebill-guide-trouble-item {
+    border: 1px solid #e2e8f0;
+    border-radius: 8px;
+    overflow: hidden;
+}
+
+.ebill-guide-trouble-problem {
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+    padding: 0.75rem 1rem;
+    background: #FFFBF5;
+    border-bottom: 1px solid #e2e8f0;
+    font-size: 0.9rem;
+}
+
+.ebill-guide-trouble-solution {
+    padding: 0.75rem 1rem;
+    font-size: 0.875rem;
+    color: #4a5568;
+    line-height: 1.6;
+}
+
+/* Responsive */
+@@media (max-width: 768px) {
+    .ebill-guide-layout {
+        flex-direction: column;
+    }
+
+    .ebill-guide-toc {
+        position: static;
+        width: 100%;
+        min-width: 0;
+        display: flex;
+        flex-wrap: nowrap;
+        gap: 0.25rem;
+        overflow-x: auto;
+        padding: 0.75rem;
+        -webkit-overflow-scrolling: touch;
+    }
+
+    .ebill-guide-toc-title {
+        display: none;
+    }
+
+    .ebill-guide-toc-link {
+        white-space: nowrap;
+        padding: 0.4rem 0.75rem;
+        font-size: 0.75rem;
+        border-left: none;
+        border-bottom: 3px solid transparent;
+        margin-bottom: 0;
+    }
+
+    .ebill-guide-toc-link.active {
+        border-left-color: transparent;
+        border-bottom-color: #009edb;
+    }
+
+    .ebill-guide-roles-grid {
+        grid-template-columns: 1fr;
+    }
+}
+</style>
