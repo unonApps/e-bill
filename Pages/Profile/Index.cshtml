@@ -668,7 +668,7 @@
                                                                     <span style="font-size: 0.75rem; color: #6b7280;">
                                                                         @if (phone.ClassOfService.AirtimeAllowanceAmount.HasValue)
                                                                         {
-                                                                            <text>Airtime: KES @phone.ClassOfService.AirtimeAllowanceAmount.Value.ToString("N0")</text>
+                                                                            <text>Allowance: $@phone.ClassOfService.AirtimeAllowanceAmount.Value.ToString("N2")</text>
                                                                         }
                                                                         @if (phone.ClassOfService.AirtimeAllowanceAmount.HasValue && phone.ClassOfService.DataAllowanceAmount.HasValue)
                                                                         {
@@ -676,7 +676,7 @@
                                                                         }
                                                                         @if (phone.ClassOfService.DataAllowanceAmount.HasValue)
                                                                         {
-                                                                            <text>Data: KES @phone.ClassOfService.DataAllowanceAmount.Value.ToString("N0")</text>
+                                                                            <text>Data: $@phone.ClassOfService.DataAllowanceAmount.Value.ToString("N2")</text>
                                                                         }
                                                                     </span>
                                                                 </div>
