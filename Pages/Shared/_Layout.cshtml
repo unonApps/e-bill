@@ -208,17 +208,18 @@
                             <span>CALL LOG MANAGEMENT</span>
                         </li>
                         <li>
+                            <a asp-page="/Admin/SmartUpload" class="nested-submenu-item @(ViewContext.RouteData.Values["Page"]?.ToString() == "/Admin/SmartUpload" ? "active" : "")">
+                                <i class="menu-icon bi bi-magic text-success"></i>
+                                <span>Smart Upload</span>
+                            </a>
+                        </li>
+                        <li>
                             <a asp-page="/Admin/CallLogs" class="nested-submenu-item @(ViewContext.RouteData.Values["Page"]?.ToString() == "/Admin/CallLogs" ? "active" : "")">
                                 <i class="menu-icon bi bi-telephone-fill"></i>
                                 <span>Call Logs</span>
                             </a>
                         </li>
-                        <li>
-                            <a asp-page="/Admin/CallLogStaging" class="nested-submenu-item @(ViewContext.RouteData.Values["Page"]?.ToString() == "/Admin/CallLogStaging" ? "active" : "")">
-                                <i class="menu-icon bi bi-clipboard-check"></i>
-                                <span>Call Logs Reviews</span>
-                            </a>
-                        </li>
+                        @* CallLogStaging hidden from sidebar — accessible via direct URL *@
                         <li>
                             <a asp-page="/Admin/BillingProcessing" class="nested-submenu-item @(ViewContext.RouteData.Values["Page"]?.ToString() == "/Admin/BillingProcessing" ? "active" : "")">
                                 <i class="menu-icon bi bi-calculator"></i>
@@ -237,18 +238,6 @@
                                 <span>Billing Reports</span>
                             </a>
                         </li>
-                        <li>
-                            <a asp-page="/Admin/ImportJobs" class="nested-submenu-item @(ViewContext.RouteData.Values["Page"]?.ToString() == "/Admin/ImportJobs" ? "active" : "")">
-                                <i class="menu-icon bi bi-server"></i>
-                                <span>Background Jobs</span>
-                            </a>
-                        </li>
-                        <li>
-                            <a asp-page="/Admin/SmartUpload" class="nested-submenu-item @(ViewContext.RouteData.Values["Page"]?.ToString() == "/Admin/SmartUpload" ? "active" : "")">
-                                <i class="menu-icon bi bi-magic text-success"></i>
-                                <span>Smart Upload</span>
-                            </a>
-                        </li>
 
                         <!-- System Configuration Section -->
                         <li class="menu-divider"></li>
@@ -259,6 +248,12 @@
                             <a asp-page="/Admin/ExchangeRates" class="nested-submenu-item @(ViewContext.RouteData.Values["Page"]?.ToString() == "/Admin/ExchangeRates" ? "active" : "")">
                                 <i class="menu-icon bi bi-currency-exchange"></i>
                                 <span>Exchange Rates</span>
+                            </a>
+                        </li>
+                        <li>
+                            <a asp-page="/Admin/ImportJobs" class="nested-submenu-item @(ViewContext.RouteData.Values["Page"]?.ToString() == "/Admin/ImportJobs" ? "active" : "")">
+                                <i class="menu-icon bi bi-server"></i>
+                                <span>Background Jobs</span>
                             </a>
                         </li>
                         <li>
