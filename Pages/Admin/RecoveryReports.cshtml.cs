@@ -378,6 +378,19 @@ namespace TAB.Web.Pages.Admin
 
         public async Task<IActionResult> OnPostExportAsync(string format)
         {
+            // Set default date range
+            if (!StartDate.HasValue)
+                StartDate = DateTime.UtcNow.AddDays(-30);
+            if (!EndDate.HasValue)
+                EndDate = DateTime.UtcNow;
+
+            // Finance export only needs LoadFinanceRecoveryDetailsAsync - skip full page load
+            if (format == "finance")
+            {
+                return await ExportFinanceReportAsync();
+            }
+
+            // CSV and Excel exports need the full data
             await OnGetAsync();
 
             if (format == "csv")
@@ -387,10 +400,6 @@ namespace TAB.Web.Pages.Admin
             else if (format == "excel")
             {
                 return await ExportToExcelAsync();
-            }
-            else if (format == "finance")
-            {
-                return await ExportFinanceReportAsync();
             }
 
             return Page();
