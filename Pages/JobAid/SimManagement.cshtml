@@ -1,0 +1,1134 @@
+@page
+@model TAB.Web.Pages.JobAid.SimManagementModel
+@{
+    ViewData["Title"] = "SIM Management Guide";
+    ViewData["PageIcon"] = "bi-book";
+    ViewData["PageTitle"] = "SIM Management Guide";
+    ViewData["Breadcrumb"] = "Job Aid / SIM Management";
+}
+
+<!-- Back Link -->
+<div class="mb-3">
+    <a href="/JobAid" class="sim-guide-back-link">
+        <i class="bi bi-arrow-left"></i> Back to Job Aid Hub
+    </a>
+</div>
+
+<!-- Hero -->
+<div class="sim-guide-hero">
+    <div class="sim-guide-hero-content">
+        <div class="sim-guide-hero-icon">
+            <i class="bi bi-phone"></i>
+        </div>
+        <div class="sim-guide-hero-text">
+            <h1 class="sim-guide-hero-title">SIM Card Management Guide</h1>
+            <p class="sim-guide-hero-subtitle">Everything you need to know about requesting, tracking, and managing SIM cards</p>
+        </div>
+    </div>
+</div>
+
+<!-- Two-Column Layout -->
+<div class="sim-guide-layout">
+    <!-- Table of Contents — Sidebar -->
+    <nav class="sim-guide-toc" id="guide-toc">
+        <div class="sim-guide-toc-title">Contents</div>
+        <a href="#overview" class="sim-guide-toc-link active" data-section="overview">
+            <i class="bi bi-info-circle"></i> Overview
+        </a>
+        <a href="#workflow" class="sim-guide-toc-link" data-section="workflow">
+            <i class="bi bi-diagram-3"></i> Request Workflow
+        </a>
+        <a href="#creating-request" class="sim-guide-toc-link" data-section="creating-request">
+            <i class="bi bi-plus-circle"></i> Creating a Request
+        </a>
+        <a href="#roles" class="sim-guide-toc-link" data-section="roles">
+            <i class="bi bi-people"></i> Role Responsibilities
+        </a>
+        <a href="#statuses" class="sim-guide-toc-link" data-section="statuses">
+            <i class="bi bi-tags"></i> Status Explanations
+        </a>
+        <a href="#faq" class="sim-guide-toc-link" data-section="faq">
+            <i class="bi bi-question-circle"></i> FAQ
+        </a>
+        <a href="#troubleshooting" class="sim-guide-toc-link" data-section="troubleshooting">
+            <i class="bi bi-wrench"></i> Troubleshooting
+        </a>
+    </nav>
+
+    <!-- Guide Content -->
+    <div class="sim-guide-content">
+
+        <!-- 1. Overview -->
+        <section id="overview" class="sim-guide-section">
+            <h2 class="sim-guide-section-title">
+                <i class="bi bi-info-circle"></i> Overview
+            </h2>
+            <div class="sim-guide-card">
+                <p>The <strong>SIM Card Management</strong> module allows UNON staff to request new SIM cards or replacement SIMs for existing lines. Requests go through a multi-step approval workflow involving supervisors, ICTS administrators, and service providers.</p>
+
+                <h5 class="mt-4 mb-3" style="color: #004987; font-weight: 600;">Who Can Use This Module?</h5>
+                <p>All authenticated staff members can create and submit SIM card requests. Supervisors, ICTS staff, and administrators each have specific roles in the approval and processing workflow.</p>
+
+                <h5 class="mt-4 mb-3" style="color: #004987; font-weight: 600;">Request Types</h5>
+                <div class="row g-3">
+                    <div class="col-md-6">
+                        <div class="sim-guide-info-box">
+                            <div class="sim-guide-info-box-header">
+                                <i class="bi bi-plus-circle" style="color: #009edb;"></i>
+                                <strong>New Line</strong>
+                            </div>
+                            <p class="mb-0 text-muted" style="font-size: 0.875rem;">Request a brand new phone line and SIM card assignment.</p>
+                        </div>
+                    </div>
+                    <div class="col-md-6">
+                        <div class="sim-guide-info-box">
+                            <div class="sim-guide-info-box-header">
+                                <i class="bi bi-arrow-repeat" style="color: #F58220;"></i>
+                                <strong>Existing Line</strong>
+                            </div>
+                            <p class="mb-0 text-muted" style="font-size: 0.875rem;">Request a replacement SIM for an existing phone number (e.g., lost, damaged, or upgrade).</p>
+                        </div>
+                    </div>
+                </div>
+
+                <h5 class="mt-4 mb-3" style="color: #004987; font-weight: 600;">SIM Types</h5>
+                <div class="row g-3">
+                    <div class="col-md-6">
+                        <div class="sim-guide-info-box">
+                            <div class="sim-guide-info-box-header">
+                                <i class="bi bi-sim" style="color: #009edb;"></i>
+                                <strong>Physical SIM</strong>
+                            </div>
+                            <p class="mb-0 text-muted" style="font-size: 0.875rem;">A traditional SIM card that is physically inserted into your device.</p>
+                        </div>
+                    </div>
+                    <div class="col-md-6">
+                        <div class="sim-guide-info-box">
+                            <div class="sim-guide-info-box-header">
+                                <i class="bi bi-phone" style="color: #72BF44;"></i>
+                                <strong>eSIM</strong>
+                            </div>
+                            <p class="mb-0 text-muted" style="font-size: 0.875rem;">An embedded digital SIM activated via a QR code — no physical card needed.</p>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </section>
+
+        <!-- 2. Request Workflow -->
+        <section id="workflow" class="sim-guide-section">
+            <h2 class="sim-guide-section-title">
+                <i class="bi bi-diagram-3"></i> Request Workflow
+            </h2>
+            <div class="sim-guide-card">
+                <p class="mb-4">Every SIM request follows this lifecycle from creation to completion:</p>
+
+                <div class="sim-guide-timeline">
+                    <div class="sim-guide-timeline-item">
+                        <div class="sim-guide-timeline-marker sim-guide-marker-gray">
+                            <i class="bi bi-pencil"></i>
+                        </div>
+                        <div class="sim-guide-timeline-content">
+                            <div class="sim-guide-timeline-title">Staff Creates Request</div>
+                            <div class="sim-guide-timeline-desc">Fill in personal information and SIM configuration details. The request is saved as <span class="sim-guide-status-badge badge-draft">Draft</span>.</div>
+                        </div>
+                    </div>
+
+                    <div class="sim-guide-timeline-item">
+                        <div class="sim-guide-timeline-marker sim-guide-marker-orange">
+                            <i class="bi bi-send"></i>
+                        </div>
+                        <div class="sim-guide-timeline-content">
+                            <div class="sim-guide-timeline-title">Staff Submits Request</div>
+                            <div class="sim-guide-timeline-desc">The request moves to <span class="sim-guide-status-badge badge-pending">Pending Supervisor</span> and the assigned supervisor is notified.</div>
+                        </div>
+                    </div>
+
+                    <div class="sim-guide-timeline-item">
+                        <div class="sim-guide-timeline-marker sim-guide-marker-orange">
+                            <i class="bi bi-person-check"></i>
+                        </div>
+                        <div class="sim-guide-timeline-content">
+                            <div class="sim-guide-timeline-title">Supervisor Reviews</div>
+                            <div class="sim-guide-timeline-desc">
+                                The supervisor reviews the request and sets the Class of Service. Three outcomes:
+                                <ul class="mt-2 mb-0">
+                                    <li><strong>Approve</strong> — moves to <span class="sim-guide-status-badge badge-pending">Pending ICTS</span></li>
+                                    <li><strong>Reject</strong> — moves to <span class="sim-guide-status-badge badge-rejected">Rejected</span></li>
+                                    <li><strong>Revert to Draft</strong> — returns to <span class="sim-guide-status-badge badge-draft">Draft</span> for edits</li>
+                                </ul>
+                            </div>
+                        </div>
+                    </div>
+
+                    <div class="sim-guide-timeline-item">
+                        <div class="sim-guide-timeline-marker sim-guide-marker-purple">
+                            <i class="bi bi-gear-fill"></i>
+                        </div>
+                        <div class="sim-guide-timeline-content">
+                            <div class="sim-guide-timeline-title">ICTS Processes Request</div>
+                            <div class="sim-guide-timeline-desc">ICTS assigns SIM details (serial number, PUK, assigned number) and notifies the service provider. Status changes to <span class="sim-guide-status-badge badge-sp">Pending Service Provider</span>.</div>
+                        </div>
+                    </div>
+
+                    <div class="sim-guide-timeline-item">
+                        <div class="sim-guide-timeline-marker sim-guide-marker-blue">
+                            <i class="bi bi-box-seam"></i>
+                        </div>
+                        <div class="sim-guide-timeline-content">
+                            <div class="sim-guide-timeline-title">SIM Issued by Service Provider</div>
+                            <div class="sim-guide-timeline-desc">Once the SIM is ready, the status moves to <span class="sim-guide-status-badge badge-collection">Pending SIM Collection</span> and the staff member is notified.</div>
+                        </div>
+                    </div>
+
+                    <div class="sim-guide-timeline-item">
+                        <div class="sim-guide-timeline-marker sim-guide-marker-green">
+                            <i class="bi bi-check-lg"></i>
+                        </div>
+                        <div class="sim-guide-timeline-content">
+                            <div class="sim-guide-timeline-title">Staff Collects SIM</div>
+                            <div class="sim-guide-timeline-desc">The staff member collects the SIM card and the request is marked as <span class="sim-guide-status-badge badge-completed">Completed</span>.</div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </section>
+
+        <!-- 3. Creating a Request -->
+        <section id="creating-request" class="sim-guide-section">
+            <h2 class="sim-guide-section-title">
+                <i class="bi bi-plus-circle"></i> Creating a Request
+            </h2>
+            <div class="sim-guide-card">
+                <p class="mb-4">Follow these steps to create a new SIM card request:</p>
+
+                <div class="sim-guide-steps">
+                    <div class="sim-guide-step">
+                        <div class="sim-guide-step-number">1</div>
+                        <div class="sim-guide-step-content">
+                            <strong>Navigate to SIM Card Request</strong>
+                            <p class="mb-0 text-muted">From the Services Dashboard, click <strong>"New SIM Request"</strong> or go to <em>SIM Card Requests</em> in the sidebar and click <strong>"New Request"</strong>.</p>
+                        </div>
+                    </div>
+
+                    <div class="sim-guide-step">
+                        <div class="sim-guide-step-number">2</div>
+                        <div class="sim-guide-step-content">
+                            <strong>Fill in Personal Information (Tab 1)</strong>
+                            <p class="text-muted mb-2">Most fields are auto-populated from your profile:</p>
+                            <ul class="text-muted mb-0" style="font-size: 0.875rem;">
+                                <li><strong>Index No</strong> — Your staff index number</li>
+                                <li><strong>First Name / Last Name</strong> — Your legal name</li>
+                                <li><strong>Organization</strong> — Your agency/organization</li>
+                                <li><strong>Office</strong> — Your office/section</li>
+                                <li><strong>Grade</strong> — Your staff grade level</li>
+                                <li><strong>Functional Title</strong> — Your job title</li>
+                                <li><strong>Office Extension</strong> — Your internal phone extension (optional)</li>
+                                <li><strong>Official Email</strong> — Your work email address</li>
+                            </ul>
+                        </div>
+                    </div>
+
+                    <div class="sim-guide-step">
+                        <div class="sim-guide-step-number">3</div>
+                        <div class="sim-guide-step-content">
+                            <strong>Configure SIM Details (Tab 2)</strong>
+                            <p class="text-muted mb-2">Set up the SIM configuration:</p>
+                            <ul class="text-muted mb-0" style="font-size: 0.875rem;">
+                                <li><strong>Line Request Type</strong> — Choose "New Line" or "Existing Line"</li>
+                                <li><strong>Existing Phone Number</strong> — Required if you selected "Existing Line"</li>
+                                <li><strong>SIM Type</strong> — Choose "Physical SIM" or "eSIM"</li>
+                                <li><strong>Service Provider</strong> — Select your preferred provider</li>
+                                <li><strong>Previously Assigned Lines</strong> — Indicate if you have had lines before</li>
+                                <li><strong>Remarks</strong> — Any additional notes or justification</li>
+                            </ul>
+                        </div>
+                    </div>
+
+                    <div class="sim-guide-step">
+                        <div class="sim-guide-step-number">4</div>
+                        <div class="sim-guide-step-content">
+                            <strong>Save or Submit</strong>
+                            <div class="row g-3 mt-1">
+                                <div class="col-md-6">
+                                    <div class="sim-guide-info-box">
+                                        <div class="sim-guide-info-box-header">
+                                            <i class="bi bi-floppy" style="color: #AEA29A;"></i>
+                                            <strong>Save as Draft</strong>
+                                        </div>
+                                        <p class="mb-0 text-muted" style="font-size: 0.875rem;">Saves the request without submitting. You can edit and submit later.</p>
+                                    </div>
+                                </div>
+                                <div class="col-md-6">
+                                    <div class="sim-guide-info-box">
+                                        <div class="sim-guide-info-box-header">
+                                            <i class="bi bi-send" style="color: #009edb;"></i>
+                                            <strong>Submit</strong>
+                                        </div>
+                                        <p class="mb-0 text-muted" style="font-size: 0.875rem;">Submits the request for supervisor approval. You cannot edit after submitting.</p>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </section>
+
+        <!-- 4. Role Responsibilities -->
+        <section id="roles" class="sim-guide-section">
+            <h2 class="sim-guide-section-title">
+                <i class="bi bi-people"></i> Role Responsibilities
+            </h2>
+            <div class="sim-guide-roles-grid">
+                <!-- Staff Member -->
+                <div class="sim-guide-role-card">
+                    <div class="sim-guide-role-icon" style="background: #E3EDF6; color: #009edb;">
+                        <i class="bi bi-person"></i>
+                    </div>
+                    <h5 class="sim-guide-role-title">Staff Member</h5>
+                    <ul class="sim-guide-role-list">
+                        <li>Creates new SIM card requests</li>
+                        <li>Fills in personal and SIM configuration details</li>
+                        <li>Submits requests for supervisor approval</li>
+                        <li>Collects the SIM card when ready</li>
+                        <li>Can cancel own draft requests</li>
+                    </ul>
+                </div>
+
+                <!-- Supervisor -->
+                <div class="sim-guide-role-card">
+                    <div class="sim-guide-role-icon" style="background: #FFEAD5; color: #F58220;">
+                        <i class="bi bi-person-check"></i>
+                    </div>
+                    <h5 class="sim-guide-role-title">Supervisor</h5>
+                    <ul class="sim-guide-role-list">
+                        <li>Reviews submitted SIM requests</li>
+                        <li>Sets the Class of Service (mobile service type, allowances)</li>
+                        <li>Approves, rejects, or reverts requests to draft</li>
+                        <li>Adds supervisor remarks and notes</li>
+                    </ul>
+                </div>
+
+                <!-- ICTS Administrator -->
+                <div class="sim-guide-role-card">
+                    <div class="sim-guide-role-icon" style="background: #E4D7E8; color: #A05FB4;">
+                        <i class="bi bi-gear-fill"></i>
+                    </div>
+                    <h5 class="sim-guide-role-title">ICTS Administrator</h5>
+                    <ul class="sim-guide-role-list">
+                        <li>Processes approved requests</li>
+                        <li>Assigns SIM serial number, PUK, and phone number</li>
+                        <li>Notifies the service provider</li>
+                        <li>Notifies staff when SIM is ready for collection</li>
+                        <li>Can revert requests back to the requestor</li>
+                    </ul>
+                </div>
+
+                <!-- Admin -->
+                <div class="sim-guide-role-card">
+                    <div class="sim-guide-role-icon" style="background: #F7DFDF; color: #ED1847;">
+                        <i class="bi bi-shield-check"></i>
+                    </div>
+                    <h5 class="sim-guide-role-title">Admin</h5>
+                    <ul class="sim-guide-role-list">
+                        <li>System-wide administration</li>
+                        <li>Manages service providers</li>
+                        <li>Oversees all requests and processing</li>
+                        <li>Handles escalations and exceptions</li>
+                    </ul>
+                </div>
+            </div>
+        </section>
+
+        <!-- 5. Status Explanations -->
+        <section id="statuses" class="sim-guide-section">
+            <h2 class="sim-guide-section-title">
+                <i class="bi bi-tags"></i> Status Explanations
+            </h2>
+            <div class="sim-guide-card">
+                <p class="mb-4">Each SIM request has a status indicating where it is in the workflow:</p>
+                <div class="table-responsive">
+                    <table class="table sim-guide-status-table">
+                        <thead>
+                            <tr>
+                                <th>Status</th>
+                                <th>Description</th>
+                                <th>Responsible</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            <tr>
+                                <td><span class="sim-guide-status-badge badge-draft">Draft</span></td>
+                                <td>Request created but not yet submitted. Can be edited.</td>
+                                <td>Staff</td>
+                            </tr>
+                            <tr>
+                                <td><span class="sim-guide-status-badge badge-pending">Pending Supervisor</span></td>
+                                <td>Submitted and awaiting supervisor review and approval.</td>
+                                <td>Supervisor</td>
+                            </tr>
+                            <tr>
+                                <td><span class="sim-guide-status-badge badge-pending">Pending ICTS</span></td>
+                                <td>Supervisor approved. Awaiting ICTS processing.</td>
+                                <td>ICTS</td>
+                            </tr>
+                            <tr>
+                                <td><span class="sim-guide-status-badge badge-pending">Pending Admin</span></td>
+                                <td>Awaiting administrator approval.</td>
+                                <td>Admin</td>
+                            </tr>
+                            <tr>
+                                <td><span class="sim-guide-status-badge badge-sp">Pending Service Provider</span></td>
+                                <td>ICTS has notified the service provider. Awaiting SIM issuance.</td>
+                                <td>Service Provider</td>
+                            </tr>
+                            <tr>
+                                <td><span class="sim-guide-status-badge badge-collection">Pending SIM Collection</span></td>
+                                <td>SIM is ready. Staff has been notified to collect it.</td>
+                                <td>Staff</td>
+                            </tr>
+                            <tr>
+                                <td><span class="sim-guide-status-badge badge-approved">Approved</span></td>
+                                <td>Request has been approved and is ready for processing.</td>
+                                <td>&mdash;</td>
+                            </tr>
+                            <tr>
+                                <td><span class="sim-guide-status-badge badge-rejected">Rejected</span></td>
+                                <td>Request was rejected. Staff can create a new request.</td>
+                                <td>&mdash;</td>
+                            </tr>
+                            <tr>
+                                <td><span class="sim-guide-status-badge badge-completed">Completed</span></td>
+                                <td>SIM collected and request fully processed.</td>
+                                <td>&mdash;</td>
+                            </tr>
+                            <tr>
+                                <td><span class="sim-guide-status-badge badge-cancelled">Cancelled</span></td>
+                                <td>Request was cancelled by the staff member.</td>
+                                <td>Staff</td>
+                            </tr>
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+        </section>
+
+        <!-- 6. FAQ -->
+        <section id="faq" class="sim-guide-section">
+            <h2 class="sim-guide-section-title">
+                <i class="bi bi-question-circle"></i> Frequently Asked Questions
+            </h2>
+            <div class="sim-guide-card">
+                <div class="accordion" id="faqAccordion">
+                    <div class="accordion-item sim-guide-accordion-item">
+                        <h2 class="accordion-header">
+                            <button class="accordion-button collapsed sim-guide-accordion-btn" type="button" data-bs-toggle="collapse" data-bs-target="#faq1">
+                                How do I create a new SIM card request?
+                            </button>
+                        </h2>
+                        <div id="faq1" class="accordion-collapse collapse" data-bs-parent="#faqAccordion">
+                            <div class="accordion-body">
+                                Navigate to the Services Dashboard and click <strong>"New SIM Request"</strong>, or go to <strong>SIM Card Requests</strong> in the sidebar and click the <strong>"New Request"</strong> button. Fill in the two tabs (Personal Information and SIM Configuration) and click <strong>Submit</strong>.
+                            </div>
+                        </div>
+                    </div>
+
+                    <div class="accordion-item sim-guide-accordion-item">
+                        <h2 class="accordion-header">
+                            <button class="accordion-button collapsed sim-guide-accordion-btn" type="button" data-bs-toggle="collapse" data-bs-target="#faq2">
+                                What is the difference between "New Line" and "Existing Line"?
+                            </button>
+                        </h2>
+                        <div id="faq2" class="accordion-collapse collapse" data-bs-parent="#faqAccordion">
+                            <div class="accordion-body">
+                                <strong>New Line</strong> assigns you a brand new phone number and SIM card. <strong>Existing Line</strong> is for replacing a SIM on a number you already have — for example, if your SIM was lost, damaged, or you need to switch to an eSIM.
+                            </div>
+                        </div>
+                    </div>
+
+                    <div class="accordion-item sim-guide-accordion-item">
+                        <h2 class="accordion-header">
+                            <button class="accordion-button collapsed sim-guide-accordion-btn" type="button" data-bs-toggle="collapse" data-bs-target="#faq3">
+                                What is the difference between a Physical SIM and an eSIM?
+                            </button>
+                        </h2>
+                        <div id="faq3" class="accordion-collapse collapse" data-bs-parent="#faqAccordion">
+                            <div class="accordion-body">
+                                A <strong>Physical SIM</strong> is a traditional card you insert into your phone. An <strong>eSIM</strong> (embedded SIM) is a digital SIM built into newer devices — it is activated by scanning a QR code, with no physical card needed. Check that your device supports eSIM before selecting this option.
+                            </div>
+                        </div>
+                    </div>
+
+                    <div class="accordion-item sim-guide-accordion-item">
+                        <h2 class="accordion-header">
+                            <button class="accordion-button collapsed sim-guide-accordion-btn" type="button" data-bs-toggle="collapse" data-bs-target="#faq4">
+                                Can I edit my request after submitting it?
+                            </button>
+                        </h2>
+                        <div id="faq4" class="accordion-collapse collapse" data-bs-parent="#faqAccordion">
+                            <div class="accordion-body">
+                                No. Once a request is submitted, it cannot be edited directly. However, your supervisor can <strong>revert the request to Draft</strong> status, which will allow you to make changes and resubmit.
+                            </div>
+                        </div>
+                    </div>
+
+                    <div class="accordion-item sim-guide-accordion-item">
+                        <h2 class="accordion-header">
+                            <button class="accordion-button collapsed sim-guide-accordion-btn" type="button" data-bs-toggle="collapse" data-bs-target="#faq5">
+                                What happens if my request is rejected?
+                            </button>
+                        </h2>
+                        <div id="faq5" class="accordion-collapse collapse" data-bs-parent="#faqAccordion">
+                            <div class="accordion-body">
+                                If your request is rejected, you will receive a notification with the reason. You can create a <strong>new request</strong> addressing the feedback. Check the supervisor's notes on the rejected request for guidance on what to change.
+                            </div>
+                        </div>
+                    </div>
+
+                    <div class="accordion-item sim-guide-accordion-item">
+                        <h2 class="accordion-header">
+                            <button class="accordion-button collapsed sim-guide-accordion-btn" type="button" data-bs-toggle="collapse" data-bs-target="#faq6">
+                                How will I know when my SIM is ready for collection?
+                            </button>
+                        </h2>
+                        <div id="faq6" class="accordion-collapse collapse" data-bs-parent="#faqAccordion">
+                            <div class="accordion-body">
+                                You will receive a <strong>notification</strong> (both in-app and via email) when your SIM is ready. The request status will change to <strong>"Pending SIM Collection"</strong>. Check your notifications regularly or view your request details for updates.
+                            </div>
+                        </div>
+                    </div>
+
+                    <div class="accordion-item sim-guide-accordion-item">
+                        <h2 class="accordion-header">
+                            <button class="accordion-button collapsed sim-guide-accordion-btn" type="button" data-bs-toggle="collapse" data-bs-target="#faq7">
+                                Who should I contact for help?
+                            </button>
+                        </h2>
+                        <div id="faq7" class="accordion-collapse collapse" data-bs-parent="#faqAccordion">
+                            <div class="accordion-body">
+                                <ul class="mb-0">
+                                    <li><strong>General questions:</strong> Contact your supervisor or the ICTS Help Desk</li>
+                                    <li><strong>Request stuck in processing:</strong> Contact the ICTS administrator</li>
+                                    <li><strong>System issues or errors:</strong> Contact the system administrator</li>
+                                    <li><strong>SIM collection:</strong> Follow the instructions in your collection notification</li>
+                                </ul>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </section>
+
+        <!-- 7. Troubleshooting -->
+        <section id="troubleshooting" class="sim-guide-section">
+            <h2 class="sim-guide-section-title">
+                <i class="bi bi-wrench"></i> Troubleshooting
+            </h2>
+            <div class="sim-guide-card">
+                <div class="sim-guide-trouble-list">
+                    <div class="sim-guide-trouble-item">
+                        <div class="sim-guide-trouble-problem">
+                            <i class="bi bi-exclamation-triangle" style="color: #F58220;"></i>
+                            <strong>Validation errors when submitting</strong>
+                        </div>
+                        <div class="sim-guide-trouble-solution">
+                            Ensure all required fields are filled in on both tabs (Personal Information and SIM Configuration). Required fields are marked with an asterisk. Check that your email is in a valid format and that you have selected a service provider.
+                        </div>
+                    </div>
+
+                    <div class="sim-guide-trouble-item">
+                        <div class="sim-guide-trouble-problem">
+                            <i class="bi bi-exclamation-triangle" style="color: #F58220;"></i>
+                            <strong>Request stuck in Draft status</strong>
+                        </div>
+                        <div class="sim-guide-trouble-solution">
+                            A draft request has not been submitted yet. Open the request, review the details, and click the <strong>"Submit"</strong> button. If the submit button is not visible, ensure all required fields are completed.
+                        </div>
+                    </div>
+
+                    <div class="sim-guide-trouble-item">
+                        <div class="sim-guide-trouble-problem">
+                            <i class="bi bi-exclamation-triangle" style="color: #F58220;"></i>
+                            <strong>Cannot see the approval option (Supervisors)</strong>
+                        </div>
+                        <div class="sim-guide-trouble-solution">
+                            Ensure you are logged in with a supervisor account and that the request is assigned to you. The approval options only appear for requests in <strong>"Pending Supervisor"</strong> status that are assigned to your supervision.
+                        </div>
+                    </div>
+
+                    <div class="sim-guide-trouble-item">
+                        <div class="sim-guide-trouble-problem">
+                            <i class="bi bi-exclamation-triangle" style="color: #F58220;"></i>
+                            <strong>Request was reverted to Draft</strong>
+                        </div>
+                        <div class="sim-guide-trouble-solution">
+                            Your supervisor or ICTS has reverted your request for corrections. Check the <strong>History</strong> tab on the request details page for comments explaining what needs to be changed. Make the corrections and resubmit.
+                        </div>
+                    </div>
+
+                    <div class="sim-guide-trouble-item">
+                        <div class="sim-guide-trouble-problem">
+                            <i class="bi bi-exclamation-triangle" style="color: #F58220;"></i>
+                            <strong>Cannot find my request</strong>
+                        </div>
+                        <div class="sim-guide-trouble-solution">
+                            Go to <strong>SIM Card Requests</strong> in the sidebar to see all your requests. Use the search and filter options to narrow results by status, date, or request number. If you still cannot find it, contact the ICTS Help Desk.
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </section>
+
+    </div>
+</div>
+
+@section Scripts {
+<script>
+    // Scroll-spy: highlight active TOC link based on visible section
+    document.addEventListener('DOMContentLoaded', function () {
+        var tocLinks = document.querySelectorAll('.sim-guide-toc-link');
+        var sections = document.querySelectorAll('.sim-guide-section');
+
+        if (!sections.length || !tocLinks.length) return;
+
+        var observer = new IntersectionObserver(function (entries) {
+            entries.forEach(function (entry) {
+                if (entry.isIntersecting) {
+                    var id = entry.target.getAttribute('id');
+                    tocLinks.forEach(function (link) {
+                        link.classList.toggle('active', link.getAttribute('data-section') === id);
+                    });
+                }
+            });
+        }, {
+            rootMargin: '-80px 0px -60% 0px',
+            threshold: 0
+        });
+
+        sections.forEach(function (section) {
+            observer.observe(section);
+        });
+
+        // Smooth scroll for TOC links
+        tocLinks.forEach(function (link) {
+            link.addEventListener('click', function (e) {
+                e.preventDefault();
+                var targetId = this.getAttribute('data-section');
+                var target = document.getElementById(targetId);
+                if (target) {
+                    target.scrollIntoView({ behavior: 'smooth', block: 'start' });
+                }
+            });
+        });
+    });
+</script>
+}
+
+<style>
+/* Back Link */
+.sim-guide-back-link {
+    display: inline-flex;
+    align-items: center;
+    gap: 0.5rem;
+    color: #009edb;
+    text-decoration: none;
+    font-size: 0.875rem;
+    font-weight: 500;
+    transition: color 0.2s;
+}
+
+.sim-guide-back-link:hover {
+    color: #0077b5;
+    text-decoration: none;
+}
+
+/* Hero */
+.sim-guide-hero {
+    background: linear-gradient(135deg, #009edb 0%, #0077b5 100%);
+    border-radius: 10px;
+    padding: 1.25rem 1.5rem;
+    margin-bottom: 2rem;
+    box-shadow: 0 2px 6px rgba(0, 102, 204, 0.12);
+}
+
+.sim-guide-hero-content {
+    display: flex;
+    align-items: center;
+    gap: 1.25rem;
+}
+
+.sim-guide-hero-icon {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    width: 45px;
+    height: 45px;
+    background: rgba(255, 255, 255, 0.25);
+    border-radius: 10px;
+    backdrop-filter: blur(10px);
+    flex-shrink: 0;
+}
+
+.sim-guide-hero-icon i {
+    font-size: 1.25rem;
+    color: white;
+}
+
+.sim-guide-hero-text {
+    text-align: left;
+}
+
+.sim-guide-hero-title {
+    font-size: 1.25rem;
+    font-weight: 600;
+    color: white;
+    margin-bottom: 0.25rem;
+    letter-spacing: -0.01em;
+}
+
+.sim-guide-hero-subtitle {
+    font-size: 0.875rem;
+    color: rgba(255, 255, 255, 0.95);
+    margin: 0;
+    line-height: 1.3;
+}
+
+/* Two-Column Layout */
+.sim-guide-layout {
+    display: flex;
+    gap: 2rem;
+    align-items: flex-start;
+}
+
+/* Table of Contents */
+.sim-guide-toc {
+    position: sticky;
+    top: 80px;
+    width: 250px;
+    min-width: 250px;
+    background: white;
+    border-radius: 12px;
+    padding: 1.25rem;
+    box-shadow: 0 1px 3px rgba(0, 0, 0, 0.1);
+    border: 1px solid rgba(0, 0, 0, 0.05);
+}
+
+.sim-guide-toc-title {
+    font-size: 0.75rem;
+    font-weight: 600;
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
+    color: #AEA29A;
+    margin-bottom: 0.75rem;
+    padding-bottom: 0.5rem;
+    border-bottom: 2px solid #E3EDF6;
+}
+
+.sim-guide-toc-link {
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+    padding: 0.5rem 0.75rem;
+    margin-bottom: 0.125rem;
+    color: #6E6259;
+    text-decoration: none;
+    font-size: 0.8125rem;
+    font-weight: 500;
+    border-radius: 6px;
+    transition: all 0.2s ease;
+    border-left: 3px solid transparent;
+}
+
+.sim-guide-toc-link:hover {
+    background: #E3EDF6;
+    color: #009edb;
+    text-decoration: none;
+}
+
+.sim-guide-toc-link.active {
+    background: rgba(0, 158, 219, 0.08);
+    color: #009edb;
+    font-weight: 600;
+    border-left-color: #009edb;
+}
+
+.sim-guide-toc-link i {
+    font-size: 0.875rem;
+    width: 1rem;
+    text-align: center;
+    flex-shrink: 0;
+}
+
+/* Guide Content */
+.sim-guide-content {
+    flex: 1;
+    min-width: 0;
+}
+
+.sim-guide-section {
+    margin-bottom: 2.5rem;
+    scroll-margin-top: 80px;
+}
+
+.sim-guide-section-title {
+    font-size: 1.25rem;
+    font-weight: 600;
+    color: #004987;
+    margin-bottom: 1rem;
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+}
+
+.sim-guide-section-title i {
+    color: #009edb;
+    font-size: 1.1rem;
+}
+
+.sim-guide-card {
+    background: white;
+    border-radius: 12px;
+    padding: 1.5rem;
+    box-shadow: 0 1px 3px rgba(0, 0, 0, 0.1);
+    border: 1px solid rgba(0, 0, 0, 0.05);
+}
+
+/* Info Boxes */
+.sim-guide-info-box {
+    background: #f8fafc;
+    border: 1px solid #e2e8f0;
+    border-radius: 8px;
+    padding: 1rem;
+}
+
+.sim-guide-info-box-header {
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+    margin-bottom: 0.5rem;
+}
+
+/* Workflow Timeline */
+.sim-guide-timeline {
+    position: relative;
+    padding-left: 0;
+}
+
+.sim-guide-timeline-item {
+    display: flex;
+    gap: 1rem;
+    position: relative;
+    padding-bottom: 1.5rem;
+    padding-left: 0;
+}
+
+.sim-guide-timeline-item:not(:last-child)::after {
+    content: '';
+    position: absolute;
+    left: 17px;
+    top: 38px;
+    bottom: 0;
+    width: 2px;
+    background: #DED9D5;
+}
+
+.sim-guide-timeline-marker {
+    width: 36px;
+    height: 36px;
+    min-width: 36px;
+    border-radius: 50%;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    color: white;
+    font-size: 0.875rem;
+    z-index: 1;
+}
+
+.sim-guide-marker-gray { background: #AEA29A; }
+.sim-guide-marker-orange { background: #F58220; }
+.sim-guide-marker-blue { background: #009edb; }
+.sim-guide-marker-purple { background: #A05FB4; }
+.sim-guide-marker-green { background: #72BF44; }
+
+.sim-guide-timeline-content {
+    flex: 1;
+    padding-top: 0.25rem;
+}
+
+.sim-guide-timeline-title {
+    font-weight: 600;
+    color: #1a202c;
+    font-size: 0.9375rem;
+    margin-bottom: 0.25rem;
+}
+
+.sim-guide-timeline-desc {
+    color: #718096;
+    font-size: 0.875rem;
+    line-height: 1.5;
+}
+
+/* Status Badges */
+.sim-guide-status-badge {
+    display: inline-block;
+    padding: 0.15rem 0.5rem;
+    border-radius: 4px;
+    font-size: 0.75rem;
+    font-weight: 600;
+    white-space: nowrap;
+}
+
+.badge-draft {
+    background: #EBEAE6;
+    color: #6E6259;
+}
+
+.badge-pending {
+    background: #FFEAD5;
+    color: #c46200;
+}
+
+.badge-sp {
+    background: #E3EDF6;
+    color: #004987;
+}
+
+.badge-collection {
+    background: #E3EDF6;
+    color: #0077b5;
+}
+
+.badge-approved {
+    background: #E6EFD0;
+    color: #4a8c1c;
+}
+
+.badge-rejected {
+    background: #F7DFDF;
+    color: #c41230;
+}
+
+.badge-completed {
+    background: #E4D7E8;
+    color: #7a3d8a;
+}
+
+.badge-cancelled {
+    background: #F7DFDF;
+    color: #c41230;
+}
+
+/* Steps */
+.sim-guide-steps {
+    counter-reset: none;
+}
+
+.sim-guide-step {
+    display: flex;
+    gap: 1rem;
+    margin-bottom: 1.5rem;
+}
+
+.sim-guide-step:last-child {
+    margin-bottom: 0;
+}
+
+.sim-guide-step-number {
+    width: 32px;
+    height: 32px;
+    min-width: 32px;
+    background: #009edb;
+    color: white;
+    border-radius: 50%;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-weight: 600;
+    font-size: 0.875rem;
+}
+
+.sim-guide-step-content {
+    flex: 1;
+    padding-top: 0.2rem;
+    font-size: 0.9rem;
+}
+
+/* Roles Grid */
+.sim-guide-roles-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
+    gap: 1.5rem;
+}
+
+.sim-guide-role-card {
+    background: white;
+    border-radius: 12px;
+    padding: 1.5rem;
+    box-shadow: 0 1px 3px rgba(0, 0, 0, 0.1);
+    border: 1px solid rgba(0, 0, 0, 0.05);
+    text-align: center;
+}
+
+.sim-guide-role-icon {
+    width: 50px;
+    height: 50px;
+    border-radius: 12px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 1.25rem;
+    margin: 0 auto 1rem;
+}
+
+.sim-guide-role-title {
+    font-size: 1rem;
+    font-weight: 600;
+    color: #1a202c;
+    margin-bottom: 0.75rem;
+}
+
+.sim-guide-role-list {
+    text-align: left;
+    padding-left: 1.25rem;
+    margin: 0;
+    color: #718096;
+    font-size: 0.8125rem;
+    line-height: 1.8;
+}
+
+/* Status Table */
+.sim-guide-status-table {
+    font-size: 0.875rem;
+}
+
+.sim-guide-status-table thead th {
+    background: #E3EDF6;
+    color: #004987;
+    font-weight: 600;
+    font-size: 0.8125rem;
+    text-transform: uppercase;
+    letter-spacing: 0.3px;
+    border-bottom: 2px solid #C5DFEF;
+    padding: 0.75rem 1rem;
+}
+
+.sim-guide-status-table tbody td {
+    padding: 0.75rem 1rem;
+    vertical-align: middle;
+    border-bottom: 1px solid #f1f5f9;
+    color: #4a5568;
+}
+
+.sim-guide-status-table tbody tr:hover {
+    background: #f8fafc;
+}
+
+/* FAQ Accordion */
+.sim-guide-accordion-item {
+    border: 1px solid #e2e8f0 !important;
+    border-radius: 8px !important;
+    margin-bottom: 0.5rem;
+    overflow: hidden;
+}
+
+.sim-guide-accordion-item:last-child {
+    margin-bottom: 0;
+}
+
+.sim-guide-accordion-btn {
+    font-weight: 600;
+    font-size: 0.9rem;
+    color: #1a202c;
+    padding: 1rem 1.25rem;
+    background: white;
+}
+
+.sim-guide-accordion-btn:not(.collapsed) {
+    color: #009edb;
+    background: rgba(0, 158, 219, 0.04);
+    box-shadow: none;
+}
+
+.sim-guide-accordion-btn:focus {
+    box-shadow: none;
+}
+
+.accordion-body {
+    font-size: 0.875rem;
+    color: #4a5568;
+    line-height: 1.6;
+}
+
+/* Troubleshooting */
+.sim-guide-trouble-list {
+    display: flex;
+    flex-direction: column;
+    gap: 1rem;
+}
+
+.sim-guide-trouble-item {
+    border: 1px solid #e2e8f0;
+    border-radius: 8px;
+    overflow: hidden;
+}
+
+.sim-guide-trouble-problem {
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+    padding: 0.75rem 1rem;
+    background: #FFFBF5;
+    border-bottom: 1px solid #e2e8f0;
+    font-size: 0.9rem;
+}
+
+.sim-guide-trouble-solution {
+    padding: 0.75rem 1rem;
+    font-size: 0.875rem;
+    color: #4a5568;
+    line-height: 1.6;
+}
+
+/* Responsive */
+@@media (max-width: 768px) {
+    .sim-guide-layout {
+        flex-direction: column;
+    }
+
+    .sim-guide-toc {
+        position: static;
+        width: 100%;
+        min-width: 0;
+        display: flex;
+        flex-wrap: nowrap;
+        gap: 0.25rem;
+        overflow-x: auto;
+        padding: 0.75rem;
+        -webkit-overflow-scrolling: touch;
+    }
+
+    .sim-guide-toc-title {
+        display: none;
+    }
+
+    .sim-guide-toc-link {
+        white-space: nowrap;
+        padding: 0.4rem 0.75rem;
+        font-size: 0.75rem;
+        border-left: none;
+        border-bottom: 3px solid transparent;
+        margin-bottom: 0;
+    }
+
+    .sim-guide-toc-link.active {
+        border-left-color: transparent;
+        border-bottom-color: #009edb;
+    }
+
+    .sim-guide-roles-grid {
+        grid-template-columns: 1fr;
+    }
+}
+</style>
