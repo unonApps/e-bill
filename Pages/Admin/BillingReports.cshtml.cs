@@ -66,7 +66,9 @@ namespace TAB.Web.Pages.Admin
                     Provider = g.Key.SourceSystem ?? "Unknown",
                     RecordCount = g.Count(),
                     TotalKES = g.Sum(c => c.CallCostKSHS),
-                    TotalUSD = g.Sum(c => c.CallCostUSD)
+                    TotalUSD = g.Sum(c => c.CallCostUSD),
+                    VerificationPeriod = g.Max(c => c.VerificationPeriod),
+                    ApprovalPeriod = g.Max(c => c.ApprovalPeriod)
                 })
                 .ToListAsync();
 
@@ -89,6 +91,8 @@ namespace TAB.Web.Pages.Admin
                 // USD only for PrivateWire
                 TotalUSD = g.Where(p => p.Provider == "PrivateWire")
                             .Sum(p => p.TotalUSD),
+                StaffVerificationDeadline = g.Max(p => p.VerificationPeriod),
+                SupervisorApprovalDeadline = g.Max(p => p.ApprovalPeriod),
                 Providers = g.Select(p => new ProviderSummary
                 {
                     Provider = p.Provider,
@@ -123,7 +127,7 @@ namespace TAB.Web.Pages.Admin
             await LoadBillingDataAsync();
 
             var csv = new StringBuilder();
-            csv.AppendLine("Month,Year,Provider,Records,Amount (KES),Amount (USD)");
+            csv.AppendLine("Month,Year,Provider,Records,Amount (KES),Amount (USD),Staff Verification Deadline,Supervisor Approval Deadline");
 
             foreach (var month in MonthlySummaries)
             {
@@ -135,7 +139,9 @@ namespace TAB.Web.Pages.Admin
                         ? provider.AmountKES.ToString("F2") : "0.00";
                     var usdValue = (provider.Provider == "PrivateWire")
                         ? provider.AmountUSD.ToString("F2") : "0.00";
-                    csv.AppendLine($"{month.MonthName},{month.Year},{provider.Provider},{provider.RecordCount},{kesValue},{usdValue}");
+                    var staffDeadline = month.StaffVerificationDeadline?.ToString("dd MMM yyyy") ?? "";
+                    var supervisorDeadline = month.SupervisorApprovalDeadline?.ToString("dd MMM yyyy") ?? "";
+                    csv.AppendLine($"{month.MonthName},{month.Year},{provider.Provider},{provider.RecordCount},{kesValue},{usdValue},{staffDeadline},{supervisorDeadline}");
                 }
             }
 
@@ -159,9 +165,11 @@ namespace TAB.Web.Pages.Admin
             summarySheet.Cell(1, 2).Value = "Records";
             summarySheet.Cell(1, 3).Value = "Amount (KES)";
             summarySheet.Cell(1, 4).Value = "Amount (USD)";
+            summarySheet.Cell(1, 5).Value = "Staff Verification Deadline";
+            summarySheet.Cell(1, 6).Value = "Supervisor Approval Deadline";
 
             // Style header row
-            var headerRange = summarySheet.Range(1, 1, 1, 4);
+            var headerRange = summarySheet.Range(1, 1, 1, 6);
             headerRange.Style.Font.Bold = true;
             headerRange.Style.Fill.BackgroundColor = XLColor.LightGray;
 
@@ -172,6 +180,10 @@ namespace TAB.Web.Pages.Admin
                 summarySheet.Cell(row, 2).Value = month.TotalRecords;
                 summarySheet.Cell(row, 3).Value = month.TotalKES;
                 summarySheet.Cell(row, 4).Value = month.TotalUSD;
+                if (month.StaffVerificationDeadline.HasValue)
+                    summarySheet.Cell(row, 5).Value = month.StaffVerificationDeadline.Value.ToString("dd MMM yyyy");
+                if (month.SupervisorApprovalDeadline.HasValue)
+                    summarySheet.Cell(row, 6).Value = month.SupervisorApprovalDeadline.Value.ToString("dd MMM yyyy");
                 row++;
             }
 
@@ -180,8 +192,8 @@ namespace TAB.Web.Pages.Admin
             summarySheet.Cell(row, 2).Value = TotalRecords;
             summarySheet.Cell(row, 3).Value = TotalKES;
             summarySheet.Cell(row, 4).Value = TotalUSD;
-            summarySheet.Range(row, 1, row, 4).Style.Font.Bold = true;
-            summarySheet.Range(row, 1, row, 4).Style.Fill.BackgroundColor = XLColor.LightBlue;
+            summarySheet.Range(row, 1, row, 6).Style.Font.Bold = true;
+            summarySheet.Range(row, 1, row, 6).Style.Fill.BackgroundColor = XLColor.LightBlue;
 
             // Format currency columns
             summarySheet.Column(3).Style.NumberFormat.Format = "#,##0.00";
@@ -238,6 +250,8 @@ namespace TAB.Web.Pages.Admin
         public int TotalRecords { get; set; }
         public decimal TotalKES { get; set; }
         public decimal TotalUSD { get; set; }
+        public DateTime? StaffVerificationDeadline { get; set; }
+        public DateTime? SupervisorApprovalDeadline { get; set; }
         public List<ProviderSummary> Providers { get; set; } = new();
     }
 

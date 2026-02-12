@@ -281,6 +281,12 @@ else
                             <th class="border-0 px-3 py-3 text-end" style="font-weight: 600; color: #4a5568; text-transform: uppercase; font-size: 12px; letter-spacing: 0.5px;">
                                 <i class="bi bi-currency-dollar me-2"></i>Amount (USD)
                             </th>
+                            <th class="border-0 px-3 py-3 text-center" style="font-weight: 600; color: #4a5568; text-transform: uppercase; font-size: 12px; letter-spacing: 0.5px;">
+                                <i class="bi bi-person-check me-2"></i>Staff Deadline
+                            </th>
+                            <th class="border-0 px-3 py-3 text-center" style="font-weight: 600; color: #4a5568; text-transform: uppercase; font-size: 12px; letter-spacing: 0.5px;">
+                                <i class="bi bi-shield-check me-2"></i>Supervisor Deadline
+                            </th>
                             <th class="border-0 px-3 py-3 text-center" style="width: 50px;"></th>
                         </tr>
                     </thead>
@@ -304,11 +310,39 @@ else
                                     <span class="fw-semibold text-purple">USD @month.TotalUSD.ToString("N2")</span>
                                 </td>
                                 <td class="px-3 text-center">
+                                    @if (month.StaffVerificationDeadline.HasValue)
+                                    {
+                                        var staffDaysLeft = (month.StaffVerificationDeadline.Value - DateTime.UtcNow).Days;
+                                        var staffBadgeClass = staffDaysLeft < 0 ? "bg-danger" : staffDaysLeft <= 3 ? "bg-warning text-dark" : "bg-info";
+                                        <span class="badge @staffBadgeClass" style="border-radius: 8px; font-size: 11px;">
+                                            @month.StaffVerificationDeadline.Value.ToString("dd MMM yyyy")
+                                        </span>
+                                    }
+                                    else
+                                    {
+                                        <span class="text-muted" style="font-size: 12px;">-</span>
+                                    }
+                                </td>
+                                <td class="px-3 text-center">
+                                    @if (month.SupervisorApprovalDeadline.HasValue)
+                                    {
+                                        var supDaysLeft = (month.SupervisorApprovalDeadline.Value - DateTime.UtcNow).Days;
+                                        var supBadgeClass = supDaysLeft < 0 ? "bg-danger" : supDaysLeft <= 3 ? "bg-warning text-dark" : "bg-info";
+                                        <span class="badge @supBadgeClass" style="border-radius: 8px; font-size: 11px;">
+                                            @month.SupervisorApprovalDeadline.Value.ToString("dd MMM yyyy")
+                                        </span>
+                                    }
+                                    else
+                                    {
+                                        <span class="text-muted" style="font-size: 12px;">-</span>
+                                    }
+                                </td>
+                                <td class="px-3 text-center">
                                     <i class="bi bi-chevron-down expand-icon text-muted"></i>
                                 </td>
                             </tr>
                             <tr class="collapse" id="@rowId">
-                                <td colspan="5" class="p-0 border-0">
+                                <td colspan="7" class="p-0 border-0">
                                     <div class="p-3" style="background: #f9fafb;">
                                         <table class="table table-sm mb-0" style="background: white; border-radius: 8px; overflow: hidden;">
                                             <thead style="background-color: #f1f5f9;">
@@ -396,6 +430,8 @@ else
                             <td class="px-3 py-3 text-end fw-bold text-primary">@Model.TotalRecords.ToString("N0")</td>
                             <td class="px-3 py-3 text-end fw-bold text-success">KES @Model.TotalKES.ToString("N2")</td>
                             <td class="px-3 py-3 text-end fw-bold text-purple">USD @Model.TotalUSD.ToString("N2")</td>
+                            <td></td>
+                            <td></td>
                             <td></td>
                         </tr>
                     </tfoot>
