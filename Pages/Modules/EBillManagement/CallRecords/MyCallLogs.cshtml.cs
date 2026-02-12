@@ -321,11 +321,11 @@ namespace TAB.Web.Pages.Modules.EBillManagement.CallRecords
 
                 var submissionCounts = await _context.CallLogVerifications
                     .Where(v => v.SubmittedToSupervisor)
-                    .Join(_context.CallRecords.Include(c => c.UserPhone),
+                    .Join(_context.CallRecords,
                           v => v.CallRecordId,
                           cr => cr.Id,
                           (v, cr) => new {
-                              Extension = cr.UserPhone != null ? cr.UserPhone.PhoneNumber : "Unknown",
+                              Extension = cr.ExtensionNumber,
                               cr.CallMonth,
                               cr.CallYear,
                               v.ApprovalStatus
@@ -368,11 +368,11 @@ namespace TAB.Web.Pages.Modules.EBillManagement.CallRecords
                 {
                     var assignmentCounts = await _context.Set<CallLogPaymentAssignment>()
                         .Where(a => a.AssignedTo == UserIndexNumber && a.AssignmentStatus == "Pending")
-                        .Join(_context.CallRecords.Include(c => c.UserPhone),
+                        .Join(_context.CallRecords,
                               a => a.CallRecordId,
                               cr => cr.Id,
                               (a, cr) => new {
-                                  Extension = cr.UserPhone != null ? cr.UserPhone.PhoneNumber : "Unknown",
+                                  Extension = cr.ExtensionNumber,
                                   cr.CallMonth,
                                   cr.CallYear,
                                   a.AssignedFrom
@@ -406,11 +406,11 @@ namespace TAB.Web.Pages.Modules.EBillManagement.CallRecords
                     // Get outgoing pending reassignment counts (calls user reassigned to others, pending acceptance)
                     var outgoingCounts = await _context.Set<CallLogPaymentAssignment>()
                         .Where(a => a.AssignedFrom == UserIndexNumber && a.AssignmentStatus == "Pending")
-                        .Join(_context.CallRecords.Include(c => c.UserPhone),
+                        .Join(_context.CallRecords,
                               a => a.CallRecordId,
                               cr => cr.Id,
                               (a, cr) => new {
-                                  Extension = cr.UserPhone != null ? cr.UserPhone.PhoneNumber : "Unknown",
+                                  Extension = cr.ExtensionNumber,
                                   cr.CallMonth,
                                   cr.CallYear,
                                   a.AssignedTo
@@ -1479,61 +1479,56 @@ namespace TAB.Web.Pages.Modules.EBillManagement.CallRecords
                 if (ebillUser == null && !isAdmin)
                     return new JsonResult(new { error = "User profile not found" });
 
-                // Build base query
+                // Use ExtensionNumber directly (indexed column) - no JOIN to UserPhones
                 var query = _context.CallRecords
-                    .Include(c => c.UserPhone)
-                    .Where(c => (c.UserPhone != null ? c.UserPhone.PhoneNumber : "Unknown") == extension &&
+                    .Where(c => c.ExtensionNumber == extension &&
                                c.CallMonth == month && c.CallYear == year);
 
                 // Filter by user if not admin
                 if (!isAdmin && !string.IsNullOrEmpty(userIndexNumber))
                 {
-                    // Subquery for incoming assigned calls (calls assigned TO current user)
                     var incomingAssignedCallIdsQuery = _context.Set<CallLogPaymentAssignment>()
                         .Where(a => a.AssignedTo == userIndexNumber &&
                                (a.AssignmentStatus == "Pending" || a.AssignmentStatus == "Accepted"))
                         .Select(a => a.CallRecordId);
 
-                    // Subquery for outgoing accepted assignments (calls assigned BY current user that were ACCEPTED)
-                    // These should NOT appear in the current user's view anymore
                     var acceptedOutgoingCallIdsQuery = _context.Set<CallLogPaymentAssignment>()
                         .Where(a => a.AssignedFrom == userIndexNumber && a.AssignmentStatus == "Accepted")
                         .Select(a => a.CallRecordId);
 
-                    // Include own calls (excluding accepted outgoing) + incoming assigned calls
                     query = query.Where(c =>
                         (c.ResponsibleIndexNumber == userIndexNumber && !acceptedOutgoingCallIdsQuery.Contains(c.Id)) ||
                         incomingAssignedCallIdsQuery.Contains(c.Id));
                 }
 
-                // Group by dialed number (use empty string for null to group subscriptions together)
-                var dialedNumbersQuery = query
+                // Single GroupBy execution - fetch all groups, paginate in memory
+                // (typically < 100 distinct dialed numbers per extension/month)
+                // IsDataSession moved to post-processing to avoid expensive LOWER()+LIKE in GroupBy
+                var allDialedNumbers = await query
                     .GroupBy(c => c.CallNumber ?? "")
                     .Select(g => new DialedNumberGroupDto
                     {
-                        // Show "Subscription" for empty/null dialed numbers (data bundles, subscriptions, etc.)
                         DialedNumber = g.Key == "" ? "Subscription" : g.Key,
                         Destination = g.Select(c => c.CallDestination).FirstOrDefault() ?? "",
                         CallCount = g.Count(),
                         TotalCostUSD = g.Sum(c => c.CallCostUSD),
                         TotalCostKSH = g.Sum(c => c.CallCostKSHS),
-                        // Cast to long before summing to avoid int overflow
                         TotalDuration = g.Sum(c => (decimal)c.CallDuration),
                         AssignmentStatus = g.Select(c => c.VerificationType).Distinct().Count() > 1 ? "Mixed" :
                                           (g.Select(c => c.VerificationType).FirstOrDefault() ?? "Unverified"),
-                        // Check if this is a data session (GPRS) - duration is in KB not minutes
-                        IsDataSession = g.Any(c => c.CallType != null &&
-                            (c.CallType.ToLower().Contains("gprs") || c.CallType.ToLower().Contains("data")))
+                        IsDataSession = false
                     })
-                    .OrderByDescending(d => d.CallCount);
+                    .OrderByDescending(d => d.CallCount)
+                    .ToListAsync();
 
-                var totalCount = await dialedNumbersQuery.CountAsync();
+                var totalCount = allDialedNumbers.Count;
                 var totalPages = (int)Math.Ceiling(totalCount / (double)pageSize);
 
-                var dialedNumbers = await dialedNumbersQuery
+                // Paginate in memory (avoids re-executing the GroupBy for count)
+                var dialedNumbers = allDialedNumbers
                     .Skip((page - 1) * pageSize)
                     .Take(pageSize)
-                    .ToListAsync();
+                    .ToList();
 
                 // Set DialedGroupId for each
                 var safeExtension = (extension ?? "Unknown").Replace(" ", "_").Replace("-", "_").Replace("+", "");
@@ -1544,107 +1539,117 @@ namespace TAB.Web.Pages.Modules.EBillManagement.CallRecords
                     dn.DialedGroupId = $"{groupId}_dialed_{safeDialedNumber}";
                 }
 
-                // Get submission status counts for each dialed number group
-                // Map "Subscription" back to empty string for querying, keep other dialed numbers as-is
-                var dialedNumbersList = dialedNumbers
-                    .Select(d => d.DialedNumber == "Subscription" ? "" : d.DialedNumber)
-                    .ToList();
-                var hasSubscription = dialedNumbers.Any(d => d.DialedNumber == "Subscription");
-
-                var submissionCounts = await _context.CallRecords
-                    .Where(c => c.ExtensionNumber == extension && c.CallMonth == month && c.CallYear == year)
-                    .Where(c => dialedNumbersList.Contains(c.CallNumber ?? "") ||
-                               (hasSubscription && (c.CallNumber == null || c.CallNumber == "")))
-                    .Join(_context.CallLogVerifications.Where(v => v.SubmittedToSupervisor),
-                          cr => cr.Id,
-                          v => v.CallRecordId,
-                          (cr, v) => new { cr.CallNumber, v.ApprovalStatus })
-                    .GroupBy(x => x.CallNumber ?? "")
-                    .Select(g => new
-                    {
-                        DialedNumber = g.Key == "" ? "Subscription" : g.Key,
-                        SubmittedCount = g.Count(),
-                        PendingCount = g.Count(x => x.ApprovalStatus == "Pending"),
-                        ApprovedCount = g.Count(x => x.ApprovalStatus == "Approved")
-                    })
-                    .ToDictionaryAsync(x => x.DialedNumber, x => x);
-
-                // Update dialed numbers with submission status
-                foreach (var dn in dialedNumbers)
+                if (dialedNumbers.Any())
                 {
-                    if (submissionCounts.TryGetValue(dn.DialedNumber, out var counts))
-                    {
-                        dn.SubmittedCount = counts.SubmittedCount;
-                        dn.PendingApprovalCount = counts.PendingCount;
-                        dn.ApprovedCount = counts.ApprovedCount;
-                    }
-                }
+                    var dialedNumbersList = dialedNumbers
+                        .Select(d => d.DialedNumber == "Subscription" ? "" : d.DialedNumber)
+                        .ToList();
+                    var hasSubscription = dialedNumbers.Any(d => d.DialedNumber == "Subscription");
 
-                // Get incoming assignment counts (calls assigned TO current user that are pending)
-                if (!string.IsNullOrEmpty(userIndexNumber))
-                {
-                    var assignmentCounts = await _context.Set<CallLogPaymentAssignment>()
-                        .Where(a => a.AssignedTo == userIndexNumber && a.AssignmentStatus == "Pending")
-                        .Join(_context.CallRecords,
-                              a => a.CallRecordId,
+                    // Pre-filter CallRecords for this extension/month/year (reused by multiple queries below)
+                    var filteredCallRecords = _context.CallRecords
+                        .Where(cr => cr.ExtensionNumber == extension && cr.CallMonth == month && cr.CallYear == year);
+
+                    // Determine IsDataSession - lightweight query using case-insensitive LIKE (no LOWER())
+                    var dataSessionNumbers = await filteredCallRecords
+                        .Where(c => dialedNumbersList.Contains(c.CallNumber ?? "") ||
+                                   (hasSubscription && (c.CallNumber == null || c.CallNumber == "")))
+                        .Where(c => c.CallType != null &&
+                            (EF.Functions.Like(c.CallType, "%GPRS%") || EF.Functions.Like(c.CallType, "%data%")))
+                        .Select(c => c.CallNumber ?? "")
+                        .Distinct()
+                        .ToListAsync();
+
+                    // Submission counts - uses ExtensionNumber (indexed), no UserPhone JOIN
+                    var submissionCounts = await filteredCallRecords
+                        .Where(c => dialedNumbersList.Contains(c.CallNumber ?? "") ||
+                                   (hasSubscription && (c.CallNumber == null || c.CallNumber == "")))
+                        .Join(_context.CallLogVerifications.Where(v => v.SubmittedToSupervisor),
                               cr => cr.Id,
-                              (a, cr) => new { cr.CallNumber, a.AssignedFrom })
-                        .Where(x => dialedNumbersList.Contains(x.CallNumber ?? "") ||
-                                   (hasSubscription && (x.CallNumber == null || x.CallNumber == "")))
+                              v => v.CallRecordId,
+                              (cr, v) => new { cr.CallNumber, v.ApprovalStatus })
                         .GroupBy(x => x.CallNumber ?? "")
                         .Select(g => new
                         {
                             DialedNumber = g.Key == "" ? "Subscription" : g.Key,
-                            AssignmentCount = g.Count(),
-                            AssignedFromUser = g.Select(x => x.AssignedFrom).Distinct().Count() == 1
-                                ? g.Select(x => x.AssignedFrom).FirstOrDefault()
-                                : null
+                            SubmittedCount = g.Count(),
+                            PendingCount = g.Count(x => x.ApprovalStatus == "Pending"),
+                            ApprovedCount = g.Count(x => x.ApprovalStatus == "Approved")
                         })
                         .ToDictionaryAsync(x => x.DialedNumber, x => x);
 
+                    // Apply IsDataSession and submission counts
                     foreach (var dn in dialedNumbers)
                     {
-                        if (assignmentCounts.TryGetValue(dn.DialedNumber, out var assignmentInfo))
+                        var key = dn.DialedNumber == "Subscription" ? "" : dn.DialedNumber;
+                        dn.IsDataSession = dataSessionNumbers.Contains(key);
+
+                        if (submissionCounts.TryGetValue(dn.DialedNumber, out var counts))
                         {
-                            dn.IncomingAssignmentCount = assignmentInfo.AssignmentCount;
-                            dn.AssignedFromUser = assignmentInfo.AssignedFromUser;
+                            dn.SubmittedCount = counts.SubmittedCount;
+                            dn.PendingApprovalCount = counts.PendingCount;
+                            dn.ApprovedCount = counts.ApprovedCount;
                         }
                     }
 
-                    // Get outgoing pending reassignment counts
-                    var outgoingCounts = await _context.Set<CallLogPaymentAssignment>()
-                        .Where(a => a.AssignedFrom == userIndexNumber && a.AssignmentStatus == "Pending")
-                        .Join(_context.CallRecords.Include(c => c.UserPhone),
-                              a => a.CallRecordId,
-                              cr => cr.Id,
-                              (a, cr) => new {
-                                  Extension = cr.UserPhone != null ? cr.UserPhone.PhoneNumber : "Unknown",
-                                  cr.CallMonth,
-                                  cr.CallYear,
-                                  cr.CallNumber,
-                                  a.AssignedTo
-                              })
-                        .Where(x => x.Extension == extension &&
-                                   x.CallMonth == month && x.CallYear == year)
-                        .Where(x => dialedNumbersList.Contains(x.CallNumber ?? "") ||
-                                   (hasSubscription && (x.CallNumber == null || x.CallNumber == "")))
-                        .GroupBy(x => x.CallNumber ?? "")
-                        .Select(g => new
-                        {
-                            DialedNumber = g.Key == "" ? "Subscription" : g.Key,
-                            OutgoingCount = g.Count(),
-                            AssignedToUser = g.Select(x => x.AssignedTo).Distinct().Count() == 1
-                                ? g.Select(x => x.AssignedTo).FirstOrDefault()
-                                : null
-                        })
-                        .ToDictionaryAsync(x => x.DialedNumber, x => x);
-
-                    foreach (var dn in dialedNumbers)
+                    // Assignment queries - use pre-filtered CallRecords (no UserPhone JOIN)
+                    if (!string.IsNullOrEmpty(userIndexNumber))
                     {
-                        if (outgoingCounts.TryGetValue(dn.DialedNumber, out var outgoingInfo))
+                        var assignmentCounts = await _context.Set<CallLogPaymentAssignment>()
+                            .Where(a => a.AssignedTo == userIndexNumber && a.AssignmentStatus == "Pending")
+                            .Join(filteredCallRecords,
+                                  a => a.CallRecordId,
+                                  cr => cr.Id,
+                                  (a, cr) => new { cr.CallNumber, a.AssignedFrom })
+                            .Where(x => dialedNumbersList.Contains(x.CallNumber ?? "") ||
+                                       (hasSubscription && (x.CallNumber == null || x.CallNumber == "")))
+                            .GroupBy(x => x.CallNumber ?? "")
+                            .Select(g => new
+                            {
+                                DialedNumber = g.Key == "" ? "Subscription" : g.Key,
+                                AssignmentCount = g.Count(),
+                                AssignedFromUser = g.Select(x => x.AssignedFrom).Distinct().Count() == 1
+                                    ? g.Select(x => x.AssignedFrom).FirstOrDefault()
+                                    : null
+                            })
+                            .ToDictionaryAsync(x => x.DialedNumber, x => x);
+
+                        foreach (var dn in dialedNumbers)
                         {
-                            dn.OutgoingPendingCount = outgoingInfo.OutgoingCount;
-                            dn.AssignedToUser = outgoingInfo.AssignedToUser;
+                            if (assignmentCounts.TryGetValue(dn.DialedNumber, out var assignmentInfo))
+                            {
+                                dn.IncomingAssignmentCount = assignmentInfo.AssignmentCount;
+                                dn.AssignedFromUser = assignmentInfo.AssignedFromUser;
+                            }
+                        }
+
+                        // Outgoing counts - use ExtensionNumber (no Include/UserPhone JOIN)
+                        var outgoingCounts = await _context.Set<CallLogPaymentAssignment>()
+                            .Where(a => a.AssignedFrom == userIndexNumber && a.AssignmentStatus == "Pending")
+                            .Join(filteredCallRecords,
+                                  a => a.CallRecordId,
+                                  cr => cr.Id,
+                                  (a, cr) => new { cr.CallNumber, a.AssignedTo })
+                            .Where(x => dialedNumbersList.Contains(x.CallNumber ?? "") ||
+                                       (hasSubscription && (x.CallNumber == null || x.CallNumber == "")))
+                            .GroupBy(x => x.CallNumber ?? "")
+                            .Select(g => new
+                            {
+                                DialedNumber = g.Key == "" ? "Subscription" : g.Key,
+                                OutgoingCount = g.Count(),
+                                AssignedToUser = g.Select(x => x.AssignedTo).Distinct().Count() == 1
+                                    ? g.Select(x => x.AssignedTo).FirstOrDefault()
+                                    : null
+                            })
+                            .ToDictionaryAsync(x => x.DialedNumber, x => x);
+
+                        foreach (var dn in dialedNumbers)
+                        {
+                            if (outgoingCounts.TryGetValue(dn.DialedNumber, out var outgoingInfo))
+                            {
+                                dn.OutgoingPendingCount = outgoingInfo.OutgoingCount;
+                                dn.AssignedToUser = outgoingInfo.AssignedToUser;
+                            }
                         }
                     }
                 }
@@ -1695,10 +1700,9 @@ namespace TAB.Web.Pages.Modules.EBillManagement.CallRecords
                 if (ebillUser == null && !isAdmin)
                     return new JsonResult(new { error = "User profile not found" });
 
-                // Build base query - filter by extension, month, year
+                // Build base query - filter by extension (indexed), month, year
                 var query = _context.CallRecords
-                    .Include(c => c.UserPhone)
-                    .Where(c => (c.UserPhone != null ? c.UserPhone.PhoneNumber : "Unknown") == extension &&
+                    .Where(c => c.ExtensionNumber == extension &&
                                c.CallMonth == month && c.CallYear == year);
 
                 // Filter by dialed number
@@ -1852,8 +1856,7 @@ namespace TAB.Web.Pages.Modules.EBillManagement.CallRecords
                 // Include calls that are Official OR unverified (unverified defaults to Official)
                 // Exclude calls that have been assigned out and accepted
                 var query = _context.CallRecords
-                    .Include(c => c.UserPhone)
-                    .Where(c => (c.UserPhone != null ? c.UserPhone.PhoneNumber : "Unknown") == extension
+                    .Where(c => c.ExtensionNumber == extension
                            && c.CallMonth == month
                            && c.CallYear == year
                            && c.VerificationType != "Personal") // Exclude only Personal calls
@@ -1916,8 +1919,7 @@ namespace TAB.Web.Pages.Modules.EBillManagement.CallRecords
                 // Include calls that are Official OR unverified (unverified defaults to Official)
                 // Exclude calls that have been assigned out and accepted
                 var query = _context.CallRecords
-                    .Include(c => c.UserPhone)
-                    .Where(c => (c.UserPhone != null ? c.UserPhone.PhoneNumber : "Unknown") == extension
+                    .Where(c => c.ExtensionNumber == extension
                            && c.CallMonth == month
                            && c.CallYear == year
                            && c.VerificationType != "Personal") // Exclude only Personal calls
