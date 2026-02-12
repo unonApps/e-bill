@@ -1,0 +1,1534 @@
+@page
+@model TAB.Web.Pages.JobAid.RefundManagementModel
+@{
+    ViewData["Title"] = "Refund Management Guide";
+    ViewData["PageIcon"] = "bi-book";
+    ViewData["PageTitle"] = "Refund Management Guide";
+    ViewData["Breadcrumb"] = "Job Aid / Refund Management";
+}
+
+<!-- Back Link -->
+<div class="mb-3">
+    <a href="/JobAid" class="refund-guide-back-link">
+        <i class="bi bi-arrow-left"></i> Back to Job Aid Hub
+    </a>
+</div>
+
+<!-- Hero -->
+<div class="refund-guide-hero">
+    <div class="refund-guide-hero-content">
+        <div class="refund-guide-hero-icon">
+            <i class="bi bi-cash-coin"></i>
+        </div>
+        <div class="refund-guide-hero-text">
+            <h1 class="refund-guide-hero-title">Refund Management Guide</h1>
+            <p class="refund-guide-hero-subtitle">Complete guide to submitting, tracking, and approving device purchase refund requests through the 5-stage approval workflow</p>
+        </div>
+    </div>
+</div>
+
+<!-- Two-Column Layout -->
+<div class="refund-guide-layout">
+    <!-- Table of Contents — Sidebar -->
+    <nav class="refund-guide-toc" id="guide-toc">
+        <div class="refund-guide-toc-title">Contents</div>
+        <a href="#overview" class="refund-guide-toc-link active" data-section="overview">
+            <i class="bi bi-info-circle"></i> Overview
+        </a>
+        <a href="#workflow" class="refund-guide-toc-link" data-section="workflow">
+            <i class="bi bi-diagram-3"></i> Refund Workflow
+        </a>
+        <a href="#creating-request" class="refund-guide-toc-link" data-section="creating-request">
+            <i class="bi bi-plus-circle"></i> Creating a Request
+        </a>
+        <a href="#tracking" class="refund-guide-toc-link" data-section="tracking">
+            <i class="bi bi-search"></i> Tracking Your Requests
+        </a>
+        <a href="#approval-stages" class="refund-guide-toc-link" data-section="approval-stages">
+            <i class="bi bi-list-check"></i> Approval Stages
+        </a>
+        <a href="#roles" class="refund-guide-toc-link" data-section="roles">
+            <i class="bi bi-people"></i> Role Responsibilities
+        </a>
+        <a href="#statuses" class="refund-guide-toc-link" data-section="statuses">
+            <i class="bi bi-tags"></i> Status Explanations
+        </a>
+        <a href="#documents" class="refund-guide-toc-link" data-section="documents">
+            <i class="bi bi-file-earmark-check"></i> Required Documents &amp; Fields
+        </a>
+        <a href="#faq" class="refund-guide-toc-link" data-section="faq">
+            <i class="bi bi-question-circle"></i> FAQ
+        </a>
+        <a href="#troubleshooting" class="refund-guide-toc-link" data-section="troubleshooting">
+            <i class="bi bi-wrench"></i> Troubleshooting
+        </a>
+    </nav>
+
+    <!-- Guide Content -->
+    <div class="refund-guide-content">
+
+        <!-- 1. Overview -->
+        <section id="overview" class="refund-guide-section">
+            <h2 class="refund-guide-section-title">
+                <i class="bi bi-info-circle"></i> Overview
+            </h2>
+            <div class="refund-guide-card">
+                <p>The <strong>Refund Management</strong> module allows staff to submit requests for reimbursement of device purchases (mobile phones, tablets, etc.) associated with their official mobile service. Requests go through a <strong>5-stage approval chain</strong> — from supervisor review through budget verification, claims processing, and payment approval — before the refund is completed.</p>
+
+                <h5 class="mt-4 mb-3" style="color: #004987; font-weight: 600;">Who Can Use This Module?</h5>
+                <p>All staff members with an assigned mobile service and a valid device allowance can submit refund requests. Supervisors, Budget Officers, Staff Claims Unit officers, and Payment Approvers each play a role in reviewing and processing the request at different stages.</p>
+
+                <h5 class="mt-4 mb-3" style="color: #004987; font-weight: 600;">Key Concepts</h5>
+                <div class="row g-3">
+                    <div class="col-md-6">
+                        <div class="refund-guide-info-box">
+                            <div class="refund-guide-info-box-header">
+                                <i class="bi bi-phone" style="color: #009edb;"></i>
+                                <strong>Device Allowance</strong>
+                            </div>
+                            <p class="mb-0 text-muted" style="font-size: 0.875rem;">The maximum amount the organization will reimburse for a device purchase, determined by your class of service and mobile service assignment.</p>
+                        </div>
+                    </div>
+                    <div class="col-md-6">
+                        <div class="refund-guide-info-box">
+                            <div class="refund-guide-info-box-header">
+                                <i class="bi bi-receipt" style="color: #F58220;"></i>
+                                <strong>Purchase Receipt</strong>
+                            </div>
+                            <p class="mb-0 text-muted" style="font-size: 0.875rem;">Proof of device purchase that must be uploaded with your request. Accepted formats: PDF, JPEG, PNG (max 10 MB).</p>
+                        </div>
+                    </div>
+                    <div class="col-md-6">
+                        <div class="refund-guide-info-box">
+                            <div class="refund-guide-info-box-header">
+                                <i class="bi bi-calculator" style="color: #A05FB4;"></i>
+                                <strong>Cost Accounting</strong>
+                            </div>
+                            <p class="mb-0 text-muted" style="font-size: 0.875rem;">Budget Officer provides Cost Object, Cost Center, and Fund Commitment fields to ensure the refund is charged to the correct budget line.</p>
+                        </div>
+                    </div>
+                    <div class="col-md-6">
+                        <div class="refund-guide-info-box">
+                            <div class="refund-guide-info-box-header">
+                                <i class="bi bi-bank" style="color: #72BF44;"></i>
+                                <strong>Umoja Payment</strong>
+                            </div>
+                            <p class="mb-0 text-muted" style="font-size: 0.875rem;">The UN's ERP system used for processing payments. The Claims Unit records the Umoja Payment Document ID once the refund is processed.</p>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </section>
+
+        <!-- 2. Refund Workflow -->
+        <section id="workflow" class="refund-guide-section">
+            <h2 class="refund-guide-section-title">
+                <i class="bi bi-diagram-3"></i> Refund Workflow
+            </h2>
+            <div class="refund-guide-card">
+                <p class="mb-4">Every refund request follows this lifecycle from creation to completion:</p>
+
+                <div class="refund-guide-timeline">
+                    <div class="refund-guide-timeline-item">
+                        <div class="refund-guide-timeline-marker refund-guide-marker-blue">
+                            <i class="bi bi-pencil-square"></i>
+                        </div>
+                        <div class="refund-guide-timeline-content">
+                            <div class="refund-guide-timeline-title">1. Create Draft</div>
+                            <div class="refund-guide-timeline-desc">Staff member fills in mobile details, device purchase information, uploads the receipt, and saves the request as a draft. The request can be edited freely at this stage.</div>
+                        </div>
+                    </div>
+
+                    <div class="refund-guide-timeline-item">
+                        <div class="refund-guide-timeline-marker refund-guide-marker-orange">
+                            <i class="bi bi-send"></i>
+                        </div>
+                        <div class="refund-guide-timeline-content">
+                            <div class="refund-guide-timeline-title">2. Submit to Supervisor</div>
+                            <div class="refund-guide-timeline-desc">Once all required fields are complete, the staff member submits the request. Status changes to <span class="refund-guide-status-badge badge-refund-pending-supervisor">Pending Supervisor</span> and the request is locked for editing.</div>
+                        </div>
+                    </div>
+
+                    <div class="refund-guide-timeline-item">
+                        <div class="refund-guide-timeline-marker refund-guide-marker-amber">
+                            <i class="bi bi-person-check"></i>
+                        </div>
+                        <div class="refund-guide-timeline-content">
+                            <div class="refund-guide-timeline-title">3. Supervisor Reviews</div>
+                            <div class="refund-guide-timeline-desc">
+                                The supervisor verifies the request details and takes one of these actions:
+                                <ul class="mt-2 mb-0">
+                                    <li><strong>Approve</strong> — selects the Budget Officer and forwards the request</li>
+                                    <li><strong>Reject</strong> — request is cancelled with a reason</li>
+                                    <li><strong>Revert</strong> — returns to the staff member for corrections</li>
+                                </ul>
+                            </div>
+                        </div>
+                    </div>
+
+                    <div class="refund-guide-timeline-item">
+                        <div class="refund-guide-timeline-marker refund-guide-marker-purple">
+                            <i class="bi bi-piggy-bank"></i>
+                        </div>
+                        <div class="refund-guide-timeline-content">
+                            <div class="refund-guide-timeline-title">4. Budget Officer Reviews</div>
+                            <div class="refund-guide-timeline-desc">
+                                The Budget Officer verifies budget availability and provides cost accounting details:
+                                <ul class="mt-2 mb-0">
+                                    <li><strong>Approve</strong> — fills in Cost Object, Cost Center, and Fund Commitment</li>
+                                    <li><strong>Reject</strong> — request is cancelled (e.g., insufficient funds)</li>
+                                    <li><strong>Revert</strong> — returns to the staff member for corrections</li>
+                                </ul>
+                            </div>
+                        </div>
+                    </div>
+
+                    <div class="refund-guide-timeline-item">
+                        <div class="refund-guide-timeline-marker refund-guide-marker-teal">
+                            <i class="bi bi-clipboard-check"></i>
+                        </div>
+                        <div class="refund-guide-timeline-content">
+                            <div class="refund-guide-timeline-title">5. Staff Claims Unit Processes</div>
+                            <div class="refund-guide-timeline-desc">
+                                The Claims Unit processes the payment in Umoja and records the transaction:
+                                <ul class="mt-2 mb-0">
+                                    <li><strong>Process</strong> — records the Umoja Payment Document ID, refund USD amount, and action date</li>
+                                    <li><strong>Reject</strong> — request is cancelled (e.g., documentation issues)</li>
+                                    <li><strong>Revert</strong> — returns to Budget Officer or staff member for corrections</li>
+                                </ul>
+                            </div>
+                        </div>
+                    </div>
+
+                    <div class="refund-guide-timeline-item">
+                        <div class="refund-guide-timeline-marker refund-guide-marker-green">
+                            <i class="bi bi-cash-stack"></i>
+                        </div>
+                        <div class="refund-guide-timeline-content">
+                            <div class="refund-guide-timeline-title">6. Payment Approver Reviews</div>
+                            <div class="refund-guide-timeline-desc">
+                                The Payment Approver performs the final review:
+                                <ul class="mt-2 mb-0">
+                                    <li><strong>Approve</strong> — records Payment Reference and completes the request</li>
+                                    <li><strong>Reject</strong> — request is cancelled</li>
+                                    <li><strong>Revert</strong> — returns to Claims Unit for re-processing</li>
+                                </ul>
+                            </div>
+                        </div>
+                    </div>
+
+                    <div class="refund-guide-timeline-item">
+                        <div class="refund-guide-timeline-marker refund-guide-marker-green">
+                            <i class="bi bi-check-lg"></i>
+                        </div>
+                        <div class="refund-guide-timeline-content">
+                            <div class="refund-guide-timeline-title">7. Completed</div>
+                            <div class="refund-guide-timeline-desc">The refund has been fully processed and approved. The staff member can view the payment reference and completion details in their request history.</div>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="refund-guide-callout refund-guide-callout-info mt-4">
+                    <i class="bi bi-arrow-repeat"></i>
+                    <div>
+                        <strong>Reverts &amp; Rejections:</strong> At any pending stage, the approver can <strong>reject</strong> the request (cancels it) or <strong>revert</strong> it back to the requestor (returns to Draft status for corrections). The Claims Unit can also revert directly to the Budget Officer.
+                    </div>
+                </div>
+            </div>
+        </section>
+
+        <!-- 3. Creating a Request -->
+        <section id="creating-request" class="refund-guide-section">
+            <h2 class="refund-guide-section-title">
+                <i class="bi bi-plus-circle"></i> Creating a Request
+            </h2>
+            <div class="refund-guide-card">
+                <p class="mb-4">To create a new refund request, navigate to <strong>Refund Requests</strong> in the sidebar and click <strong>"New Request"</strong>.</p>
+
+                <h5 class="mt-2 mb-3" style="color: #004987; font-weight: 600;">Auto-Populated Fields</h5>
+                <p class="text-muted mb-4" style="font-size: 0.875rem;">The following fields are automatically filled based on your profile and mobile service assignment: <strong>Name</strong>, <strong>Index No</strong>, <strong>Office</strong>, <strong>Organization</strong>, <strong>Mobile Number</strong>, <strong>Mobile Service</strong>, <strong>Class of Service</strong>, and <strong>Device Allowance</strong>. Verify these are correct before proceeding.</p>
+
+                <h5 class="mt-2 mb-3" style="color: #004987; font-weight: 600;">Required Fields</h5>
+                <div class="refund-guide-steps">
+                    <div class="refund-guide-step">
+                        <div class="refund-guide-step-number">1</div>
+                        <div class="refund-guide-step-content">
+                            <strong>Verify Mobile Information</strong>
+                            <p class="mb-0 text-muted">Confirm your primary mobile number, index number, office, mobile service, and class of service. Update your office extension if applicable.</p>
+                        </div>
+                    </div>
+
+                    <div class="refund-guide-step">
+                        <div class="refund-guide-step-number">2</div>
+                        <div class="refund-guide-step-content">
+                            <strong>Enter Device Purchase Details</strong>
+                            <p class="mb-0 text-muted">Enter the device purchase amount and select the currency. The amount will be compared against your device allowance.</p>
+                        </div>
+                    </div>
+
+                    <div class="refund-guide-step">
+                        <div class="refund-guide-step-number">3</div>
+                        <div class="refund-guide-step-content">
+                            <strong>Upload Purchase Receipt</strong>
+                            <p class="mb-0 text-muted">Upload your device purchase receipt. Accepted formats: <strong>PDF, JPEG, PNG</strong> — maximum file size <strong>10 MB</strong>. The receipt must clearly show the purchase amount, date, and vendor.</p>
+                        </div>
+                    </div>
+
+                    <div class="refund-guide-step">
+                        <div class="refund-guide-step-number">4</div>
+                        <div class="refund-guide-step-content">
+                            <strong>Select Banking Information</strong>
+                            <p class="mb-0 text-muted">Choose your Umoja bank name from the dropdown. This determines which bank account receives the refund payment.</p>
+                        </div>
+                    </div>
+
+                    <div class="refund-guide-step">
+                        <div class="refund-guide-step-number">5</div>
+                        <div class="refund-guide-step-content">
+                            <strong>Confirm Supervisor</strong>
+                            <p class="mb-0 text-muted">Verify or select the supervisor who will review your request. The supervisor's email is used for notification.</p>
+                        </div>
+                    </div>
+                </div>
+
+                <h5 class="mt-4 mb-3" style="color: #004987; font-weight: 600;">Save as Draft vs. Submit</h5>
+                <div class="row g-3">
+                    <div class="col-md-6">
+                        <div class="refund-guide-info-box">
+                            <div class="refund-guide-info-box-header">
+                                <i class="bi bi-floppy" style="color: #009edb;"></i>
+                                <strong>Save as Draft</strong>
+                            </div>
+                            <p class="mb-0 text-muted" style="font-size: 0.875rem;">Saves your progress without submitting. You can return to edit the request at any time. Not all required fields need to be completed.</p>
+                        </div>
+                    </div>
+                    <div class="col-md-6">
+                        <div class="refund-guide-info-box">
+                            <div class="refund-guide-info-box-header">
+                                <i class="bi bi-send" style="color: #72BF44;"></i>
+                                <strong>Submit to Supervisor</strong>
+                            </div>
+                            <p class="mb-0 text-muted" style="font-size: 0.875rem;">Sends the request for approval. All required fields must be completed and a receipt must be uploaded. The request is locked for editing once submitted.</p>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </section>
+
+        <!-- 4. Tracking Your Requests -->
+        <section id="tracking" class="refund-guide-section">
+            <h2 class="refund-guide-section-title">
+                <i class="bi bi-search"></i> Tracking Your Requests
+            </h2>
+            <div class="refund-guide-card">
+                <p class="mb-4">You can track the status of all your refund requests from the request list page.</p>
+
+                <div class="refund-guide-steps">
+                    <div class="refund-guide-step">
+                        <div class="refund-guide-step-number">1</div>
+                        <div class="refund-guide-step-content">
+                            <strong>Navigate to Request List</strong>
+                            <p class="mb-0 text-muted">Click <strong>"Refund Requests"</strong> in the sidebar to view all your submitted and draft requests.</p>
+                        </div>
+                    </div>
+
+                    <div class="refund-guide-step">
+                        <div class="refund-guide-step-number">2</div>
+                        <div class="refund-guide-step-content">
+                            <strong>Filter &amp; Search</strong>
+                            <p class="mb-0 text-muted">Use the filters to narrow results by status (Draft, Pending, Completed, Cancelled), date range, or search by keyword (e.g., mobile number, index number).</p>
+                        </div>
+                    </div>
+
+                    <div class="refund-guide-step">
+                        <div class="refund-guide-step-number">3</div>
+                        <div class="refund-guide-step-content">
+                            <strong>View Request Details</strong>
+                            <p class="mb-0 text-muted">Click on any request to see the full details, including all approval information, cost accounting fields, and payment details.</p>
+                        </div>
+                    </div>
+
+                    <div class="refund-guide-step">
+                        <div class="refund-guide-step-number">4</div>
+                        <div class="refund-guide-step-content">
+                            <strong>View Request History</strong>
+                            <p class="mb-0 text-muted">Each request has a full audit trail showing every action taken — who performed it, when, and any comments. This helps you track exactly where your request is in the approval chain.</p>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </section>
+
+        <!-- 5. Approval Stages -->
+        <section id="approval-stages" class="refund-guide-section">
+            <h2 class="refund-guide-section-title">
+                <i class="bi bi-list-check"></i> Approval Stages
+            </h2>
+            <div class="refund-guide-card">
+                <p class="mb-4">Each refund request passes through four approval stages after submission. Here is what happens at each stage:</p>
+
+                <!-- Supervisor Stage -->
+                <div class="refund-guide-stage-block">
+                    <div class="refund-guide-stage-header" style="border-left: 4px solid #F58220;">
+                        <div class="refund-guide-stage-icon" style="background: #FFEAD5; color: #F58220;">
+                            <i class="bi bi-person-check"></i>
+                        </div>
+                        <div>
+                            <h5 class="mb-0" style="color: #1a202c; font-weight: 600;">Stage 1: Supervisor Review</h5>
+                            <small class="text-muted">Status: Pending Supervisor Approval</small>
+                        </div>
+                    </div>
+                    <div class="refund-guide-stage-body">
+                        <p>The supervisor verifies the request details and confirms the staff member's eligibility for a device refund.</p>
+                        <div class="row g-3">
+                            <div class="col-md-6">
+                                <strong class="d-block mb-1" style="font-size: 0.8125rem; color: #004987;">Actions Available</strong>
+                                <ul class="mb-0" style="font-size: 0.875rem; color: #4a5568;">
+                                    <li><strong>Approve</strong> — selects the Budget Officer for the next stage</li>
+                                    <li><strong>Reject</strong> — cancels the request with a reason</li>
+                                    <li><strong>Revert</strong> — returns to requestor for corrections</li>
+                                </ul>
+                            </div>
+                            <div class="col-md-6">
+                                <strong class="d-block mb-1" style="font-size: 0.8125rem; color: #004987;">Required Fields</strong>
+                                <ul class="mb-0" style="font-size: 0.875rem; color: #4a5568;">
+                                    <li>Budget Officer selection (name/email)</li>
+                                    <li>Remarks (optional)</li>
+                                </ul>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Budget Officer Stage -->
+                <div class="refund-guide-stage-block">
+                    <div class="refund-guide-stage-header" style="border-left: 4px solid #A05FB4;">
+                        <div class="refund-guide-stage-icon" style="background: #E4D7E8; color: #A05FB4;">
+                            <i class="bi bi-piggy-bank"></i>
+                        </div>
+                        <div>
+                            <h5 class="mb-0" style="color: #1a202c; font-weight: 600;">Stage 2: Budget Officer Review</h5>
+                            <small class="text-muted">Status: Pending Budget Officer</small>
+                        </div>
+                    </div>
+                    <div class="refund-guide-stage-body">
+                        <p>The Budget Officer verifies budget availability and provides the cost accounting details required for payment processing.</p>
+                        <div class="row g-3">
+                            <div class="col-md-6">
+                                <strong class="d-block mb-1" style="font-size: 0.8125rem; color: #004987;">Actions Available</strong>
+                                <ul class="mb-0" style="font-size: 0.875rem; color: #4a5568;">
+                                    <li><strong>Approve</strong> — provides cost accounting fields</li>
+                                    <li><strong>Reject</strong> — cancels (e.g., no budget available)</li>
+                                    <li><strong>Revert</strong> — returns to requestor for corrections</li>
+                                </ul>
+                            </div>
+                            <div class="col-md-6">
+                                <strong class="d-block mb-1" style="font-size: 0.8125rem; color: #004987;">Required Fields</strong>
+                                <ul class="mb-0" style="font-size: 0.875rem; color: #4a5568;">
+                                    <li>Cost Object</li>
+                                    <li>Cost Center</li>
+                                    <li>Fund Commitment</li>
+                                    <li>Remarks (optional)</li>
+                                </ul>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Claims Unit Stage -->
+                <div class="refund-guide-stage-block">
+                    <div class="refund-guide-stage-header" style="border-left: 4px solid #0097A7;">
+                        <div class="refund-guide-stage-icon" style="background: #E0F2F1; color: #0097A7;">
+                            <i class="bi bi-clipboard-check"></i>
+                        </div>
+                        <div>
+                            <h5 class="mb-0" style="color: #1a202c; font-weight: 600;">Stage 3: Staff Claims Unit Processing</h5>
+                            <small class="text-muted">Status: Pending Staff Claims Unit</small>
+                        </div>
+                    </div>
+                    <div class="refund-guide-stage-body">
+                        <p>The Staff Claims Unit processes the refund payment in the Umoja system and records the transaction details.</p>
+                        <div class="row g-3">
+                            <div class="col-md-6">
+                                <strong class="d-block mb-1" style="font-size: 0.8125rem; color: #004987;">Actions Available</strong>
+                                <ul class="mb-0" style="font-size: 0.875rem; color: #4a5568;">
+                                    <li><strong>Process</strong> — records Umoja payment details</li>
+                                    <li><strong>Reject</strong> — cancels (e.g., documentation issues)</li>
+                                    <li><strong>Revert to Requestor</strong> — returns to staff member</li>
+                                    <li><strong>Revert to Budget Officer</strong> — returns for budget corrections</li>
+                                </ul>
+                            </div>
+                            <div class="col-md-6">
+                                <strong class="d-block mb-1" style="font-size: 0.8125rem; color: #004987;">Required Fields</strong>
+                                <ul class="mb-0" style="font-size: 0.875rem; color: #4a5568;">
+                                    <li>Umoja Payment Document ID</li>
+                                    <li>Refund USD Amount</li>
+                                    <li>Claims Action Date</li>
+                                    <li>Remarks (optional)</li>
+                                </ul>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Payment Approver Stage -->
+                <div class="refund-guide-stage-block">
+                    <div class="refund-guide-stage-header" style="border-left: 4px solid #72BF44;">
+                        <div class="refund-guide-stage-icon" style="background: #E6EFD0; color: #4a8c1c;">
+                            <i class="bi bi-cash-stack"></i>
+                        </div>
+                        <div>
+                            <h5 class="mb-0" style="color: #1a202c; font-weight: 600;">Stage 4: Payment Approver Review</h5>
+                            <small class="text-muted">Status: Pending Payment Approval</small>
+                        </div>
+                    </div>
+                    <div class="refund-guide-stage-body">
+                        <p>The Payment Approver performs the final review of all details and confirms the payment.</p>
+                        <div class="row g-3">
+                            <div class="col-md-6">
+                                <strong class="d-block mb-1" style="font-size: 0.8125rem; color: #004987;">Actions Available</strong>
+                                <ul class="mb-0" style="font-size: 0.875rem; color: #4a5568;">
+                                    <li><strong>Approve</strong> — completes the refund process</li>
+                                    <li><strong>Reject</strong> — cancels the request</li>
+                                    <li><strong>Revert</strong> — returns to Claims Unit for re-processing</li>
+                                </ul>
+                            </div>
+                            <div class="col-md-6">
+                                <strong class="d-block mb-1" style="font-size: 0.8125rem; color: #004987;">Required Fields</strong>
+                                <ul class="mb-0" style="font-size: 0.875rem; color: #4a5568;">
+                                    <li>Payment Reference</li>
+                                    <li>Remarks (optional)</li>
+                                </ul>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </section>
+
+        <!-- 6. Role Responsibilities -->
+        <section id="roles" class="refund-guide-section">
+            <h2 class="refund-guide-section-title">
+                <i class="bi bi-people"></i> Role Responsibilities
+            </h2>
+            <div class="refund-guide-roles-grid">
+                <!-- Staff Member -->
+                <div class="refund-guide-role-card">
+                    <div class="refund-guide-role-icon" style="background: #E3EDF6; color: #009edb;">
+                        <i class="bi bi-person"></i>
+                    </div>
+                    <h5 class="refund-guide-role-title">Staff Member</h5>
+                    <ul class="refund-guide-role-list">
+                        <li>Creates and submits refund requests</li>
+                        <li>Uploads purchase receipt documentation</li>
+                        <li>Provides mobile and banking information</li>
+                        <li>Tracks request status through approval chain</li>
+                        <li>Responds to reverted requests with corrections</li>
+                    </ul>
+                </div>
+
+                <!-- Supervisor -->
+                <div class="refund-guide-role-card">
+                    <div class="refund-guide-role-icon" style="background: #FFEAD5; color: #F58220;">
+                        <i class="bi bi-person-check"></i>
+                    </div>
+                    <h5 class="refund-guide-role-title">Supervisor</h5>
+                    <ul class="refund-guide-role-list">
+                        <li>Reviews staff refund request submissions</li>
+                        <li>Verifies eligibility and request accuracy</li>
+                        <li>Selects the Budget Officer for the request</li>
+                        <li>Approves, rejects, or reverts requests</li>
+                        <li>Provides remarks explaining decisions</li>
+                    </ul>
+                </div>
+
+                <!-- Budget Officer -->
+                <div class="refund-guide-role-card">
+                    <div class="refund-guide-role-icon" style="background: #E4D7E8; color: #A05FB4;">
+                        <i class="bi bi-piggy-bank"></i>
+                    </div>
+                    <h5 class="refund-guide-role-title">Budget Officer</h5>
+                    <ul class="refund-guide-role-list">
+                        <li>Verifies budget availability for the refund</li>
+                        <li>Provides Cost Object, Cost Center, and Fund Commitment</li>
+                        <li>Approves, rejects, or reverts requests</li>
+                        <li>May be reassigned by Claims Unit if needed</li>
+                    </ul>
+                </div>
+
+                <!-- Staff Claims Unit -->
+                <div class="refund-guide-role-card">
+                    <div class="refund-guide-role-icon" style="background: #E0F2F1; color: #0097A7;">
+                        <i class="bi bi-clipboard-check"></i>
+                    </div>
+                    <h5 class="refund-guide-role-title">Staff Claims Unit</h5>
+                    <ul class="refund-guide-role-list">
+                        <li>Processes the refund payment in Umoja</li>
+                        <li>Records Umoja Payment Document ID</li>
+                        <li>Records refund USD amount and action date</li>
+                        <li>Can revert to Budget Officer or requestor</li>
+                        <li>Rejects requests with documentation issues</li>
+                    </ul>
+                </div>
+
+                <!-- Payment Approver -->
+                <div class="refund-guide-role-card">
+                    <div class="refund-guide-role-icon" style="background: #E6EFD0; color: #4a8c1c;">
+                        <i class="bi bi-cash-stack"></i>
+                    </div>
+                    <h5 class="refund-guide-role-title">Payment Approver</h5>
+                    <ul class="refund-guide-role-list">
+                        <li>Performs final review of the complete request</li>
+                        <li>Verifies all approval stages and payment details</li>
+                        <li>Records Payment Reference on approval</li>
+                        <li>Completes the refund process</li>
+                        <li>Can revert to Claims Unit for corrections</li>
+                    </ul>
+                </div>
+            </div>
+        </section>
+
+        <!-- 7. Status Explanations -->
+        <section id="statuses" class="refund-guide-section">
+            <h2 class="refund-guide-section-title">
+                <i class="bi bi-tags"></i> Status Explanations
+            </h2>
+            <div class="refund-guide-card">
+                <p class="text-muted mb-3" style="font-size: 0.875rem;">A refund request moves through these statuses during its lifecycle:</p>
+                <div class="table-responsive">
+                    <table class="table refund-guide-status-table">
+                        <thead>
+                            <tr>
+                                <th>Status</th>
+                                <th>Description</th>
+                                <th>Next Step</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            <tr>
+                                <td><span class="refund-guide-status-badge badge-refund-draft">Draft</span></td>
+                                <td>Request created but not yet submitted. Can be freely edited or deleted.</td>
+                                <td>Staff submits to supervisor</td>
+                            </tr>
+                            <tr>
+                                <td><span class="refund-guide-status-badge badge-refund-pending-supervisor">Pending Supervisor</span></td>
+                                <td>Submitted and awaiting supervisor review and approval.</td>
+                                <td>Supervisor reviews</td>
+                            </tr>
+                            <tr>
+                                <td><span class="refund-guide-status-badge badge-refund-pending-budget">Pending Budget Officer</span></td>
+                                <td>Supervisor approved. Awaiting Budget Officer to verify budget and provide cost accounting details.</td>
+                                <td>Budget Officer reviews</td>
+                            </tr>
+                            <tr>
+                                <td><span class="refund-guide-status-badge badge-refund-pending-claims">Pending Staff Claims Unit</span></td>
+                                <td>Budget approved. Awaiting Claims Unit to process payment in Umoja.</td>
+                                <td>Claims Unit processes</td>
+                            </tr>
+                            <tr>
+                                <td><span class="refund-guide-status-badge badge-refund-pending-payment">Pending Payment Approval</span></td>
+                                <td>Claims processed. Awaiting final Payment Approver review and confirmation.</td>
+                                <td>Payment Approver reviews</td>
+                            </tr>
+                            <tr>
+                                <td><span class="refund-guide-status-badge badge-refund-completed">Completed</span></td>
+                                <td>All approvals received and payment processed. Refund is complete.</td>
+                                <td>No action needed</td>
+                            </tr>
+                            <tr>
+                                <td><span class="refund-guide-status-badge badge-refund-cancelled">Cancelled</span></td>
+                                <td>Request was rejected at any stage or cancelled by the requestor. Includes reason for cancellation.</td>
+                                <td>Review feedback; submit new request if needed</td>
+                            </tr>
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+        </section>
+
+        <!-- 8. Required Documents & Fields -->
+        <section id="documents" class="refund-guide-section">
+            <h2 class="refund-guide-section-title">
+                <i class="bi bi-file-earmark-check"></i> Required Documents &amp; Fields
+            </h2>
+            <div class="refund-guide-card">
+                <h5 class="mb-3" style="color: #004987; font-weight: 600;">Purchase Receipt Upload</h5>
+                <div class="refund-guide-info-box mb-4">
+                    <div class="row g-3">
+                        <div class="col-md-4">
+                            <strong class="d-block mb-1" style="font-size: 0.8125rem; color: #004987;">Accepted Formats</strong>
+                            <ul class="mb-0" style="font-size: 0.875rem; color: #4a5568; padding-left: 1.25rem;">
+                                <li>PDF (.pdf)</li>
+                                <li>JPEG (.jpg, .jpeg)</li>
+                                <li>PNG (.png)</li>
+                            </ul>
+                        </div>
+                        <div class="col-md-4">
+                            <strong class="d-block mb-1" style="font-size: 0.8125rem; color: #004987;">Maximum File Size</strong>
+                            <p class="mb-0" style="font-size: 0.875rem; color: #4a5568;">10 MB per file</p>
+                        </div>
+                        <div class="col-md-4">
+                            <strong class="d-block mb-1" style="font-size: 0.8125rem; color: #004987;">Must Show</strong>
+                            <ul class="mb-0" style="font-size: 0.875rem; color: #4a5568; padding-left: 1.25rem;">
+                                <li>Purchase amount</li>
+                                <li>Purchase date</li>
+                                <li>Vendor name</li>
+                            </ul>
+                        </div>
+                    </div>
+                </div>
+
+                <h5 class="mb-3" style="color: #004987; font-weight: 600;">Fields Required at Each Stage</h5>
+                <div class="table-responsive">
+                    <table class="table refund-guide-status-table">
+                        <thead>
+                            <tr>
+                                <th>Stage</th>
+                                <th>Required Fields</th>
+                                <th>Provided By</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            <tr>
+                                <td><strong>Create / Submit</strong></td>
+                                <td>Mobile number, Index No, Office, Mobile Service, Class of Service, Device Allowance, Device Purchase Amount &amp; Currency, Supervisor, Umoja Bank Name, Purchase Receipt</td>
+                                <td>Staff Member</td>
+                            </tr>
+                            <tr>
+                                <td><strong>Supervisor Approve</strong></td>
+                                <td>Budget Officer selection (name &amp; email), Remarks (optional)</td>
+                                <td>Supervisor</td>
+                            </tr>
+                            <tr>
+                                <td><strong>Budget Officer Approve</strong></td>
+                                <td>Cost Object, Cost Center, Fund Commitment, Remarks (optional)</td>
+                                <td>Budget Officer</td>
+                            </tr>
+                            <tr>
+                                <td><strong>Claims Unit Process</strong></td>
+                                <td>Umoja Payment Document ID, Refund USD Amount, Claims Action Date, Remarks (optional)</td>
+                                <td>Staff Claims Unit</td>
+                            </tr>
+                            <tr>
+                                <td><strong>Payment Approve</strong></td>
+                                <td>Payment Reference, Remarks (optional)</td>
+                                <td>Payment Approver</td>
+                            </tr>
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+        </section>
+
+        <!-- 9. FAQ -->
+        <section id="faq" class="refund-guide-section">
+            <h2 class="refund-guide-section-title">
+                <i class="bi bi-question-circle"></i> Frequently Asked Questions
+            </h2>
+            <div class="refund-guide-card">
+                <div class="accordion" id="refundFaqAccordion">
+                    <div class="accordion-item refund-guide-accordion-item">
+                        <h2 class="accordion-header">
+                            <button class="accordion-button collapsed refund-guide-accordion-btn" type="button" data-bs-toggle="collapse" data-bs-target="#refundFaq1">
+                                How long does the entire refund process take?
+                            </button>
+                        </h2>
+                        <div id="refundFaq1" class="accordion-collapse collapse" data-bs-parent="#refundFaqAccordion">
+                            <div class="accordion-body">
+                                The timeline depends on how quickly each approver acts. Typically, the process takes <strong>1–3 weeks</strong> from submission to completion. You can track the progress in real time from your request list. Each approver receives email notifications when a request reaches their queue.
+                            </div>
+                        </div>
+                    </div>
+
+                    <div class="accordion-item refund-guide-accordion-item">
+                        <h2 class="accordion-header">
+                            <button class="accordion-button collapsed refund-guide-accordion-btn" type="button" data-bs-toggle="collapse" data-bs-target="#refundFaq2">
+                                Can I edit my request after submitting it?
+                            </button>
+                        </h2>
+                        <div id="refundFaq2" class="accordion-collapse collapse" data-bs-parent="#refundFaqAccordion">
+                            <div class="accordion-body">
+                                No. Once submitted, the request is locked for editing. If you need to make changes, ask your supervisor to <strong>revert</strong> the request back to you. This returns it to Draft status, allowing you to make corrections and resubmit.
+                            </div>
+                        </div>
+                    </div>
+
+                    <div class="accordion-item refund-guide-accordion-item">
+                        <h2 class="accordion-header">
+                            <button class="accordion-button collapsed refund-guide-accordion-btn" type="button" data-bs-toggle="collapse" data-bs-target="#refundFaq3">
+                                What happens if my request is rejected?
+                            </button>
+                        </h2>
+                        <div id="refundFaq3" class="accordion-collapse collapse" data-bs-parent="#refundFaqAccordion">
+                            <div class="accordion-body">
+                                If rejected at any stage, the request is <strong>cancelled</strong> and a reason is recorded. You can view the rejection reason in the request details and history. To proceed, you will need to create a <strong>new request</strong> addressing the issues that led to rejection.
+                            </div>
+                        </div>
+                    </div>
+
+                    <div class="accordion-item refund-guide-accordion-item">
+                        <h2 class="accordion-header">
+                            <button class="accordion-button collapsed refund-guide-accordion-btn" type="button" data-bs-toggle="collapse" data-bs-target="#refundFaq4">
+                                What is the difference between "Reject" and "Revert"?
+                            </button>
+                        </h2>
+                        <div id="refundFaq4" class="accordion-collapse collapse" data-bs-parent="#refundFaqAccordion">
+                            <div class="accordion-body">
+                                <strong>Reject</strong> permanently cancels the request — you must submit a new one. <strong>Revert</strong> returns the request to the previous stage (usually back to Draft for the requestor) so that corrections can be made and the same request resubmitted. Revert is used when the information can be fixed, while rejection indicates a fundamental issue.
+                            </div>
+                        </div>
+                    </div>
+
+                    <div class="accordion-item refund-guide-accordion-item">
+                        <h2 class="accordion-header">
+                            <button class="accordion-button collapsed refund-guide-accordion-btn" type="button" data-bs-toggle="collapse" data-bs-target="#refundFaq5">
+                                Can I get a refund for more than my device allowance?
+                            </button>
+                        </h2>
+                        <div id="refundFaq5" class="accordion-collapse collapse" data-bs-parent="#refundFaqAccordion">
+                            <div class="accordion-body">
+                                The refund amount is typically capped at your device allowance. If your device purchase exceeds the allowance, the refund will be limited to the allowance amount. The exact refund amount is determined by the Staff Claims Unit during processing and may be converted to USD.
+                            </div>
+                        </div>
+                    </div>
+
+                    <div class="accordion-item refund-guide-accordion-item">
+                        <h2 class="accordion-header">
+                            <button class="accordion-button collapsed refund-guide-accordion-btn" type="button" data-bs-toggle="collapse" data-bs-target="#refundFaq6">
+                                How often can I submit a device refund request?
+                            </button>
+                        </h2>
+                        <div id="refundFaq6" class="accordion-collapse collapse" data-bs-parent="#refundFaqAccordion">
+                            <div class="accordion-body">
+                                Device refund eligibility is based on your previous device reimbursement date. The system tracks when your last device was reimbursed. Check the <strong>"Previous Device Reimbursed Date"</strong> field in your request to see your last reimbursement. Contact your supervisor or HR for questions about eligibility timing.
+                            </div>
+                        </div>
+                    </div>
+
+                    <div class="accordion-item refund-guide-accordion-item">
+                        <h2 class="accordion-header">
+                            <button class="accordion-button collapsed refund-guide-accordion-btn" type="button" data-bs-toggle="collapse" data-bs-target="#refundFaq7">
+                                What is the Umoja Payment Document ID?
+                            </button>
+                        </h2>
+                        <div id="refundFaq7" class="accordion-collapse collapse" data-bs-parent="#refundFaqAccordion">
+                            <div class="accordion-body">
+                                The Umoja Payment Document ID is a unique identifier assigned by the UN's Umoja ERP system when the refund payment is processed. It is entered by the Staff Claims Unit during their processing stage and serves as proof that the payment has been initiated in the financial system.
+                            </div>
+                        </div>
+                    </div>
+
+                    <div class="accordion-item refund-guide-accordion-item">
+                        <h2 class="accordion-header">
+                            <button class="accordion-button collapsed refund-guide-accordion-btn" type="button" data-bs-toggle="collapse" data-bs-target="#refundFaq8">
+                                Who should I contact for help with my refund request?
+                            </button>
+                        </h2>
+                        <div id="refundFaq8" class="accordion-collapse collapse" data-bs-parent="#refundFaqAccordion">
+                            <div class="accordion-body">
+                                <ul class="mb-0">
+                                    <li><strong>Request corrections or reverts:</strong> Contact your supervisor</li>
+                                    <li><strong>Budget or cost accounting questions:</strong> Contact the Budget Officer assigned to your request</li>
+                                    <li><strong>Payment processing status:</strong> Contact the Staff Claims Unit</li>
+                                    <li><strong>Eligibility or allowance questions:</strong> Contact your supervisor or HR</li>
+                                    <li><strong>System errors or technical issues:</strong> Contact the system administrator</li>
+                                </ul>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </section>
+
+        <!-- 10. Troubleshooting -->
+        <section id="troubleshooting" class="refund-guide-section">
+            <h2 class="refund-guide-section-title">
+                <i class="bi bi-wrench"></i> Troubleshooting
+            </h2>
+            <div class="refund-guide-card">
+                <div class="refund-guide-trouble-list">
+                    <div class="refund-guide-trouble-item">
+                        <div class="refund-guide-trouble-problem">
+                            <i class="bi bi-exclamation-triangle" style="color: #F58220;"></i>
+                            <strong>The "Submit" button is disabled</strong>
+                        </div>
+                        <div class="refund-guide-trouble-solution">
+                            All required fields must be completed before you can submit. Check that you have filled in your mobile information, device purchase amount, currency, supervisor, Umoja bank name, and uploaded a purchase receipt. Look for validation error messages highlighted in red below each field.
+                        </div>
+                    </div>
+
+                    <div class="refund-guide-trouble-item">
+                        <div class="refund-guide-trouble-problem">
+                            <i class="bi bi-exclamation-triangle" style="color: #F58220;"></i>
+                            <strong>Receipt upload fails or is rejected</strong>
+                        </div>
+                        <div class="refund-guide-trouble-solution">
+                            Ensure your file is in an accepted format (PDF, JPEG, or PNG) and does not exceed 10 MB. If the file is too large, try compressing the image or scanning at a lower resolution. The receipt must be legible and clearly show the purchase amount, date, and vendor name.
+                        </div>
+                    </div>
+
+                    <div class="refund-guide-trouble-item">
+                        <div class="refund-guide-trouble-problem">
+                            <i class="bi bi-exclamation-triangle" style="color: #F58220;"></i>
+                            <strong>Request was reverted — what do I do?</strong>
+                        </div>
+                        <div class="refund-guide-trouble-solution">
+                            When your request is reverted, it returns to Draft status. Check the request history and the approver's comments to understand what needs to be corrected. Make the necessary changes and resubmit. You do not need to create a new request.
+                        </div>
+                    </div>
+
+                    <div class="refund-guide-trouble-item">
+                        <div class="refund-guide-trouble-problem">
+                            <i class="bi bi-exclamation-triangle" style="color: #F58220;"></i>
+                            <strong>Device allowance shows as $0 or incorrect amount</strong>
+                        </div>
+                        <div class="refund-guide-trouble-solution">
+                            The device allowance is determined by your class of service and mobile service assignment. If the amount appears incorrect, contact your supervisor or the ICTS administrator to verify your mobile service configuration and class of service settings.
+                        </div>
+                    </div>
+
+                    <div class="refund-guide-trouble-item">
+                        <div class="refund-guide-trouble-problem">
+                            <i class="bi bi-exclamation-triangle" style="color: #F58220;"></i>
+                            <strong>Request is stuck at a pending stage for a long time</strong>
+                        </div>
+                        <div class="refund-guide-trouble-solution">
+                            Check the request history to see who the current approver is. Contact them directly to ask about the status. Approvers receive email notifications but may have missed them. Your supervisor can also follow up with downstream approvers on your behalf.
+                        </div>
+                    </div>
+
+                    <div class="refund-guide-trouble-item">
+                        <div class="refund-guide-trouble-problem">
+                            <i class="bi bi-exclamation-triangle" style="color: #F58220;"></i>
+                            <strong>Cannot find my request in the list</strong>
+                        </div>
+                        <div class="refund-guide-trouble-solution">
+                            Make sure you are not filtering by a specific status that excludes your request. Clear all filters and use the search box to find it by mobile number or index number. If the request was cancelled or rejected, check the "Cancelled" status filter.
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </section>
+
+    </div>
+</div>
+
+@section Scripts {
+<script>
+    // Scroll-spy: highlight active TOC link based on visible section
+    document.addEventListener('DOMContentLoaded', function () {
+        var tocLinks = document.querySelectorAll('.refund-guide-toc-link');
+        var sections = document.querySelectorAll('.refund-guide-section');
+
+        if (!sections.length || !tocLinks.length) return;
+
+        var observer = new IntersectionObserver(function (entries) {
+            entries.forEach(function (entry) {
+                if (entry.isIntersecting) {
+                    var id = entry.target.getAttribute('id');
+                    tocLinks.forEach(function (link) {
+                        link.classList.toggle('active', link.getAttribute('data-section') === id);
+                    });
+                }
+            });
+        }, {
+            rootMargin: '-80px 0px -60% 0px',
+            threshold: 0
+        });
+
+        sections.forEach(function (section) {
+            observer.observe(section);
+        });
+
+        // Smooth scroll for TOC links
+        tocLinks.forEach(function (link) {
+            link.addEventListener('click', function (e) {
+                e.preventDefault();
+                var targetId = this.getAttribute('data-section');
+                var target = document.getElementById(targetId);
+                if (target) {
+                    target.scrollIntoView({ behavior: 'smooth', block: 'start' });
+                }
+            });
+        });
+    });
+</script>
+}
+
+<style>
+/* Back Link */
+.refund-guide-back-link {
+    display: inline-flex;
+    align-items: center;
+    gap: 0.5rem;
+    color: #009edb;
+    text-decoration: none;
+    font-size: 0.875rem;
+    font-weight: 500;
+    transition: color 0.2s;
+}
+
+.refund-guide-back-link:hover {
+    color: #0077b5;
+    text-decoration: none;
+}
+
+/* Hero */
+.refund-guide-hero {
+    background: linear-gradient(135deg, #009edb 0%, #0077b5 100%);
+    border-radius: 10px;
+    padding: 1.25rem 1.5rem;
+    margin-bottom: 2rem;
+    box-shadow: 0 2px 6px rgba(0, 102, 204, 0.12);
+}
+
+.refund-guide-hero-content {
+    display: flex;
+    align-items: center;
+    gap: 1.25rem;
+}
+
+.refund-guide-hero-icon {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    width: 45px;
+    height: 45px;
+    background: rgba(255, 255, 255, 0.25);
+    border-radius: 10px;
+    backdrop-filter: blur(10px);
+    flex-shrink: 0;
+}
+
+.refund-guide-hero-icon i {
+    font-size: 1.25rem;
+    color: white;
+}
+
+.refund-guide-hero-text {
+    text-align: left;
+}
+
+.refund-guide-hero-title {
+    font-size: 1.25rem;
+    font-weight: 600;
+    color: white;
+    margin-bottom: 0.25rem;
+    letter-spacing: -0.01em;
+}
+
+.refund-guide-hero-subtitle {
+    font-size: 0.875rem;
+    color: rgba(255, 255, 255, 0.95);
+    margin: 0;
+    line-height: 1.3;
+}
+
+/* Two-Column Layout */
+.refund-guide-layout {
+    display: flex;
+    gap: 2rem;
+    align-items: flex-start;
+}
+
+/* Table of Contents */
+.refund-guide-toc {
+    position: sticky;
+    top: 80px;
+    width: 250px;
+    min-width: 250px;
+    background: white;
+    border-radius: 12px;
+    padding: 1.25rem;
+    box-shadow: 0 1px 3px rgba(0, 0, 0, 0.1);
+    border: 1px solid rgba(0, 0, 0, 0.05);
+}
+
+.refund-guide-toc-title {
+    font-size: 0.75rem;
+    font-weight: 600;
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
+    color: #AEA29A;
+    margin-bottom: 0.75rem;
+    padding-bottom: 0.5rem;
+    border-bottom: 2px solid #E3EDF6;
+}
+
+.refund-guide-toc-link {
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+    padding: 0.5rem 0.75rem;
+    margin-bottom: 0.125rem;
+    color: #6E6259;
+    text-decoration: none;
+    font-size: 0.8125rem;
+    font-weight: 500;
+    border-radius: 6px;
+    transition: all 0.2s ease;
+    border-left: 3px solid transparent;
+}
+
+.refund-guide-toc-link:hover {
+    background: #E3EDF6;
+    color: #009edb;
+    text-decoration: none;
+}
+
+.refund-guide-toc-link.active {
+    background: rgba(0, 158, 219, 0.08);
+    color: #009edb;
+    font-weight: 600;
+    border-left-color: #009edb;
+}
+
+.refund-guide-toc-link i {
+    font-size: 0.875rem;
+    width: 1rem;
+    text-align: center;
+    flex-shrink: 0;
+}
+
+/* Guide Content */
+.refund-guide-content {
+    flex: 1;
+    min-width: 0;
+}
+
+.refund-guide-section {
+    margin-bottom: 2.5rem;
+    scroll-margin-top: 80px;
+}
+
+.refund-guide-section-title {
+    font-size: 1.25rem;
+    font-weight: 600;
+    color: #004987;
+    margin-bottom: 1rem;
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+}
+
+.refund-guide-section-title i {
+    color: #009edb;
+    font-size: 1.1rem;
+}
+
+.refund-guide-card {
+    background: white;
+    border-radius: 12px;
+    padding: 1.5rem;
+    box-shadow: 0 1px 3px rgba(0, 0, 0, 0.1);
+    border: 1px solid rgba(0, 0, 0, 0.05);
+}
+
+/* Info Boxes */
+.refund-guide-info-box {
+    background: #f8fafc;
+    border: 1px solid #e2e8f0;
+    border-radius: 8px;
+    padding: 1rem;
+}
+
+.refund-guide-info-box-header {
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+    margin-bottom: 0.5rem;
+}
+
+/* Callout Boxes */
+.refund-guide-callout {
+    display: flex;
+    gap: 0.75rem;
+    padding: 1rem 1.25rem;
+    border-radius: 8px;
+    font-size: 0.875rem;
+    line-height: 1.5;
+}
+
+.refund-guide-callout > i {
+    font-size: 1.1rem;
+    flex-shrink: 0;
+    margin-top: 0.1rem;
+}
+
+.refund-guide-callout-warning {
+    background: #FFFBF5;
+    border: 1px solid #FFEAD5;
+    color: #8a4600;
+}
+
+.refund-guide-callout-warning > i {
+    color: #F58220;
+}
+
+.refund-guide-callout-info {
+    background: #f0f7ff;
+    border: 1px solid #d0e4f5;
+    color: #004987;
+}
+
+.refund-guide-callout-info > i {
+    color: #009edb;
+}
+
+/* Workflow Timeline */
+.refund-guide-timeline {
+    position: relative;
+    padding-left: 0;
+}
+
+.refund-guide-timeline-item {
+    display: flex;
+    gap: 1rem;
+    position: relative;
+    padding-bottom: 1.5rem;
+    padding-left: 0;
+}
+
+.refund-guide-timeline-item:not(:last-child)::after {
+    content: '';
+    position: absolute;
+    left: 17px;
+    top: 38px;
+    bottom: 0;
+    width: 2px;
+    background: #DED9D5;
+}
+
+.refund-guide-timeline-marker {
+    width: 36px;
+    height: 36px;
+    min-width: 36px;
+    border-radius: 50%;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    color: white;
+    font-size: 0.875rem;
+    z-index: 1;
+}
+
+.refund-guide-marker-blue { background: #009edb; }
+.refund-guide-marker-orange { background: #F58220; }
+.refund-guide-marker-amber { background: #F5A623; }
+.refund-guide-marker-red { background: #ED1847; }
+.refund-guide-marker-purple { background: #A05FB4; }
+.refund-guide-marker-teal { background: #0097A7; }
+.refund-guide-marker-green { background: #72BF44; }
+
+.refund-guide-timeline-content {
+    flex: 1;
+    padding-top: 0.25rem;
+}
+
+.refund-guide-timeline-title {
+    font-weight: 600;
+    color: #1a202c;
+    font-size: 0.9375rem;
+    margin-bottom: 0.25rem;
+}
+
+.refund-guide-timeline-desc {
+    color: #718096;
+    font-size: 0.875rem;
+    line-height: 1.5;
+}
+
+/* Status Badges */
+.refund-guide-status-badge {
+    display: inline-block;
+    padding: 0.15rem 0.5rem;
+    border-radius: 4px;
+    font-size: 0.75rem;
+    font-weight: 600;
+    white-space: nowrap;
+}
+
+.badge-refund-draft {
+    background: #EBEAE6;
+    color: #6E6259;
+}
+
+.badge-refund-pending-supervisor {
+    background: #FFEAD5;
+    color: #c46200;
+}
+
+.badge-refund-pending-budget {
+    background: #E4D7E8;
+    color: #7a3d8a;
+}
+
+.badge-refund-pending-claims {
+    background: #E0F2F1;
+    color: #00796B;
+}
+
+.badge-refund-pending-payment {
+    background: #FFF3CD;
+    color: #856404;
+}
+
+.badge-refund-completed {
+    background: #E6EFD0;
+    color: #4a8c1c;
+}
+
+.badge-refund-cancelled {
+    background: #F7DFDF;
+    color: #c41230;
+}
+
+/* Steps */
+.refund-guide-steps {
+    counter-reset: none;
+}
+
+.refund-guide-step {
+    display: flex;
+    gap: 1rem;
+    margin-bottom: 1.5rem;
+}
+
+.refund-guide-step:last-child {
+    margin-bottom: 0;
+}
+
+.refund-guide-step-number {
+    width: 32px;
+    height: 32px;
+    min-width: 32px;
+    background: #009edb;
+    color: white;
+    border-radius: 50%;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-weight: 600;
+    font-size: 0.875rem;
+}
+
+.refund-guide-step-content {
+    flex: 1;
+    padding-top: 0.2rem;
+    font-size: 0.9rem;
+}
+
+/* Approval Stage Blocks */
+.refund-guide-stage-block {
+    border: 1px solid #e2e8f0;
+    border-radius: 10px;
+    overflow: hidden;
+    margin-bottom: 1.25rem;
+}
+
+.refund-guide-stage-block:last-child {
+    margin-bottom: 0;
+}
+
+.refund-guide-stage-header {
+    display: flex;
+    align-items: center;
+    gap: 0.75rem;
+    padding: 1rem 1.25rem;
+    background: #f8fafc;
+    border-bottom: 1px solid #e2e8f0;
+}
+
+.refund-guide-stage-icon {
+    width: 40px;
+    height: 40px;
+    min-width: 40px;
+    border-radius: 10px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 1.1rem;
+}
+
+.refund-guide-stage-body {
+    padding: 1rem 1.25rem;
+    font-size: 0.875rem;
+    color: #4a5568;
+    line-height: 1.6;
+}
+
+/* Roles Grid */
+.refund-guide-roles-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
+    gap: 1.5rem;
+}
+
+.refund-guide-role-card {
+    background: white;
+    border-radius: 12px;
+    padding: 1.5rem;
+    box-shadow: 0 1px 3px rgba(0, 0, 0, 0.1);
+    border: 1px solid rgba(0, 0, 0, 0.05);
+    text-align: center;
+}
+
+.refund-guide-role-icon {
+    width: 50px;
+    height: 50px;
+    border-radius: 12px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 1.25rem;
+    margin: 0 auto 1rem;
+}
+
+.refund-guide-role-title {
+    font-size: 1rem;
+    font-weight: 600;
+    color: #1a202c;
+    margin-bottom: 0.75rem;
+}
+
+.refund-guide-role-list {
+    text-align: left;
+    padding-left: 1.25rem;
+    margin: 0;
+    color: #718096;
+    font-size: 0.8125rem;
+    line-height: 1.8;
+}
+
+/* Status Table */
+.refund-guide-status-table {
+    font-size: 0.875rem;
+}
+
+.refund-guide-status-table thead th {
+    background: #E3EDF6;
+    color: #004987;
+    font-weight: 600;
+    font-size: 0.8125rem;
+    text-transform: uppercase;
+    letter-spacing: 0.3px;
+    border-bottom: 2px solid #C5DFEF;
+    padding: 0.75rem 1rem;
+}
+
+.refund-guide-status-table tbody td {
+    padding: 0.75rem 1rem;
+    vertical-align: middle;
+    border-bottom: 1px solid #f1f5f9;
+    color: #4a5568;
+}
+
+.refund-guide-status-table tbody tr:hover {
+    background: #f8fafc;
+}
+
+/* FAQ Accordion */
+.refund-guide-accordion-item {
+    border: 1px solid #e2e8f0 !important;
+    border-radius: 8px !important;
+    margin-bottom: 0.5rem;
+    overflow: hidden;
+}
+
+.refund-guide-accordion-item:last-child {
+    margin-bottom: 0;
+}
+
+.refund-guide-accordion-btn {
+    font-weight: 600;
+    font-size: 0.9rem;
+    color: #1a202c;
+    padding: 1rem 1.25rem;
+    background: white;
+}
+
+.refund-guide-accordion-btn:not(.collapsed) {
+    color: #009edb;
+    background: rgba(0, 158, 219, 0.04);
+    box-shadow: none;
+}
+
+.refund-guide-accordion-btn:focus {
+    box-shadow: none;
+}
+
+/* Troubleshooting */
+.refund-guide-trouble-list {
+    display: flex;
+    flex-direction: column;
+    gap: 1rem;
+}
+
+.refund-guide-trouble-item {
+    border: 1px solid #e2e8f0;
+    border-radius: 8px;
+    overflow: hidden;
+}
+
+.refund-guide-trouble-problem {
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+    padding: 0.75rem 1rem;
+    background: #FFFBF5;
+    border-bottom: 1px solid #e2e8f0;
+    font-size: 0.9rem;
+}
+
+.refund-guide-trouble-solution {
+    padding: 0.75rem 1rem;
+    font-size: 0.875rem;
+    color: #4a5568;
+    line-height: 1.6;
+}
+
+/* Responsive */
+@@media (max-width: 768px) {
+    .refund-guide-layout {
+        flex-direction: column;
+    }
+
+    .refund-guide-toc {
+        position: static;
+        width: 100%;
+        min-width: 0;
+        display: flex;
+        flex-wrap: nowrap;
+        gap: 0.25rem;
+        overflow-x: auto;
+        padding: 0.75rem;
+        -webkit-overflow-scrolling: touch;
+    }
+
+    .refund-guide-toc-title {
+        display: none;
+    }
+
+    .refund-guide-toc-link {
+        white-space: nowrap;
+        padding: 0.4rem 0.75rem;
+        font-size: 0.75rem;
+        border-left: none;
+        border-bottom: 3px solid transparent;
+        margin-bottom: 0;
+    }
+
+    .refund-guide-toc-link.active {
+        border-left-color: transparent;
+        border-bottom-color: #009edb;
+    }
+
+    .refund-guide-roles-grid {
+        grid-template-columns: 1fr;
+    }
+
+    .refund-guide-stage-header {
+        flex-wrap: wrap;
+    }
+}
+</style>
