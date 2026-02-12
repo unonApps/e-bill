@@ -574,10 +574,13 @@ namespace TAB.Web.Data
 
                 // Indexes for performance
                 entity.HasIndex(e => e.BatchId);
+                entity.HasIndex(e => e.CallRecordId);
                 entity.HasIndex(e => e.RecoveryDate);
                 entity.HasIndex(e => e.RecoveredFrom);
                 entity.HasIndex(e => e.RecoveryType);
+                entity.HasIndex(e => e.RecoveryAction);
                 entity.HasIndex(e => new { e.RecoveryDate, e.RecoveryType });
+                entity.HasIndex(e => new { e.RecoveryDate, e.RecoveryAction });
 
                 // Relationships
                 entity.HasOne(e => e.CallRecord)

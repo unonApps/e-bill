@@ -253,32 +253,32 @@ namespace TAB.Web.Pages.Admin
             var startDate = StartDate ?? DateTime.UtcNow.AddDays(-30);
             var endDate = EndDate?.Date.AddDays(1).AddTicks(-1) ?? DateTime.UtcNow.Date.AddDays(1).AddTicks(-1);
 
-            var query = _context.RecoveryLogs
+            var recoveryQuery = _context.RecoveryLogs
                 .AsNoTracking()
-                .Include(rl => rl.CallRecord)
                 .Where(rl => rl.RecoveryDate >= startDate && rl.RecoveryDate <= endDate);
 
             if (BatchId.HasValue)
-                query = query.Where(rl => rl.BatchId == BatchId.Value);
+                recoveryQuery = recoveryQuery.Where(rl => rl.BatchId == BatchId.Value);
 
+            // Join with CallRecords for currency only (no Include) - avoids loading full entities
             // Group by IndexNumber AND Currency to keep KSH and USD separate
-            var userRecoveries = await query
-                .GroupBy(rl => new
-                {
-                    rl.RecoveredFrom,
-                    Currency = rl.CallRecord != null ? rl.CallRecord.CallCurrencyCode : "KES"
-                })
+            var userRecoveries = await recoveryQuery
+                .Join(_context.CallRecords.AsNoTracking(),
+                      rl => rl.CallRecordId,
+                      cr => cr.Id,
+                      (rl, cr) => new { rl.RecoveredFrom, rl.AmountRecovered, rl.RecoveryAction, rl.RecoveryType, Currency = cr.CallCurrencyCode ?? "KES" })
+                .GroupBy(x => new { x.RecoveredFrom, x.Currency })
                 .Select(g => new UserRecoveryDetail
                 {
                     IndexNumber = g.Key.RecoveredFrom ?? "Unknown",
                     UserPhoneId = null,
-                    TotalRecovered = g.Sum(rl => rl.AmountRecovered),
-                    PersonalRecovered = g.Where(rl => rl.RecoveryAction == "Personal").Sum(rl => rl.AmountRecovered),
-                    ClassOfServiceRecovered = g.Where(rl => rl.RecoveryAction == "ClassOfService").Sum(rl => rl.AmountRecovered),
+                    TotalRecovered = g.Sum(x => x.AmountRecovered),
+                    PersonalRecovered = g.Where(x => x.RecoveryAction == "Personal").Sum(x => x.AmountRecovered),
+                    ClassOfServiceRecovered = g.Where(x => x.RecoveryAction == "ClassOfService").Sum(x => x.AmountRecovered),
                     RecordCount = g.Count(),
-                    ExpiredVerifications = g.Count(rl => rl.RecoveryType == "StaffNonVerification"),
-                    ExpiredApprovals = g.Count(rl => rl.RecoveryType == "SupervisorNonApproval"),
-                    Currency = g.Key.Currency ?? "KES"
+                    ExpiredVerifications = g.Count(x => x.RecoveryType == "StaffNonVerification"),
+                    ExpiredApprovals = g.Count(x => x.RecoveryType == "SupervisorNonApproval"),
+                    Currency = g.Key.Currency
                 })
                 .OrderBy(u => u.IndexNumber)
                 .ThenBy(u => u.Currency)
@@ -461,38 +461,38 @@ namespace TAB.Web.Pages.Admin
             var startDate = StartDate ?? DateTime.UtcNow.AddDays(-30);
             var endDate = EndDate?.Date.AddDays(1).AddTicks(-1) ?? DateTime.UtcNow.Date.AddDays(1).AddTicks(-1);
 
-            var query = _context.RecoveryLogs
+            var recoveryQuery = _context.RecoveryLogs
                 .AsNoTracking()
-                .Include(rl => rl.CallRecord)
                 .Where(rl => rl.RecoveryDate >= startDate && rl.RecoveryDate <= endDate)
                 .Where(rl => rl.RecoveryAction == "Personal");
 
             if (BatchId.HasValue)
-                query = query.Where(rl => rl.BatchId == BatchId.Value);
+                recoveryQuery = recoveryQuery.Where(rl => rl.BatchId == BatchId.Value);
 
             if (FilterMonth.HasValue && FilterYear.HasValue)
             {
-                query = query.Where(rl => rl.RecoveryDate.Month == FilterMonth.Value && rl.RecoveryDate.Year == FilterYear.Value);
+                recoveryQuery = recoveryQuery.Where(rl => rl.RecoveryDate.Month == FilterMonth.Value && rl.RecoveryDate.Year == FilterYear.Value);
             }
             else if (FilterYear.HasValue)
             {
-                query = query.Where(rl => rl.RecoveryDate.Year == FilterYear.Value);
+                recoveryQuery = recoveryQuery.Where(rl => rl.RecoveryDate.Year == FilterYear.Value);
             }
 
-            // Group by IndexNumber AND Currency
-            var financeData = await query
-                .GroupBy(rl => new
-                {
-                    rl.RecoveredFrom,
-                    Currency = rl.CallRecord != null ? rl.CallRecord.CallCurrencyCode : "KES"
-                })
+            // Join with CallRecords for currency and phone (no Include) - avoids loading full entities
+            // Use Max() for PhoneNumber instead of FirstOrDefault() to avoid correlated subquery
+            var financeData = await recoveryQuery
+                .Join(_context.CallRecords.AsNoTracking(),
+                      rl => rl.CallRecordId,
+                      cr => cr.Id,
+                      (rl, cr) => new { rl.RecoveredFrom, rl.AmountRecovered, rl.RecoveryDate, Currency = cr.CallCurrencyCode ?? "KES", cr.ExtensionNumber })
+                .GroupBy(x => new { x.RecoveredFrom, x.Currency })
                 .Select(g => new
                 {
                     IndexNumber = g.Key.RecoveredFrom,
-                    Currency = g.Key.Currency ?? "KES",
-                    TotalAmount = g.Sum(rl => rl.AmountRecovered),
-                    PhoneNumber = g.Select(rl => rl.CallRecord != null ? rl.CallRecord.CallNumber : null).FirstOrDefault(),
-                    RecoveryDate = g.Max(rl => rl.RecoveryDate)
+                    Currency = g.Key.Currency,
+                    TotalAmount = g.Sum(x => x.AmountRecovered),
+                    PhoneNumber = g.Max(x => x.ExtensionNumber),
+                    RecoveryDate = g.Max(x => x.RecoveryDate)
                 })
                 .OrderBy(g => g.IndexNumber)
                 .ThenBy(g => g.Currency)
