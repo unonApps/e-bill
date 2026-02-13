@@ -106,7 +106,7 @@ namespace TAB.Web.Pages.Admin
                     .Where(r => SelectedStaffIndexNumbers.Contains(r.ResponsibleIndexNumber) &&
                                r.SupervisorApprovalStatus == "Approved" &&
                                r.VerificationType == "Personal" &&
-                               (r.RecoveryStatus == "Pending" || r.RecoveryStatus == "NotProcessed"))
+                               (r.RecoveryStatus == null || r.RecoveryStatus == "Pending" || r.RecoveryStatus == "NotProcessed"))
                     .ToListAsync();
 
                 if (!allApprovedRecords.Any())
@@ -252,7 +252,7 @@ namespace TAB.Web.Pages.Admin
                         .AsNoTracking()
                         .AnyAsync(r => r.SourceBatchId == batch.Id &&
                                       r.SupervisorApprovalStatus == "Approved" &&
-                                      (r.RecoveryStatus == "Pending" || r.RecoveryStatus == "NotProcessed"));
+                                      (r.RecoveryStatus == null || r.RecoveryStatus == "Pending" || r.RecoveryStatus == "NotProcessed"));
 
                     if (allRecordsRecovered)
                     {
@@ -337,7 +337,7 @@ namespace TAB.Web.Pages.Admin
                            publishedInterimBatchIds.Contains(r.SourceBatchId.Value) &&
                            r.IsVerified == true &&
                            (r.SupervisorApprovalStatus == "Approved" || r.SupervisorApprovalStatus == "Pending") &&
-                           (r.RecoveryStatus == "Pending" || r.RecoveryStatus == "NotProcessed"));
+                           (r.RecoveryStatus == null || r.RecoveryStatus == "Pending" || r.RecoveryStatus == "NotProcessed"));
 
             // Apply month/year filters
             if (FilterMonth.HasValue)
