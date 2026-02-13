@@ -700,6 +700,7 @@ namespace TAB.Web.Pages.Admin
                     .Where(c => c.BatchId == batchId && c.HasAnomalies)
                     .CountAsync();
 
+                batch.BatchStatus = BatchStatus.Published;
                 batch.CurrentOperation = "Processing complete";
                 batch.ProcessingProgress = 100;
                 batch.EndProcessingDate = DateTime.UtcNow;
