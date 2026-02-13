@@ -3061,7 +3061,14 @@
 
             try {
                 // Load preview data
-                const response = await fetch(`?handler=SubmissionPreview&callIds=${callIds.join(',')}`);
+                const response = await fetch('?handler=SubmissionPreview', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                        'RequestVerificationToken': document.querySelector('input[name="__RequestVerificationToken"]').value
+                    },
+                    body: JSON.stringify({ callIds: callIds })
+                });
                 submissionData = await response.json();
 
                 if (!submissionData.success) {

@@ -1966,7 +1966,7 @@ namespace TAB.Web.Pages.Modules.EBillManagement.CallRecords
         /// <summary>
         /// AJAX endpoint to get submission preview data for the Submit to Supervisor modal
         /// </summary>
-        public async Task<JsonResult> OnGetSubmissionPreviewAsync(string? callIds)
+        public async Task<JsonResult> OnPostSubmissionPreviewAsync([FromBody] SubmissionPreviewRequest? request)
         {
             try
             {
@@ -1987,13 +1987,11 @@ namespace TAB.Web.Pages.Modules.EBillManagement.CallRecords
                     return new JsonResult(new { success = false, message = "No supervisor assigned to your profile. Please contact ICT Service Desk to have a supervisor assigned." });
 
                 // Parse call IDs
-                if (string.IsNullOrEmpty(callIds))
+                var callIds = request?.CallIds;
+                if (callIds == null || !callIds.Any())
                     return new JsonResult(new { success = false, message = "No calls selected for submission." });
 
-                var idList = callIds.Split(',').Select(int.Parse).ToList();
-
-                if (!idList.Any())
-                    return new JsonResult(new { success = false, message = "No calls selected for submission." });
+                var idList = callIds;
 
                 // Auto-verify unverified calls as "Official" before submission
                 var unverifiedCalls = await _context.CallRecords
@@ -2574,6 +2572,11 @@ namespace TAB.Web.Pages.Modules.EBillManagement.CallRecords
         public int Year { get; set; }
         public string? DialedNumber { get; set; } // Optional - for dialed number level
         public string Reason { get; set; } = string.Empty;
+    }
+
+    public class SubmissionPreviewRequest
+    {
+        public List<int> CallIds { get; set; } = new();
     }
 
     // Extension Group for Level 1 pagination
