@@ -1,0 +1,1266 @@
+@page
+@model TAB.Web.Pages.JobAid.SupervisorApprovalsModel
+@{
+    ViewData["Title"] = "Supervisor Approvals Guide";
+    ViewData["PageIcon"] = "bi-book";
+    ViewData["PageTitle"] = "Supervisor Approvals Guide";
+    ViewData["Breadcrumb"] = "Job Aid / Supervisor Approvals";
+}
+
+<!-- Back Link -->
+<div class="mb-3">
+    <a href="/JobAid" class="supervisor-guide-back-link">
+        <i class="bi bi-arrow-left"></i> Back to Job Aid Hub
+    </a>
+</div>
+
+<!-- Hero -->
+<div class="supervisor-guide-hero">
+    <div class="supervisor-guide-hero-content">
+        <div class="supervisor-guide-hero-icon">
+            <i class="bi bi-person-check"></i>
+        </div>
+        <div class="supervisor-guide-hero-text">
+            <h1 class="supervisor-guide-hero-title">Supervisor Approvals Guide</h1>
+            <p class="supervisor-guide-hero-subtitle">Cross-module guide to reviewing, approving, and managing requests across E-Bill, SIM, and Refund workflows</p>
+        </div>
+    </div>
+</div>
+
+<!-- Two-Column Layout -->
+<div class="supervisor-guide-layout">
+    <!-- Table of Contents — Sidebar -->
+    <nav class="supervisor-guide-toc" id="guide-toc">
+        <div class="supervisor-guide-toc-title">Contents</div>
+        <a href="#overview" class="supervisor-guide-toc-link active" data-section="overview">
+            <i class="bi bi-info-circle"></i> Overview
+        </a>
+        <a href="#dashboard" class="supervisor-guide-toc-link" data-section="dashboard">
+            <i class="bi bi-speedometer2"></i> Approver Dashboard
+        </a>
+        <a href="#ebill-approvals" class="supervisor-guide-toc-link" data-section="ebill-approvals">
+            <i class="bi bi-file-text"></i> E-Bill Approvals
+        </a>
+        <a href="#sim-approvals" class="supervisor-guide-toc-link" data-section="sim-approvals">
+            <i class="bi bi-phone"></i> SIM Request Approvals
+        </a>
+        <a href="#refund-approvals" class="supervisor-guide-toc-link" data-section="refund-approvals">
+            <i class="bi bi-cash-coin"></i> Refund Request Approvals
+        </a>
+        <a href="#common-actions" class="supervisor-guide-toc-link" data-section="common-actions">
+            <i class="bi bi-hand-index"></i> Common Actions
+        </a>
+        <a href="#statuses" class="supervisor-guide-toc-link" data-section="statuses">
+            <i class="bi bi-tags"></i> Approval Statuses
+        </a>
+        <a href="#notifications" class="supervisor-guide-toc-link" data-section="notifications">
+            <i class="bi bi-bell"></i> Notifications &amp; Deadlines
+        </a>
+        <a href="#faq" class="supervisor-guide-toc-link" data-section="faq">
+            <i class="bi bi-question-circle"></i> FAQ
+        </a>
+        <a href="#troubleshooting" class="supervisor-guide-toc-link" data-section="troubleshooting">
+            <i class="bi bi-wrench"></i> Troubleshooting
+        </a>
+    </nav>
+
+    <!-- Guide Content -->
+    <div class="supervisor-guide-content">
+
+        <!-- 1. Overview -->
+        <section id="overview" class="supervisor-guide-section">
+            <h2 class="supervisor-guide-section-title">
+                <i class="bi bi-info-circle"></i> Overview
+            </h2>
+            <div class="supervisor-guide-card">
+                <p>This guide covers the <strong>supervisor approval workflow</strong> across all three modules in the UNON Services portal: E-Bill Management, SIM Card Management, and Refund Management. As a supervisor, you are responsible for reviewing and acting on requests submitted by staff under your supervision.</p>
+
+                <h5 class="mt-4 mb-3" style="color: #004987; font-weight: 600;">Who Is a Supervisor?</h5>
+                <div class="supervisor-guide-callout supervisor-guide-callout-info mb-4">
+                    <i class="bi bi-info-circle"></i>
+                    <div>
+                        <strong>Email-Based Assignment:</strong> There is no dedicated "Supervisor" role in the system. You become a supervisor for a specific request when your email address is listed as the supervisor on that request. This means you may be a supervisor for some staff members but not others, and your supervisor access is determined on a per-request basis.
+                    </div>
+                </div>
+                <p>Administrators have universal supervisor access and can act on any request regardless of the supervisor email field.</p>
+
+                <h5 class="mt-4 mb-3" style="color: #004987; font-weight: 600;">Key Concepts</h5>
+                <div class="row g-3">
+                    <div class="col-md-4">
+                        <div class="supervisor-guide-info-box">
+                            <div class="supervisor-guide-info-box-header">
+                                <i class="bi bi-check-circle" style="color: #72BF44;"></i>
+                                <strong>Approve</strong>
+                            </div>
+                            <p class="mb-0 text-muted" style="font-size: 0.875rem;">Accepts the request and forwards it to the next stage in the workflow.</p>
+                        </div>
+                    </div>
+                    <div class="col-md-4">
+                        <div class="supervisor-guide-info-box">
+                            <div class="supervisor-guide-info-box-header">
+                                <i class="bi bi-x-circle" style="color: #ED1847;"></i>
+                                <strong>Reject</strong>
+                            </div>
+                            <p class="mb-0 text-muted" style="font-size: 0.875rem;">Permanently cancels the request. The staff member must create a new request if needed.</p>
+                        </div>
+                    </div>
+                    <div class="col-md-4">
+                        <div class="supervisor-guide-info-box">
+                            <div class="supervisor-guide-info-box-header">
+                                <i class="bi bi-arrow-counterclockwise" style="color: #F58220;"></i>
+                                <strong>Revert</strong>
+                            </div>
+                            <p class="mb-0 text-muted" style="font-size: 0.875rem;">Returns the request to the staff member for corrections without cancelling it.</p>
+                        </div>
+                    </div>
+                </div>
+
+                <h5 class="mt-4 mb-3" style="color: #004987; font-weight: 600;">What Happens After Approval?</h5>
+                <div class="table-responsive">
+                    <table class="table supervisor-guide-status-table">
+                        <thead>
+                            <tr>
+                                <th>Module</th>
+                                <th>Your Key Task</th>
+                                <th>Next Stage After Approval</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            <tr>
+                                <td><strong>E-Bill Payments</strong></td>
+                                <td>Verify bill details</td>
+                                <td>Pending Admin</td>
+                            </tr>
+                            <tr>
+                                <td><strong>E-Bill Call Records</strong></td>
+                                <td>Review call verifications &amp; overage</td>
+                                <td>Approved (or Partial/Rejected)</td>
+                            </tr>
+                            <tr>
+                                <td><strong>SIM Requests</strong></td>
+                                <td>Set Class of Service &amp; allowances</td>
+                                <td>Pending ICTS</td>
+                            </tr>
+                            <tr>
+                                <td><strong>Refund Requests</strong></td>
+                                <td>Assign Budget Officer</td>
+                                <td>Pending Budget Officer</td>
+                            </tr>
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+        </section>
+
+        <!-- 2. Approver Dashboard -->
+        <section id="dashboard" class="supervisor-guide-section">
+            <h2 class="supervisor-guide-section-title">
+                <i class="bi bi-speedometer2"></i> Approver Dashboard
+            </h2>
+            <div class="supervisor-guide-card">
+                <p>The <strong>Approver Dashboard</strong> provides a unified view of all pending requests awaiting your action across all modules.</p>
+
+                <h5 class="mt-4 mb-3" style="color: #004987; font-weight: 600;">Accessing the Dashboard</h5>
+                <div class="supervisor-guide-steps">
+                    <div class="supervisor-guide-step">
+                        <div class="supervisor-guide-step-number">1</div>
+                        <div class="supervisor-guide-step-content">
+                            <strong>Navigate to the Approver Dashboard</strong>
+                            <p class="mb-0 text-muted">From the sidebar, click <strong>"Approver Dashboard"</strong> under the Dashboard section to access your unified approval view.</p>
+                        </div>
+                    </div>
+                    <div class="supervisor-guide-step">
+                        <div class="supervisor-guide-step-number">2</div>
+                        <div class="supervisor-guide-step-content">
+                            <strong>Review Pending Requests</strong>
+                            <p class="mb-0 text-muted">The dashboard displays all requests where your email matches the supervisor field. Requests are grouped by module and sorted by priority.</p>
+                        </div>
+                    </div>
+                    <div class="supervisor-guide-step">
+                        <div class="supervisor-guide-step-number">3</div>
+                        <div class="supervisor-guide-step-content">
+                            <strong>Take Action</strong>
+                            <p class="mb-0 text-muted">Click on any request to view full details and take action (approve, reject, or revert).</p>
+                        </div>
+                    </div>
+                </div>
+
+                <h5 class="mt-4 mb-3" style="color: #004987; font-weight: 600;">Priority Indicators</h5>
+                <div class="row g-3">
+                    <div class="col-md-6">
+                        <div class="supervisor-guide-info-box">
+                            <div class="supervisor-guide-info-box-header">
+                                <i class="bi bi-exclamation-triangle" style="color: #ED1847;"></i>
+                                <strong>Urgent (> 7 Days)</strong>
+                            </div>
+                            <p class="mb-0 text-muted" style="font-size: 0.875rem;">Requests pending for more than 7 days are flagged as urgent. These require immediate attention to avoid deadline-related consequences.</p>
+                        </div>
+                    </div>
+                    <div class="col-md-6">
+                        <div class="supervisor-guide-info-box">
+                            <div class="supervisor-guide-info-box-header">
+                                <i class="bi bi-exclamation-circle" style="color: #F58220;"></i>
+                                <strong>Attention (> 3 Days)</strong>
+                            </div>
+                            <p class="mb-0 text-muted" style="font-size: 0.875rem;">Requests pending for more than 3 days are flagged for attention. Review these soon to stay ahead of deadlines.</p>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </section>
+
+        <!-- 3. E-Bill Approvals -->
+        <section id="ebill-approvals" class="supervisor-guide-section">
+            <h2 class="supervisor-guide-section-title">
+                <i class="bi bi-file-text"></i> E-Bill Approvals
+            </h2>
+            <div class="supervisor-guide-card">
+                <p>E-Bill approvals cover two distinct request types: <strong>Bill Payment Requests</strong> and <strong>Call Record Verifications</strong>. Each has its own workflow and available actions.</p>
+
+                <!-- Bill Payment Requests -->
+                <h5 class="mt-4 mb-3" style="color: #004987; font-weight: 600;">Bill Payment Requests</h5>
+                <p>Staff submit bill payment requests for reimbursement of telephone-related expenses. As a supervisor, you review the payment details and supporting documentation.</p>
+                <div class="supervisor-guide-steps">
+                    <div class="supervisor-guide-step">
+                        <div class="supervisor-guide-step-number">1</div>
+                        <div class="supervisor-guide-step-content">
+                            <strong>Review Payment Details</strong>
+                            <p class="mb-0 text-muted">Verify the bill amount, payment type, and any attached supporting documents (receipts, invoices).</p>
+                        </div>
+                    </div>
+                    <div class="supervisor-guide-step">
+                        <div class="supervisor-guide-step-number">2</div>
+                        <div class="supervisor-guide-step-content">
+                            <strong>Take Action</strong>
+                            <p class="mb-0 text-muted">
+                                <strong>Approve</strong> to forward to admin for processing,
+                                <strong>Reject</strong> to permanently cancel the request, or
+                                <strong>Revert</strong> to return it to the staff member for corrections.
+                            </p>
+                        </div>
+                    </div>
+                    <div class="supervisor-guide-step">
+                        <div class="supervisor-guide-step-number">3</div>
+                        <div class="supervisor-guide-step-content">
+                            <strong>Provide Comments</strong>
+                            <p class="mb-0 text-muted">Add comments explaining your decision, especially when rejecting or reverting. Comments are visible to the staff member.</p>
+                        </div>
+                    </div>
+                </div>
+
+                <hr class="my-4">
+
+                <!-- Call Record Verifications -->
+                <h5 class="mt-2 mb-3" style="color: #004987; font-weight: 600;">Call Record Verifications</h5>
+                <p>Staff submit their verified call records for the billing period. Call record approvals are the most complex supervisor task, with four available actions and overage review requirements.</p>
+
+                <div class="supervisor-guide-callout supervisor-guide-callout-warning mb-4">
+                    <i class="bi bi-exclamation-triangle"></i>
+                    <div>
+                        <strong>Important:</strong> Call record verifications have strict deadlines. If you do not act before the supervisor approval deadline, automatic recovery rules may apply to the staff member's account.
+                    </div>
+                </div>
+
+                <div class="supervisor-guide-steps">
+                    <div class="supervisor-guide-step">
+                        <div class="supervisor-guide-step-number">1</div>
+                        <div class="supervisor-guide-step-content">
+                            <strong>Review Call Verifications</strong>
+                            <p class="mb-0 text-muted">Examine the staff member's classification of each call as Official or Personal. Review the summary of total costs, allowance usage, and any overage.</p>
+                        </div>
+                    </div>
+                    <div class="supervisor-guide-step">
+                        <div class="supervisor-guide-step-number">2</div>
+                        <div class="supervisor-guide-step-content">
+                            <strong>Review Overage Justifications</strong>
+                            <p class="mb-0 text-muted">If personal calls exceed the allowance on any phone line, review the staff member's written justification and any supporting documents.</p>
+                        </div>
+                    </div>
+                    <div class="supervisor-guide-step">
+                        <div class="supervisor-guide-step-number">3</div>
+                        <div class="supervisor-guide-step-content">
+                            <strong>Take Action</strong>
+                            <p class="mb-0 text-muted">Choose from four options:</p>
+                            <ul class="mt-2 mb-0 text-muted" style="font-size: 0.875rem;">
+                                <li><strong>Approve</strong> — Accept all verifications as submitted</li>
+                                <li><strong>Partially Approve</strong> — Accept some items but adjust others (e.g., reclassify calls)</li>
+                                <li><strong>Reject</strong> — Do not accept verifications; recovery may be initiated</li>
+                                <li><strong>Revert</strong> — Return to staff for corrections</li>
+                            </ul>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="supervisor-guide-callout supervisor-guide-callout-info mt-4">
+                    <i class="bi bi-info-circle"></i>
+                    <div>
+                        <strong>Recovery implications:</strong> Rejecting a call record verification may trigger cost recovery for the staff member's personal call overage. Reverting allows the staff member to correct and resubmit without triggering recovery.
+                    </div>
+                </div>
+            </div>
+        </section>
+
+        <!-- 4. SIM Request Approvals -->
+        <section id="sim-approvals" class="supervisor-guide-section">
+            <h2 class="supervisor-guide-section-title">
+                <i class="bi bi-phone"></i> SIM Request Approvals
+            </h2>
+            <div class="supervisor-guide-card">
+                <p>When staff submit SIM card requests, the supervisor is responsible for reviewing the request details and — critically — setting the <strong>Class of Service</strong> before approving.</p>
+
+                <h5 class="mt-4 mb-3" style="color: #004987; font-weight: 600;">Approval Steps</h5>
+                <div class="supervisor-guide-steps">
+                    <div class="supervisor-guide-step">
+                        <div class="supervisor-guide-step-number">1</div>
+                        <div class="supervisor-guide-step-content">
+                            <strong>Review SIM Request Details</strong>
+                            <p class="mb-0 text-muted">Check the staff member's request information, including the request type (new SIM, replacement, cancellation), justification, and any supporting documents.</p>
+                        </div>
+                    </div>
+                    <div class="supervisor-guide-step">
+                        <div class="supervisor-guide-step-number">2</div>
+                        <div class="supervisor-guide-step-content">
+                            <strong>Set Class of Service</strong>
+                            <p class="mb-0 text-muted">Select the appropriate <strong>Mobile Service type</strong> and configure allowances for the SIM card. This determines the service plan, data limits, and calling features available to the staff member.</p>
+                        </div>
+                    </div>
+                    <div class="supervisor-guide-step">
+                        <div class="supervisor-guide-step-number">3</div>
+                        <div class="supervisor-guide-step-content">
+                            <strong>Approve, Reject, or Revert</strong>
+                            <p class="mb-0 text-muted">
+                                <strong>Approve</strong> to forward the request to ICTS for processing,
+                                <strong>Reject</strong> to permanently cancel, or
+                                <strong>Revert</strong> to return to the staff member for corrections.
+                            </p>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="supervisor-guide-callout supervisor-guide-callout-info mt-4">
+                    <i class="bi bi-envelope"></i>
+                    <div>
+                        <strong>Notifications:</strong> When you approve a SIM request, an email notification is automatically sent to ICTS informing them of the new request awaiting their action. The staff member is also notified of your decision.
+                    </div>
+                </div>
+            </div>
+        </section>
+
+        <!-- 5. Refund Request Approvals -->
+        <section id="refund-approvals" class="supervisor-guide-section">
+            <h2 class="supervisor-guide-section-title">
+                <i class="bi bi-cash-coin"></i> Refund Request Approvals
+            </h2>
+            <div class="supervisor-guide-card">
+                <p>Staff submit device purchase refund requests when they need reimbursement for equipment. As the supervisor, you are the <strong>first of five approval stages</strong> in the refund workflow.</p>
+
+                <h5 class="mt-4 mb-3" style="color: #004987; font-weight: 600;">Approval Steps</h5>
+                <div class="supervisor-guide-steps">
+                    <div class="supervisor-guide-step">
+                        <div class="supervisor-guide-step-number">1</div>
+                        <div class="supervisor-guide-step-content">
+                            <strong>Review Refund Request</strong>
+                            <p class="mb-0 text-muted">Check the device details, purchase information, refund amount, and any attached supporting documents (receipts, purchase orders).</p>
+                        </div>
+                    </div>
+                    <div class="supervisor-guide-step">
+                        <div class="supervisor-guide-step-number">2</div>
+                        <div class="supervisor-guide-step-content">
+                            <strong>Assign Budget Officer</strong>
+                            <p class="mb-0 text-muted">When approving, you <strong>must</strong> assign a Budget Officer who will handle the next stage of the approval workflow. Search for and select the appropriate Budget Officer from the staff directory.</p>
+                        </div>
+                    </div>
+                    <div class="supervisor-guide-step">
+                        <div class="supervisor-guide-step-number">3</div>
+                        <div class="supervisor-guide-step-content">
+                            <strong>Approve, Reject, or Revert</strong>
+                            <p class="mb-0 text-muted">
+                                <strong>Approve</strong> to forward to the Budget Officer (requires Budget Officer assignment),
+                                <strong>Reject</strong> to permanently cancel the request, or
+                                <strong>Revert</strong> to return to the staff member for corrections.
+                            </p>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="supervisor-guide-callout supervisor-guide-callout-warning mt-4">
+                    <i class="bi bi-exclamation-triangle"></i>
+                    <div>
+                        <strong>Required:</strong> The Budget Officer field is mandatory when approving a refund request. You cannot approve without assigning a Budget Officer. The request will then continue through 3 additional approval stages after the Budget Officer review.
+                    </div>
+                </div>
+            </div>
+        </section>
+
+        <!-- 6. Common Actions -->
+        <section id="common-actions" class="supervisor-guide-section">
+            <h2 class="supervisor-guide-section-title">
+                <i class="bi bi-hand-index"></i> Common Actions
+            </h2>
+            <div class="supervisor-guide-card">
+                <p class="mb-4">Three core actions are available to supervisors at every approval stage across all modules. Understanding when to use each action is essential to processing requests correctly.</p>
+
+                <!-- Approve -->
+                <div class="supervisor-guide-action-block supervisor-guide-action-approve mb-4">
+                    <div class="supervisor-guide-action-header">
+                        <div class="supervisor-guide-action-icon" style="background: #E6EFD0; color: #4a8c1c;">
+                            <i class="bi bi-check-circle"></i>
+                        </div>
+                        <div>
+                            <h5 class="mb-1" style="font-weight: 600; color: #1a202c;">Approve</h5>
+                            <p class="mb-0 text-muted" style="font-size: 0.875rem;">Forwards the request to the next stage in the workflow</p>
+                        </div>
+                    </div>
+                    <ul class="supervisor-guide-action-details">
+                        <li>Indicates you have reviewed the request and find it satisfactory</li>
+                        <li>The request advances to the next approval stage or is finalized</li>
+                        <li>For SIM requests, you must set Class of Service before approving</li>
+                        <li>For refund requests, you must assign a Budget Officer before approving</li>
+                        <li>Comments are optional but recommended for record-keeping</li>
+                    </ul>
+                </div>
+
+                <!-- Reject -->
+                <div class="supervisor-guide-action-block supervisor-guide-action-reject mb-4">
+                    <div class="supervisor-guide-action-header">
+                        <div class="supervisor-guide-action-icon" style="background: #F7DFDF; color: #c41230;">
+                            <i class="bi bi-x-circle"></i>
+                        </div>
+                        <div>
+                            <h5 class="mb-1" style="font-weight: 600; color: #1a202c;">Reject</h5>
+                            <p class="mb-0 text-muted" style="font-size: 0.875rem;">Permanently cancels the request</p>
+                        </div>
+                    </div>
+                    <ul class="supervisor-guide-action-details">
+                        <li>The request is <strong>permanently closed</strong> — it cannot be reopened or resubmitted</li>
+                        <li>The staff member must create an entirely new request if they still need it</li>
+                        <li>For E-Bill call records, rejection may trigger cost recovery</li>
+                        <li>Comments are <strong>required</strong> to explain the reason for rejection</li>
+                        <li>Use reject only when the request is fundamentally invalid or unauthorized</li>
+                    </ul>
+                </div>
+
+                <!-- Revert -->
+                <div class="supervisor-guide-action-block supervisor-guide-action-revert">
+                    <div class="supervisor-guide-action-header">
+                        <div class="supervisor-guide-action-icon" style="background: #FFEAD5; color: #c46200;">
+                            <i class="bi bi-arrow-counterclockwise"></i>
+                        </div>
+                        <div>
+                            <h5 class="mb-1" style="font-weight: 600; color: #1a202c;">Revert</h5>
+                            <p class="mb-0 text-muted" style="font-size: 0.875rem;">Returns the request to the staff member for corrections</p>
+                        </div>
+                    </div>
+                    <ul class="supervisor-guide-action-details">
+                        <li>The request returns to <strong>Draft</strong> status — the staff member can edit and resubmit</li>
+                        <li>Does <strong>not</strong> cancel the request — it remains active in the workflow</li>
+                        <li>Use revert when the request has fixable issues (missing documents, incorrect amounts, etc.)</li>
+                        <li>Comments are <strong>required</strong> to explain what needs to be corrected</li>
+                        <li>The staff member is notified and can see your comments</li>
+                    </ul>
+                </div>
+
+                <div class="supervisor-guide-callout supervisor-guide-callout-warning mt-4">
+                    <i class="bi bi-exclamation-triangle"></i>
+                    <div>
+                        <strong>Reject vs. Revert:</strong> Use <strong>Reject</strong> when the request should not exist (unauthorized, fraudulent, or fundamentally wrong). Use <strong>Revert</strong> when the request is valid but needs corrections (typos, missing documents, wrong amounts). When in doubt, prefer reverting — it gives the staff member a chance to fix issues without starting over.
+                    </div>
+                </div>
+            </div>
+        </section>
+
+        <!-- 7. Approval Statuses -->
+        <section id="statuses" class="supervisor-guide-section">
+            <h2 class="supervisor-guide-section-title">
+                <i class="bi bi-tags"></i> Approval Statuses
+            </h2>
+            <div class="supervisor-guide-card">
+                <p class="mb-4">These statuses indicate where a request currently sits in the approval workflow. Statuses apply across all modules with minor variations.</p>
+
+                <div class="table-responsive">
+                    <table class="table supervisor-guide-status-table">
+                        <thead>
+                            <tr>
+                                <th>Status</th>
+                                <th>Description</th>
+                                <th>Action By</th>
+                                <th>Applies To</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            <tr>
+                                <td><span class="supervisor-guide-badge badge-sv-pending">Pending Supervisor</span></td>
+                                <td>Request submitted and awaiting supervisor review.</td>
+                                <td>Supervisor</td>
+                                <td>All modules</td>
+                            </tr>
+                            <tr>
+                                <td><span class="supervisor-guide-badge badge-sv-approved">Approved</span></td>
+                                <td>Supervisor accepted the request. It moves to the next workflow stage.</td>
+                                <td>Next approver</td>
+                                <td>All modules</td>
+                            </tr>
+                            <tr>
+                                <td><span class="supervisor-guide-badge badge-sv-partial">Partially Approved</span></td>
+                                <td>Supervisor approved some items but adjusted others (e.g., reclassified calls).</td>
+                                <td>Staff reviews</td>
+                                <td>E-Bill Call Records</td>
+                            </tr>
+                            <tr>
+                                <td><span class="supervisor-guide-badge badge-sv-rejected">Rejected</span></td>
+                                <td>Supervisor permanently cancelled the request. No further action possible.</td>
+                                <td>Staff (new request)</td>
+                                <td>All modules</td>
+                            </tr>
+                            <tr>
+                                <td><span class="supervisor-guide-badge badge-sv-reverted">Reverted</span></td>
+                                <td>Returned to staff for corrections. Staff can edit and resubmit.</td>
+                                <td>Staff corrects</td>
+                                <td>All modules</td>
+                            </tr>
+                            <tr>
+                                <td><span class="supervisor-guide-badge badge-sv-draft">Draft</span></td>
+                                <td>Request is being prepared or has been reverted for corrections.</td>
+                                <td>Staff</td>
+                                <td>All modules</td>
+                            </tr>
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+        </section>
+
+        <!-- 8. Notifications & Deadlines -->
+        <section id="notifications" class="supervisor-guide-section">
+            <h2 class="supervisor-guide-section-title">
+                <i class="bi bi-bell"></i> Notifications &amp; Deadlines
+            </h2>
+            <div class="supervisor-guide-card">
+                <h5 class="mb-3" style="color: #004987; font-weight: 600;">Email Notifications</h5>
+                <p>You receive email notifications at key points in the approval workflow:</p>
+                <div class="supervisor-guide-steps mb-4">
+                    <div class="supervisor-guide-step">
+                        <div class="supervisor-guide-step-number"><i class="bi bi-envelope" style="font-size: 0.75rem;"></i></div>
+                        <div class="supervisor-guide-step-content">
+                            <strong>New Request Submitted</strong>
+                            <p class="mb-0 text-muted">Notification when a staff member submits a request for your approval.</p>
+                        </div>
+                    </div>
+                    <div class="supervisor-guide-step">
+                        <div class="supervisor-guide-step-number"><i class="bi bi-envelope" style="font-size: 0.75rem;"></i></div>
+                        <div class="supervisor-guide-step-content">
+                            <strong>Deadline Approaching</strong>
+                            <p class="mb-0 text-muted">Reminder when a pending request is nearing its deadline for action.</p>
+                        </div>
+                    </div>
+                    <div class="supervisor-guide-step">
+                        <div class="supervisor-guide-step-number"><i class="bi bi-envelope" style="font-size: 0.75rem;"></i></div>
+                        <div class="supervisor-guide-step-content">
+                            <strong>Resubmission After Revert</strong>
+                            <p class="mb-0 text-muted">Notification when a staff member resubmits a request you previously reverted.</p>
+                        </div>
+                    </div>
+                </div>
+
+                <h5 class="mb-3" style="color: #004987; font-weight: 600;">Notifications You Trigger</h5>
+                <p class="text-muted mb-4" style="font-size: 0.875rem;">When you take action on a request, the following notifications are sent automatically:</p>
+                <ul class="text-muted" style="font-size: 0.875rem; line-height: 1.8;">
+                    <li><strong>Approve:</strong> Staff member is notified of approval; next approver (if any) receives the request</li>
+                    <li><strong>Reject:</strong> Staff member is notified with your comments explaining the rejection</li>
+                    <li><strong>Revert:</strong> Staff member is notified with your comments explaining what needs correction</li>
+                    <li><strong>SIM Approval:</strong> ICTS team receives an email about the approved SIM request</li>
+                </ul>
+
+                <h5 class="mt-4 mb-3" style="color: #004987; font-weight: 600;">Deadline Tracking</h5>
+                <div class="supervisor-guide-callout supervisor-guide-callout-warning mb-3">
+                    <i class="bi bi-clock"></i>
+                    <div>
+                        <strong>E-Bill Call Records:</strong> Supervisor approval deadlines are tracked per billing period. If you do not act before the deadline, the system may automatically apply recovery rules to the staff member's account. Monitor the priority indicators on your Approver Dashboard to stay ahead of deadlines.
+                    </div>
+                </div>
+                <p class="text-muted" style="font-size: 0.875rem;">Priority indicators on the Approver Dashboard help you manage deadlines: requests pending over 7 days are marked <strong>Urgent</strong>, and those over 3 days are marked <strong>Attention</strong>.</p>
+            </div>
+        </section>
+
+        <!-- 9. FAQ -->
+        <section id="faq" class="supervisor-guide-section">
+            <h2 class="supervisor-guide-section-title">
+                <i class="bi bi-question-circle"></i> Frequently Asked Questions
+            </h2>
+            <div class="supervisor-guide-card">
+                <div class="accordion" id="supervisorFaqAccordion">
+                    <div class="accordion-item supervisor-guide-accordion-item">
+                        <h2 class="accordion-header">
+                            <button class="accordion-button collapsed supervisor-guide-accordion-btn" type="button" data-bs-toggle="collapse" data-bs-target="#svFaq1">
+                                How do I become a supervisor in the system?
+                            </button>
+                        </h2>
+                        <div id="svFaq1" class="accordion-collapse collapse" data-bs-parent="#supervisorFaqAccordion">
+                            <div class="accordion-body">
+                                There is no dedicated supervisor role to request. You become a supervisor for a specific request when a staff member enters your email address as their supervisor when submitting the request. If your email matches the supervisor field, you automatically gain approval access for that request. Administrators can also update supervisor assignments.
+                            </div>
+                        </div>
+                    </div>
+
+                    <div class="accordion-item supervisor-guide-accordion-item">
+                        <h2 class="accordion-header">
+                            <button class="accordion-button collapsed supervisor-guide-accordion-btn" type="button" data-bs-toggle="collapse" data-bs-target="#svFaq2">
+                                Why can't I see any approval requests on my dashboard?
+                            </button>
+                        </h2>
+                        <div id="svFaq2" class="accordion-collapse collapse" data-bs-parent="#supervisorFaqAccordion">
+                            <div class="accordion-body">
+                                The Approver Dashboard only shows requests where your email address matches the supervisor email field. If no staff member has listed you as their supervisor, or if all your assigned requests have already been processed, the dashboard will be empty. Verify with the staff member that they entered your correct email address when submitting their request.
+                            </div>
+                        </div>
+                    </div>
+
+                    <div class="accordion-item supervisor-guide-accordion-item">
+                        <h2 class="accordion-header">
+                            <button class="accordion-button collapsed supervisor-guide-accordion-btn" type="button" data-bs-toggle="collapse" data-bs-target="#svFaq3">
+                                Can I delegate my approvals to someone else?
+                            </button>
+                        </h2>
+                        <div id="svFaq3" class="accordion-collapse collapse" data-bs-parent="#supervisorFaqAccordion">
+                            <div class="accordion-body">
+                                There is no built-in delegation feature. Since supervisor access is email-based, the staff member would need to update the supervisor email on their request to reassign it to another person. Alternatively, an administrator can update the supervisor assignment. Contact the administrator if you are unavailable and need approvals reassigned.
+                            </div>
+                        </div>
+                    </div>
+
+                    <div class="accordion-item supervisor-guide-accordion-item">
+                        <h2 class="accordion-header">
+                            <button class="accordion-button collapsed supervisor-guide-accordion-btn" type="button" data-bs-toggle="collapse" data-bs-target="#svFaq4">
+                                What happens if I don't act on a request?
+                            </button>
+                        </h2>
+                        <div id="svFaq4" class="accordion-collapse collapse" data-bs-parent="#supervisorFaqAccordion">
+                            <div class="accordion-body">
+                                The consequences depend on the module. For <strong>E-Bill call records</strong>, missing the supervisor approval deadline may trigger automatic recovery rules for the staff member. For <strong>SIM and refund requests</strong>, the request remains in a pending state until action is taken, but priority indicators will flag overdue items. Always act promptly to avoid delays in the staff member's workflow.
+                            </div>
+                        </div>
+                    </div>
+
+                    <div class="accordion-item supervisor-guide-accordion-item">
+                        <h2 class="accordion-header">
+                            <button class="accordion-button collapsed supervisor-guide-accordion-btn" type="button" data-bs-toggle="collapse" data-bs-target="#svFaq5">
+                                Can I change my decision after approving or rejecting?
+                            </button>
+                        </h2>
+                        <div id="svFaq5" class="accordion-collapse collapse" data-bs-parent="#supervisorFaqAccordion">
+                            <div class="accordion-body">
+                                No. Once you approve or reject a request, the action is final at the supervisor stage. If you approved by mistake, contact the administrator — they may be able to intervene before the next stage processes the request. If you rejected by mistake, the staff member will need to submit a new request.
+                            </div>
+                        </div>
+                    </div>
+
+                    <div class="accordion-item supervisor-guide-accordion-item">
+                        <h2 class="accordion-header">
+                            <button class="accordion-button collapsed supervisor-guide-accordion-btn" type="button" data-bs-toggle="collapse" data-bs-target="#svFaq6">
+                                What is the difference between "Partially Approved" and "Approved"?
+                            </button>
+                        </h2>
+                        <div id="svFaq6" class="accordion-collapse collapse" data-bs-parent="#supervisorFaqAccordion">
+                            <div class="accordion-body">
+                                <strong>Partially Approved</strong> applies only to E-Bill call record verifications. It means you accepted most of the staff member's verifications but adjusted some items — for example, reclassifying certain calls from Official to Personal. <strong>Approved</strong> means you accepted everything as submitted with no changes.
+                            </div>
+                        </div>
+                    </div>
+
+                    <div class="accordion-item supervisor-guide-accordion-item">
+                        <h2 class="accordion-header">
+                            <button class="accordion-button collapsed supervisor-guide-accordion-btn" type="button" data-bs-toggle="collapse" data-bs-target="#svFaq7">
+                                Why do I need to assign a Budget Officer for refund requests?
+                            </button>
+                        </h2>
+                        <div id="svFaq7" class="accordion-collapse collapse" data-bs-parent="#supervisorFaqAccordion">
+                            <div class="accordion-body">
+                                Refund requests have a 5-stage approval workflow. The Budget Officer is the second approver and is responsible for verifying budget availability and financial compliance. As the supervisor, you are uniquely positioned to know which Budget Officer handles your department's budget, which is why this assignment is part of your approval step.
+                            </div>
+                        </div>
+                    </div>
+
+                    <div class="accordion-item supervisor-guide-accordion-item">
+                        <h2 class="accordion-header">
+                            <button class="accordion-button collapsed supervisor-guide-accordion-btn" type="button" data-bs-toggle="collapse" data-bs-target="#svFaq8">
+                                I supervise staff across multiple modules — is there one place to see everything?
+                            </button>
+                        </h2>
+                        <div id="svFaq8" class="accordion-collapse collapse" data-bs-parent="#supervisorFaqAccordion">
+                            <div class="accordion-body">
+                                Yes. The <strong>Approver Dashboard</strong> is your unified view of all pending requests across E-Bill, SIM, and Refund modules. All requests where your email matches the supervisor field are displayed in one place, grouped by module and sorted by priority. Access it from the sidebar under <strong>Dashboard > Approver Dashboard</strong>.
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </section>
+
+        <!-- 10. Troubleshooting -->
+        <section id="troubleshooting" class="supervisor-guide-section">
+            <h2 class="supervisor-guide-section-title">
+                <i class="bi bi-wrench"></i> Troubleshooting
+            </h2>
+            <div class="supervisor-guide-card">
+                <div class="supervisor-guide-trouble-list">
+                    <div class="supervisor-guide-trouble-item">
+                        <div class="supervisor-guide-trouble-problem">
+                            <i class="bi bi-exclamation-triangle" style="color: #F58220;"></i>
+                            <strong>I cannot see any pending requests on my Approver Dashboard</strong>
+                        </div>
+                        <div class="supervisor-guide-trouble-solution">
+                            Verify that staff members have entered your correct email address as the supervisor on their requests. Your dashboard only shows requests where the supervisor email field matches your login email. If the email is correct but requests still don't appear, contact the administrator to check the supervisor assignment.
+                        </div>
+                    </div>
+
+                    <div class="supervisor-guide-trouble-item">
+                        <div class="supervisor-guide-trouble-problem">
+                            <i class="bi bi-exclamation-triangle" style="color: #F58220;"></i>
+                            <strong>The Approve button is disabled on a refund request</strong>
+                        </div>
+                        <div class="supervisor-guide-trouble-solution">
+                            For refund requests, you must assign a Budget Officer before the Approve button becomes active. Use the Budget Officer search field to select the appropriate person. The Approve button will be enabled once a Budget Officer is assigned.
+                        </div>
+                    </div>
+
+                    <div class="supervisor-guide-trouble-item">
+                        <div class="supervisor-guide-trouble-problem">
+                            <i class="bi bi-exclamation-triangle" style="color: #F58220;"></i>
+                            <strong>I assigned the wrong Budget Officer on a refund request</strong>
+                        </div>
+                        <div class="supervisor-guide-trouble-solution">
+                            If the request has already been approved and forwarded, contact the administrator to update the Budget Officer assignment. If you haven't approved yet, simply change the Budget Officer selection before clicking Approve.
+                        </div>
+                    </div>
+
+                    <div class="supervisor-guide-trouble-item">
+                        <div class="supervisor-guide-trouble-problem">
+                            <i class="bi bi-exclamation-triangle" style="color: #F58220;"></i>
+                            <strong>A request I reverted was not resubmitted by the staff member</strong>
+                        </div>
+                        <div class="supervisor-guide-trouble-solution">
+                            Reverted requests return to Draft status and require the staff member to make corrections and resubmit. The staff member receives an email notification about the revert. If they have not acted, follow up directly with the staff member. The request will remain in Draft status until they resubmit or the administrator intervenes.
+                        </div>
+                    </div>
+
+                    <div class="supervisor-guide-trouble-item">
+                        <div class="supervisor-guide-trouble-problem">
+                            <i class="bi bi-exclamation-triangle" style="color: #F58220;"></i>
+                            <strong>I accidentally rejected a request instead of reverting it</strong>
+                        </div>
+                        <div class="supervisor-guide-trouble-solution">
+                            Rejection is permanent and cannot be undone at the supervisor level. Contact the administrator immediately — they may be able to assist before downstream processes are triggered. The staff member will need to create a new request if the rejection cannot be reversed.
+                        </div>
+                    </div>
+
+                    <div class="supervisor-guide-trouble-item">
+                        <div class="supervisor-guide-trouble-problem">
+                            <i class="bi bi-exclamation-triangle" style="color: #F58220;"></i>
+                            <strong>Class of Service options are not appearing for a SIM request</strong>
+                        </div>
+                        <div class="supervisor-guide-trouble-solution">
+                            Class of Service options are loaded based on available service plans configured by the administrator. If no options appear, the service plans may not have been configured yet. Contact the administrator to ensure Mobile Service types and allowances are set up in the system.
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </section>
+
+    </div>
+</div>
+
+@section Scripts {
+<script>
+    // Scroll-spy: highlight active TOC link based on visible section
+    document.addEventListener('DOMContentLoaded', function () {
+        var tocLinks = document.querySelectorAll('.supervisor-guide-toc-link');
+        var sections = document.querySelectorAll('.supervisor-guide-section');
+
+        if (!sections.length || !tocLinks.length) return;
+
+        var observer = new IntersectionObserver(function (entries) {
+            entries.forEach(function (entry) {
+                if (entry.isIntersecting) {
+                    var id = entry.target.getAttribute('id');
+                    tocLinks.forEach(function (link) {
+                        link.classList.toggle('active', link.getAttribute('data-section') === id);
+                    });
+                }
+            });
+        }, {
+            rootMargin: '-80px 0px -60% 0px',
+            threshold: 0
+        });
+
+        sections.forEach(function (section) {
+            observer.observe(section);
+        });
+
+        // Smooth scroll for TOC links
+        tocLinks.forEach(function (link) {
+            link.addEventListener('click', function (e) {
+                e.preventDefault();
+                var targetId = this.getAttribute('data-section');
+                var target = document.getElementById(targetId);
+                if (target) {
+                    target.scrollIntoView({ behavior: 'smooth', block: 'start' });
+                }
+            });
+        });
+    });
+</script>
+}
+
+<style>
+/* Back Link */
+.supervisor-guide-back-link {
+    display: inline-flex;
+    align-items: center;
+    gap: 0.5rem;
+    color: #009edb;
+    text-decoration: none;
+    font-size: 0.875rem;
+    font-weight: 500;
+    transition: color 0.2s;
+}
+
+.supervisor-guide-back-link:hover {
+    color: #0077b5;
+    text-decoration: none;
+}
+
+/* Hero */
+.supervisor-guide-hero {
+    background: linear-gradient(135deg, #009edb 0%, #0077b5 100%);
+    border-radius: 10px;
+    padding: 1.25rem 1.5rem;
+    margin-bottom: 2rem;
+    box-shadow: 0 2px 6px rgba(0, 102, 204, 0.12);
+}
+
+.supervisor-guide-hero-content {
+    display: flex;
+    align-items: center;
+    gap: 1.25rem;
+}
+
+.supervisor-guide-hero-icon {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    width: 45px;
+    height: 45px;
+    background: rgba(255, 255, 255, 0.25);
+    border-radius: 10px;
+    backdrop-filter: blur(10px);
+    flex-shrink: 0;
+}
+
+.supervisor-guide-hero-icon i {
+    font-size: 1.25rem;
+    color: white;
+}
+
+.supervisor-guide-hero-text {
+    text-align: left;
+}
+
+.supervisor-guide-hero-title {
+    font-size: 1.25rem;
+    font-weight: 600;
+    color: white;
+    margin-bottom: 0.25rem;
+    letter-spacing: -0.01em;
+}
+
+.supervisor-guide-hero-subtitle {
+    font-size: 0.875rem;
+    color: rgba(255, 255, 255, 0.95);
+    margin: 0;
+    line-height: 1.3;
+}
+
+/* Two-Column Layout */
+.supervisor-guide-layout {
+    display: flex;
+    gap: 2rem;
+    align-items: flex-start;
+}
+
+/* Table of Contents */
+.supervisor-guide-toc {
+    position: sticky;
+    top: 80px;
+    width: 250px;
+    min-width: 250px;
+    background: white;
+    border-radius: 12px;
+    padding: 1.25rem;
+    box-shadow: 0 1px 3px rgba(0, 0, 0, 0.1);
+    border: 1px solid rgba(0, 0, 0, 0.05);
+}
+
+.supervisor-guide-toc-title {
+    font-size: 0.75rem;
+    font-weight: 600;
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
+    color: #AEA29A;
+    margin-bottom: 0.75rem;
+    padding-bottom: 0.5rem;
+    border-bottom: 2px solid #E3EDF6;
+}
+
+.supervisor-guide-toc-link {
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+    padding: 0.5rem 0.75rem;
+    margin-bottom: 0.125rem;
+    color: #6E6259;
+    text-decoration: none;
+    font-size: 0.8125rem;
+    font-weight: 500;
+    border-radius: 6px;
+    transition: all 0.2s ease;
+    border-left: 3px solid transparent;
+}
+
+.supervisor-guide-toc-link:hover {
+    background: #E3EDF6;
+    color: #009edb;
+    text-decoration: none;
+}
+
+.supervisor-guide-toc-link.active {
+    background: rgba(0, 158, 219, 0.08);
+    color: #009edb;
+    font-weight: 600;
+    border-left-color: #009edb;
+}
+
+.supervisor-guide-toc-link i {
+    font-size: 0.875rem;
+    width: 1rem;
+    text-align: center;
+    flex-shrink: 0;
+}
+
+/* Guide Content */
+.supervisor-guide-content {
+    flex: 1;
+    min-width: 0;
+}
+
+.supervisor-guide-section {
+    margin-bottom: 2.5rem;
+    scroll-margin-top: 80px;
+}
+
+.supervisor-guide-section-title {
+    font-size: 1.25rem;
+    font-weight: 600;
+    color: #004987;
+    margin-bottom: 1rem;
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+}
+
+.supervisor-guide-section-title i {
+    color: #009edb;
+    font-size: 1.1rem;
+}
+
+.supervisor-guide-card {
+    background: white;
+    border-radius: 12px;
+    padding: 1.5rem;
+    box-shadow: 0 1px 3px rgba(0, 0, 0, 0.1);
+    border: 1px solid rgba(0, 0, 0, 0.05);
+}
+
+/* Info Boxes */
+.supervisor-guide-info-box {
+    background: #f8fafc;
+    border: 1px solid #e2e8f0;
+    border-radius: 8px;
+    padding: 1rem;
+}
+
+.supervisor-guide-info-box-header {
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+    margin-bottom: 0.5rem;
+}
+
+/* Callout Boxes */
+.supervisor-guide-callout {
+    display: flex;
+    gap: 0.75rem;
+    padding: 1rem 1.25rem;
+    border-radius: 8px;
+    font-size: 0.875rem;
+    line-height: 1.5;
+}
+
+.supervisor-guide-callout > i {
+    font-size: 1.1rem;
+    flex-shrink: 0;
+    margin-top: 0.1rem;
+}
+
+.supervisor-guide-callout-warning {
+    background: #FFFBF5;
+    border: 1px solid #FFEAD5;
+    color: #8a4600;
+}
+
+.supervisor-guide-callout-warning > i {
+    color: #F58220;
+}
+
+.supervisor-guide-callout-info {
+    background: #f0f7ff;
+    border: 1px solid #d0e4f5;
+    color: #004987;
+}
+
+.supervisor-guide-callout-info > i {
+    color: #009edb;
+}
+
+/* Steps */
+.supervisor-guide-steps {
+    counter-reset: none;
+}
+
+.supervisor-guide-step {
+    display: flex;
+    gap: 1rem;
+    margin-bottom: 1.5rem;
+}
+
+.supervisor-guide-step:last-child {
+    margin-bottom: 0;
+}
+
+.supervisor-guide-step-number {
+    width: 32px;
+    height: 32px;
+    min-width: 32px;
+    background: #009edb;
+    color: white;
+    border-radius: 50%;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-weight: 600;
+    font-size: 0.875rem;
+}
+
+.supervisor-guide-step-content {
+    flex: 1;
+    padding-top: 0.2rem;
+    font-size: 0.9rem;
+}
+
+/* Action Blocks */
+.supervisor-guide-action-block {
+    border: 1px solid #e2e8f0;
+    border-radius: 10px;
+    padding: 1.25rem;
+    background: #f8fafc;
+}
+
+.supervisor-guide-action-header {
+    display: flex;
+    align-items: center;
+    gap: 1rem;
+    margin-bottom: 0.75rem;
+}
+
+.supervisor-guide-action-icon {
+    width: 40px;
+    height: 40px;
+    min-width: 40px;
+    border-radius: 10px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 1.125rem;
+}
+
+.supervisor-guide-action-details {
+    padding-left: 1.25rem;
+    margin: 0;
+    color: #4a5568;
+    font-size: 0.875rem;
+    line-height: 1.8;
+}
+
+/* Status Badges */
+.supervisor-guide-badge {
+    display: inline-block;
+    padding: 0.15rem 0.5rem;
+    border-radius: 4px;
+    font-size: 0.75rem;
+    font-weight: 600;
+    white-space: nowrap;
+}
+
+.badge-sv-pending {
+    background: #FFEAD5;
+    color: #c46200;
+}
+
+.badge-sv-approved {
+    background: #E6EFD0;
+    color: #4a8c1c;
+}
+
+.badge-sv-partial {
+    background: #FFF3CD;
+    color: #856404;
+}
+
+.badge-sv-rejected {
+    background: #F7DFDF;
+    color: #c41230;
+}
+
+.badge-sv-reverted {
+    background: #EBEAE6;
+    color: #6E6259;
+}
+
+.badge-sv-draft {
+    background: #E3EDF6;
+    color: #004987;
+}
+
+/* Status Table */
+.supervisor-guide-status-table {
+    font-size: 0.875rem;
+}
+
+.supervisor-guide-status-table thead th {
+    background: #E3EDF6;
+    color: #004987;
+    font-weight: 600;
+    font-size: 0.8125rem;
+    text-transform: uppercase;
+    letter-spacing: 0.3px;
+    border-bottom: 2px solid #C5DFEF;
+    padding: 0.75rem 1rem;
+}
+
+.supervisor-guide-status-table tbody td {
+    padding: 0.75rem 1rem;
+    vertical-align: middle;
+    border-bottom: 1px solid #f1f5f9;
+    color: #4a5568;
+}
+
+.supervisor-guide-status-table tbody tr:hover {
+    background: #f8fafc;
+}
+
+/* FAQ Accordion */
+.supervisor-guide-accordion-item {
+    border: 1px solid #e2e8f0 !important;
+    border-radius: 8px !important;
+    margin-bottom: 0.5rem;
+    overflow: hidden;
+}
+
+.supervisor-guide-accordion-item:last-child {
+    margin-bottom: 0;
+}
+
+.supervisor-guide-accordion-btn {
+    font-weight: 600;
+    font-size: 0.9rem;
+    color: #1a202c;
+    padding: 1rem 1.25rem;
+    background: white;
+}
+
+.supervisor-guide-accordion-btn:not(.collapsed) {
+    color: #009edb;
+    background: rgba(0, 158, 219, 0.04);
+    box-shadow: none;
+}
+
+.supervisor-guide-accordion-btn:focus {
+    box-shadow: none;
+}
+
+/* Troubleshooting */
+.supervisor-guide-trouble-list {
+    display: flex;
+    flex-direction: column;
+    gap: 1rem;
+}
+
+.supervisor-guide-trouble-item {
+    border: 1px solid #e2e8f0;
+    border-radius: 8px;
+    overflow: hidden;
+}
+
+.supervisor-guide-trouble-problem {
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+    padding: 0.75rem 1rem;
+    background: #FFFBF5;
+    border-bottom: 1px solid #e2e8f0;
+    font-size: 0.9rem;
+}
+
+.supervisor-guide-trouble-solution {
+    padding: 0.75rem 1rem;
+    font-size: 0.875rem;
+    color: #4a5568;
+    line-height: 1.6;
+}
+
+/* Responsive */
+@@media (max-width: 768px) {
+    .supervisor-guide-layout {
+        flex-direction: column;
+    }
+
+    .supervisor-guide-toc {
+        position: static;
+        width: 100%;
+        min-width: 0;
+        display: flex;
+        flex-wrap: nowrap;
+        gap: 0.25rem;
+        overflow-x: auto;
+        padding: 0.75rem;
+        -webkit-overflow-scrolling: touch;
+    }
+
+    .supervisor-guide-toc-title {
+        display: none;
+    }
+
+    .supervisor-guide-toc-link {
+        white-space: nowrap;
+        padding: 0.4rem 0.75rem;
+        font-size: 0.75rem;
+        border-left: none;
+        border-bottom: 3px solid transparent;
+        margin-bottom: 0;
+    }
+
+    .supervisor-guide-toc-link.active {
+        border-left-color: transparent;
+        border-bottom-color: #009edb;
+    }
+}
+</style>
