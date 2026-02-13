@@ -685,6 +685,7 @@ namespace TAB.Web.Pages.Admin
                 await _context.Entry(batch).ReloadAsync();
 
                 // Step 4: Push verified records to production
+                batch.BatchStatus = BatchStatus.Verified;
                 batch.CurrentOperation = "Pushing verified records to production...";
                 batch.ProcessingProgress = 85;
                 await _context.SaveChangesAsync();
