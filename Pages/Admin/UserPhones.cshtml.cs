@@ -1003,7 +1003,8 @@ namespace TAB.Web.Pages.Admin
                     { "StatusDescription", statusDescription },
                     { "IndexNumber", user.IndexNumber },
                     { "ChangeDate", DateTime.Now.ToString("MMMM dd, yyyy 'at' hh:mm tt") },
-                    { "UserPhonesUrl", userPhonesUrl }
+                    { "ViewPhoneDetailsLink", userPhonesUrl },
+                    { "Year", DateTime.Now.Year.ToString() }
                 };
 
                 await _enhancedEmailService.SendTemplatedEmailAsync(
@@ -1101,7 +1102,9 @@ namespace TAB.Web.Pages.Admin
                     { "StatusDescription", statusDescription },
                     { "IndexNumber", user.IndexNumber },
                     { "ChangeDate", DateTime.Now.ToString("MMMM dd, yyyy 'at' hh:mm tt") },
-                    { "UserPhonesUrl", userPhonesUrl }
+                    { "Reason", "Status updated by administrator" },
+                    { "UserPhonesUrl", userPhonesUrl },
+                    { "Year", DateTime.Now.Year.ToString() }
                 };
 
                 await _enhancedEmailService.SendTemplatedEmailAsync(

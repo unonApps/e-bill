@@ -546,7 +546,8 @@ namespace TAB.Web.Services
                     { "LineTypeTextColor", textColor },
                     { "IndexNumber", user.IndexNumber },
                     { "AssignedDate", DateTime.Now.ToString("MMMM dd, yyyy 'at' hh:mm tt") },
-                    { "UserPhonesUrl", userPhonesUrl }
+                    { "ViewPhoneDetailsLink", userPhonesUrl },
+                    { "Year", DateTime.Now.Year.ToString() }
                 };
 
                 await _enhancedEmailService.SendTemplatedEmailAsync(
@@ -592,7 +593,8 @@ namespace TAB.Web.Services
                     { "StatusDescription", statusDescription },
                     { "IndexNumber", user.IndexNumber },
                     { "ChangeDate", DateTime.Now.ToString("MMMM dd, yyyy 'at' hh:mm tt") },
-                    { "UserPhonesUrl", userPhonesUrl }
+                    { "ViewPhoneDetailsLink", userPhonesUrl },
+                    { "Year", DateTime.Now.Year.ToString() }
                 };
 
                 await _enhancedEmailService.SendTemplatedEmailAsync(
@@ -632,7 +634,8 @@ namespace TAB.Web.Services
                     { "IndexNumber", user.IndexNumber },
                     { "UnassignedDate", DateTime.Now.ToString("MMMM dd, yyyy 'at' hh:mm tt") },
                     { "Reason", reason ?? "Not specified" },
-                    { "UserPhonesUrl", userPhonesUrl }
+                    { "ViewPhoneDetailsLink", userPhonesUrl },
+                    { "Year", DateTime.Now.Year.ToString() }
                 };
 
                 await _enhancedEmailService.SendTemplatedEmailAsync(

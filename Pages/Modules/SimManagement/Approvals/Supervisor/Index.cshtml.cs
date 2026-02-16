@@ -700,12 +700,13 @@ namespace TAB.Web.Pages.Modules.SimManagement.Approvals.Supervisor
                 { "LastName", requestWithProvider.LastName ?? "" },
                 { "SimType", requestWithProvider.SimType.ToString() },
                 { "ServiceProvider", requestWithProvider.ServiceProvider?.ServiceProviderName ?? "N/A" },
-                { "ReviewerName", $"{reviewer.FirstName} {reviewer.LastName}" },
-                { "ReviewerRole", "Supervisor" },
+                { "RequestDate", requestWithProvider.RequestDate.ToString("MMMM dd, yyyy") },
+                { "RejectedBy", $"{reviewer.FirstName} {reviewer.LastName}" },
+                { "RejectedByRole", "Supervisor" },
                 { "RejectionDate", DateTime.UtcNow.ToString("MMMM dd, yyyy") },
                 { "RejectionReason", reason ?? "No reason provided" },
-                { "ViewRequestLink", $"{Request.Scheme}://{Request.Host}/Modules/SimManagement/Requests/Index" },
                 { "NewRequestLink", $"{Request.Scheme}://{Request.Host}/Modules/SimManagement/Requests/Create" },
+                { "MyRequestsLink", $"{Request.Scheme}://{Request.Host}/Modules/SimManagement/Requests/Index" },
                 { "Year", DateTime.Now.Year.ToString() }
             };
 

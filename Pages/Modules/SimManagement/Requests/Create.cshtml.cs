@@ -438,8 +438,8 @@ namespace TAB.Web.Pages.Modules.SimManagement.Requests
                 { "OfficialEmail", request.OfficialEmail ?? "" },
                 { "OfficeExtension", request.OfficeExtension ?? "N/A" },
                 { "SupervisorName", request.SupervisorName ?? "" },
-                { "SupervisorEmail", request.SupervisorEmail ?? supervisor.Email ?? "" },
-                { "ApprovalLink", $"{Request.Scheme}://{Request.Host}/Modules/SimManagement/Approvals/Supervisor" },
+                { "Justification", request.Remarks ?? "" },
+                { "ReviewRequestLink", $"{Request.Scheme}://{Request.Host}/Modules/SimManagement/Approvals/Supervisor" },
                 { "Year", DateTime.Now.Year.ToString() }
             };
 
