@@ -921,6 +921,17 @@ namespace TAB.Web.Services
                 {
                     return DateTime.ParseExact(dateString, dateFormat, CultureInfo.InvariantCulture);
                 }
+
+                // Try DD/MM/YYYY formats first (Safaricom/Airtel use Kenyan date format)
+                var ddmmFormats = new[] { "d/M/yyyy", "dd/MM/yyyy", "d/MM/yyyy", "dd/M/yyyy",
+                                          "d-M-yyyy", "dd-MM-yyyy", "d.M.yyyy", "dd.MM.yyyy" };
+                if (DateTime.TryParseExact(dateString, ddmmFormats, CultureInfo.InvariantCulture,
+                    DateTimeStyles.None, out var ddmmDate))
+                {
+                    return ddmmDate;
+                }
+
+                // Fallback to general parsing
                 return DateTime.Parse(dateString);
             }
             catch

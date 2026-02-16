@@ -1851,17 +1851,13 @@ namespace TAB.Web.Services
         private DateTime ParseCsvDate(List<string> values, Dictionary<string, int> indices, string field, string provider)
         {
             var value = GetCsvValue(values, indices, field, provider);
-            if (string.IsNullOrWhiteSpace(value)) return DateTime.MinValue;
-            if (DateTime.TryParse(value, out var date)) return date;
-            return DateTime.MinValue;
+            return ParseDateValue(value);
         }
 
         private DateTime ParseCsvDateByAnyKey(List<string> values, Dictionary<string, int> indices, string[] possibleKeys)
         {
             var value = GetCsvValueByAnyKey(values, indices, possibleKeys);
-            if (string.IsNullOrWhiteSpace(value)) return DateTime.MinValue;
-            if (DateTime.TryParse(value, out var date)) return date;
-            return DateTime.MinValue;
+            return ParseDateValue(value);
         }
 
         private TimeSpan ParseCsvTime(List<string> values, Dictionary<string, int> indices, string field, string provider)
@@ -2049,10 +2045,7 @@ namespace TAB.Web.Services
         private DateTime ParseReaderDate(IExcelDataReader reader, Dictionary<string, int> indices, string field, string provider)
         {
             var value = GetReaderValue(reader, indices, field, provider);
-            if (string.IsNullOrWhiteSpace(value)) return DateTime.MinValue;
-
-            if (DateTime.TryParse(value, out var date)) return date;
-            return DateTime.MinValue;
+            return ParseDateValue(value);
         }
 
         private TimeSpan ParseReaderTime(IExcelDataReader reader, Dictionary<string, int> indices, string field, string provider)
@@ -2129,6 +2122,30 @@ namespace TAB.Web.Services
             }
 
             return TimeSpan.Zero;
+        }
+
+        /// <summary>
+        /// Parses dates trying DD/MM/YYYY formats first (used by Safaricom/Airtel CSVs from Kenya),
+        /// then falls back to general parsing. This ensures dates like "13/06/2025" are correctly
+        /// parsed as June 13 instead of failing when the day > 12.
+        /// </summary>
+        private static DateTime ParseDateValue(string? value)
+        {
+            if (string.IsNullOrWhiteSpace(value)) return DateTime.MinValue;
+
+            // Try DD/MM/YYYY formats first (Safaricom/Airtel use Kenyan date format)
+            var ddmmFormats = new[] { "d/M/yyyy", "dd/MM/yyyy", "d/MM/yyyy", "dd/M/yyyy",
+                                      "d-M-yyyy", "dd-MM-yyyy", "d.M.yyyy", "dd.MM.yyyy" };
+            if (DateTime.TryParseExact(value, ddmmFormats, CultureInfo.InvariantCulture,
+                DateTimeStyles.None, out var ddmmDate))
+            {
+                return ddmmDate;
+            }
+
+            // Fallback to general parsing (handles ISO, US, and other formats)
+            if (DateTime.TryParse(value, out var date)) return date;
+
+            return DateTime.MinValue;
         }
 
         private static decimal ParseDecimalOrZero(string? value)
