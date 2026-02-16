@@ -633,7 +633,11 @@ namespace TAB.Web.Services
                     { "LineType", phone.LineType.ToString() },
                     { "IndexNumber", user.IndexNumber },
                     { "UnassignedDate", DateTime.Now.ToString("MMMM dd, yyyy 'at' hh:mm tt") },
-                    { "Reason", reason ?? "Not specified" },
+                    { "ReasonSection", string.IsNullOrWhiteSpace(reason) ? "" :
+                        $@"<div style=""background-color: #eff6ff; border-left: 4px solid #3b82f6; padding: 20px; margin-bottom: 30px; border-radius: 8px;"">
+                            <p style=""margin: 0 0 10px 0; color: #1e40af; font-size: 15px; font-weight: 700;"">Reason for Unassignment:</p>
+                            <p style=""margin: 0; color: #1e40af; font-size: 14px; line-height: 1.6;"">{reason}</p>
+                        </div>" },
                     { "ViewPhoneDetailsLink", userPhonesUrl },
                     { "Year", DateTime.Now.Year.ToString() }
                 };

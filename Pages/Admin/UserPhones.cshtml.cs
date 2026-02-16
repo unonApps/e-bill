@@ -1102,7 +1102,10 @@ namespace TAB.Web.Pages.Admin
                     { "StatusDescription", statusDescription },
                     { "IndexNumber", user.IndexNumber },
                     { "ChangeDate", DateTime.Now.ToString("MMMM dd, yyyy 'at' hh:mm tt") },
-                    { "Reason", "Status updated by administrator" },
+                    { "ReasonSection", @"<div style=""background-color: #eff6ff; border-left: 4px solid #3b82f6; padding: 20px; margin-bottom: 30px; border-radius: 8px;"">
+                        <p style=""margin: 0 0 10px 0; color: #1e40af; font-size: 15px; font-weight: 700;"">Reason for Change:</p>
+                        <p style=""margin: 0; color: #1e40af; font-size: 14px; line-height: 1.6;"">Status updated by administrator</p>
+                    </div>" },
                     { "UserPhonesUrl", userPhonesUrl },
                     { "Year", DateTime.Now.Year.ToString() }
                 };

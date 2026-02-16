@@ -626,7 +626,11 @@ namespace TAB.Web.Pages.Modules.SimManagement.Approvals.Supervisor
                 { "CurrentStatus", "Pending ICTS Processing" },
                 { "SimType", requestWithProvider.SimType.ToString() },
                 { "ServiceProvider", requestWithProvider.ServiceProvider?.ServiceProviderName ?? "N/A" },
-                { "ApprovalComments", comments ?? "" },
+                { "ApprovalCommentsSection", string.IsNullOrWhiteSpace(comments) ? "" :
+                    $@"<div style=""background-color: #eff6ff; border-left: 4px solid #3b82f6; padding: 20px; margin-bottom: 30px; border-radius: 8px;"">
+                        <p style=""margin: 0 0 8px 0; color: #1e40af; font-size: 14px; font-weight: 600;"">Approval Comments:</p>
+                        <p style=""margin: 0; color: #1e40af; font-size: 14px; line-height: 1.5;"">{comments}</p>
+                    </div>" },
                 { "ViewRequestLink", $"{Request.Scheme}://{Request.Host}/Modules/SimManagement/Requests/Index" },
                 { "Year", DateTime.Now.Year.ToString() }
             };
@@ -670,7 +674,11 @@ namespace TAB.Web.Pages.Modules.SimManagement.Approvals.Supervisor
                 { "SimType", requestWithProvider.SimType.ToString() },
                 { "ServiceProvider", requestWithProvider.ServiceProvider?.ServiceProviderName ?? "N/A" },
                 { "SupervisorName", requestWithProvider.SupervisorName ?? "" },
-                { "Remarks", requestWithProvider.Remarks ?? "" },
+                { "RemarksSection", string.IsNullOrWhiteSpace(requestWithProvider.Remarks) ? "" :
+                    $@"<div style=""background-color: #eff6ff; border-left: 4px solid #3b82f6; padding: 20px; margin-bottom: 30px; border-radius: 8px;"">
+                        <p style=""margin: 0 0 8px 0; color: #1e40af; font-size: 14px; font-weight: 600;"">Requester Remarks:</p>
+                        <p style=""margin: 0; color: #1e40af; font-size: 14px; line-height: 1.5;"">{requestWithProvider.Remarks}</p>
+                    </div>" },
                 { "ProcessRequestLink", $"{Request.Scheme}://{Request.Host}/Modules/SimManagement/Approvals/ICTS" },
                 { "Year", DateTime.Now.Year.ToString() }
             };

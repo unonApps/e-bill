@@ -427,7 +427,6 @@ namespace TAB.Web.Pages.Modules.SimManagement.Requests
                 { "RequestDate", request.RequestDate.ToString("MMMM dd, yyyy") },
                 { "SimType", request.SimType.ToString() },
                 { "ServiceProvider", request.ServiceProvider?.ServiceProviderName ?? "N/A" },
-                { "Remarks", request.Remarks ?? "" },
                 { "FirstName", request.FirstName ?? "" },
                 { "LastName", request.LastName ?? "" },
                 { "IndexNo", request.IndexNo ?? "" },
@@ -438,7 +437,11 @@ namespace TAB.Web.Pages.Modules.SimManagement.Requests
                 { "OfficialEmail", request.OfficialEmail ?? "" },
                 { "OfficeExtension", request.OfficeExtension ?? "N/A" },
                 { "SupervisorName", request.SupervisorName ?? "" },
-                { "Justification", request.Remarks ?? "" },
+                { "JustificationSection", string.IsNullOrWhiteSpace(request.Remarks) ? "" :
+                    $@"<div style=""background-color: #eff6ff; border-left: 4px solid #3b82f6; padding: 20px; margin-bottom: 30px; border-radius: 8px;"">
+                        <p style=""margin: 0 0 8px 0; color: #1e40af; font-size: 14px; font-weight: 600;"">Requester Justification:</p>
+                        <p style=""margin: 0; color: #1e40af; font-size: 14px; line-height: 1.5;"">{request.Remarks}</p>
+                    </div>" },
                 { "ReviewRequestLink", $"{Request.Scheme}://{Request.Host}/Modules/SimManagement/Approvals/Supervisor" },
                 { "Year", DateTime.Now.Year.ToString() }
             };
