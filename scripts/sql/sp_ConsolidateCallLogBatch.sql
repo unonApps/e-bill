@@ -76,7 +76,10 @@ BEGIN
             ISNULL(s.dialed, ''),
             ISNULL(s.dest, ''),
             -- Safaricom CallEndTime: Use call_date + call_time (actual call time from CSV)
-            DATEADD(SECOND, ISNULL(DATEDIFF(SECOND, '00:00:00', s.call_time), 0), CAST(ISNULL(s.call_date, '1900-01-01') AS DATETIME)),
+            CASE WHEN s.call_date IS NULL OR s.call_date < '1753-01-01'
+                THEN '1900-01-01'
+                ELSE DATEADD(SECOND, ISNULL(DATEDIFF(SECOND, '00:00:00', s.call_time), 0), CAST(s.call_date AS DATETIME))
+            END,
             -- Safaricom CallDuration:
             -- Internet: durx is KB, convert to MB (÷ 1024)
             -- Voice: Use dur (minutes) * 60, or fall back to durx (mm.ss) conversion
@@ -200,7 +203,10 @@ BEGIN
             ISNULL(a.dialed, ''),
             ISNULL(a.dest, ''),
             -- Airtel CallEndTime: Use call_date + call_time (actual call time from CSV)
-            DATEADD(SECOND, ISNULL(DATEDIFF(SECOND, '00:00:00', a.call_time), 0), CAST(ISNULL(a.call_date, '1900-01-01') AS DATETIME)),
+            CASE WHEN a.call_date IS NULL OR a.call_date < '1753-01-01'
+                THEN '1900-01-01'
+                ELSE DATEADD(SECOND, ISNULL(DATEDIFF(SECOND, '00:00:00', a.call_time), 0), CAST(a.call_date AS DATETIME))
+            END,
             CAST(CASE WHEN ISNULL(a.dur, 0) > 35791394 THEN 2147483647 ELSE ISNULL(a.dur, 0) * 60 END AS INT),  -- Convert minutes to seconds (capped)
             'KES',
             ISNULL(a.cost, 0),
