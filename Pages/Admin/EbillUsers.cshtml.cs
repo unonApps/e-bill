@@ -1436,11 +1436,12 @@ namespace TAB.Web.Pages.Admin
             // Prepare dropdown lists
 
             OrganizationList = await _context.Organizations
-                .OrderBy(o => o.Name)
+                .OrderBy(o => o.Code)
+                .ThenBy(o => o.Name)
                 .Select(o => new SelectListItem
                 {
                     Value = o.Id.ToString(),
-                    Text = o.Name
+                    Text = (o.Code != null ? o.Code + " - " : "") + o.Name
                 })
                 .ToListAsync();
 

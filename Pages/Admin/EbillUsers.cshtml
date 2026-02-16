@@ -4,6 +4,10 @@
     ViewData["Title"] = "Ebill Users Management";
 }
 
+<!-- Select2 CSS for searchable dropdowns -->
+<link href="https://cdn.jsdelivr.net/npm/select2@4.1.0-rc.0/dist/css/select2.min.css" rel="stylesheet" />
+<link href="https://cdn.jsdelivr.net/npm/select2-bootstrap-5-theme@1.3.0/dist/select2-bootstrap-5-theme.min.css" rel="stylesheet" />
+
 <style>
     /* Modern Form Styling */
     .form-select-modern {
@@ -41,6 +45,54 @@
         padding: 8px;
     }
     
+    /* Select2 styling to match modern form */
+    .select2-container--bootstrap-5 .select2-selection {
+        background-color: #f8f9fa !important;
+        border: 2px solid transparent !important;
+        border-radius: 12px !important;
+        min-height: 48px !important;
+        padding: 0 16px !important;
+        font-size: 15px !important;
+        font-weight: 500 !important;
+        color: #2d3748 !important;
+        transition: all 0.3s ease !important;
+    }
+    .select2-container--bootstrap-5 .select2-selection:hover {
+        background-color: #e2e8f0 !important;
+        border-color: #cbd5e0 !important;
+    }
+    .select2-container--bootstrap-5.select2-container--focus .select2-selection,
+    .select2-container--bootstrap-5.select2-container--open .select2-selection {
+        background-color: #ffffff !important;
+        border-color: #3b82f6 !important;
+        box-shadow: 0 0 0 4px rgba(59, 130, 246, 0.1) !important;
+    }
+    .select2-container--bootstrap-5 .select2-selection--single .select2-selection__rendered {
+        line-height: 44px !important;
+        padding-left: 0 !important;
+        color: #2d3748 !important;
+    }
+    .select2-container--bootstrap-5 .select2-selection--single .select2-selection__arrow {
+        height: 44px !important;
+    }
+    .select2-container--bootstrap-5 .select2-dropdown {
+        border-radius: 12px !important;
+        border: 2px solid #e2e8f0 !important;
+        box-shadow: 0 10px 25px rgba(0, 0, 0, 0.1) !important;
+    }
+    .select2-container--bootstrap-5 .select2-results__option--highlighted[aria-selected] {
+        background-color: #3b82f6 !important;
+    }
+    .select2-container--bootstrap-5 .select2-search--dropdown .select2-search__field {
+        border-radius: 8px !important;
+        border: 2px solid #e2e8f0 !important;
+        padding: 8px 12px !important;
+    }
+    .select2-container--bootstrap-5 .select2-search--dropdown .select2-search__field:focus {
+        border-color: #3b82f6 !important;
+        box-shadow: 0 0 0 3px rgba(59, 130, 246, 0.1) !important;
+    }
+
     /* Custom Label Styling */
     .form-label-modern {
         display: block;
@@ -2330,13 +2382,7 @@
 
         // Add event listeners for cascading dropdowns
         document.addEventListener('DOMContentLoaded', function() {
-            // Create form - Organization change
-            var createOrganizationSelect = document.getElementById('Input_OrganizationId');
-            if (createOrganizationSelect) {
-                createOrganizationSelect.addEventListener('change', function() {
-                    loadOffices('Input_OrganizationId', 'createOfficeId', 'createSubOfficeId', null);
-                });
-            }
+            // Create form - Organization change handled by Select2 init
 
             // Create form - Office change
             var createOfficeSelect = document.getElementById('createOfficeId');
@@ -2346,13 +2392,7 @@
                 });
             }
 
-            // Edit form - Organization change
-            var editOrganizationSelect = document.getElementById('editOrganization');
-            if (editOrganizationSelect) {
-                editOrganizationSelect.addEventListener('change', function() {
-                    loadOffices('editOrganization', 'editOffice', 'editSubOffice', null);
-                });
-            }
+            // Edit form - Organization change handled by Select2 init
 
             // Edit form - Office change
             var editOfficeSelect = document.getElementById('editOffice');
@@ -2515,7 +2555,7 @@
                 document.getElementById('editIndexNumber').value = indexNumber || '';
                 document.getElementById('editEmail').value = email || '';
                 document.getElementById('editLocation').value = location || '';
-                document.getElementById('editOrganization').value = organization || '';
+                $('#editOrganization').val(organization || '').trigger('change.select2');
 
             // Load offices for the selected organization, then load sub-offices
             if (organization) {
@@ -3004,6 +3044,52 @@ Note:
             });
             badge.addEventListener('mouseleave', function() {
                 this.style.transform = 'translateY(0) scale(1)';
+            });
+        });
+    </script>
+
+    <!-- Select2 JS for searchable dropdowns -->
+    <script src="https://cdn.jsdelivr.net/npm/select2@4.1.0-rc.0/dist/js/select2.min.js"></script>
+    <script>
+        $(document).ready(function () {
+            // Initialize Select2 on Create modal organization dropdown
+            var $createOrgSelect = $('#Input_OrganizationId');
+            $createOrgSelect.select2({
+                theme: 'bootstrap-5',
+                placeholder: 'Search organization...',
+                allowClear: true,
+                dropdownParent: $('#createUserModal'),
+                width: '100%'
+            });
+
+            // Trigger office load when Select2 value changes
+            $createOrgSelect.on('change', function () {
+                loadOffices('Input_OrganizationId', 'createOfficeId', 'createSubOfficeId', null);
+            });
+
+            // Initialize Select2 on Edit modal organization dropdown
+            var $editOrgSelect = $('#editOrganization');
+            $editOrgSelect.select2({
+                theme: 'bootstrap-5',
+                placeholder: 'Search organization...',
+                allowClear: true,
+                dropdownParent: $('#editUserModal'),
+                width: '100%'
+            });
+
+            // Trigger office load when Select2 value changes
+            $editOrgSelect.on('change', function () {
+                loadOffices('editOrganization', 'editOffice', 'editSubOffice', null);
+            });
+
+            // Reset Select2 when Create modal is closed
+            document.getElementById('createUserModal').addEventListener('hidden.bs.modal', function () {
+                $createOrgSelect.val('').trigger('change.select2');
+            });
+
+            // Update Select2 when Edit modal populates
+            document.getElementById('editUserModal').addEventListener('shown.bs.modal', function () {
+                $editOrgSelect.trigger('change.select2');
             });
         });
     </script>
