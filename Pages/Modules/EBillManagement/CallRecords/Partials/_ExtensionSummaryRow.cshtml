@@ -17,9 +17,9 @@
     var dataDisplay = FormatAllowance(Model.CosDataAllowance);
     var handsetDisplay = FormatAllowance(Model.CosHandsetAllowance);
 
-    // Build Class of Service popover HTML
+    // Build Class of Service popover HTML - horizontal table
     var cosPopoverHtml = Model.ClassOfService != null
-        ? $"<div class='cos-card'><div class='cos-card-row'><div class='cos-card-item'><div class='cos-card-icon' style='background:#eff6ff;color:#3b82f6;'><i class='bi bi-headset'></i></div><div><div class='cos-card-label'>Service</div><div class='cos-card-value'>{Model.CosService ?? "-"}</div></div></div><div class='cos-card-item'><div class='cos-card-icon' style='background:#f0fdf4;color:#22c55e;'><i class='bi bi-phone'></i></div><div><div class='cos-card-label'>Airtime</div><div class='cos-card-value'>{airtimeDisplay}</div></div></div><div class='cos-card-item'><div class='cos-card-icon' style='background:#faf5ff;color:#a855f7;'><i class='bi bi-wifi'></i></div><div><div class='cos-card-label'>Data</div><div class='cos-card-value'>{dataDisplay}</div></div></div><div class='cos-card-item'><div class='cos-card-icon' style='background:#fff7ed;color:#f97316;'><i class='bi bi-tablet'></i></div><div><div class='cos-card-label'>Handset</div><div class='cos-card-value'>{handsetDisplay}</div></div></div></div></div>"
+        ? $"<table class='cos-table'><thead><tr><th>Service</th><th>Airtime</th><th>Data</th><th>Handset</th></tr></thead><tbody><tr><td>{Model.CosService ?? "-"}</td><td>{airtimeDisplay}</td><td>{dataDisplay}</td><td>{handsetDisplay}</td></tr></tbody></table>"
         : "";
 }
 @* Extension Summary Row (Level 1) - Always visible *@
@@ -45,9 +45,9 @@
         {
             <strong class="cos-popover" tabindex="0"
                     data-bs-toggle="popover" data-bs-trigger="hover focus" data-bs-placement="bottom" data-bs-html="true"
-                    data-bs-title="@Model.ClassOfService"
+                    data-bs-title="Class of Service @Model.ClassOfService"
                     data-bs-content="@cosPopoverHtml"
-                    style="border-bottom: 1px dashed #3b82f6; color: #1e40af;">@Model.Extension</strong>
+                    style="border-bottom: 1px dashed #009edb; color: #1e40af;">@Model.Extension</strong>
         }
         else
         {
