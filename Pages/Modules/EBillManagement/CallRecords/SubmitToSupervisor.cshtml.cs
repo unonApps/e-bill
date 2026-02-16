@@ -719,8 +719,8 @@ namespace TAB.Web.Pages.Modules.EBillManagement.CallRecords
             };
 
             var overageMessage = hasOverage
-                ? $"⚠ Your calls exceed the monthly allowance by {currency} {(totalAmount - monthlyAllowance):N2}. Justification has been included."
-                : "✓ Your calls are within the monthly allowance.";
+                ? $"Your calls exceed the monthly allowance by {currency} {(totalAmount - monthlyAllowance):N2}. Justification has been included."
+                : "Your calls are within the monthly allowance.";
 
             var overageBackgroundColor = hasOverage ? "#fff3cd" : "#d4edda";
             var overageBorderColor = hasOverage ? "#ffc107" : "#28a745";
@@ -765,8 +765,8 @@ namespace TAB.Web.Pages.Modules.EBillManagement.CallRecords
             };
 
             var overageMessage = hasOverage
-                ? $"⚠ OVERAGE: Calls exceed allowance by {currency} {(totalAmount - monthlyAllowance):N2}"
-                : "✓ Calls are within allowance";
+                ? $"OVERAGE: Calls exceed allowance by {currency} {(totalAmount - monthlyAllowance):N2}"
+                : "Calls are within allowance";
 
             var overageBackgroundColor = hasOverage ? "#fadbd8" : "#d4edda";
             var overageBorderColor = hasOverage ? "#dc3545" : "#28a745";
