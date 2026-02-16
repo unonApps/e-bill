@@ -482,10 +482,10 @@ namespace TAB.Web.Services
                 var stagingRecord = new CallLogStaging
                 {
                     ExtensionNumber = r.Ext ?? string.Empty,
-                    CallDate = callDateTime,
+                    CallDate = r.CallDate ?? DateTime.MinValue,
                     CallNumber = r.Dialed ?? string.Empty,
                     CallDestination = r.Dest ?? string.Empty,
-                    CallEndTime = callEndTime,
+                    CallEndTime = callDateTime,  // Store the actual call time (date + call_time from CSV)
                     CallDuration = callDuration,
                     CallCurrencyCode = "KES",
                     CallCost = r.Cost ?? 0,
@@ -568,10 +568,10 @@ namespace TAB.Web.Services
                 var stagingRecord = new CallLogStaging
                 {
                     ExtensionNumber = r.Ext ?? string.Empty,
-                    CallDate = callDateTime,
+                    CallDate = r.CallDate ?? DateTime.MinValue,
                     CallNumber = r.Dialed ?? string.Empty,
                     CallDestination = r.Dest ?? string.Empty,
-                    CallEndTime = callEndTime,
+                    CallEndTime = callDateTime,  // Store the actual call time (date + call_time from CSV)
                     CallDuration = callDuration,
                     CallCurrencyCode = "KES",
                     CallCost = r.Cost ?? 0,

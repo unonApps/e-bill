@@ -2260,7 +2260,9 @@
             data.callLogs.forEach(call => {
                 const callDate = new Date(call.callDate);
                 const dateStr = callDate.toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' });
-                const timeStr = callDate.toLocaleTimeString('en-US', { hour: '2-digit', minute: '2-digit' });
+                // Use call_endtime for the actual call time (call_time from CSV)
+                const callEndTime = call.callEndTime ? new Date(call.callEndTime) : null;
+                const timeStr = callEndTime ? callEndTime.toLocaleTimeString('en-US', { hour: '2-digit', minute: '2-digit', second: '2-digit' }) : '-';
 
                 // Check if this is a GPRS/data session (duration is in KB)
                 const isDataSession = call.callType && (
