@@ -810,9 +810,10 @@ namespace TAB.Web.Pages.Modules.EBillManagement.CallRecords
                                         { "StaffName", $"{staff.FirstName} {staff.LastName}" },
                                         { "Month", monthName },
                                         { "Year", callYear.ToString() },
+                                        { "TotalCalls", "1" },
                                         { "SupervisorName", $"{supervisor?.FirstName} {supervisor?.LastName}" ?? user.Email },
-                                        { "RevertReason", revertReason },
-                                        { "RevertedDate", verification.SupervisorApprovedDate?.ToString("MMMM dd, yyyy") ?? DateTime.UtcNow.ToString("MMMM dd, yyyy") },
+                                        { "RevertDate", verification.SupervisorApprovedDate?.ToString("MMMM dd, yyyy") ?? DateTime.UtcNow.ToString("MMMM dd, yyyy") },
+                                        { "RevertDeadline", verification.RevertDeadline?.ToString("MMMM dd, yyyy") ?? "Not specified" },
                                         { "ViewCallLogsLink", $"{Request.Scheme}://{Request.Host}/Modules/EBillManagement/CallRecords/MyCallLogs" }
                                     };
 
