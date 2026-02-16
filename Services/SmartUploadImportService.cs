@@ -323,7 +323,9 @@ namespace TAB.Web.Services
                         dataRow["call_date"] = ParseReaderDate(reader, columnIndices, "date", provider);
                         dataRow["call_time"] = ParseReaderTime(reader, columnIndices, "time", provider);
                         dataRow["Dialed"] = GetReaderValue(reader, columnIndices, "dialedno", provider) ?? "";
-                        dataRow["Dur"] = ParseReaderDecimal(reader, columnIndices, "duration", provider);
+                        var durationRaw = GetReaderValue(reader, columnIndices, "duration", provider);
+                        dataRow["Dur"] = ParseDurationToMinutes(durationRaw);
+                        dataRow["Durx"] = ParseDurxValue(durationRaw);
                         dataRow["Cost"] = ParseReaderDecimal(reader, columnIndices, "charges", provider);
                         dataRow["call_type"] = GetReaderValue(reader, columnIndices, "calltype", provider) ?? "";
                         dataRow["IndexNumber"] = phoneFound ? userPhone.IndexNumber ?? "" : "";
@@ -1445,7 +1447,9 @@ namespace TAB.Web.Services
                     dataRow["call_date"] = ParseCsvDate(values, columnIndices, "date", provider);
                     dataRow["call_time"] = ParseCsvTime(values, columnIndices, "time", provider);
                     dataRow["Dialed"] = GetCsvValue(values, columnIndices, "dialedno", provider) ?? "";
-                    dataRow["Dur"] = ParseCsvDecimal(values, columnIndices, "duration", provider);
+                    var durationRaw = GetCsvValue(values, columnIndices, "duration", provider);
+                    dataRow["Dur"] = ParseDurationToMinutes(durationRaw);
+                    dataRow["Durx"] = ParseDurxValue(durationRaw);
                     dataRow["Cost"] = ParseCsvDecimal(values, columnIndices, "charges", provider);
                     dataRow["call_type"] = GetCsvValue(values, columnIndices, "calltype", provider) ?? "";
                     dataRow["IndexNumber"] = phoneFound ? userPhone.IndexNumber ?? "" : "";
@@ -1807,7 +1811,7 @@ namespace TAB.Web.Services
                 ("safaricom", "date") => new[] { "date" },
                 ("safaricom", "time") => new[] { "time" },
                 ("safaricom", "dialedno") => new[] { "dialledNo", "dialled no", "dialled", "dialedno", "dialed" },
-                ("safaricom", "duration") => new[] { "duration" },
+                ("safaricom", "duration") => new[] { "duration", "dur", "durx" },
                 ("safaricom", "charges") => new[] { "callcharges", "call charges", "charges", "cost" },
                 ("safaricom", "calltype") => new[] { "calltype", "call type", "type" },
                 _ => new[] { field }
@@ -2019,7 +2023,7 @@ namespace TAB.Web.Services
                 ("safaricom", "date") => new[] { "date" },
                 ("safaricom", "time") => new[] { "time" },
                 ("safaricom", "dialedno") => new[] { "dialledNo", "dialled no", "dialled", "dialedno", "dialed" },
-                ("safaricom", "duration") => new[] { "duration" },
+                ("safaricom", "duration") => new[] { "duration", "dur", "durx" },
                 ("safaricom", "charges") => new[] { "callcharges", "call charges", "charges", "cost" },
                 ("safaricom", "calltype") => new[] { "calltype", "call type", "type" },
                 _ => new[] { field }
@@ -2154,6 +2158,74 @@ namespace TAB.Web.Services
             return 0;
         }
 
+        /// <summary>
+        /// Parses duration from HH:MM:SS or decimal format into decimal minutes.
+        /// Used for the Dur column (Airtel consolidation expects minutes).
+        /// e.g., "00:01:30" → 1.5 minutes, "00:00:42" → 0.7 minutes
+        /// </summary>
+        private static decimal ParseDurationToMinutes(string? value)
+        {
+            if (string.IsNullOrWhiteSpace(value)) return 0m;
+
+            // Check for time format (contains colons like "0:00:42" or "00:01:30")
+            if (value.Contains(':'))
+            {
+                var parts = value.Split(':');
+                if (parts.Length == 3 &&
+                    int.TryParse(parts[0], out int hours) &&
+                    int.TryParse(parts[1], out int minutes) &&
+                    int.TryParse(parts[2], out int seconds))
+                {
+                    return (hours * 60) + minutes + (seconds / 60.0m);
+                }
+                if (parts.Length == 2 &&
+                    int.TryParse(parts[0], out int mins) &&
+                    int.TryParse(parts[1], out int secs))
+                {
+                    return mins + (secs / 60.0m);
+                }
+            }
+
+            // Try plain decimal (already in minutes)
+            value = value.Replace(",", "").Trim();
+            return decimal.TryParse(value, NumberStyles.Any, CultureInfo.InvariantCulture, out var d) ? d : 0m;
+        }
+
+        /// <summary>
+        /// Parses duration from HH:MM:SS or decimal format into mm.ss format.
+        /// Used for the Durx column (Safaricom consolidation expects mm.ss).
+        /// e.g., "00:00:42" → 0.42 (0 min, 42 sec), "00:01:30" → 1.30 (1 min, 30 sec)
+        /// </summary>
+        private static decimal ParseDurxValue(string? value)
+        {
+            if (string.IsNullOrWhiteSpace(value)) return 0m;
+
+            // Check for time format (contains colons)
+            if (value.Contains(':'))
+            {
+                var parts = value.Split(':');
+                if (parts.Length == 3 &&
+                    int.TryParse(parts[0], out int hours) &&
+                    int.TryParse(parts[1], out int minutes) &&
+                    int.TryParse(parts[2], out int seconds))
+                {
+                    // mm.ss format: integer part = total minutes, decimal part = seconds/100
+                    int totalMinutes = (hours * 60) + minutes;
+                    return totalMinutes + (seconds / 100m);
+                }
+                if (parts.Length == 2 &&
+                    int.TryParse(parts[0], out int mins) &&
+                    int.TryParse(parts[1], out int secs))
+                {
+                    return mins + (secs / 100m);
+                }
+            }
+
+            // Try plain decimal (for internet usage KB values or already-formatted values)
+            value = value.Replace(",", "").Trim();
+            return decimal.TryParse(value, NumberStyles.Any, CultureInfo.InvariantCulture, out var d) ? d : 0m;
+        }
+
         #endregion
 
         #region DataTable Creation
@@ -2166,7 +2238,8 @@ namespace TAB.Web.Services
             dt.Columns.Add("call_date", typeof(DateTime));     // Call date ([Column("call_date")])
             dt.Columns.Add("call_time", typeof(TimeSpan));     // Call time ([Column("call_time")])
             dt.Columns.Add("Dialed", typeof(string));          // Dialed number (property: Dialed)
-            dt.Columns.Add("Dur", typeof(decimal));            // Duration (property: Dur)
+            dt.Columns.Add("Dur", typeof(decimal));            // Duration in minutes (property: Dur)
+            dt.Columns.Add("Durx", typeof(decimal));           // Duration extended mm.ss format (property: Durx)
             dt.Columns.Add("Cost", typeof(decimal));           // Cost in KES (property: Cost)
             dt.Columns.Add("call_type", typeof(string));       // Call type ([Column("call_type")])
             dt.Columns.Add("IndexNumber", typeof(string));
@@ -2255,6 +2328,7 @@ namespace TAB.Web.Services
             bulkCopy.ColumnMappings.Add("call_time", "call_time");
             bulkCopy.ColumnMappings.Add("Dialed", "Dialed");
             bulkCopy.ColumnMappings.Add("Dur", "Dur");
+            bulkCopy.ColumnMappings.Add("Durx", "Durx");
             bulkCopy.ColumnMappings.Add("Cost", "Cost");
             bulkCopy.ColumnMappings.Add("call_type", "call_type");
             bulkCopy.ColumnMappings.Add("IndexNumber", "IndexNumber");

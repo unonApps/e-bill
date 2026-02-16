@@ -404,6 +404,16 @@ namespace TAB.Web.Services
                 var dialed = (r.Dialed ?? "").Trim();
                 var dialedLower = dialed.ToLowerInvariant();
                 var durxValue = r.Durx ?? 0;
+
+                // Fallback: if Durx is 0 but Dur has a value, use Dur (converted from minutes to mm.ss)
+                // This handles imports where only Dur was populated (e.g., SmartUpload legacy imports)
+                if (durxValue == 0 && (r.Dur ?? 0) > 0)
+                {
+                    // Dur is in minutes (decimal), convert to mm.ss format for consistent processing
+                    var durMinutes = (int)Math.Floor(r.Dur!.Value);
+                    var durSeconds = (int)((r.Dur.Value - durMinutes) * 60);
+                    durxValue = durMinutes + (durSeconds / 100m);
+                }
                 int callDuration;
                 DateTime callEndTime;
                 string callType;

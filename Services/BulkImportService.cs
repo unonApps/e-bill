@@ -428,12 +428,18 @@ namespace TAB.Web.Services
                 var headers = ParseCsvLine(headerLine);
                 var columnIndices = BuildColumnIndex(headers);
 
-                // Validate required columns for Safaricom/Airtel
-                var requiredColumns = new[] { "ext", "call_date", "dialed", "cost" };
-                var missingColumns = new List<string>();
-                foreach (var required in requiredColumns)
+                // Validate required columns for Safaricom/Airtel (accepts common aliases)
+                var requiredColumnsWithAliases = new Dictionary<string, string[]>
                 {
-                    if (!columnIndices.ContainsKey(required.ToLower()))
+                    { "ext", new[] { "ext", "callingno", "calling no", "msisdn", "phone" } },
+                    { "call_date", new[] { "call_date", "date", "call date" } },
+                    { "dialed", new[] { "dialed", "dialedno", "dialled", "dialled no", "number" } },
+                    { "cost", new[] { "cost", "charges", "callcharges", "call charges" } }
+                };
+                var missingColumns = new List<string>();
+                foreach (var (required, aliases) in requiredColumnsWithAliases)
+                {
+                    if (!aliases.Any(alias => columnIndices.ContainsKey(alias.ToLower())))
                     {
                         missingColumns.Add(required);
                     }
@@ -469,7 +475,7 @@ namespace TAB.Web.Services
                     try
                     {
                         var row = dataTable.NewRow();
-                        var extension = NormalizePhoneNumber(GetValue(values, columnIndices, "ext"));
+                        var extension = NormalizePhoneNumber(GetValueMultiple(values, columnIndices, "ext", "callingno", "calling no", "msisdn", "phone"));
 
                         // Fast lookup from pre-loaded dictionary
                         var phoneFound = userPhoneLookup.TryGetValue(extension, out var userPhone);
@@ -485,14 +491,16 @@ namespace TAB.Web.Services
                         var billingPeriodString = billingPeriodDate.ToString("yyyy-MM-dd");
 
                         // Populate row with lowercase column names (Safaricom/Airtel schema)
+                        // Uses multiple column name aliases to handle varying CSV header formats
                         row["ext"] = extension;
-                        row["call_date"] = ParseDate(GetValue(values, columnIndices, "call_date"), dateFormat);
-                        row["dialed"] = GetValue(values, columnIndices, "dialed") ?? "";
-                        row["dest"] = GetValue(values, columnIndices, "dest") ?? GetValue(values, columnIndices, "dialed") ?? "";
-                        row["durx"] = ParseDurxValue(GetValue(values, columnIndices, "durx"));
-                        row["cost"] = ParseDecimalOrZero(GetValue(values, columnIndices, "cost"));
-                        row["dur"] = ParseDecimalOrZero(GetValue(values, columnIndices, "dur"));
-                        row["call_type"] = GetValue(values, columnIndices, "call_type") ?? "Voice";
+                        row["call_date"] = ParseDate(GetValueMultiple(values, columnIndices, "call_date", "date"), dateFormat);
+                        row["call_time"] = ParseTimeSpan(GetValueMultiple(values, columnIndices, "call_time", "time"));
+                        row["dialed"] = GetValueMultiple(values, columnIndices, "dialed", "dialedno", "dialled", "dialled no") ?? "";
+                        row["dest"] = GetValueMultiple(values, columnIndices, "dest", "destination") ?? GetValueMultiple(values, columnIndices, "dialed", "dialedno") ?? "";
+                        row["durx"] = ParseDurxValue(GetValueMultiple(values, columnIndices, "durx", "dur", "duration"));
+                        row["cost"] = ParseDecimalOrZero(GetValueMultiple(values, columnIndices, "cost", "charges", "callcharges", "call charges"));
+                        row["dur"] = ParseDurationToMinutes(GetValueMultiple(values, columnIndices, "dur", "duration"));
+                        row["call_type"] = GetValueMultiple(values, columnIndices, "call_type", "calltype", "type") ?? "Voice";
                         row["call_month"] = billingMonth;
                         row["call_year"] = billingYear;
                         row["IndexNumber"] = indexNumber;
@@ -611,6 +619,7 @@ namespace TAB.Web.Services
             // Using lowercase for columns that are lowercase in the database
             dt.Columns.Add("ext", typeof(string)).AllowDBNull = true;
             dt.Columns.Add("call_date", typeof(DateTime)).AllowDBNull = true;
+            dt.Columns.Add("call_time", typeof(TimeSpan)).AllowDBNull = true;
             dt.Columns.Add("dialed", typeof(string)).AllowDBNull = true;
             dt.Columns.Add("dest", typeof(string)).AllowDBNull = true;
             dt.Columns.Add("durx", typeof(decimal)).AllowDBNull = true;
@@ -706,6 +715,7 @@ namespace TAB.Web.Services
             {
                 bulkCopy.ColumnMappings.Add("ext", "ext");
                 bulkCopy.ColumnMappings.Add("call_date", "call_date");
+                bulkCopy.ColumnMappings.Add("call_time", "call_time");
                 bulkCopy.ColumnMappings.Add("dialed", "dialed");
                 bulkCopy.ColumnMappings.Add("dest", "dest");
                 bulkCopy.ColumnMappings.Add("durx", "durx");
@@ -866,6 +876,20 @@ namespace TAB.Web.Services
             {
                 var value = values[index]?.Trim();
                 return string.IsNullOrWhiteSpace(value) ? null : value;
+            }
+            return null;
+        }
+
+        /// <summary>
+        /// Tries multiple column name aliases and returns the first non-null value found.
+        /// Handles CSV files with varying header names (e.g., "dur" vs "duration" vs "Duration(HH:MM:SS)").
+        /// </summary>
+        private string? GetValueMultiple(string[] values, Dictionary<string, int> columnIndices, params string[] columnNames)
+        {
+            foreach (var name in columnNames)
+            {
+                var value = GetValue(values, columnIndices, name);
+                if (value != null) return value;
             }
             return null;
         }
