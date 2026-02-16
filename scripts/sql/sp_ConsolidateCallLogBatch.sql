@@ -74,25 +74,8 @@ BEGIN
             ISNULL(s.call_date, '1900-01-01'),
             ISNULL(s.dialed, ''),
             ISNULL(s.dest, ''),
-            -- Safaricom CallEndTime:
-            -- Internet (dialed starts with 'safaricom'): durx is KB, add as seconds placeholder
-            -- Voice (dialed is phone number): Use dur (minutes) if available, fall back to durx (mm.ss)
-            -- Other (SMS, ROAMING, RENT, MMS, Bundle): no duration, use call_date as-is
-            -- NOTE: Cap calculations to prevent INT overflow (max INT = 2147483647)
-            CASE
-                WHEN LOWER(ISNULL(s.dialed, '')) LIKE 'safaricom%'
-                    THEN DATEADD(SECOND, CAST(CASE WHEN ISNULL(s.durx, 0) > 2147483647 THEN 2147483647 ELSE ISNULL(s.durx, 0) END AS INT), ISNULL(s.call_date, '1900-01-01'))
-                WHEN ISNULL(s.dialed, '') LIKE '[0-9]%' OR ISNULL(s.dialed, '') LIKE '+%'
-                    -- Voice call: Use dur (minutes) * 60, or fall back to durx (mm.ss) conversion
-                    THEN DATEADD(SECOND,
-                        CAST(CASE
-                            WHEN ISNULL(s.dur, 0) > 0 THEN ISNULL(s.dur, 0) * 60  -- dur is in minutes
-                            WHEN ISNULL(s.durx, 0) > 0 THEN FLOOR(ISNULL(s.durx, 0)) * 60 + (ISNULL(s.durx, 0) - FLOOR(ISNULL(s.durx, 0))) * 100
-                            ELSE 0
-                        END AS INT),
-                        ISNULL(s.call_date, '1900-01-01'))
-                ELSE ISNULL(s.call_date, '1900-01-01')  -- SMS, ROAMING, RENT, MMS, Bundle - no duration
-            END,
+            -- Safaricom CallEndTime: Use call_date + call_time (actual call time from CSV)
+            DATEADD(SECOND, ISNULL(DATEDIFF(SECOND, '00:00:00', s.call_time), 0), CAST(ISNULL(s.call_date, '1900-01-01') AS DATETIME)),
             -- Safaricom CallDuration:
             -- Internet: durx is KB, convert to MB (÷ 1024)
             -- Voice: Use dur (minutes) * 60, or fall back to durx (mm.ss) conversion
@@ -213,8 +196,8 @@ BEGIN
             ISNULL(a.call_date, '1900-01-01'),
             ISNULL(a.dialed, ''),
             ISNULL(a.dest, ''),
-            -- Airtel: dur is in minutes, convert to seconds (cap at max INT to prevent overflow)
-            DATEADD(SECOND, CAST(CASE WHEN ISNULL(a.dur, 0) > 35791394 THEN 2147483647 ELSE ISNULL(a.dur, 0) * 60 END AS INT), ISNULL(a.call_date, '1900-01-01')),
+            -- Airtel CallEndTime: Use call_date + call_time (actual call time from CSV)
+            DATEADD(SECOND, ISNULL(DATEDIFF(SECOND, '00:00:00', a.call_time), 0), CAST(ISNULL(a.call_date, '1900-01-01') AS DATETIME)),
             CAST(CASE WHEN ISNULL(a.dur, 0) > 35791394 THEN 2147483647 ELSE ISNULL(a.dur, 0) * 60 END AS INT),  -- Convert minutes to seconds (capped)
             'KES',
             ISNULL(a.cost, 0),
