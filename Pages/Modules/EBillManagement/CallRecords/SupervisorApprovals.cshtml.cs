@@ -697,9 +697,11 @@ namespace TAB.Web.Pages.Modules.EBillManagement.CallRecords
                                         { "Month", monthName },
                                         { "Year", callYear.ToString() },
                                         { "Currency", rejCurrency },
+                                        { "TotalAmount", verification.ActualAmount.ToString("N2") },
+                                        { "StaffPayableAmount", verification.ActualAmount.ToString("N2") },
                                         { "SupervisorName", $"{supervisor?.FirstName} {supervisor?.LastName}" ?? user.Email },
                                         { "RejectionReason", rejectionReason },
-                                        { "RejectedDate", verification.SupervisorApprovedDate?.ToString("MMMM dd, yyyy") ?? DateTime.UtcNow.ToString("MMMM dd, yyyy") },
+                                        { "RejectionDate", verification.SupervisorApprovedDate?.ToString("MMMM dd, yyyy") ?? DateTime.UtcNow.ToString("MMMM dd, yyyy") },
                                         { "ViewCallLogsLink", $"{Request.Scheme}://{Request.Host}/Modules/EBillManagement/CallRecords/MyCallLogs" }
                                     };
 
