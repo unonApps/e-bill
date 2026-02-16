@@ -52,6 +52,9 @@
 
     .page-info {
         flex: 1;
+        display: flex;
+        align-items: center;
+        gap: 1rem;
     }
 
     .module-badge {
@@ -65,7 +68,7 @@
         font-weight: 600;
         text-transform: uppercase;
         letter-spacing: 0.5px;
-        margin-bottom: 0.5rem;
+        white-space: nowrap;
     }
 
     .page-title-main {
@@ -1113,64 +1116,6 @@
             }
         });
     </script>
-
-    <!-- Statistics Cards -->
-    <div class="stats-grid mb-3">
-        <div class="stat-card @(Model.SelectedStatus == null ? "active" : "")" onclick="filterByStatus('all')" title="Click to show all requests">
-            <div class="stat-content">
-                <div class="stat-icon stat-icon-primary">
-                    <i class="bi bi-collection"></i>
-                </div>
-                <div class="stat-details">
-                    <div class="stat-number">@Model.TotalRequests</div>
-                    <div class="stat-label">Total Requests</div>
-                </div>
-            </div>
-        </div>
-
-        @{
-            var isPendingActive = Model.SelectedStatus == RefundRequestStatus.PendingSupervisor ||
-                                  Model.SelectedStatus == RefundRequestStatus.PendingBudgetOfficer ||
-                                  Model.SelectedStatus == RefundRequestStatus.PendingStaffClaimsUnit ||
-                                  Model.SelectedStatus == RefundRequestStatus.PendingPaymentApproval;
-        }
-
-        <div class="stat-card @(isPendingActive ? "active" : "")" onclick="filterByStatus('pending')" title="Click to show pending requests">
-            <div class="stat-content">
-                <div class="stat-icon stat-icon-warning">
-                    <i class="bi bi-clock"></i>
-                </div>
-                <div class="stat-details">
-                    <div class="stat-number">@Model.PendingRequests</div>
-                    <div class="stat-label">Pending</div>
-                </div>
-            </div>
-        </div>
-
-        <div class="stat-card @(Model.SelectedStatus == RefundRequestStatus.Completed ? "active" : "")" onclick="filterByStatus('completed')" title="Click to show completed requests">
-            <div class="stat-content">
-                <div class="stat-icon stat-icon-success">
-                    <i class="bi bi-check-circle"></i>
-                </div>
-                <div class="stat-details">
-                    <div class="stat-number">@Model.ApprovedRequests</div>
-                    <div class="stat-label">Completed</div>
-                </div>
-            </div>
-        </div>
-
-        <div class="stat-card @(Model.SelectedStatus == RefundRequestStatus.Cancelled ? "active" : "")" onclick="filterByStatus('cancelled')" title="Click to show cancelled requests">
-            <div class="stat-content">
-                <div class="stat-icon stat-icon-danger">
-                    <i class="bi bi-x-circle"></i>
-                </div>
-                <div class="stat-details">
-                    <div class="stat-number">@Model.CancelledRequests</div>
-                    <div class="stat-label">Cancelled</div>
-                </div>
-            </div>
-        </div>
-    </div>
 
     <!-- Requests List -->
     @if (Model.RefundRequests.Any())

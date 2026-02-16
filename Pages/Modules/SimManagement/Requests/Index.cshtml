@@ -56,6 +56,9 @@
 
     .page-info {
         flex: 1;
+        display: flex;
+        align-items: center;
+        gap: 1rem;
     }
 
     .module-badge {
@@ -69,7 +72,7 @@
         font-weight: 600;
         text-transform: uppercase;
         letter-spacing: 0.5px;
-        margin-bottom: 0.5rem;
+        white-space: nowrap;
     }
 
     .page-title-main {
@@ -774,75 +777,6 @@
             <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
         </div>
     }
-
-    <!-- Statistics Cards -->
-    <div class="stats-grid mb-3">
-        <div class="stat-card @(Model.SelectedStatus == null ? "active" : "")" onclick="filterByStatus('all')" title="Click to show all requests">
-            <div class="stat-content">
-                <div class="stat-icon stat-icon-primary">
-                    <i class="bi bi-collection"></i>
-                </div>
-                <div class="stat-details">
-                    <div class="stat-number">@Model.TotalRequests</div>
-                    <div class="stat-label">Total Requests</div>
-                </div>
-            </div>
-        </div>
-
-        @{
-            var isPendingActive = Model.SelectedStatus == RequestStatus.PendingSupervisor ||
-                                  Model.SelectedStatus == RequestStatus.PendingIcts ||
-                                  Model.SelectedStatus == RequestStatus.PendingAdmin ||
-                                  Model.SelectedStatus == RequestStatus.PendingServiceProvider ||
-                                  Model.SelectedStatus == RequestStatus.PendingSIMCollection;
-        }
-
-        <div class="stat-card @(isPendingActive ? "active" : "")" onclick="filterByStatus('pending')" title="Click to show pending requests">
-            <div class="stat-content">
-                <div class="stat-icon stat-icon-warning">
-                    <i class="bi bi-clock"></i>
-                </div>
-                <div class="stat-details">
-                    <div class="stat-number">@Model.PendingRequests</div>
-                    <div class="stat-label">Pending</div>
-                </div>
-            </div>
-        </div>
-
-        @{
-            var isApprovedActive = Model.SelectedStatus == RequestStatus.Approved ||
-                                   Model.SelectedStatus == RequestStatus.Completed;
-        }
-
-        <div class="stat-card @(isApprovedActive ? "active" : "")" onclick="filterByStatus('approved')" title="Click to show approved requests">
-            <div class="stat-content">
-                <div class="stat-icon stat-icon-success">
-                    <i class="bi bi-check-circle"></i>
-                </div>
-                <div class="stat-details">
-                    <div class="stat-number">@Model.ApprovedRequests</div>
-                    <div class="stat-label">Approved</div>
-                </div>
-            </div>
-        </div>
-
-        @{
-            var isRejectedActive = Model.SelectedStatus == RequestStatus.Rejected ||
-                                   Model.SelectedStatus == RequestStatus.Cancelled;
-        }
-
-        <div class="stat-card @(isRejectedActive ? "active" : "")" onclick="filterByStatus('rejected')" title="Click to show rejected/cancelled requests">
-            <div class="stat-content">
-                <div class="stat-icon stat-icon-danger">
-                    <i class="bi bi-x-circle"></i>
-                </div>
-                <div class="stat-details">
-                    <div class="stat-number">@Model.RejectedRequests</div>
-                    <div class="stat-label">Rejected/Cancelled</div>
-                </div>
-            </div>
-        </div>
-    </div>
 
     <!-- Filters Card (Collapsible) -->
     <div class="card border-0 shadow-sm mb-4" style="border-radius: 20px;">
