@@ -241,6 +241,36 @@
             font-size: 0.9rem !important;
         }
 
+        /* Class of Service popover styling */
+        .cos-popover-container {
+            max-width: 320px;
+            border-radius: 12px;
+            box-shadow: 0 10px 30px rgba(0, 0, 0, 0.15);
+            border: 1px solid #e2e8f0;
+        }
+        .cos-popover-container .popover-header {
+            background-color: #1e40af;
+            color: #ffffff;
+            font-size: 0.85rem;
+            font-weight: 600;
+            border-radius: 11px 11px 0 0;
+            padding: 10px 14px;
+        }
+        .cos-popover-container .popover-body {
+            padding: 8px 10px;
+        }
+        .cos-popover-container .popover-body .table {
+            margin-bottom: 0;
+        }
+        .cos-popover-container .popover-body .table td {
+            padding: 4px 6px;
+            vertical-align: middle;
+            border: none;
+        }
+        .cos-popover {
+            cursor: pointer;
+        }
+
         /* Pagination - Smaller on mobile */
         .page-link {
             padding: 0.375rem 0.5rem;
@@ -892,7 +922,9 @@
                                  RevertedCount: group.RevertedCount, PartiallyApprovedCount: group.PartiallyApprovedCount,
                                  IncomingAssignmentCount: group.IncomingAssignmentCount, AssignedFromUser: group.AssignedFromUser,
                                  OutgoingPendingCount: group.OutgoingPendingCount, AssignedToUser: group.AssignedToUser,
-                                 ClassOfService: group.ClassOfService))
+                                 ClassOfService: group.ClassOfService, CosService: group.CosService,
+                                 CosEligibleStaff: group.CosEligibleStaff, CosAirtimeAllowance: group.CosAirtimeAllowance,
+                                 CosDataAllowance: group.CosDataAllowance, CosHandsetAllowance: group.CosHandsetAllowance))
 
                             // Placeholder row for AJAX-loaded dialed numbers (Level 2)
                             <tr class="dialed-numbers-container" id="dialed-container-@group.GroupId" style="display: none;">
@@ -4683,6 +4715,15 @@
                 return new bootstrap.Tooltip(tooltipTriggerEl, {
                     trigger: 'hover',
                     delay: { show: 300, hide: 100 }
+                });
+            });
+
+            // Initialize Bootstrap popovers for Class of Service
+            var popoverTriggerList = [].slice.call(document.querySelectorAll('[data-bs-toggle="popover"]'));
+            popoverTriggerList.forEach(function (popoverTriggerEl) {
+                new bootstrap.Popover(popoverTriggerEl, {
+                    sanitize: false,
+                    customClass: 'cos-popover-container'
                 });
             });
 

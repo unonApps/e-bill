@@ -1,4 +1,4 @@
-@model (string GroupId, string Extension, string MonthName, int Month, int Year, int CallCount, decimal TotalCostUSD, decimal TotalCostKSH, decimal TotalRecoveredUSD, decimal TotalRecoveredKSH, bool IsPrivateWirePrimary, decimal OfficialUSD, decimal OfficialKSH, decimal PersonalUSD, decimal PersonalKSH, int SubmittedCount, int PendingCount, int ApprovedCount, int RejectedCount, int RevertedCount, int PartiallyApprovedCount, int IncomingAssignmentCount, string? AssignedFromUser, int OutgoingPendingCount, string? AssignedToUser, string? ClassOfService)
+@model (string GroupId, string Extension, string MonthName, int Month, int Year, int CallCount, decimal TotalCostUSD, decimal TotalCostKSH, decimal TotalRecoveredUSD, decimal TotalRecoveredKSH, bool IsPrivateWirePrimary, decimal OfficialUSD, decimal OfficialKSH, decimal PersonalUSD, decimal PersonalKSH, int SubmittedCount, int PendingCount, int ApprovedCount, int RejectedCount, int RevertedCount, int PartiallyApprovedCount, int IncomingAssignmentCount, string? AssignedFromUser, int OutgoingPendingCount, string? AssignedToUser, string? ClassOfService, string? CosService, string? CosEligibleStaff, string? CosAirtimeAllowance, string? CosDataAllowance, string? CosHandsetAllowance)
 
 @{
     // Calculate if all calls are submitted and locked (pending or approved - can't resubmit)
@@ -26,7 +26,18 @@
         <i class="bi bi-plus-circle text-primary toggle-icon" id="toggle-@Model.GroupId"></i>
     </td>
     <td class="px-3 py-2" onclick="toggleCallDetails('@Model.GroupId')" style="cursor: pointer;">
-        <strong data-bs-toggle="tooltip" data-bs-placement="top" title="@(Model.ClassOfService ?? "No Class of Service")" style="border-bottom: 1px dashed #6b7280;">@Model.Extension</strong>
+        @if (Model.ClassOfService != null)
+        {
+            <strong class="cos-popover" tabindex="0"
+                    data-bs-toggle="popover" data-bs-trigger="hover focus" data-bs-placement="right" data-bs-html="true"
+                    data-bs-title="<i class='bi bi-info-circle me-1'></i>Class of Service"
+                    data-bs-content="@($"<table class='table table-sm table-borderless mb-0' style='font-size:0.8rem;'><tr><td class='text-muted fw-semibold pe-2' style='white-space:nowrap;'>Class</td><td class='fw-bold'>{Model.ClassOfService}</td></tr><tr><td class='text-muted fw-semibold pe-2' style='white-space:nowrap;'>Service</td><td>{Model.CosService ?? "-"}</td></tr><tr><td class='text-muted fw-semibold pe-2' style='white-space:nowrap;'>Eligible Staff</td><td>{Model.CosEligibleStaff ?? "-"}</td></tr><tr><td class='text-muted fw-semibold pe-2' style='white-space:nowrap;'>Airtime</td><td>{Model.CosAirtimeAllowance ?? "-"}</td></tr><tr><td class='text-muted fw-semibold pe-2' style='white-space:nowrap;'>Data</td><td>{Model.CosDataAllowance ?? "-"}</td></tr><tr><td class='text-muted fw-semibold pe-2' style='white-space:nowrap;'>Handset</td><td>{Model.CosHandsetAllowance ?? "-"}</td></tr></table>")"
+                    style="border-bottom: 1px dashed #3b82f6; color: #1e40af;">@Model.Extension</strong>
+        }
+        else
+        {
+            <strong>@Model.Extension</strong>
+        }
     </td>
     <td class="px-3 py-2" onclick="toggleCallDetails('@Model.GroupId')" style="cursor: pointer;">@Model.MonthName</td>
     <td class="px-3 py-2" onclick="toggleCallDetails('@Model.GroupId')" style="cursor: pointer;">@Model.Year</td>

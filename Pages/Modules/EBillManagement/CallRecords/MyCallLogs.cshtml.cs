@@ -318,13 +318,29 @@ namespace TAB.Web.Pages.Modules.EBillManagement.CallRecords
                 var phoneClassMap = await _context.UserPhones
                     .Where(up => extensionNumbers.Contains(up.PhoneNumber) && up.ClassOfServiceId != null)
                     .Include(up => up.ClassOfService)
-                    .Select(up => new { up.PhoneNumber, ClassName = up.ClassOfService != null ? up.ClassOfService.Class : null })
-                    .Distinct()
+                    .Select(up => new {
+                        up.PhoneNumber,
+                        ClassName = up.ClassOfService != null ? up.ClassOfService.Class : null,
+                        Service = up.ClassOfService != null ? up.ClassOfService.Service : null,
+                        EligibleStaff = up.ClassOfService != null ? up.ClassOfService.EligibleStaff : null,
+                        AirtimeAllowance = up.ClassOfService != null ? up.ClassOfService.AirtimeAllowance : null,
+                        DataAllowance = up.ClassOfService != null ? up.ClassOfService.DataAllowance : null,
+                        HandsetAllowance = up.ClassOfService != null ? up.ClassOfService.HandsetAllowance : null
+                    })
                     .ToListAsync();
 
                 foreach (var group in ExtensionGroups)
                 {
-                    group.ClassOfService = phoneClassMap.FirstOrDefault(p => p.PhoneNumber == group.Extension)?.ClassName;
+                    var cos = phoneClassMap.FirstOrDefault(p => p.PhoneNumber == group.Extension);
+                    if (cos != null)
+                    {
+                        group.ClassOfService = cos.ClassName;
+                        group.CosService = cos.Service;
+                        group.CosEligibleStaff = cos.EligibleStaff;
+                        group.CosAirtimeAllowance = cos.AirtimeAllowance;
+                        group.CosDataAllowance = cos.DataAllowance;
+                        group.CosHandsetAllowance = cos.HandsetAllowance;
+                    }
                 }
             }
 
@@ -2649,8 +2665,13 @@ namespace TAB.Web.Pages.Modules.EBillManagement.CallRecords
         public int OutgoingPendingCount { get; set; }
         public string? AssignedToUser { get; set; }
 
-        // Class of Service for the extension
+        // Class of Service details for the extension
         public string? ClassOfService { get; set; }
+        public string? CosService { get; set; }
+        public string? CosEligibleStaff { get; set; }
+        public string? CosAirtimeAllowance { get; set; }
+        public string? CosDataAllowance { get; set; }
+        public string? CosHandsetAllowance { get; set; }
 
         public string MonthName => new DateTime(Year, Month, 1).ToString("MMMM");
     }
