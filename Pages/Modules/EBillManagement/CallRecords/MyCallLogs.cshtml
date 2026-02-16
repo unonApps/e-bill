@@ -2267,7 +2267,8 @@
                 // Check if this is a GPRS/data session (duration is in KB)
                 const isDataSession = call.callType && (
                     call.callType.toLowerCase().includes('gprs') ||
-                    call.callType.toLowerCase().includes('data')
+                    call.callType.toLowerCase().includes('data') ||
+                    call.callType.toLowerCase().includes('internet')
                 );
 
                 let durationStr;
