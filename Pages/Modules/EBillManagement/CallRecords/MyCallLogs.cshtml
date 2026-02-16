@@ -2275,9 +2275,10 @@
                     // Format as data size (KB → MB → GB)
                     durationStr = formatDataSize(call.callDuration);
                 } else {
-                    // Format as time (minutes:seconds)
-                    const minutes = Math.floor(call.callDuration);
-                    const seconds = Math.round((call.callDuration - minutes) * 100);
+                    // Format as time (minutes:seconds) - callDuration is in seconds
+                    const totalSeconds = Math.round(call.callDuration);
+                    const minutes = Math.floor(totalSeconds / 60);
+                    const seconds = totalSeconds % 60;
                     durationStr = `${minutes}:${seconds.toString().padStart(2, '0')}`;
                 }
 
