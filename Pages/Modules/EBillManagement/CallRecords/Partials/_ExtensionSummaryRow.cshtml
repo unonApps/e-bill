@@ -1,4 +1,4 @@
-@model (string GroupId, string Extension, string MonthName, int Month, int Year, int CallCount, decimal TotalCostUSD, decimal TotalCostKSH, decimal TotalRecoveredUSD, decimal TotalRecoveredKSH, bool IsPrivateWirePrimary, decimal OfficialUSD, decimal OfficialKSH, decimal PersonalUSD, decimal PersonalKSH, int SubmittedCount, int PendingCount, int ApprovedCount, int RejectedCount, int RevertedCount, int PartiallyApprovedCount, int IncomingAssignmentCount, string? AssignedFromUser, int OutgoingPendingCount, string? AssignedToUser)
+@model (string GroupId, string Extension, string MonthName, int Month, int Year, int CallCount, decimal TotalCostUSD, decimal TotalCostKSH, decimal TotalRecoveredUSD, decimal TotalRecoveredKSH, bool IsPrivateWirePrimary, decimal OfficialUSD, decimal OfficialKSH, decimal PersonalUSD, decimal PersonalKSH, int SubmittedCount, int PendingCount, int ApprovedCount, int RejectedCount, int RevertedCount, int PartiallyApprovedCount, int IncomingAssignmentCount, string? AssignedFromUser, int OutgoingPendingCount, string? AssignedToUser, string? ClassOfService)
 
 @{
     // Calculate if all calls are submitted and locked (pending or approved - can't resubmit)
@@ -26,7 +26,7 @@
         <i class="bi bi-plus-circle text-primary toggle-icon" id="toggle-@Model.GroupId"></i>
     </td>
     <td class="px-3 py-2" onclick="toggleCallDetails('@Model.GroupId')" style="cursor: pointer;">
-        <strong>@Model.Extension</strong>
+        <strong data-bs-toggle="tooltip" data-bs-placement="top" title="@(Model.ClassOfService ?? "No Class of Service")" style="border-bottom: 1px dashed #6b7280;">@Model.Extension</strong>
     </td>
     <td class="px-3 py-2" onclick="toggleCallDetails('@Model.GroupId')" style="cursor: pointer;">@Model.MonthName</td>
     <td class="px-3 py-2" onclick="toggleCallDetails('@Model.GroupId')" style="cursor: pointer;">@Model.Year</td>

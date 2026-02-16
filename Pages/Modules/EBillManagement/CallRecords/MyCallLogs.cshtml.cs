@@ -311,6 +311,23 @@ namespace TAB.Web.Pages.Modules.EBillManagement.CallRecords
                 group.GroupId = $"{group.Extension}_{group.Month}_{group.Year}".Replace(" ", "_").Replace("-", "_").Replace("+", "");
             }
 
+            // Look up Class of Service for each extension from UserPhones
+            if (ExtensionGroups.Any())
+            {
+                var extensionNumbers = ExtensionGroups.Select(g => g.Extension).Distinct().ToList();
+                var phoneClassMap = await _context.UserPhones
+                    .Where(up => extensionNumbers.Contains(up.PhoneNumber) && up.ClassOfServiceId != null)
+                    .Include(up => up.ClassOfService)
+                    .Select(up => new { up.PhoneNumber, ClassName = up.ClassOfService != null ? up.ClassOfService.Class : null })
+                    .Distinct()
+                    .ToListAsync();
+
+                foreach (var group in ExtensionGroups)
+                {
+                    group.ClassOfService = phoneClassMap.FirstOrDefault(p => p.PhoneNumber == group.Extension)?.ClassName;
+                }
+            }
+
             // Get submission status counts per extension/month/year
             if (ExtensionGroups.Any())
             {
@@ -2631,6 +2648,9 @@ namespace TAB.Web.Pages.Modules.EBillManagement.CallRecords
         // Outgoing pending reassignment counts (calls user reassigned to others, pending acceptance)
         public int OutgoingPendingCount { get; set; }
         public string? AssignedToUser { get; set; }
+
+        // Class of Service for the extension
+        public string? ClassOfService { get; set; }
 
         public string MonthName => new DateTime(Year, Month, 1).ToString("MMMM");
     }
