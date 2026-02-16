@@ -1887,6 +1887,8 @@ namespace TAB.Web.Services
                     var totalRecords = staffRecords.Count;
                     var totalAmount = staffRecords.Sum(r => r.CallCostUSD);
                     var sourceSystems = string.Join(", ", staffRecords.Select(r => r.SourceSystem).Distinct().OrderBy(s => s));
+                    var distinctSources = staffRecords.Select(r => r.SourceSystem?.ToUpperInvariant()).Distinct().ToList();
+                    var publishCurrency = distinctSources.All(s => s == "PW" || s == "PRIVATEWIRE") ? "USD" : "KSH";
 
                     // Calculate Class of Service usage
                     var allowancePercentage = monthlyAllowance > 0 ? (totalAmount / monthlyAllowance) * 100 : 0;
@@ -1935,6 +1937,7 @@ namespace TAB.Web.Services
                         { "TotalRecords", totalRecords.ToString("N0") },
                         { "TotalAmount", totalAmount.ToString("N2") },
                         { "SourceSystems", sourceSystems },
+                        { "Currency", publishCurrency },
                         { "VerificationDeadline", verificationDeadlineText },
                         { "ApprovalDeadline", approvalDeadlineText },
                         { "MonthlyAllowance", monthlyAllowance.ToString("N2") },

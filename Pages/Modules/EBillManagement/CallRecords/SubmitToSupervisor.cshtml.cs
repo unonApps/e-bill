@@ -711,8 +711,15 @@ namespace TAB.Web.Pages.Modules.EBillManagement.CallRecords
             var callYear = callRecords.First().CallYear;
             var monthName = new DateTime(callYear, callMonth, 1).ToString("MMMM");
 
+            var sourceSystem = callRecords.First().SourceSystem?.ToUpperInvariant() ?? "";
+            var currency = sourceSystem switch
+            {
+                "PW" or "PRIVATEWIRE" => "USD",
+                _ => "KSH"
+            };
+
             var overageMessage = hasOverage
-                ? $"⚠ Your calls exceed the monthly allowance by USD {(totalAmount - monthlyAllowance):N2}. Justification has been included."
+                ? $"⚠ Your calls exceed the monthly allowance by {currency} {(totalAmount - monthlyAllowance):N2}. Justification has been included."
                 : "✓ Your calls are within the monthly allowance.";
 
             var overageBackgroundColor = hasOverage ? "#fff3cd" : "#d4edda";
@@ -727,6 +734,7 @@ namespace TAB.Web.Pages.Modules.EBillManagement.CallRecords
                 { "Year", callYear.ToString() },
                 { "TotalCalls", callRecords.Count.ToString() },
                 { "TotalAmount", totalAmount.ToString("N2") },
+                { "Currency", currency },
                 { "MonthlyAllowance", monthlyAllowance > 0 ? monthlyAllowance.ToString("N2") : "Unlimited" },
                 { "SupervisorName", $"{supervisor.FirstName} {supervisor.LastName}" },
                 { "OverageMessage", overageMessage },
@@ -749,8 +757,15 @@ namespace TAB.Web.Pages.Modules.EBillManagement.CallRecords
             var callYear = callRecords.First().CallYear;
             var monthName = new DateTime(callYear, callMonth, 1).ToString("MMMM");
 
+            var sourceSystem = callRecords.First().SourceSystem?.ToUpperInvariant() ?? "";
+            var currency = sourceSystem switch
+            {
+                "PW" or "PRIVATEWIRE" => "USD",
+                _ => "KSH"
+            };
+
             var overageMessage = hasOverage
-                ? $"⚠ OVERAGE: Calls exceed allowance by USD {(totalAmount - monthlyAllowance):N2}"
+                ? $"⚠ OVERAGE: Calls exceed allowance by {currency} {(totalAmount - monthlyAllowance):N2}"
                 : "✓ Calls are within allowance";
 
             var overageBackgroundColor = hasOverage ? "#fadbd8" : "#d4edda";
@@ -766,6 +781,7 @@ namespace TAB.Web.Pages.Modules.EBillManagement.CallRecords
                 { "Year", callYear.ToString() },
                 { "TotalCalls", callRecords.Count.ToString() },
                 { "TotalAmount", totalAmount.ToString("N2") },
+                { "Currency", currency },
                 { "MonthlyAllowance", monthlyAllowance > 0 ? monthlyAllowance.ToString("N2") : "Unlimited" },
                 { "OverageMessage", overageMessage },
                 { "OverageBackgroundColor", overageBackgroundColor },

@@ -684,11 +684,19 @@ namespace TAB.Web.Pages.Modules.EBillManagement.CallRecords
                                     var callYear = verification.CallRecord?.CallYear ?? DateTime.UtcNow.Year;
                                     var monthName = new DateTime(callYear, callMonth, 1).ToString("MMMM");
 
+                                    var rejSourceSystem = verification.CallRecord?.SourceSystem?.ToUpperInvariant() ?? "";
+                                    var rejCurrency = rejSourceSystem switch
+                                    {
+                                        "PW" or "PRIVATEWIRE" => "USD",
+                                        _ => "KSH"
+                                    };
+
                                     var placeholders = new Dictionary<string, string>
                                     {
                                         { "StaffName", $"{staff.FirstName} {staff.LastName}" },
                                         { "Month", monthName },
                                         { "Year", callYear.ToString() },
+                                        { "Currency", rejCurrency },
                                         { "SupervisorName", $"{supervisor?.FirstName} {supervisor?.LastName}" ?? user.Email },
                                         { "RejectionReason", rejectionReason },
                                         { "RejectedDate", verification.SupervisorApprovedDate?.ToString("MMMM dd, yyyy") ?? DateTime.UtcNow.ToString("MMMM dd, yyyy") },
