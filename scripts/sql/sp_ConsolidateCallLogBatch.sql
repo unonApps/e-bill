@@ -65,6 +65,7 @@ BEGIN
             VerificationStatus,
             ProcessingStatus,
             IsAdjustment,
+            HasAnomalies,
             CreatedDate
         )
         SELECT
@@ -125,6 +126,7 @@ BEGIN
             0, -- Pending
             0, -- Staged
             0, -- IsAdjustment = false
+            0, -- HasAnomalies = false
             GETUTCDATE()
         FROM Safaricom s
         LEFT JOIN UserPhones up ON (
@@ -187,6 +189,7 @@ BEGIN
             VerificationStatus,
             ProcessingStatus,
             IsAdjustment,
+            HasAnomalies,
             CreatedDate
         )
         SELECT
@@ -221,6 +224,7 @@ BEGIN
             0, -- Pending
             0, -- Staged
             0, -- IsAdjustment = false
+            0, -- HasAnomalies = false
             GETUTCDATE()
         FROM Airtel a
         LEFT JOIN UserPhones up ON (
@@ -283,6 +287,7 @@ BEGIN
             VerificationStatus,
             ProcessingStatus,
             IsAdjustment,
+            HasAnomalies,
             CreatedDate
         )
         SELECT
@@ -317,6 +322,7 @@ BEGIN
             0, -- Pending
             0, -- Staged
             0, -- IsAdjustment = false
+            0, -- HasAnomalies = false
             GETUTCDATE()
         FROM PSTNs p
         LEFT JOIN UserPhones up ON (
@@ -379,6 +385,7 @@ BEGIN
             VerificationStatus,
             ProcessingStatus,
             IsAdjustment,
+            HasAnomalies,
             CreatedDate
         )
         SELECT
@@ -413,6 +420,7 @@ BEGIN
             0, -- Pending
             0, -- Staged
             0, -- IsAdjustment = false
+            0, -- HasAnomalies = false
             GETUTCDATE()
         FROM PrivateWires pw
         LEFT JOIN UserPhones up ON (
