@@ -243,29 +243,49 @@
 
         /* Class of Service popover styling */
         .cos-popover-container {
-            max-width: 320px;
-            border-radius: 12px;
-            box-shadow: 0 10px 30px rgba(0, 0, 0, 0.15);
-            border: 1px solid #e2e8f0;
+            max-width: 480px;
+            border-radius: 10px;
+            box-shadow: 0 4px 16px rgba(0, 0, 0, 0.1);
+            border: 1px solid #e5e7eb;
         }
         .cos-popover-container .popover-header {
-            background-color: #1e40af;
-            color: #ffffff;
-            font-size: 0.85rem;
-            font-weight: 600;
-            border-radius: 11px 11px 0 0;
-            padding: 10px 14px;
+            background-color: #f8fafc;
+            color: #1e293b;
+            font-size: 0.8rem;
+            font-weight: 700;
+            border-bottom: 1px solid #e5e7eb;
+            border-radius: 9px 9px 0 0;
+            padding: 8px 12px;
         }
         .cos-popover-container .popover-body {
-            padding: 8px 10px;
+            padding: 0;
         }
         .cos-popover-container .popover-body .table {
             margin-bottom: 0;
         }
-        .cos-popover-container .popover-body .table td {
-            padding: 4px 6px;
-            vertical-align: middle;
+        .cos-popover-container .popover-body .table thead th {
+            background-color: #f1f5f9;
+            color: #64748b;
+            font-size: 0.7rem;
+            font-weight: 600;
+            text-transform: uppercase;
+            letter-spacing: 0.03em;
+            padding: 6px 10px;
+            border-bottom: 1px solid #e5e7eb;
+            white-space: nowrap;
+        }
+        .cos-popover-container .popover-body .table tbody td {
+            padding: 8px 10px;
+            color: #1e293b;
+            font-weight: 500;
             border: none;
+            white-space: nowrap;
+        }
+        .cos-popover-container .popover-arrow::before {
+            border-bottom-color: #e5e7eb;
+        }
+        .cos-popover-container .popover-arrow::after {
+            border-bottom-color: #f8fafc;
         }
         .cos-popover {
             cursor: pointer;

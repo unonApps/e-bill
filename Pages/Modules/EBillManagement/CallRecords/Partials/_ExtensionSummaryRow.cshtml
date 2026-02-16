@@ -29,9 +29,9 @@
         @if (Model.ClassOfService != null)
         {
             <strong class="cos-popover" tabindex="0"
-                    data-bs-toggle="popover" data-bs-trigger="hover focus" data-bs-placement="right" data-bs-html="true"
-                    data-bs-title="<i class='bi bi-info-circle me-1'></i>Class of Service"
-                    data-bs-content="@($"<table class='table table-sm table-borderless mb-0' style='font-size:0.8rem;'><tr><td class='text-muted fw-semibold pe-2' style='white-space:nowrap;'>Class</td><td class='fw-bold'>{Model.ClassOfService}</td></tr><tr><td class='text-muted fw-semibold pe-2' style='white-space:nowrap;'>Service</td><td>{Model.CosService ?? "-"}</td></tr><tr><td class='text-muted fw-semibold pe-2' style='white-space:nowrap;'>Eligible Staff</td><td>{Model.CosEligibleStaff ?? "-"}</td></tr><tr><td class='text-muted fw-semibold pe-2' style='white-space:nowrap;'>Airtime</td><td>{Model.CosAirtimeAllowance ?? "-"}</td></tr><tr><td class='text-muted fw-semibold pe-2' style='white-space:nowrap;'>Data</td><td>{Model.CosDataAllowance ?? "-"}</td></tr><tr><td class='text-muted fw-semibold pe-2' style='white-space:nowrap;'>Handset</td><td>{Model.CosHandsetAllowance ?? "-"}</td></tr></table>")"
+                    data-bs-toggle="popover" data-bs-trigger="hover focus" data-bs-placement="bottom" data-bs-html="true"
+                    data-bs-title="@Model.ClassOfService"
+                    data-bs-content="@($"<table class='table table-sm mb-0' style='font-size:0.78rem;'><thead><tr><th>Service</th><th>Airtime</th><th>Data</th><th>Handset</th></tr></thead><tbody><tr><td>{Model.CosService ?? "-"}</td><td>{Model.CosAirtimeAllowance ?? "-"}</td><td>{Model.CosDataAllowance ?? "-"}</td><td>{Model.CosHandsetAllowance ?? "-"}</td></tr></tbody></table>")"
                     style="border-bottom: 1px dashed #3b82f6; color: #1e40af;">@Model.Extension</strong>
         }
         else
