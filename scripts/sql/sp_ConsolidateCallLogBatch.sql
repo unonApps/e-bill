@@ -120,7 +120,9 @@ BEGIN
             END,
             ISNULL(s.call_month, @StartMonth),
             ISNULL(s.call_year, @StartYear),
-            ISNULL(up.IndexNumber, s.IndexNumber),
+            CASE WHEN up.IndexNumber IS NOT NULL THEN up.IndexNumber
+                 WHEN eu.IndexNumber IS NOT NULL THEN eu.IndexNumber
+                 ELSE NULL END,
             up.Id, -- UserPhoneId
             'Safaricom',
             CAST(s.Id AS NVARCHAR(50)),
@@ -136,6 +138,7 @@ BEGIN
             up.PhoneNumber = s.ext
             OR up.PhoneNumber = REPLACE(s.ext, '+254', '0')
         ) AND up.IsActive = 1
+        LEFT JOIN EbillUsers eu ON eu.IndexNumber = s.IndexNumber
         WHERE s.call_month >= @StartMonth
           AND s.call_month <= @EndMonth
           AND s.call_year >= @StartYear
@@ -221,7 +224,9 @@ BEGIN
             END,
             ISNULL(a.call_month, @StartMonth),
             ISNULL(a.call_year, @StartYear),
-            ISNULL(up.IndexNumber, a.IndexNumber),
+            CASE WHEN up.IndexNumber IS NOT NULL THEN up.IndexNumber
+                 WHEN eu_a.IndexNumber IS NOT NULL THEN eu_a.IndexNumber
+                 ELSE NULL END,
             up.Id,
             'Airtel',
             CAST(a.Id AS NVARCHAR(50)),
@@ -237,6 +242,7 @@ BEGIN
             up.PhoneNumber = a.ext
             OR up.PhoneNumber = REPLACE(a.ext, '+254', '0')
         ) AND up.IsActive = 1
+        LEFT JOIN EbillUsers eu_a ON eu_a.IndexNumber = a.IndexNumber
         WHERE a.call_month >= @StartMonth
           AND a.call_month <= @EndMonth
           AND a.call_year >= @StartYear
@@ -319,7 +325,9 @@ BEGIN
             END,
             CASE WHEN p.CallMonth > 0 THEN p.CallMonth ELSE @StartMonth END,
             CASE WHEN p.CallYear > 0 THEN p.CallYear ELSE @StartYear END,
-            ISNULL(up.IndexNumber, p.IndexNumber),
+            CASE WHEN up.IndexNumber IS NOT NULL THEN up.IndexNumber
+                 WHEN eu_p.IndexNumber IS NOT NULL THEN eu_p.IndexNumber
+                 ELSE NULL END,
             up.Id,
             'PSTN',
             CAST(p.Id AS NVARCHAR(50)),
@@ -335,6 +343,7 @@ BEGIN
             up.PhoneNumber = p.Extension
             OR up.PhoneNumber = REPLACE(p.Extension, '+254', '0')
         ) AND up.IsActive = 1
+        LEFT JOIN EbillUsers eu_p ON eu_p.IndexNumber = p.IndexNumber
         WHERE p.CallMonth >= @StartMonth
           AND p.CallMonth <= @EndMonth
           AND p.CallYear >= @StartYear
@@ -417,7 +426,9 @@ BEGIN
             END,
             CASE WHEN pw.CallMonth > 0 THEN pw.CallMonth ELSE @StartMonth END,
             CASE WHEN pw.CallYear > 0 THEN pw.CallYear ELSE @StartYear END,
-            ISNULL(up.IndexNumber, pw.IndexNumber),
+            CASE WHEN up.IndexNumber IS NOT NULL THEN up.IndexNumber
+                 WHEN eu_pw.IndexNumber IS NOT NULL THEN eu_pw.IndexNumber
+                 ELSE NULL END,
             up.Id,
             'PrivateWire',
             CAST(pw.Id AS NVARCHAR(50)),
@@ -433,6 +444,7 @@ BEGIN
             up.PhoneNumber = pw.Extension
             OR up.PhoneNumber = REPLACE(pw.Extension, '+254', '0')
         ) AND up.IsActive = 1
+        LEFT JOIN EbillUsers eu_pw ON eu_pw.IndexNumber = pw.IndexNumber
         WHERE pw.CallMonth >= @StartMonth
           AND pw.CallMonth <= @EndMonth
           AND pw.CallYear >= @StartYear
