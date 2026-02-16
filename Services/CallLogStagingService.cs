@@ -397,6 +397,9 @@ namespace TAB.Web.Services
                     up.PhoneNumber == r.Ext ||
                     up.PhoneNumber == r.Ext?.Replace("+254", "0")); // Handle different formats
 
+                // Combine call_date + call_time into a full DateTime
+                var callDateTime = (r.CallDate ?? DateTime.MinValue).Date + (r.CallTime ?? TimeSpan.Zero);
+
                 // Safaricom: Durx handling based on dialed value
                 // - Internet (dialed starts with "safaricom"): Durx is KB → convert to MB
                 // - Voice (dialed is phone number): Durx is mm:ss decimal → convert to seconds
@@ -422,7 +425,7 @@ namespace TAB.Web.Services
                 {
                     // Internet Usage: Durx is in KB, convert to MB
                     callDuration = (int)(durxValue / 1024m);
-                    callEndTime = (r.CallDate ?? DateTime.MinValue).AddSeconds((int)durxValue);
+                    callEndTime = callDateTime.AddSeconds((int)durxValue);
                     callType = "Internet Usage";
                 }
                 else if (dialed.Length > 0 && (char.IsDigit(dialed[0]) || dialed[0] == '+'))
@@ -432,13 +435,13 @@ namespace TAB.Web.Services
                     var minutes = (int)Math.Floor(durxValue);
                     var seconds = (int)((durxValue - minutes) * 100);
                     callDuration = (minutes * 60) + seconds;
-                    callEndTime = (r.CallDate ?? DateTime.MinValue).AddSeconds(callDuration);
+                    callEndTime = callDateTime.AddSeconds(callDuration);
                     callType = "Voice";
                 }
                 else if (dialedLower == "sms")
                 {
                     callDuration = (int)durxValue; // SMS count
-                    callEndTime = r.CallDate ?? DateTime.MinValue;
+                    callEndTime = callDateTime;
                     callType = "SMS";
                 }
                 else if (dialedLower == "roaming")
@@ -447,39 +450,39 @@ namespace TAB.Web.Services
                     var minutes = (int)Math.Floor(durxValue);
                     var seconds = (int)((durxValue - minutes) * 100);
                     callDuration = (minutes * 60) + seconds;
-                    callEndTime = (r.CallDate ?? DateTime.MinValue).AddSeconds(callDuration);
+                    callEndTime = callDateTime.AddSeconds(callDuration);
                     callType = "Roaming";
                 }
                 else if (dialedLower == "rent")
                 {
                     callDuration = 0;
-                    callEndTime = r.CallDate ?? DateTime.MinValue;
+                    callEndTime = callDateTime;
                     callType = "Rent";
                 }
                 else if (dialedLower == "mms")
                 {
                     callDuration = (int)durxValue; // MMS count
-                    callEndTime = r.CallDate ?? DateTime.MinValue;
+                    callEndTime = callDateTime;
                     callType = "MMS";
                 }
                 else if (dialedLower.Contains("bundle"))
                 {
                     callDuration = 0;
-                    callEndTime = r.CallDate ?? DateTime.MinValue;
+                    callEndTime = callDateTime;
                     callType = "Bundle";
                 }
                 else
                 {
                     // Unknown type, store as-is
                     callDuration = (int)durxValue;
-                    callEndTime = r.CallDate ?? DateTime.MinValue;
+                    callEndTime = callDateTime;
                     callType = r.CallType ?? "Other";
                 }
 
                 var stagingRecord = new CallLogStaging
                 {
                     ExtensionNumber = r.Ext ?? string.Empty,
-                    CallDate = r.CallDate ?? DateTime.MinValue,
+                    CallDate = callDateTime,
                     CallNumber = r.Dialed ?? string.Empty,
                     CallDestination = r.Dest ?? string.Empty,
                     CallEndTime = callEndTime,
@@ -554,15 +557,18 @@ namespace TAB.Web.Services
                     up.PhoneNumber == r.Ext ||
                     up.PhoneNumber == r.Ext?.Replace("+254", "0")); // Handle different formats
 
+                // Combine call_date + call_time into a full DateTime
+                var callDateTime = (r.CallDate ?? DateTime.MinValue).Date + (r.CallTime ?? TimeSpan.Zero);
+
                 // Airtel: Dur is in minutes, convert to seconds
                 var durationMinutes = r.Dur ?? 0;
                 int callDuration = (int)(durationMinutes * 60); // Convert minutes to seconds
-                DateTime callEndTime = (r.CallDate ?? DateTime.MinValue).AddSeconds(callDuration);
+                DateTime callEndTime = callDateTime.AddSeconds(callDuration);
 
                 var stagingRecord = new CallLogStaging
                 {
                     ExtensionNumber = r.Ext ?? string.Empty,
-                    CallDate = r.CallDate ?? DateTime.MinValue,
+                    CallDate = callDateTime,
                     CallNumber = r.Dialed ?? string.Empty,
                     CallDestination = r.Dest ?? string.Empty,
                     CallEndTime = callEndTime,
