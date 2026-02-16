@@ -634,14 +634,49 @@
     
     .empty-state {
         text-align: center;
-        padding: 80px 20px;
-        color: #94a3b8;
+        padding: 3rem;
+        color: #64748b;
     }
-    
-    .empty-state i {
-        font-size: 64px;
-        margin-bottom: 16px;
-        opacity: 0.5;
+
+    .empty-icon {
+        font-size: 4rem;
+        color: #C5DFEF;
+        margin-bottom: 1rem;
+    }
+
+    .empty-title {
+        font-size: 1.5rem;
+        font-weight: 600;
+        color: #004987;
+        margin-bottom: 0.5rem;
+    }
+
+    .empty-text {
+        font-size: 1rem;
+        color: #6E6259;
+        margin-bottom: 2rem;
+    }
+
+    .create-first-btn {
+        background-color: #009EDB;
+        color: white;
+        border: none;
+        padding: 12px 24px;
+        border-radius: 12px;
+        text-decoration: none;
+        font-weight: 500;
+        transition: all 0.3s ease;
+        display: inline-flex;
+        align-items: center;
+        gap: 8px;
+    }
+
+    .create-first-btn:hover {
+        background-color: #0077B8;
+        color: white;
+        text-decoration: none;
+        transform: translateY(-2px);
+        box-shadow: 0 8px 25px rgba(0, 158, 219, 0.3);
     }
     
     .alert-minimal {
@@ -1371,12 +1406,14 @@
     else
     {
         <div class="empty-state">
-            <i class="bi bi-inbox"></i>
-            <h4>No Requests Yet</h4>
-            <p>You haven't submitted any refund requests yet. Create your first request to get started.</p>
-            <a href="/Modules/RefundManagement/Requests/Create" class="create-btn create-btn-lg">
+            <div class="empty-icon">
+                <i class="bi bi-cash-coin"></i>
+            </div>
+            <div class="empty-title">No Requests Yet</div>
+            <div class="empty-text">You haven't submitted any refund requests yet. Create your first request to get started.</div>
+            <a href="/Modules/RefundManagement/Requests/Create" class="create-first-btn">
                 <i class="bi bi-plus-circle"></i>
-                <span>Create First Request</span>
+                Create First Request
             </a>
         </div>
     }

@@ -558,6 +558,14 @@ namespace TAB.Web.Pages.Modules.EBillManagement.CallRecords
             var callYear = verification.CallRecord?.CallYear ?? DateTime.UtcNow.Year;
             var monthName = new DateTime(callYear, callMonth, 1).ToString("MMMM");
 
+            // Determine currency based on SourceSystem
+            var sourceSystem = verification.CallRecord?.SourceSystem?.ToUpperInvariant() ?? "";
+            var currency = sourceSystem switch
+            {
+                "PW" or "PRIVATEWIRE" => "USD",
+                _ => "KSH"  // Safaricom, Artel, PTNS default to KSH
+            };
+
             // Determine if full or partial approval
             bool isPartialApproval = verification.ApprovedAmount.HasValue &&
                                     verification.ApprovedAmount.Value < verification.ActualAmount;
@@ -574,7 +582,7 @@ namespace TAB.Web.Pages.Modules.EBillManagement.CallRecords
                     { "ApprovedAmount", verification.ApprovedAmount?.ToString("N2") ?? "0.00" },
                     { "StaffPayableAmount", (verification.ActualAmount - (verification.ApprovedAmount ?? 0)).ToString("N2") },
                     { "SupervisorName", $"{supervisor.FirstName} {supervisor.LastName}" },
-                    { "SupervisorComments", verification.SupervisorComments ?? "No comments provided" },
+                    { "Currency", currency },
                     { "ViewCallLogsLink", $"{Request.Scheme}://{Request.Host}/Modules/EBillManagement/CallRecords/MyCallLogs" }
                 };
 
@@ -596,7 +604,7 @@ namespace TAB.Web.Pages.Modules.EBillManagement.CallRecords
                     { "ApprovedAmount", verification.ApprovedAmount?.ToString("N2") ?? verification.ActualAmount.ToString("N2") },
                     { "SupervisorName", $"{supervisor.FirstName} {supervisor.LastName}" },
                     { "ApprovedDate", verification.SupervisorApprovedDate?.ToString("MMMM dd, yyyy") ?? DateTime.UtcNow.ToString("MMMM dd, yyyy") },
-                    { "SupervisorComments", verification.SupervisorComments ?? "Approved without comments" },
+                    { "Currency", currency },
                     { "ViewCallLogsLink", $"{Request.Scheme}://{Request.Host}/Modules/EBillManagement/CallRecords/MyCallLogs" }
                 };
 
