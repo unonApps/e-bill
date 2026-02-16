@@ -2505,16 +2505,17 @@
                       .replace(/>/g, '&gt;');
         }
 
-        // Format data size from KB to appropriate unit (KB, MB, GB)
-        function formatDataSize(kb) {
-            if (kb === null || kb === undefined || isNaN(kb)) return '0 KB';
+        // Format data size from MB to appropriate unit (KB, MB, GB)
+        // Note: CallDuration for Internet Usage is stored as MB (durx KB / 1024 in SP)
+        function formatDataSize(mb) {
+            if (mb === null || mb === undefined || isNaN(mb)) return '0 MB';
 
-            if (kb < 1024) {
-                return `${kb.toFixed(2)} KB`;
-            } else if (kb < 1024 * 1024) {
-                return `${(kb / 1024).toFixed(2)} MB`;
+            if (mb < 1) {
+                return `${(mb * 1024).toFixed(0)} KB`;
+            } else if (mb < 1024) {
+                return `${mb.toFixed(2)} MB`;
             } else {
-                return `${(kb / (1024 * 1024)).toFixed(2)} GB`;
+                return `${(mb / 1024).toFixed(2)} GB`;
             }
         }
 
