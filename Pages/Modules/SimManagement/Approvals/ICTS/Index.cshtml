@@ -1404,7 +1404,7 @@
                                                         <div class="row g-3">
                                                         <div class="col-md-6">
                                                                 <label class="form-label" style="font-weight: 500; color: #374151; font-size: 14px; margin-bottom: 8px;">SIM Issued By <span style="color: #ef4444;">*</span></label>
-                                                                <input type="text" name="simIssuedBy" class="form-control" required placeholder="Name of person who issued the SIM" style="border: 1px solid #d1d5db; border-radius: 12px; padding: 12px 16px; font-size: 14px;" />
+                                                                <input type="text" name="simIssuedBy" class="form-control" required value="@Model.CurrentUserName" placeholder="Name of person who issued the SIM" style="border: 1px solid #d1d5db; border-radius: 12px; padding: 12px 16px; font-size: 14px;" />
                                                         </div>
                                                         <div class="col-md-6">
                                                                 <label class="form-label" style="font-weight: 500; color: #374151; font-size: 14px; margin-bottom: 8px;">SIM Collected By <span style="color: #ef4444;">*</span></label>
@@ -2032,7 +2032,7 @@
                                                 </div>
                                                 <div class="col-md-6">
                                                     <label class="form-label fw-medium">SIM Issued By</label>
-                                                    <input type="text" name="simIssuedBy" class="form-control" />
+                                                    <input type="text" name="simIssuedBy" class="form-control" value="@Model.CurrentUserName" />
                                                 </div>
                                                 <div class="col-12">
                                                     <label class="form-label fw-medium">Additional Remarks</label>
@@ -2061,7 +2061,7 @@
                                             <div class="row g-3">
                                                 <div class="col-md-6">
                                                     <label class="form-label fw-medium">SIM Issued By</label>
-                                                    <input type="text" name="simIssuedBy" class="form-control" />
+                                                    <input type="text" name="simIssuedBy" class="form-control" value="@Model.CurrentUserName" />
                                                 </div>
                                                 <div class="col-md-6">
                                                     <label class="form-label fw-medium">SIM Collected By</label>

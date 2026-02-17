@@ -410,6 +410,19 @@ namespace TAB.Web.Pages.Modules.SimManagement.Approvals.ICTS
                 HttpContext.Connection.RemoteIpAddress?.ToString()
             );
 
+            // Create or update EbillUser and UserPhone on completion
+            await CreateOrUpdateEbillUserAsync(request, currentUser);
+
+            // Send completion email to requester
+            try
+            {
+                await SendCompletionEmailAsync(request, currentUser);
+            }
+            catch (Exception emailEx)
+            {
+                _logger.LogError(emailEx, "Failed to send completion email for request {RequestId}", requestId);
+            }
+
             StatusMessage = $"SIM collection completed for {request.FirstName} {request.LastName}. Request marked as completed.";
             StatusMessageClass = "success";
 
@@ -469,11 +482,149 @@ namespace TAB.Web.Pages.Modules.SimManagement.Approvals.ICTS
                 HttpContext.Connection.RemoteIpAddress?.ToString()
             );
 
+            // Create or update EbillUser and UserPhone on completion
+            await CreateOrUpdateEbillUserAsync(request, currentUser);
+
+            // Send completion email to requester
+            try
+            {
+                await SendCompletionEmailAsync(request, currentUser);
+            }
+            catch (Exception emailEx)
+            {
+                _logger.LogError(emailEx, "Failed to send completion email for request {RequestId}", requestId);
+            }
+
             StatusMessage = $"Existing line request for {request.FirstName} {request.LastName} (Phone: {request.ExistingPhoneNumber}) has been marked as completed.";
             StatusMessageClass = "success";
 
             await LoadIctsRequestsAsync();
             return Page();
+        }
+
+        private async Task CreateOrUpdateEbillUserAsync(Models.SimRequest request, ApplicationUser currentUser)
+        {
+            try
+            {
+                // Find existing EbillUser by IndexNumber or email
+                var ebillUser = await _context.EbillUsers
+                    .FirstOrDefaultAsync(u => u.IndexNumber == request.IndexNo);
+
+                if (ebillUser == null && !string.IsNullOrEmpty(request.OfficialEmail))
+                {
+                    ebillUser = await _context.EbillUsers
+                        .FirstOrDefaultAsync(u => u.Email == request.OfficialEmail);
+                }
+
+                // Look up OrganizationId and OfficeId by name
+                int? organizationId = null;
+                int? officeId = null;
+
+                if (!string.IsNullOrEmpty(request.Organization))
+                {
+                    var org = await _context.Organizations
+                        .FirstOrDefaultAsync(o => o.Name == request.Organization);
+                    organizationId = org?.Id;
+                }
+
+                if (!string.IsNullOrEmpty(request.Office))
+                {
+                    var office = await _context.Offices
+                        .FirstOrDefaultAsync(o => o.Name == request.Office);
+                    officeId = office?.Id;
+                }
+
+                if (ebillUser == null)
+                {
+                    // Create new EbillUser
+                    ebillUser = new EbillUser
+                    {
+                        FirstName = request.FirstName,
+                        LastName = request.LastName,
+                        IndexNumber = request.IndexNo,
+                        Email = request.OfficialEmail,
+                        OfficialMobileNumber = request.AssignedNo ?? request.ExistingPhoneNumber,
+                        OrganizationId = organizationId,
+                        OfficeId = officeId,
+                        Location = request.Office,
+                        SupervisorName = request.SupervisorName,
+                        SupervisorEmail = request.SupervisorEmail,
+                        IsActive = true,
+                        IsAutoCreated = true,
+                        ApplicationUserId = request.RequestedBy,
+                        HasLoginAccount = true,
+                        LoginEnabled = true,
+                        CreatedDate = DateTime.UtcNow
+                    };
+
+                    _context.EbillUsers.Add(ebillUser);
+                    await _context.SaveChangesAsync();
+
+                    // Link EbillUser to ApplicationUser
+                    var appUser = await _context.Users.FindAsync(request.RequestedBy);
+                    if (appUser != null && !appUser.EbillUserId.HasValue)
+                    {
+                        appUser.EbillUserId = ebillUser.Id;
+                        await _context.SaveChangesAsync();
+                    }
+
+                    _logger.LogInformation("Created EbillUser {EbillUserId} for SIM request {RequestId} ({FirstName} {LastName})",
+                        ebillUser.Id, request.Id, request.FirstName, request.LastName);
+                }
+                else
+                {
+                    // Update existing EbillUser with latest details
+                    ebillUser.SupervisorName = request.SupervisorName ?? ebillUser.SupervisorName;
+                    ebillUser.SupervisorEmail = request.SupervisorEmail ?? ebillUser.SupervisorEmail;
+                    if (organizationId.HasValue) ebillUser.OrganizationId = organizationId;
+                    if (officeId.HasValue) ebillUser.OfficeId = officeId;
+                    ebillUser.LastModifiedDate = DateTime.UtcNow;
+
+                    await _context.SaveChangesAsync();
+
+                    _logger.LogInformation("Updated EbillUser {EbillUserId} for SIM request {RequestId}",
+                        ebillUser.Id, request.Id);
+                }
+
+                // Create UserPhone record for the assigned number
+                var phoneNumber = request.AssignedNo ?? request.ExistingPhoneNumber;
+                if (!string.IsNullOrEmpty(phoneNumber))
+                {
+                    // Check if this phone number already exists for this user
+                    var existingPhone = await _context.UserPhones
+                        .FirstOrDefaultAsync(p => p.IndexNumber == request.IndexNo && p.PhoneNumber == phoneNumber);
+
+                    if (existingPhone == null)
+                    {
+                        var userPhone = new UserPhone
+                        {
+                            IndexNumber = request.IndexNo,
+                            PhoneNumber = phoneNumber,
+                            PhoneType = "Mobile",
+                            IsPrimary = !await _context.UserPhones.AnyAsync(p => p.IndexNumber == request.IndexNo && p.IsActive),
+                            LineType = LineType.Primary,
+                            IsActive = true,
+                            Status = PhoneStatus.Active,
+                            AssignedDate = DateTime.UtcNow,
+                            Notes = $"Auto-created from SIM request #{request.Id}",
+                            OwnershipType = PhoneOwnershipType.Personal,
+                            CreatedBy = $"{currentUser.FirstName} {currentUser.LastName}",
+                            CreatedDate = DateTime.UtcNow
+                        };
+
+                        _context.UserPhones.Add(userPhone);
+                        await _context.SaveChangesAsync();
+
+                        _logger.LogInformation("Created UserPhone {PhoneNumber} for EbillUser {IndexNumber} from SIM request {RequestId}",
+                            phoneNumber, request.IndexNo, request.Id);
+                    }
+                }
+            }
+            catch (Exception ex)
+            {
+                // Log error but don't fail the completion
+                _logger.LogError(ex, "Failed to create/update EbillUser for SIM request {RequestId}", request.Id);
+            }
         }
 
         public string GetStatusBadgeClass(RequestStatus status)
@@ -531,6 +682,41 @@ namespace TAB.Web.Pages.Modules.SimManagement.Approvals.ICTS
                 "Medium" => "info",
                 _ => "success"
             };
+        }
+
+        private async Task SendCompletionEmailAsync(Models.SimRequest request, ApplicationUser processedByUser)
+        {
+            var requestWithProvider = await _context.SimRequests
+                .Include(r => r.ServiceProvider)
+                .FirstOrDefaultAsync(r => r.Id == request.Id);
+
+            if (requestWithProvider == null) return;
+
+            var phoneNumber = requestWithProvider.AssignedNo ?? requestWithProvider.ExistingPhoneNumber ?? "N/A";
+
+            var placeholders = new Dictionary<string, string>
+            {
+                { "RequestId", requestWithProvider.Id.ToString() },
+                { "FirstName", requestWithProvider.FirstName ?? "" },
+                { "LastName", requestWithProvider.LastName ?? "" },
+                { "CompletionDate", DateTime.UtcNow.ToString("MMMM dd, yyyy") },
+                { "PhoneNumber", phoneNumber },
+                { "SimType", requestWithProvider.SimType.ToString() },
+                { "ServiceProvider", requestWithProvider.ServiceProvider?.ServiceProviderName ?? "N/A" },
+                { "IndexNo", requestWithProvider.IndexNo ?? "" },
+                { "ProcessedBy", $"{processedByUser.FirstName} {processedByUser.LastName}" },
+                { "ViewRequestLink", $"{Request.Scheme}://{Request.Host}/Modules/SimManagement/Requests/Details/{requestWithProvider.Id}" },
+                { "Year", DateTime.Now.Year.ToString() }
+            };
+
+            await _emailService.SendTemplatedEmailAsync(
+                to: requestWithProvider.OfficialEmail ?? "",
+                templateCode: "SIM_REQUEST_COMPLETED",
+                data: placeholders
+            );
+
+            _logger.LogInformation("Sent completion email to {Email} for request {RequestId}",
+                requestWithProvider.OfficialEmail, requestWithProvider.Id);
         }
 
         private async Task SendCollectionReadyEmailAsync(Models.SimRequest request, string? assignedNo, string? ictsRemark)
