@@ -458,18 +458,43 @@ namespace TAB.Web.Pages.Dashboard.Approver
                     OriginalRequest = v
                 }));
 
-                // TODO: Add refund requests pending budget officer approval when model is available
-                // var refundRequests = await _context.RefundRequests
-                //     .Where(r => r.Status == RefundRequestStatus.PendingBudgetOfficer && 
-                //                r.BudgetOfficerEmail == userEmail)
-                //     .OrderByDescending(r => r.RequestDate)
-                //     .Take(10)
-                //     .ToListAsync();
+                // Add refund requests pending budget officer approval
+                var budgetRefundRequests = await _context.RefundRequests
+                    .Where(r => r.Status == RefundRequestStatus.PendingBudgetOfficer)
+                    .OrderByDescending(r => r.RequestDate)
+                    .ToListAsync();
+
+                allRequests.AddRange(budgetRefundRequests.Select(r => new UnifiedRequest
+                {
+                    Id = r.Id,
+                    RequestType = RequestType.DeviceRefund,
+                    StaffName = r.MobileNumberAssignedTo,
+                    RequestTitle = $"Device Refund - {r.DevicePurchaseCurrency} {r.DevicePurchaseAmount:N2} - Pending Budget Approval",
+                    RequestDate = r.RequestDate,
+                    Status = r.Status.ToString(),
+                    Priority = GetPriority(r.RequestDate),
+                    OriginalRequest = r
+                }));
             }
             else if (isClaimsUnit)
             {
-                // Claims Unit see requests pending THEIR claims approval
-                // TODO: Add refund requests pending claims unit approval when model is available
+                // Claims Unit see refund requests pending their processing
+                var claimsRefundRequests = await _context.RefundRequests
+                    .Where(r => r.Status == RefundRequestStatus.PendingStaffClaimsUnit)
+                    .OrderByDescending(r => r.RequestDate)
+                    .ToListAsync();
+
+                allRequests.AddRange(claimsRefundRequests.Select(r => new UnifiedRequest
+                {
+                    Id = r.Id,
+                    RequestType = RequestType.DeviceRefund,
+                    StaffName = r.MobileNumberAssignedTo,
+                    RequestTitle = $"Device Refund - {r.DevicePurchaseCurrency} {r.DevicePurchaseAmount:N2} - Pending Claims Processing",
+                    RequestDate = r.RequestDate,
+                    Status = r.Status.ToString(),
+                    Priority = GetPriority(r.RequestDate),
+                    OriginalRequest = r
+                }));
 
                 // Claims Unit staff may also be supervisors - include call log verifications assigned to them
                 var claimsCallLogVerifications = await _context.CallLogVerifications
@@ -536,13 +561,24 @@ namespace TAB.Web.Pages.Dashboard.Approver
                     OriginalRequest = v
                 }));
 
-                // TODO: Add refund requests pending supervisor approval when model is available
-                // var refundRequests = await _context.RefundRequests
-                //     .Where(r => r.Status == RefundRequestStatus.PendingSupervisor && 
-                //                r.SupervisorEmail == userEmail)
-                //     .OrderByDescending(r => r.RequestDate)
-                //     .Take(10)
-                //     .ToListAsync();
+                // Add refund requests pending supervisor approval
+                var supervisorRefundRequests = await _context.RefundRequests
+                    .Where(r => r.Status == RefundRequestStatus.PendingSupervisor &&
+                               r.SupervisorEmail == userEmail)
+                    .OrderByDescending(r => r.RequestDate)
+                    .ToListAsync();
+
+                allRequests.AddRange(supervisorRefundRequests.Select(r => new UnifiedRequest
+                {
+                    Id = r.Id,
+                    RequestType = RequestType.DeviceRefund,
+                    StaffName = r.MobileNumberAssignedTo,
+                    RequestTitle = $"Device Refund - {r.DevicePurchaseCurrency} {r.DevicePurchaseAmount:N2} - Pending Supervisor Approval",
+                    RequestDate = r.RequestDate,
+                    Status = r.Status.ToString(),
+                    Priority = GetPriority(r.RequestDate),
+                    OriginalRequest = r
+                }));
             }
             else
             {
