@@ -157,7 +157,6 @@ namespace TAB.Web.Pages.Modules.EBillManagement.CallRecords
                     .ThenInclude(up => up.ClassOfService)
                 .Include(c => c.PayingUser)
                 .Include(c => c.ResponsibleUser)
-                .Where(c => (c.CallNumber != null && c.CallNumber != "") || c.CallType.StartsWith("Corporate Value Pack Data")) // Filter out invalid dates but keep subscription/data plan records
                 .AsQueryable();
 
             // Filter by UserIndexNumber only if not admin
@@ -545,7 +544,6 @@ namespace TAB.Web.Pages.Modules.EBillManagement.CallRecords
 
             // Build query for user's calls: (own - accepted outgoing) + incoming assigned
             var userQuery = _context.CallRecords
-                .Where(c => (c.CallNumber != null && c.CallNumber != "") || c.CallType.StartsWith("Corporate Value Pack Data")) // Filter out invalid dates but keep subscription/data plan records
                 .Where(c =>
                     (c.ResponsibleIndexNumber == UserIndexNumber && !acceptedOutgoingCallIdsQuery.Contains(c.Id)) ||
                     incomingAssignedCallIdsQuery.Contains(c.Id));
@@ -1517,8 +1515,7 @@ namespace TAB.Web.Pages.Modules.EBillManagement.CallRecords
                 // Use ExtensionNumber directly (indexed column) - no JOIN to UserPhones
                 var query = _context.CallRecords
                     .Where(c => c.ExtensionNumber == extension &&
-                               c.CallMonth == month && c.CallYear == year &&
-                               ((c.CallNumber != null && c.CallNumber != "") || c.CallType.StartsWith("Corporate Value Pack Data")));
+                               c.CallMonth == month && c.CallYear == year);
 
                 // Filter by user if not admin
                 if (!isAdmin && !string.IsNullOrEmpty(userIndexNumber))
@@ -1739,8 +1736,7 @@ namespace TAB.Web.Pages.Modules.EBillManagement.CallRecords
                 // Build base query - filter by extension (indexed), month, year
                 var query = _context.CallRecords
                     .Where(c => c.ExtensionNumber == extension &&
-                               c.CallMonth == month && c.CallYear == year &&
-                               ((c.CallNumber != null && c.CallNumber != "") || c.CallType.StartsWith("Corporate Value Pack Data")));
+                               c.CallMonth == month && c.CallYear == year);
 
                 // Filter by dialed number
                 // If dialedNumber is empty/null or "Subscription", filter for records with blank dialed numbers (subscriptions)
@@ -1896,7 +1892,6 @@ namespace TAB.Web.Pages.Modules.EBillManagement.CallRecords
                     .Where(c => c.ExtensionNumber == extension
                            && c.CallMonth == month
                            && c.CallYear == year
-                           && ((c.CallNumber != null && c.CallNumber != "") || c.CallType.StartsWith("Corporate Value Pack Data")) // Filter out invalid dates but keep subscription/data plan records
                            && c.VerificationType != "Personal") // Exclude only Personal calls
                     .Where(c =>
                         (c.ResponsibleIndexNumber == userIndex &&
@@ -1960,7 +1955,6 @@ namespace TAB.Web.Pages.Modules.EBillManagement.CallRecords
                     .Where(c => c.ExtensionNumber == extension
                            && c.CallMonth == month
                            && c.CallYear == year
-                           && ((c.CallNumber != null && c.CallNumber != "") || c.CallType.StartsWith("Corporate Value Pack Data")) // Filter out invalid dates but keep subscription/data plan records
                            && c.VerificationType != "Personal") // Exclude only Personal calls
                     .Where(c =>
                         (c.ResponsibleIndexNumber == userIndex &&
