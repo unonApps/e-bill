@@ -325,7 +325,7 @@
                                 </td>
                                 <td>
                                     <div class="fw-semibold">@verification.CallRecord.CallDate.ToString("MMM dd, yyyy")</div>
-                                    <small class="text-muted">@verification.CallRecord.CallDate.ToString("hh:mm tt")</small>
+                                    <small class="text-muted">@(verification.CallRecord.CallEndTime > DateTime.MinValue ? verification.CallRecord.CallEndTime.ToString("hh:mm:ss tt") : "-")</small>
                                 </td>
                                 <td>
                                     <span class="extension-badge">
@@ -346,7 +346,13 @@
                                     </span>
                                 </td>
                                 <td>
-                                    <span class="fw-semibold">@verification.CallRecord.GetDurationFormatted()</span>
+                                    @{
+                                        var rvDur = verification.CallRecord.CallDuration;
+                                        var rvH = rvDur / 3600;
+                                        var rvM = (rvDur % 3600) / 60;
+                                        var rvS = rvDur % 60;
+                                    }
+                                    <span class="fw-semibold">@($"{rvH}:{rvM:D2}:{rvS:D2}")</span>
                                 </td>
                                 <td class="fw-semibold">
                                     $@verification.ActualAmount.ToString("N2")

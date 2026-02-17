@@ -895,7 +895,7 @@ else if (approachingApprovals.Any())
                                                                 @if (verification.CallRecord.CallDate > DateTime.MinValue)
                                                                 {
                                                                     <div class="fw-semibold">@verification.CallRecord.CallDate.ToString("MMM dd, yyyy")</div>
-                                                                    <small class="text-muted">@verification.CallRecord.CallDate.ToString("hh:mm tt")</small>
+                                                                    <small class="text-muted">@(verification.CallRecord.CallEndTime > DateTime.MinValue ? verification.CallRecord.CallEndTime.ToString("hh:mm:ss tt") : "-")</small>
                                                                 }
                                                                 else
                                                                 {
@@ -908,7 +908,13 @@ else if (approachingApprovals.Any())
                                                                 </span>
                                                             </td>
                                                             <td>
-                                                                <span class="fw-semibold">@verification.CallRecord.GetDurationFormatted()</span>
+                                                                @{
+                                                                    var dur = verification.CallRecord.CallDuration;
+                                                                    var h = dur / 3600;
+                                                                    var m = (dur % 3600) / 60;
+                                                                    var s = dur % 60;
+                                                                }
+                                                                <span class="fw-semibold">@($"{h}:{m:D2}:{s:D2}")</span>
                                                             </td>
                                                             <td>
                                                                 <div class="amount-cell">$@verification.ActualAmount.ToString("N2")</div>
