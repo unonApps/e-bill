@@ -58,7 +58,7 @@
             <div class="stat-number">@Model.TotalSimRequests</div>
             <div class="stat-label">SIM Requests</div>
             <div class="stat-action">
-                <a href="/Modules/SimManagement/Approvals?tab=supervisor" class="action-link">
+                <a href="@(Model.TotalIctsRequests > 0 ? "/Modules/SimManagement/Approvals/ICTS" : "/Modules/SimManagement/Approvals/Supervisor")" class="action-link">
                     <span>Review</span>
                     <i class="bi bi-arrow-right"></i>
                 </a>
@@ -212,6 +212,8 @@
         {
             "PendingSupervisor" => $"/Modules/SimManagement/Approvals/Supervisor?requestId={request.Id}",
             "PendingIcts" => $"/Modules/SimManagement/Approvals/ICTS?requestId={request.Id}",
+            "PendingServiceProvider" => $"/Modules/SimManagement/Approvals/ICTS?requestId={request.Id}",
+            "PendingSIMCollection" => $"/Modules/SimManagement/Approvals/ICTS?requestId={request.Id}",
             _ => $"/Modules/SimManagement/Approvals?requestId={request.Id}" // Fallback to main approvals page
         };
     }
