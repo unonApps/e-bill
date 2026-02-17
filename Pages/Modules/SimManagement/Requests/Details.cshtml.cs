@@ -39,7 +39,18 @@ namespace TAB.Web.Pages.Modules.SimManagement.Requests
             }
 
             var currentUser = await _userManager.GetUserAsync(User);
-            if (SimRequest.RequestedBy != currentUser?.Id)
+            if (currentUser == null)
+            {
+                return Forbid();
+            }
+
+            // Allow access for: requestor, assigned supervisor, ICTS role, Admin role
+            var isAdmin = await _userManager.IsInRoleAsync(currentUser, "Admin");
+            var isIcts = await _userManager.IsInRoleAsync(currentUser, "ICTS");
+            var isSupervisor = SimRequest.Supervisor == currentUser.Email || SimRequest.SupervisorEmail == currentUser.Email;
+            var isRequestor = SimRequest.RequestedBy == currentUser.Id;
+
+            if (!isRequestor && !isSupervisor && !isIcts && !isAdmin)
             {
                 return Forbid();
             }
@@ -48,33 +59,16 @@ namespace TAB.Web.Pages.Modules.SimManagement.Requests
             History = await _historyService.GetHistoryAsync(id);
 
             // Load supervisor details if supervisor name is available
-            if (!string.IsNullOrEmpty(SimRequest.Supervisor))
+            // Supervisor field stores email - look up by email first, then by SupervisorEmail field
+            if (!string.IsNullOrEmpty(SimRequest.SupervisorEmail))
             {
-                try
-                {
-                    // Try to find supervisor by full name (exact match first)
-                    SupervisorDetails = await _context.Users
-                        .FirstOrDefaultAsync(u => (u.FirstName + " " + u.LastName) == SimRequest.Supervisor);
-
-                    // If not found, try splitting the name and matching parts
-                    if (SupervisorDetails == null)
-                    {
-                        var nameParts = SimRequest.Supervisor.Split(' ', StringSplitOptions.RemoveEmptyEntries);
-                        if (nameParts.Length >= 2)
-                        {
-                            var firstName = nameParts[0];
-                            var lastName = string.Join(" ", nameParts.Skip(1));
-                            
-                            SupervisorDetails = await _context.Users
-                                .FirstOrDefaultAsync(u => u.FirstName == firstName && u.LastName == lastName);
-                        }
-                    }
-                }
-                catch (Exception)
-                {
-                    // If there's any error looking up supervisor details, we'll just show the name without contact info
-                    SupervisorDetails = null;
-                }
+                SupervisorDetails = await _context.Users
+                    .FirstOrDefaultAsync(u => u.Email == SimRequest.SupervisorEmail);
+            }
+            if (SupervisorDetails == null && !string.IsNullOrEmpty(SimRequest.Supervisor))
+            {
+                SupervisorDetails = await _context.Users
+                    .FirstOrDefaultAsync(u => u.Email == SimRequest.Supervisor);
             }
 
             return Page();
@@ -86,10 +80,14 @@ namespace TAB.Web.Pages.Modules.SimManagement.Requests
             {
                 RequestStatus.Draft => "bg-secondary",
                 RequestStatus.PendingSupervisor => "bg-warning text-dark",
+                RequestStatus.PendingIcts => "bg-primary",
                 RequestStatus.PendingAdmin => "bg-info",
+                RequestStatus.PendingServiceProvider => "bg-warning text-dark",
+                RequestStatus.PendingSIMCollection => "bg-info",
                 RequestStatus.Approved => "bg-success",
                 RequestStatus.Completed => "bg-primary",
                 RequestStatus.Rejected => "bg-danger",
+                RequestStatus.Cancelled => "bg-dark",
                 _ => "bg-secondary"
             };
         }
@@ -100,10 +98,14 @@ namespace TAB.Web.Pages.Modules.SimManagement.Requests
             {
                 RequestStatus.Draft => "bi-file-earmark",
                 RequestStatus.PendingSupervisor => "bi-clock",
+                RequestStatus.PendingIcts => "bi-gear-fill",
                 RequestStatus.PendingAdmin => "bi-hourglass-split",
+                RequestStatus.PendingServiceProvider => "bi-telephone",
+                RequestStatus.PendingSIMCollection => "bi-collection",
                 RequestStatus.Approved => "bi-check-circle",
                 RequestStatus.Completed => "bi-check-all",
                 RequestStatus.Rejected => "bi-x-circle",
+                RequestStatus.Cancelled => "bi-slash-circle",
                 _ => "bi-question-circle"
             };
         }
@@ -114,10 +116,14 @@ namespace TAB.Web.Pages.Modules.SimManagement.Requests
             {
                 RequestStatus.Draft => "alert-secondary",
                 RequestStatus.PendingSupervisor => "alert-warning",
+                RequestStatus.PendingIcts => "alert-primary",
                 RequestStatus.PendingAdmin => "alert-info",
+                RequestStatus.PendingServiceProvider => "alert-warning",
+                RequestStatus.PendingSIMCollection => "alert-info",
                 RequestStatus.Approved => "alert-success",
                 RequestStatus.Completed => "alert-primary",
                 RequestStatus.Rejected => "alert-danger",
+                RequestStatus.Cancelled => "alert-secondary",
                 _ => "alert-secondary"
             };
         }
@@ -176,10 +182,14 @@ namespace TAB.Web.Pages.Modules.SimManagement.Requests
             {
                 "Draft" => "bg-secondary text-white",
                 "PendingSupervisor" => "bg-warning text-dark",
+                "PendingIcts" => "bg-primary text-white",
                 "PendingAdmin" => "bg-info text-white",
+                "PendingServiceProvider" => "bg-warning text-dark",
+                "PendingSIMCollection" => "bg-info text-white",
                 "Approved" => "bg-success text-white",
                 "Rejected" => "bg-danger text-white",
                 "Completed" => "bg-primary text-white",
+                "Cancelled" => "bg-dark text-white",
                 _ => "bg-secondary text-white"
             };
         }

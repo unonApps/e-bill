@@ -97,171 +97,31 @@ namespace TAB.Web.Pages.Modules.SimManagement.Approvals
                 .Take(PageSize)
                 .ToListAsync();
 
-            // Calculate statistics from all accessible requests (not just current page)
-            var allAccessibleRequests = await _context.SimRequests
+            // Calculate statistics using database-level counts (not materializing all records)
+            var statsBaseQuery = _context.SimRequests
                 .Where(r => IsAdmin ||
                            (IsSupervisor && (r.Supervisor == userName || r.SupervisorEmail == userName)) ||
-                           (IsIcts && r.Status == RequestStatus.PendingIcts))
+                           (IsIcts && r.Status == RequestStatus.PendingIcts));
+
+            // Group by status and count in a single query
+            var statusCounts = await statsBaseQuery
+                .GroupBy(r => r.Status)
+                .Select(g => new { Status = g.Key, Count = g.Count() })
                 .ToListAsync();
 
-            TotalRequests = allAccessibleRequests.Count;
-            PendingSupervisorCount = allAccessibleRequests.Count(r => r.Status == RequestStatus.PendingSupervisor);
-            PendingIctsCount = allAccessibleRequests.Count(r => r.Status == RequestStatus.PendingIcts);
-            PendingAdminCount = allAccessibleRequests.Count(r => r.Status == RequestStatus.PendingAdmin);
-            PendingServiceProviderCount = allAccessibleRequests.Count(r => r.Status == RequestStatus.PendingServiceProvider);
-            PendingCollectionCount = allAccessibleRequests.Count(r => r.Status == RequestStatus.PendingSIMCollection);
-            ApprovedCount = allAccessibleRequests.Count(r => r.Status == RequestStatus.Approved);
-            CompletedCount = allAccessibleRequests.Count(r => r.Status == RequestStatus.Completed);
-            RejectedCount = allAccessibleRequests.Count(r => r.Status == RequestStatus.Rejected);
-            CancelledCount = allAccessibleRequests.Count(r => r.Status == RequestStatus.Cancelled);
+            var countLookup = statusCounts.ToDictionary(x => x.Status, x => x.Count);
+            TotalRequests = statusCounts.Sum(x => x.Count);
+            PendingSupervisorCount = countLookup.GetValueOrDefault(RequestStatus.PendingSupervisor);
+            PendingIctsCount = countLookup.GetValueOrDefault(RequestStatus.PendingIcts);
+            PendingAdminCount = countLookup.GetValueOrDefault(RequestStatus.PendingAdmin);
+            PendingServiceProviderCount = countLookup.GetValueOrDefault(RequestStatus.PendingServiceProvider);
+            PendingCollectionCount = countLookup.GetValueOrDefault(RequestStatus.PendingSIMCollection);
+            ApprovedCount = countLookup.GetValueOrDefault(RequestStatus.Approved);
+            CompletedCount = countLookup.GetValueOrDefault(RequestStatus.Completed);
+            RejectedCount = countLookup.GetValueOrDefault(RequestStatus.Rejected);
+            CancelledCount = countLookup.GetValueOrDefault(RequestStatus.Cancelled);
 
             return Page();
-        }
-
-        public async Task<IActionResult> OnPostApproveSupervisorAsync(int requestId, string mobileService, string mobileServiceAllowance, 
-            string handsetAllowance, string supervisorNotes, string action)
-        {
-            var request = await _context.SimRequests.FindAsync(requestId);
-            if (request == null)
-            {
-                return NotFound();
-            }
-
-            // Update request with supervisor approval details
-            request.MobileService = mobileService;
-            request.MobileServiceAllowance = mobileServiceAllowance;
-            request.HandsetAllowance = handsetAllowance;
-            request.SupervisorNotes = supervisorNotes;
-            request.SupervisorName = User.Identity?.Name;
-            request.SupervisorEmail = User.Identity?.Name;
-            request.SupervisorApprovalDate = DateTime.UtcNow;
-            
-            if (action == "approve")
-            {
-                request.Status = RequestStatus.PendingIcts;
-                request.SubmittedToSupervisor = true;
-                
-                // Add to history
-                _context.SimRequestHistories.Add(new SimRequestHistory
-                {
-                    SimRequestId = request.Id,
-                    Action = "Approved by Supervisor",
-                    PerformedBy = User.Identity?.Name ?? "Unknown",
-                    UserName = User.Identity?.Name ?? "Unknown",
-                    Timestamp = DateTime.UtcNow,
-                    Comments = supervisorNotes,
-                    NewStatus = "PendingIcts",
-                    PreviousStatus = "PendingSupervisor"
-                });
-            }
-
-            await _context.SaveChangesAsync();
-            
-            // Redirect back to the approvals page with supervisor tab active
-            return RedirectToPage("/Modules/SimManagement/Approvals/Index", new { tab = "supervisor" });
-        }
-
-        public async Task<IActionResult> OnPostRejectSupervisorAsync(int requestId, string rejectionReason)
-        {
-            var request = await _context.SimRequests.FindAsync(requestId);
-            if (request == null)
-            {
-                return NotFound();
-            }
-
-            // Update request with rejection details
-            request.Status = RequestStatus.Rejected;
-            request.SupervisorNotes = rejectionReason;
-            request.SupervisorName = User.Identity?.Name;
-            request.SupervisorEmail = User.Identity?.Name;
-            request.SupervisorApprovalDate = DateTime.UtcNow;
-            
-            // Add to history
-            _context.SimRequestHistories.Add(new SimRequestHistory
-            {
-                SimRequestId = request.Id,
-                Action = "Rejected by Supervisor",
-                PerformedBy = User.Identity?.Name ?? "Unknown",
-                UserName = User.Identity?.Name ?? "Unknown",
-                Timestamp = DateTime.UtcNow,
-                Comments = rejectionReason,
-                NewStatus = "Rejected",
-                PreviousStatus = "PendingSupervisor"
-            });
-
-            await _context.SaveChangesAsync();
-            
-            // Redirect back to the approvals page with supervisor tab active
-            return RedirectToPage("/Modules/SimManagement/Approvals/Index", new { tab = "supervisor" });
-        }
-
-        public async Task<IActionResult> OnPostProcessIctsAsync(int requestId, string simSerialNo, string serviceRequestNo, 
-            string phoneNumber, string lineType, string simPuk, string pin, string processingNotes)
-        {
-            var request = await _context.SimRequests.FindAsync(requestId);
-            if (request == null)
-            {
-                return NotFound();
-            }
-
-            // Update request with ICTS processing details
-            request.SimSerialNo = simSerialNo;
-            request.ServiceRequestNo = serviceRequestNo;
-            request.LineType = lineType;
-            request.SimPuk = simPuk;
-            request.ProcessingNotes = processingNotes;
-            request.ProcessedBy = User.Identity?.Name;
-            request.ProcessedDate = DateTime.UtcNow;
-            request.Status = RequestStatus.Completed;
-            
-            // Add to history
-            _context.SimRequestHistories.Add(new SimRequestHistory
-            {
-                SimRequestId = request.Id,
-                Action = "Processed by ICTS",
-                PerformedBy = User.Identity?.Name ?? "Unknown",
-                UserName = User.Identity?.Name ?? "Unknown",
-                Timestamp = DateTime.UtcNow,
-                Comments = processingNotes,
-                NewStatus = "Completed",
-                PreviousStatus = "PendingIcts"
-            });
-
-            await _context.SaveChangesAsync();
-            
-            // Redirect back to the approvals page with ICTS tab active
-            return RedirectToPage("/Modules/SimManagement/Approvals/Index", new { tab = "icts" });
-        }
-
-        public async Task<IActionResult> OnPostRevertIctsAsync(int requestId, string revertReason)
-        {
-            var request = await _context.SimRequests.FindAsync(requestId);
-            if (request == null)
-            {
-                return NotFound();
-            }
-
-            // Revert request back to draft/requestor
-            request.Status = RequestStatus.Draft;
-            request.ProcessingNotes = $"Reverted by ICTS: {revertReason}";
-            
-            // Add to history
-            _context.SimRequestHistories.Add(new SimRequestHistory
-            {
-                SimRequestId = request.Id,
-                Action = "Reverted to Requestor by ICTS",
-                PerformedBy = User.Identity?.Name ?? "Unknown",
-                UserName = User.Identity?.Name ?? "Unknown",
-                Timestamp = DateTime.UtcNow,
-                Comments = revertReason,
-                NewStatus = "Draft",
-                PreviousStatus = "PendingIcts"
-            });
-
-            await _context.SaveChangesAsync();
-            
-            // Redirect back to the approvals page with ICTS tab active
-            return RedirectToPage("/Modules/SimManagement/Approvals/Index", new { tab = "icts" });
         }
     }
 }

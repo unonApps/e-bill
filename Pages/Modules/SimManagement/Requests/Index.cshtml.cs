@@ -5,6 +5,7 @@ using Microsoft.AspNetCore.Mvc.RazorPages;
 using Microsoft.EntityFrameworkCore;
 using TAB.Web.Data;
 using TAB.Web.Models;
+using TAB.Web.Services;
 
 namespace TAB.Web.Pages.Modules.SimManagement.Requests
 {
@@ -13,11 +14,22 @@ namespace TAB.Web.Pages.Modules.SimManagement.Requests
     {
         private readonly ApplicationDbContext _context;
         private readonly UserManager<ApplicationUser> _userManager;
+        private readonly ISimRequestHistoryService _historyService;
+        private readonly INotificationService _notificationService;
+        private readonly IAuditLogService _auditLogService;
 
-        public IndexModel(ApplicationDbContext context, UserManager<ApplicationUser> userManager)
+        public IndexModel(
+            ApplicationDbContext context,
+            UserManager<ApplicationUser> userManager,
+            ISimRequestHistoryService historyService,
+            INotificationService notificationService,
+            IAuditLogService auditLogService)
         {
             _context = context;
             _userManager = userManager;
+            _historyService = historyService;
+            _notificationService = notificationService;
+            _auditLogService = auditLogService;
         }
 
         public List<Models.SimRequest> UserRequests { get; set; } = new();
@@ -112,12 +124,41 @@ namespace TAB.Web.Pages.Modules.SimManagement.Requests
             }
 
             request.Status = RequestStatus.Cancelled;
-            request.ProcessingNotes = isAdmin ? $"Cancelled by admin ({currentUser?.FirstName ?? "Unknown"} {currentUser?.LastName ?? "User"})" : "Cancelled by user";
+            var userName = $"{currentUser?.FirstName ?? "Unknown"} {currentUser?.LastName ?? "User"}".Trim();
+            request.ProcessingNotes = isAdmin ? $"Cancelled by admin ({userName})" : "Cancelled by user";
             request.ProcessedDate = DateTime.UtcNow;
 
             await _context.SaveChangesAsync();
 
-            StatusMessage = isAdmin ? 
+            // Log history, notification, and audit trail
+            var ipAddress = HttpContext.Connection.RemoteIpAddress?.ToString();
+            await _historyService.AddHistoryAsync(
+                requestId,
+                HistoryActions.Cancelled,
+                request.Status.ToString(),
+                RequestStatus.Cancelled.ToString(),
+                request.ProcessingNotes,
+                currentUser!.Id,
+                userName,
+                ipAddress
+            );
+
+            await _notificationService.NotifySimRequestCancelledAsync(
+                requestId,
+                request.RequestedBy
+            );
+
+            await _auditLogService.LogSimRequestRejectedAsync(
+                requestId,
+                "Cancellation",
+                userName,
+                $"{request.FirstName} {request.LastName}",
+                request.ProcessingNotes,
+                currentUser.Id,
+                ipAddress
+            );
+
+            StatusMessage = isAdmin ?
                 $"Request for {request.FirstName} {request.LastName} has been cancelled successfully." :
                 "Request has been cancelled successfully.";
             StatusMessageClass = "success";
@@ -152,33 +193,38 @@ namespace TAB.Web.Pages.Modules.SimManagement.Requests
                     baseQuery = baseQuery.Where(r => r.RequestedBy == currentUser.Id);
                 }
 
-                // Calculate statistics from UNFILTERED data (before applying status/date/search filters)
-                var allRequestsForStats = await baseQuery.ToListAsync();
-                TotalRequests = allRequestsForStats.Count;
-                PendingRequests = allRequestsForStats.Count(r =>
-                    r.Status == RequestStatus.Draft ||
-                    r.Status == RequestStatus.PendingSupervisor ||
-                    r.Status == RequestStatus.PendingIcts ||
-                    r.Status == RequestStatus.PendingAdmin ||
-                    r.Status == RequestStatus.PendingServiceProvider ||
-                    r.Status == RequestStatus.PendingSIMCollection);
-                ApprovedRequests = allRequestsForStats.Count(r => r.Status == RequestStatus.Approved || r.Status == RequestStatus.Completed);
-                RejectedRequests = allRequestsForStats.Count(r => r.Status == RequestStatus.Rejected || r.Status == RequestStatus.Cancelled);
+                // Calculate statistics using database-level counts (not materializing all records)
+                var statusCounts = await baseQuery
+                    .GroupBy(r => r.Status)
+                    .Select(g => new { Status = g.Key, Count = g.Count() })
+                    .ToListAsync();
 
-                // Now apply filters for the table display
+                var countLookup = statusCounts.ToDictionary(x => x.Status, x => x.Count);
+                TotalRequests = statusCounts.Sum(x => x.Count);
+                PendingRequests = countLookup.GetValueOrDefault(RequestStatus.Draft) +
+                    countLookup.GetValueOrDefault(RequestStatus.PendingSupervisor) +
+                    countLookup.GetValueOrDefault(RequestStatus.PendingIcts) +
+                    countLookup.GetValueOrDefault(RequestStatus.PendingAdmin) +
+                    countLookup.GetValueOrDefault(RequestStatus.PendingServiceProvider) +
+                    countLookup.GetValueOrDefault(RequestStatus.PendingSIMCollection);
+                ApprovedRequests = countLookup.GetValueOrDefault(RequestStatus.Approved) +
+                    countLookup.GetValueOrDefault(RequestStatus.Completed);
+                RejectedRequests = countLookup.GetValueOrDefault(RequestStatus.Rejected) +
+                    countLookup.GetValueOrDefault(RequestStatus.Cancelled);
+
+                // Apply filters for the table display
                 var filteredQuery = ApplyFilters(baseQuery);
-                var filteredRequests = await filteredQuery.ToListAsync();
 
-                // Calculate pagination based on filtered results
-                TotalRecords = filteredRequests.Count;
+                // Calculate pagination using database count
+                TotalRecords = await filteredQuery.CountAsync();
                 TotalPages = (int)Math.Ceiling(TotalRecords / (double)PageSize);
 
-                // Apply pagination
-                UserRequests = filteredRequests
+                // Apply pagination at database level
+                UserRequests = await filteredQuery
                     .OrderByDescending(r => r.RequestDate)
                     .Skip((PageNumber - 1) * PageSize)
                     .Take(PageSize)
-                    .ToList();
+                    .ToListAsync();
             }
         }
         
@@ -224,7 +270,10 @@ namespace TAB.Web.Pages.Modules.SimManagement.Requests
             {
                 RequestStatus.Draft => "bg-secondary",
                 RequestStatus.PendingSupervisor => "bg-warning text-dark",
+                RequestStatus.PendingIcts => "bg-primary",
                 RequestStatus.PendingAdmin => "bg-info",
+                RequestStatus.PendingServiceProvider => "bg-warning text-dark",
+                RequestStatus.PendingSIMCollection => "bg-info",
                 RequestStatus.Approved => "bg-success",
                 RequestStatus.Completed => "bg-primary",
                 RequestStatus.Rejected => "bg-danger",
@@ -239,7 +288,10 @@ namespace TAB.Web.Pages.Modules.SimManagement.Requests
             {
                 RequestStatus.Draft => "bi-file-earmark",
                 RequestStatus.PendingSupervisor => "bi-clock",
+                RequestStatus.PendingIcts => "bi-gear-fill",
                 RequestStatus.PendingAdmin => "bi-hourglass-split",
+                RequestStatus.PendingServiceProvider => "bi-telephone",
+                RequestStatus.PendingSIMCollection => "bi-collection",
                 RequestStatus.Approved => "bi-check-circle",
                 RequestStatus.Completed => "bi-check-all",
                 RequestStatus.Rejected => "bi-x-circle",

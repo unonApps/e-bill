@@ -6,6 +6,7 @@ using Microsoft.AspNetCore.Mvc.Rendering;
 using Microsoft.EntityFrameworkCore;
 using TAB.Web.Data;
 using TAB.Web.Models;
+using TAB.Web.Services;
 
 namespace TAB.Web.Pages.Modules.SimManagement.Requests
 {
@@ -14,11 +15,28 @@ namespace TAB.Web.Pages.Modules.SimManagement.Requests
     {
         private readonly ApplicationDbContext _context;
         private readonly UserManager<ApplicationUser> _userManager;
+        private readonly ISimRequestHistoryService _historyService;
+        private readonly INotificationService _notificationService;
+        private readonly IAuditLogService _auditLogService;
+        private readonly IEnhancedEmailService _emailService;
+        private readonly ILogger<EditModel> _logger;
 
-        public EditModel(ApplicationDbContext context, UserManager<ApplicationUser> userManager)
+        public EditModel(
+            ApplicationDbContext context,
+            UserManager<ApplicationUser> userManager,
+            ISimRequestHistoryService historyService,
+            INotificationService notificationService,
+            IAuditLogService auditLogService,
+            IEnhancedEmailService emailService,
+            ILogger<EditModel> logger)
         {
             _context = context;
             _userManager = userManager;
+            _historyService = historyService;
+            _notificationService = notificationService;
+            _auditLogService = auditLogService;
+            _emailService = emailService;
+            _logger = logger;
         }
 
         [BindProperty]
@@ -102,6 +120,8 @@ namespace TAB.Web.Pages.Modules.SimManagement.Requests
             // Validate required fields only when submitting (not for drafts)
             if (!isDraft)
             {
+                bool isExistingLine = SimRequest.LineRequestType == LineRequestType.ExistingLine;
+
                 if (string.IsNullOrWhiteSpace(SimRequest.IndexNo) ||
                     string.IsNullOrWhiteSpace(SimRequest.FirstName) ||
                     string.IsNullOrWhiteSpace(SimRequest.LastName) ||
@@ -110,13 +130,34 @@ namespace TAB.Web.Pages.Modules.SimManagement.Requests
                     string.IsNullOrWhiteSpace(SimRequest.Grade) ||
                     string.IsNullOrWhiteSpace(SimRequest.FunctionalTitle) ||
                     string.IsNullOrWhiteSpace(SimRequest.OfficialEmail) ||
-                    string.IsNullOrWhiteSpace(SimRequest.Supervisor) ||
-                    !SimRequest.ServiceProviderId.HasValue || SimRequest.ServiceProviderId.Value == 0)
+                    string.IsNullOrWhiteSpace(SimRequest.Supervisor))
                 {
                     StatusMessage = "Please fill in all required fields marked with *.";
                     StatusMessageClass = "danger";
                     SimRequest = existingRequest;
                     return Page();
+                }
+
+                // Validate based on Line Request Type
+                if (isExistingLine)
+                {
+                    if (string.IsNullOrWhiteSpace(SimRequest.ExistingPhoneNumber))
+                    {
+                        StatusMessage = "Please enter the existing phone number.";
+                        StatusMessageClass = "danger";
+                        SimRequest = existingRequest;
+                        return Page();
+                    }
+                }
+                else
+                {
+                    if (!SimRequest.ServiceProviderId.HasValue || SimRequest.ServiceProviderId.Value == 0)
+                    {
+                        StatusMessage = "Please select a service provider.";
+                        StatusMessageClass = "danger";
+                        SimRequest = existingRequest;
+                        return Page();
+                    }
                 }
             }
 
@@ -140,6 +181,8 @@ namespace TAB.Web.Pages.Modules.SimManagement.Requests
             existingRequest.OfficeExtension = SimRequest.OfficeExtension?.Trim();
             existingRequest.OfficialEmail = string.IsNullOrWhiteSpace(SimRequest.OfficialEmail) ? (isDraft ? "" : SimRequest.OfficialEmail) : SimRequest.OfficialEmail.Trim();
             existingRequest.SimType = SimRequest.SimType;
+            existingRequest.LineRequestType = SimRequest.LineRequestType;
+            existingRequest.ExistingPhoneNumber = SimRequest.ExistingPhoneNumber?.Trim();
             existingRequest.ServiceProviderId = SimRequest.ServiceProviderId;
             existingRequest.Supervisor = string.IsNullOrWhiteSpace(SimRequest.Supervisor) ? (isDraft ? "" : SimRequest.Supervisor) : SimRequest.Supervisor.Trim();
             existingRequest.PreviouslyAssignedLines = SimRequest.PreviouslyAssignedLines?.Trim();
@@ -169,7 +212,50 @@ namespace TAB.Web.Pages.Modules.SimManagement.Requests
             {
                 await _context.SaveChangesAsync();
 
-                StatusMessage = action == "submit" 
+                // Add re-submission workflow when submitting (same as Create page)
+                if (action == "submit")
+                {
+                    var ipAddress = HttpContext.Connection.RemoteIpAddress?.ToString();
+                    var userName = $"{currentUser.FirstName ?? ""} {currentUser.LastName ?? ""}".Trim();
+
+                    // Track re-submission to supervisor as a workflow change
+                    await _historyService.AddSubmissionHistoryAsync(
+                        existingRequest.Id,
+                        currentUser.Id,
+                        userName,
+                        ipAddress ?? string.Empty
+                    );
+
+                    // Send notifications and emails if supervisor found
+                    if (supervisorUser != null)
+                    {
+                        await _notificationService.NotifySimRequestSubmittedAsync(
+                            existingRequest.Id,
+                            currentUser.Id,
+                            supervisorUser.Id
+                        );
+
+                        await _auditLogService.LogSimRequestSubmittedAsync(
+                            existingRequest.Id,
+                            $"{existingRequest.FirstName} {existingRequest.LastName}",
+                            existingRequest.IndexNo ?? "",
+                            existingRequest.ServiceProvider?.ServiceProviderName ?? "N/A",
+                            currentUser.Id,
+                            ipAddress
+                        );
+
+                        try
+                        {
+                            await SendResubmissionEmailsAsync(existingRequest, currentUser, supervisorUser);
+                        }
+                        catch (Exception emailEx)
+                        {
+                            _logger.LogError(emailEx, "Failed to send email notifications for re-submitted SIM request {RequestId}", existingRequest.Id);
+                        }
+                    }
+                }
+
+                StatusMessage = action == "submit"
                     ? "Your SIM request has been updated and submitted successfully."
                     : "Your SIM request has been updated successfully.";
                 StatusMessageClass = "success";
@@ -217,16 +303,68 @@ namespace TAB.Web.Pages.Modules.SimManagement.Requests
                 })
                 .ToListAsync();
 
-            // Load Active Users as Supervisors (excluding current user)
-            var currentUserId = _userManager.GetUserId(User) ?? string.Empty;
-            Supervisors = await _context.Users
-                .Where(u => u.Status == UserStatus.Active && u.Id != currentUserId)
-                .Select(u => new SelectListItem
-                {
-                    Value = u.Email ?? string.Empty,
-                    Text = $"{u.FirstName ?? ""} {u.LastName ?? ""} ({u.Email ?? ""})".Trim()
-                })
-                .ToListAsync();
+            // Note: Supervisors are loaded via Azure AD live search (same as Create page)
+            Supervisors = new List<SelectListItem>();
+        }
+
+        private async Task SendResubmissionEmailsAsync(Models.SimRequest request, ApplicationUser requester, ApplicationUser supervisor)
+        {
+            // Send confirmation to requester
+            var requesterPlaceholders = new Dictionary<string, string>
+            {
+                { "RequestId", request.Id.ToString() },
+                { "RequestDate", request.RequestDate.ToString("MMMM dd, yyyy") },
+                { "FirstName", request.FirstName ?? "" },
+                { "LastName", request.LastName ?? "" },
+                { "SimType", request.SimType.ToString() },
+                { "ServiceProvider", request.ServiceProvider?.ServiceProviderName ?? "N/A" },
+                { "IndexNo", request.IndexNo ?? "" },
+                { "Organization", request.Organization ?? "" },
+                { "Office", request.Office ?? "" },
+                { "SupervisorName", request.SupervisorName ?? "" },
+                { "ViewRequestLink", $"{Request.Scheme}://{Request.Host}/Modules/SimManagement/Requests/Index" },
+                { "Year", DateTime.Now.Year.ToString() }
+            };
+
+            await _emailService.SendTemplatedEmailAsync(
+                to: request.OfficialEmail ?? requester.Email ?? "",
+                templateCode: "SIM_REQUEST_SUBMITTED",
+                data: requesterPlaceholders
+            );
+
+            // Send notification to supervisor
+            var supervisorPlaceholders = new Dictionary<string, string>
+            {
+                { "RequestId", request.Id.ToString() },
+                { "RequestDate", request.RequestDate.ToString("MMMM dd, yyyy") },
+                { "SimType", request.SimType.ToString() },
+                { "ServiceProvider", request.ServiceProvider?.ServiceProviderName ?? "N/A" },
+                { "FirstName", request.FirstName ?? "" },
+                { "LastName", request.LastName ?? "" },
+                { "IndexNo", request.IndexNo ?? "" },
+                { "Organization", request.Organization ?? "" },
+                { "Office", request.Office ?? "" },
+                { "Grade", request.Grade ?? "" },
+                { "FunctionalTitle", request.FunctionalTitle ?? "" },
+                { "OfficialEmail", request.OfficialEmail ?? "" },
+                { "OfficeExtension", request.OfficeExtension ?? "N/A" },
+                { "SupervisorName", request.SupervisorName ?? "" },
+                { "JustificationSection", string.IsNullOrWhiteSpace(request.Remarks) ? "" :
+                    $@"<div style=""background-color: #eff6ff; border-left: 4px solid #3b82f6; padding: 20px; margin-bottom: 30px; border-radius: 8px;"">
+                        <p style=""margin: 0 0 8px 0; color: #1e40af; font-size: 14px; font-weight: 600;"">Requester Justification:</p>
+                        <p style=""margin: 0; color: #1e40af; font-size: 14px; line-height: 1.5;"">{request.Remarks}</p>
+                    </div>" },
+                { "ReviewRequestLink", $"{Request.Scheme}://{Request.Host}/Modules/SimManagement/Approvals/Supervisor" },
+                { "Year", DateTime.Now.Year.ToString() }
+            };
+
+            await _emailService.SendTemplatedEmailAsync(
+                to: supervisor.Email ?? request.SupervisorEmail ?? "",
+                templateCode: "SIM_REQUEST_SUPERVISOR_NOTIFICATION",
+                data: supervisorPlaceholders
+            );
+
+            _logger.LogInformation("Sent re-submission email notifications for SIM request {RequestId}", request.Id);
         }
     }
 } 

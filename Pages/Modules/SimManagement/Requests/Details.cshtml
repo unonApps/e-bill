@@ -960,10 +960,14 @@ else
         {
             RequestStatus.Draft => "draft",
             RequestStatus.PendingSupervisor => "pending",
+            RequestStatus.PendingIcts => "pending",
             RequestStatus.PendingAdmin => "pending",
+            RequestStatus.PendingServiceProvider => "pending",
+            RequestStatus.PendingSIMCollection => "pending",
             RequestStatus.Approved => "approved",
             RequestStatus.Completed => "completed",
             RequestStatus.Rejected => "rejected",
+            RequestStatus.Cancelled => "cancelled",
             _ => "draft"
         };
     }

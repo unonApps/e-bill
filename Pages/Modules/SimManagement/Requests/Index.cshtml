@@ -778,6 +778,54 @@
         </div>
     }
 
+    <!-- Statistics Cards -->
+    <div class="stats-grid mb-4">
+        <div class="stat-card">
+            <div class="stat-content">
+                <div class="stat-icon stat-icon-primary">
+                    <i class="bi bi-sim"></i>
+                </div>
+                <div class="stat-details">
+                    <div class="stat-number">@Model.TotalRequests</div>
+                    <div class="stat-label">Total Requests</div>
+                </div>
+            </div>
+        </div>
+        <div class="stat-card">
+            <div class="stat-content">
+                <div class="stat-icon stat-icon-warning">
+                    <i class="bi bi-clock"></i>
+                </div>
+                <div class="stat-details">
+                    <div class="stat-number">@Model.PendingRequests</div>
+                    <div class="stat-label">Pending</div>
+                </div>
+            </div>
+        </div>
+        <div class="stat-card">
+            <div class="stat-content">
+                <div class="stat-icon stat-icon-success">
+                    <i class="bi bi-check-circle"></i>
+                </div>
+                <div class="stat-details">
+                    <div class="stat-number">@Model.ApprovedRequests</div>
+                    <div class="stat-label">Approved / Completed</div>
+                </div>
+            </div>
+        </div>
+        <div class="stat-card">
+            <div class="stat-content">
+                <div class="stat-icon stat-icon-danger">
+                    <i class="bi bi-x-circle"></i>
+                </div>
+                <div class="stat-details">
+                    <div class="stat-number">@Model.RejectedRequests</div>
+                    <div class="stat-label">Rejected / Cancelled</div>
+                </div>
+            </div>
+        </div>
+    </div>
+
     <!-- Filters Card (Collapsible) -->
     <div class="card border-0 shadow-sm mb-4" style="border-radius: 20px;">
         <div class="card-header bg-white border-0 p-3" style="cursor: pointer; border-radius: 20px 20px 0 0;" data-bs-toggle="collapse" data-bs-target="#filterCollapse">
@@ -1217,12 +1265,15 @@
 
 @functions {
     private string GetStatusClass(TAB.Web.Models.RequestStatus status)
-                                {
+    {
         return status switch
         {
             TAB.Web.Models.RequestStatus.Draft => "draft",
             TAB.Web.Models.RequestStatus.PendingSupervisor => "pending",
+            TAB.Web.Models.RequestStatus.PendingIcts => "pending",
             TAB.Web.Models.RequestStatus.PendingAdmin => "pending",
+            TAB.Web.Models.RequestStatus.PendingServiceProvider => "pending",
+            TAB.Web.Models.RequestStatus.PendingSIMCollection => "pending",
             TAB.Web.Models.RequestStatus.Approved => "approved",
             TAB.Web.Models.RequestStatus.Completed => "completed",
             TAB.Web.Models.RequestStatus.Rejected => "rejected",

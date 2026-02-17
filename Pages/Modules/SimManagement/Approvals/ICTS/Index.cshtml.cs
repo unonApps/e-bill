@@ -410,7 +410,7 @@ namespace TAB.Web.Pages.Modules.SimManagement.Approvals.ICTS
                 HttpContext.Connection.RemoteIpAddress?.ToString()
             );
 
-            StatusMessage = $"SIM collection completed for {request.FirstName} {request.LastName}. Request marked as corrected.";
+            StatusMessage = $"SIM collection completed for {request.FirstName} {request.LastName}. Request marked as completed.";
             StatusMessageClass = "success";
 
             await LoadIctsRequestsAsync();
