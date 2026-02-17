@@ -86,9 +86,12 @@ namespace TAB.Web.ViewComponents
             }
             else if (isICTS)
             {
-                // ICTS staff see only requests pending THEIR action
+                // ICTS staff see requests at all ICTS workflow stages
                 counts.SimRequestCount = await _context.SimRequests
-                    .Where(r => r.Status == RequestStatus.PendingAdmin || r.Status == RequestStatus.PendingIcts)
+                    .Where(r => r.Status == RequestStatus.PendingAdmin ||
+                               r.Status == RequestStatus.PendingIcts ||
+                               r.Status == RequestStatus.PendingServiceProvider ||
+                               r.Status == RequestStatus.PendingSIMCollection)
                     .CountAsync();
 
                 counts.RefundRequestCount = 0;
