@@ -65,8 +65,11 @@ namespace TAB.Web.Pages.Modules.SimManagement.Approvals
             }
             else if (IsSupervisor && IsIcts)
             {
-                // User has both roles - show requests assigned to them as supervisor + ICTS pending
-                query = query.Where(r => r.Supervisor == userName || r.SupervisorEmail == userName || r.Status == RequestStatus.PendingIcts)
+                // User has both roles - show requests assigned to them as supervisor + all ICTS workflow statuses
+                query = query.Where(r => r.Supervisor == userName || r.SupervisorEmail == userName ||
+                            r.Status == RequestStatus.PendingIcts ||
+                            r.Status == RequestStatus.PendingServiceProvider ||
+                            r.Status == RequestStatus.PendingSIMCollection)
                             .OrderByDescending(r => r.RequestDate);
             }
             else if (IsSupervisor)
@@ -77,8 +80,10 @@ namespace TAB.Web.Pages.Modules.SimManagement.Approvals
             }
             else if (IsIcts)
             {
-                // ICTS sees only pending ICTS requests
-                query = query.Where(r => r.Status == RequestStatus.PendingIcts)
+                // ICTS sees all requests in ICTS workflow (pending, service provider, and collection stages)
+                query = query.Where(r => r.Status == RequestStatus.PendingIcts ||
+                            r.Status == RequestStatus.PendingServiceProvider ||
+                            r.Status == RequestStatus.PendingSIMCollection)
                             .OrderByDescending(r => r.RequestDate);
             }
             else
@@ -101,7 +106,9 @@ namespace TAB.Web.Pages.Modules.SimManagement.Approvals
             var statsBaseQuery = _context.SimRequests
                 .Where(r => IsAdmin ||
                            (IsSupervisor && (r.Supervisor == userName || r.SupervisorEmail == userName)) ||
-                           (IsIcts && r.Status == RequestStatus.PendingIcts));
+                           (IsIcts && (r.Status == RequestStatus.PendingIcts ||
+                                       r.Status == RequestStatus.PendingServiceProvider ||
+                                       r.Status == RequestStatus.PendingSIMCollection)));
 
             // Group by status and count in a single query
             var statusCounts = await statsBaseQuery
