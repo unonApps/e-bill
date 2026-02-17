@@ -211,6 +211,10 @@ namespace TAB.Web.Pages.Modules.EBillManagement.CallRecords
                 }
             }
 
+            // Filter out records with invalid default dates (e.g. 0001-01-01)
+            var minValidDate = new DateTime(2, 1, 1);
+            query = query.Where(c => c.CallDate >= minValidDate);
+
             // Apply filters
             if (FilterMonth.HasValue)
                 query = query.Where(c => c.CallMonth == FilterMonth.Value);
@@ -1513,9 +1517,11 @@ namespace TAB.Web.Pages.Modules.EBillManagement.CallRecords
                     return new JsonResult(new { error = "User profile not found" });
 
                 // Use ExtensionNumber directly (indexed column) - no JOIN to UserPhones
+                var minValidDate = new DateTime(2, 1, 1);
                 var query = _context.CallRecords
                     .Where(c => c.ExtensionNumber == extension &&
-                               c.CallMonth == month && c.CallYear == year);
+                               c.CallMonth == month && c.CallYear == year &&
+                               c.CallDate >= minValidDate);
 
                 // Filter by user if not admin
                 if (!isAdmin && !string.IsNullOrEmpty(userIndexNumber))
@@ -1734,9 +1740,11 @@ namespace TAB.Web.Pages.Modules.EBillManagement.CallRecords
                     return new JsonResult(new { error = "User profile not found" });
 
                 // Build base query - filter by extension (indexed), month, year
+                var minValidDate = new DateTime(2, 1, 1);
                 var query = _context.CallRecords
                     .Where(c => c.ExtensionNumber == extension &&
-                               c.CallMonth == month && c.CallYear == year);
+                               c.CallMonth == month && c.CallYear == year &&
+                               c.CallDate >= minValidDate);
 
                 // Filter by dialed number
                 // If dialedNumber is empty/null or "Subscription", filter for records with blank dialed numbers (subscriptions)
@@ -1888,10 +1896,12 @@ namespace TAB.Web.Pages.Modules.EBillManagement.CallRecords
                 // Query call records for this extension/month/year using Any() for efficient SQL
                 // Include calls that are Official OR unverified (unverified defaults to Official)
                 // Exclude calls that have been assigned out and accepted
+                var minValidDate = new DateTime(2, 1, 1);
                 var query = _context.CallRecords
                     .Where(c => c.ExtensionNumber == extension
                            && c.CallMonth == month
                            && c.CallYear == year
+                           && c.CallDate >= minValidDate
                            && c.VerificationType != "Personal") // Exclude only Personal calls
                     .Where(c =>
                         (c.ResponsibleIndexNumber == userIndex &&
