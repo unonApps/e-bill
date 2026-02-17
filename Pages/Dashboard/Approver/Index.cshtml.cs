@@ -145,9 +145,12 @@ namespace TAB.Web.Pages.Dashboard.Approver
             }
             else if (isICTS)
             {
-                // ICTS staff see requests pending THEIR action (PendingAdmin/PendingIcts)
+                // ICTS staff see requests at all ICTS workflow stages
                 var ictsActionRequests = await _context.SimRequests
-                    .Where(r => r.Status == RequestStatus.PendingAdmin || r.Status == RequestStatus.PendingIcts)
+                    .Where(r => r.Status == RequestStatus.PendingAdmin ||
+                               r.Status == RequestStatus.PendingIcts ||
+                               r.Status == RequestStatus.PendingServiceProvider ||
+                               r.Status == RequestStatus.PendingSIMCollection)
                     .CountAsync();
 
                 // ICTS staff may also be supervisors - count distinct staff with pending call log approvals
@@ -367,10 +370,13 @@ namespace TAB.Web.Pages.Dashboard.Approver
             }
             else if (isICTS)
             {
-                // ICTS staff see ONLY requests pending THEIR action
+                // ICTS staff see requests at all ICTS workflow stages
                 var simRequests = await _context.SimRequests
                     .Include(r => r.ServiceProvider)
-                    .Where(r => r.Status == RequestStatus.PendingAdmin || r.Status == RequestStatus.PendingIcts)
+                    .Where(r => r.Status == RequestStatus.PendingAdmin ||
+                               r.Status == RequestStatus.PendingIcts ||
+                               r.Status == RequestStatus.PendingServiceProvider ||
+                               r.Status == RequestStatus.PendingSIMCollection)
                     .OrderByDescending(r => r.RequestDate)
                     .ToListAsync();
 
