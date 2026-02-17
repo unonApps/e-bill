@@ -681,7 +681,10 @@
             </div>
         </div>
     </div>
-    <div class="collapse" id="filterCollapse">
+    @{
+        bool hasActiveFilters = !string.IsNullOrEmpty(Model.SearchTerm) || !string.IsNullOrEmpty(Model.SelectedOrganization) || !string.IsNullOrEmpty(Model.SelectedOffice) || !string.IsNullOrEmpty(Model.SelectedSubOffice) || Model.IsActive.HasValue || !string.IsNullOrEmpty(Model.CreationType);
+    }
+    <div class="collapse @(hasActiveFilters ? "show" : "")" id="filterCollapse">
         <div class="card-body p-4">
             <form method="get" class="filter-form" id="filterForm">
                 <!-- Preserve page size when filtering -->
@@ -841,14 +844,11 @@
                 }
             });
 
-            // Check if any filters are active and show the filter section
+            // Check if any filters are active and update chevron icon
             const hasActiveFilters = @Html.Raw((!string.IsNullOrEmpty(Model.SearchTerm) || !string.IsNullOrEmpty(Model.SelectedOrganization) || !string.IsNullOrEmpty(Model.SelectedOffice) || !string.IsNullOrEmpty(Model.SelectedSubOffice) || Model.IsActive.HasValue || !string.IsNullOrEmpty(Model.CreationType)).ToString().ToLower());
-            if (hasActiveFilters) {
-                filterCollapse.classList.add('show');
-                if (chevronIcon) {
-                    chevronIcon.classList.remove('bi-chevron-down');
-                    chevronIcon.classList.add('bi-chevron-up');
-                }
+            if (hasActiveFilters && chevronIcon) {
+                chevronIcon.classList.remove('bi-chevron-down');
+                chevronIcon.classList.add('bi-chevron-up');
             }
         }
     });
