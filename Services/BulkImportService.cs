@@ -495,7 +495,7 @@ namespace TAB.Web.Services
                         row["ext"] = extension;
                         row["call_date"] = ParseDate(GetValueMultiple(values, columnIndices, "call_date", "date"), dateFormat);
                         row["call_time"] = ParseTimeSpan(GetValueMultiple(values, columnIndices, "call_time", "time"));
-                        row["dialed"] = GetValueMultiple(values, columnIndices, "dialed", "dialedno", "dialled", "dialled no") ?? "";
+                        row["dialed"] = GetValueMultiple(values, columnIndices, "dialed", "dialedno", "dialled", "dialled no", "number") ?? "";
                         row["dest"] = GetValueMultiple(values, columnIndices, "dest", "destination") ?? GetValueMultiple(values, columnIndices, "dialed", "dialedno") ?? "";
                         row["durx"] = ParseDurxValue(GetValueMultiple(values, columnIndices, "durx", "dur", "duration"));
                         row["cost"] = ParseDecimalOrZero(GetValueMultiple(values, columnIndices, "cost", "charges", "callcharges", "call charges"));

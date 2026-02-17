@@ -2025,7 +2025,21 @@ namespace TAB.Web.Services
                 _ => new[] { field }
             };
 
-            // Try each possible column name
+            // Try each possible column name - prefer exact matches first, then fall back to Contains
+            // First pass: exact match only (prevents "Contract Number" matching when looking for "Number")
+            foreach (var columnName in possibleColumnNames)
+            {
+                var key = indices.Keys.FirstOrDefault(k =>
+                    k.Equals(columnName, StringComparison.OrdinalIgnoreCase) ||
+                    k.Replace(" ", "").Equals(columnName.Replace(" ", ""), StringComparison.OrdinalIgnoreCase));
+
+                if (key != null && indices.TryGetValue(key, out var idx) && idx < reader.FieldCount)
+                {
+                    return reader.GetValue(idx)?.ToString()?.Trim();
+                }
+            }
+
+            // Second pass: Contains matching as fallback
             foreach (var columnName in possibleColumnNames)
             {
                 var normalizedColumnName = columnName.Replace(" ", "");
