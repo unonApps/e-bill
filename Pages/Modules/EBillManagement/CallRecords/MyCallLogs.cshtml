@@ -2024,13 +2024,21 @@
                     statusBadge = '<span class="badge bg-success">Official</span>';
                 }
 
-                // Submission status badge
-                if (dn.approvedCount > 0 && dn.approvedCount === dn.callCount) {
-                    submissionBadge = '<span class="badge bg-secondary ms-1"><i class="bi bi-check-circle-fill"></i> Approved</span>';
-                } else if (dn.pendingApprovalCount > 0) {
-                    submissionBadge = `<span class="badge bg-info ms-1"><i class="bi bi-hourglass-split"></i> ${dn.pendingApprovalCount} Pending</span>`;
-                } else if (dn.submittedCount > 0) {
-                    submissionBadge = `<span class="badge bg-primary bg-opacity-75 ms-1"><i class="bi bi-send"></i> ${dn.submittedCount} Submitted</span>`;
+                // Submission status badges - show detailed approval statuses
+                if (dn.approvedCount > 0) {
+                    submissionBadge += `<span class="badge bg-secondary ms-1"><i class="bi bi-check-circle-fill"></i> ${dn.approvedCount} Approved</span>`;
+                }
+                if (dn.partiallyApprovedCount > 0) {
+                    submissionBadge += `<span class="badge bg-secondary ms-1"><i class="bi bi-check-circle"></i> ${dn.partiallyApprovedCount} Partial</span>`;
+                }
+                if (dn.pendingApprovalCount > 0) {
+                    submissionBadge += `<span class="badge bg-info ms-1"><i class="bi bi-hourglass-split"></i> ${dn.pendingApprovalCount} Pending Approval</span>`;
+                }
+                if (dn.rejectedCount > 0) {
+                    submissionBadge += `<span class="badge bg-danger ms-1"><i class="bi bi-x-circle"></i> ${dn.rejectedCount} Rejected</span>`;
+                }
+                if (dn.revertedCount > 0) {
+                    submissionBadge += `<span class="badge bg-warning text-dark ms-1"><i class="bi bi-arrow-counterclockwise"></i> ${dn.revertedCount} Reverted</span>`;
                 }
 
                 // Incoming assignment badge (calls assigned TO current user)

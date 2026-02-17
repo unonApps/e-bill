@@ -1607,7 +1607,10 @@ namespace TAB.Web.Pages.Modules.EBillManagement.CallRecords
                             DialedNumber = g.Key == "" ? "Subscription" : g.Key,
                             SubmittedCount = g.Count(),
                             PendingCount = g.Count(x => x.ApprovalStatus == "Pending"),
-                            ApprovedCount = g.Count(x => x.ApprovalStatus == "Approved")
+                            ApprovedCount = g.Count(x => x.ApprovalStatus == "Approved"),
+                            RejectedCount = g.Count(x => x.ApprovalStatus == "Rejected"),
+                            RevertedCount = g.Count(x => x.ApprovalStatus == "Reverted"),
+                            PartiallyApprovedCount = g.Count(x => x.ApprovalStatus == "PartiallyApproved")
                         })
                         .ToDictionaryAsync(x => x.DialedNumber, x => x);
 
@@ -1622,6 +1625,9 @@ namespace TAB.Web.Pages.Modules.EBillManagement.CallRecords
                             dn.SubmittedCount = counts.SubmittedCount;
                             dn.PendingApprovalCount = counts.PendingCount;
                             dn.ApprovedCount = counts.ApprovedCount;
+                            dn.RejectedCount = counts.RejectedCount;
+                            dn.RevertedCount = counts.RevertedCount;
+                            dn.PartiallyApprovedCount = counts.PartiallyApprovedCount;
                         }
                     }
 
@@ -2691,6 +2697,9 @@ namespace TAB.Web.Pages.Modules.EBillManagement.CallRecords
         public int SubmittedCount { get; set; } // Number of calls submitted to supervisor
         public int PendingApprovalCount { get; set; } // Number of calls pending supervisor approval
         public int ApprovedCount { get; set; } // Number of calls approved by supervisor
+        public int RejectedCount { get; set; } // Number of calls rejected by supervisor
+        public int RevertedCount { get; set; } // Number of calls reverted by supervisor
+        public int PartiallyApprovedCount { get; set; } // Number of calls partially approved by supervisor
         public int IncomingAssignmentCount { get; set; } // Number of calls assigned TO current user (pending acceptance)
         public string? AssignedFromUser { get; set; } // Who assigned them (if all from same person)
 
