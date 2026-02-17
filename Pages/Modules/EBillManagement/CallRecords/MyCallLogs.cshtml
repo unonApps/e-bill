@@ -2372,7 +2372,7 @@
                                 </button>
                               ` :
                               !canModify ? '<span class="text-muted small"><i class="bi bi-hourglass-split"></i> Awaiting Approval</span>' :
-                              call.callType === 'Corporate Value Pack Data 25GB' ? `
+                              (call.callType && call.callType.startsWith('Corporate Value Pack Data')) ? `
                                 <span class="badge bg-dark" style="font-size: 0.7rem;" title="Auto-Official: Corporate Value Pack Data calls cannot be marked as Personal">
                                     <i class="bi bi-shield-lock-fill me-1"></i>Official (Auto)
                                 </span>` : `

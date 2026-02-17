@@ -7,7 +7,7 @@ namespace TAB.Web.Services
 {
     public class CallLogVerificationService : ICallLogVerificationService
     {
-        private const string AutoOfficialCallType = "Corporate Value Pack Data 25GB";
+        private const string AutoOfficialCallTypePrefix = "Corporate Value Pack Data";
 
         private readonly ApplicationDbContext _context;
         private readonly ILogger<CallLogVerificationService> _logger;
@@ -99,8 +99,8 @@ namespace TAB.Web.Services
                 }
 
                 // Block Personal verification for auto-official CallType
-                if (callRecord.CallType == AutoOfficialCallType && verificationType == VerificationType.Personal)
-                    throw new InvalidOperationException("Calls with type 'Corporate Value Pack Data 25GB' are auto-official and cannot be marked as Personal.");
+                if (callRecord.CallType != null && callRecord.CallType.StartsWith(AutoOfficialCallTypePrefix, StringComparison.OrdinalIgnoreCase) && verificationType == VerificationType.Personal)
+                    throw new InvalidOperationException("Calls with type 'Corporate Value Pack Data' are auto-official and cannot be marked as Personal.");
 
                 decimal allowanceAmount = 0;
                 int? classOfServiceId = null;
@@ -252,7 +252,7 @@ namespace TAB.Web.Services
                 foreach (var callRecord in callRecords)
                 {
                     // Skip auto-official calls when verifying as Personal
-                    if (verificationType == VerificationType.Personal && callRecord.CallType == AutoOfficialCallType)
+                    if (verificationType == VerificationType.Personal && callRecord.CallType != null && callRecord.CallType.StartsWith(AutoOfficialCallTypePrefix, StringComparison.OrdinalIgnoreCase))
                     {
                         result.SkippedCount++;
                         continue;
@@ -423,7 +423,7 @@ namespace TAB.Web.Services
 
                 // Auto-official exclusion: skip auto-official calls when verifying as Personal
                 var autoOfficialExclusion = verificationType == VerificationType.Personal
-                    ? $" AND ISNULL(cr.call_type, '') != '{AutoOfficialCallType}'"
+                    ? $" AND ISNULL(cr.call_type, '') NOT LIKE '{AutoOfficialCallTypePrefix}%'"
                     : "";
 
                 // Use execution strategy to handle retries with transactions
@@ -604,7 +604,7 @@ namespace TAB.Web.Services
 
                 // Auto-official exclusion: skip auto-official calls when verifying as Personal
                 var autoOfficialExclusion = verificationType == VerificationType.Personal
-                    ? $" AND ISNULL(cr.call_type, '') != '{AutoOfficialCallType}'"
+                    ? $" AND ISNULL(cr.call_type, '') NOT LIKE '{AutoOfficialCallTypePrefix}%'"
                     : "";
 
                 await strategy.ExecuteAsync(async () =>

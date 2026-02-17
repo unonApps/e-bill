@@ -16,7 +16,7 @@ namespace TAB.Web.Services
     /// </summary>
     public class CallLogRecoveryService : ICallLogRecoveryService
     {
-        private const string AutoOfficialCallType = "Corporate Value Pack Data 25GB";
+        private const string AutoOfficialCallTypePrefix = "Corporate Value Pack Data";
 
         private readonly ApplicationDbContext _context;
         private readonly ILogger<CallLogRecoveryService> _logger;
@@ -89,7 +89,7 @@ namespace TAB.Web.Services
                     foreach (var call in staffCalls)
                     {
                         // Skip auto-official calls — always treated as Official
-                        if (call.CallType == AutoOfficialCallType)
+                        if (call.CallType != null && call.CallType.StartsWith(AutoOfficialCallTypePrefix, StringComparison.OrdinalIgnoreCase))
                         {
                             call.AssignmentStatus = "Official";
                             call.FinalAssignmentType = "Official";
@@ -105,7 +105,7 @@ namespace TAB.Web.Services
                                 RecoveryType = "AutoOfficialExemption",
                                 RecoveryAction = "Official",
                                 RecoveryDate = DateTime.UtcNow,
-                                RecoveryReason = $"Call type '{AutoOfficialCallType}' is auto-official and exempt from personal recovery.",
+                                RecoveryReason = $"Call type '{call.CallType}' is auto-official (Corporate Value Pack Data) and exempt from personal recovery.",
                                 AmountRecovered = 0,
                                 RecoveredFrom = staffIndex,
                                 ProcessedBy = "System-AutoRecovery",
@@ -247,7 +247,7 @@ namespace TAB.Web.Services
                     foreach (var call in staffCalls)
                     {
                         // Skip auto-official calls — always treated as Official
-                        if (call.CallType == AutoOfficialCallType)
+                        if (call.CallType != null && call.CallType.StartsWith(AutoOfficialCallTypePrefix, StringComparison.OrdinalIgnoreCase))
                         {
                             call.AssignmentStatus = "Official";
                             call.FinalAssignmentType = "Official";
@@ -263,7 +263,7 @@ namespace TAB.Web.Services
                                 RecoveryType = "AutoOfficialExemption",
                                 RecoveryAction = "Official",
                                 RecoveryDate = DateTime.UtcNow,
-                                RecoveryReason = $"Call type '{AutoOfficialCallType}' is auto-official and exempt from personal recovery.",
+                                RecoveryReason = $"Call type '{call.CallType}' is auto-official (Corporate Value Pack Data) and exempt from personal recovery.",
                                 AmountRecovered = 0,
                                 RecoveredFrom = staffIndex,
                                 ProcessedBy = "System-AutoRecovery",
@@ -559,7 +559,7 @@ namespace TAB.Web.Services
                     else
                     {
                         // Non-approved calls become Personal, unless auto-official
-                        if (call.CallType == AutoOfficialCallType)
+                        if (call.CallType != null && call.CallType.StartsWith(AutoOfficialCallTypePrefix, StringComparison.OrdinalIgnoreCase))
                         {
                             call.AssignmentStatus = "Official";
                             call.FinalAssignmentType = "Official";
@@ -664,7 +664,7 @@ namespace TAB.Web.Services
                     var call = verification.CallRecord;
 
                     // Skip auto-official calls — always treated as Official
-                    if (call.CallType == AutoOfficialCallType)
+                    if (call.CallType != null && call.CallType.StartsWith(AutoOfficialCallTypePrefix, StringComparison.OrdinalIgnoreCase))
                     {
                         call.AssignmentStatus = "Official";
                         call.FinalAssignmentType = "Official";
@@ -680,7 +680,7 @@ namespace TAB.Web.Services
                             RecoveryType = "AutoOfficialExemption",
                             RecoveryAction = "Official",
                             RecoveryDate = DateTime.UtcNow,
-                            RecoveryReason = $"Call type '{AutoOfficialCallType}' is auto-official and exempt from personal recovery.",
+                            RecoveryReason = $"Call type '{call.CallType}' is auto-official (Corporate Value Pack Data) and exempt from personal recovery.",
                             AmountRecovered = 0,
                             RecoveredFrom = call.ResponsibleIndexNumber,
                             ProcessedBy = "System-AutoRecovery",
@@ -855,7 +855,7 @@ namespace TAB.Web.Services
                 var call = verification.CallRecord;
 
                 // Auto-official calls cannot be rejected to Personal
-                if (call.CallType == AutoOfficialCallType)
+                if (call.CallType != null && call.CallType.StartsWith(AutoOfficialCallTypePrefix, StringComparison.OrdinalIgnoreCase))
                 {
                     call.AssignmentStatus = "Official";
                     call.FinalAssignmentType = "Official";
@@ -878,7 +878,7 @@ namespace TAB.Web.Services
                         RecoveryType = "AutoOfficialExemption",
                         RecoveryAction = "Official",
                         RecoveryDate = DateTime.UtcNow,
-                        RecoveryReason = $"Call type '{AutoOfficialCallType}' is auto-official. Rejection overridden to Official.",
+                        RecoveryReason = $"Call type '{call.CallType}' is auto-official (Corporate Value Pack Data). Rejection overridden to Official.",
                         AmountRecovered = 0,
                         RecoveredFrom = call.ResponsibleIndexNumber,
                         ProcessedBy = supervisorIndexNumber,
