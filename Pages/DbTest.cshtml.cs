@@ -1,12 +1,12 @@
 using Microsoft.AspNetCore.Authorization;
+using Microsoft.AspNetCore.Mvc;
 using Microsoft.AspNetCore.Mvc.RazorPages;
 using Microsoft.Data.SqlClient;
-using Microsoft.EntityFrameworkCore;
 using TAB.Web.Data;
 
 namespace TAB.Web.Pages
 {
-    [AllowAnonymous]
+    [Authorize(Roles = "Admin")]
     public class DbTestModel : PageModel
     {
         private readonly IConfiguration _configuration;

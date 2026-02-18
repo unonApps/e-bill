@@ -364,10 +364,13 @@ builder.Services.AddAuthentication(OpenIdConnectDefaults.AuthenticationScheme)
 builder.Services.AddIdentity<ApplicationUser, IdentityRole>(options => {
     options.SignIn.RequireConfirmedAccount = false;
     options.Password.RequireDigit = true;
-    options.Password.RequiredLength = 8;
+    options.Password.RequiredLength = 12;
     options.Password.RequireNonAlphanumeric = true;
     options.Password.RequireUppercase = true;
     options.Password.RequireLowercase = true;
+    options.Lockout.DefaultLockoutTimeSpan = TimeSpan.FromMinutes(15);
+    options.Lockout.MaxFailedAccessAttempts = 5;
+    options.Lockout.AllowedForNewUsers = true;
 })
 .AddEntityFrameworkStores<ApplicationDbContext>()
 .AddDefaultTokenProviders();
@@ -416,21 +419,17 @@ var app = builder.Build();
 app.UseForwardedHeaders();
 
 // Configure the HTTP request pipeline.
-if (!app.Environment.IsDevelopment())
+if (app.Environment.IsDevelopment())
 {
-    // Temporarily show detailed errors for debugging Azure deployment
     app.UseDeveloperExceptionPage();
-    // app.UseExceptionHandler("/Error");
-    // The default HSTS value is 30 days. You may want to change this for production scenarios, see https://aka.ms/aspnetcore-hsts.
+}
+else
+{
+    app.UseExceptionHandler("/Error");
     app.UseHsts();
 }
 
-// Only redirect to HTTPS in development mode
-// In production, IIS handles HTTPS and we're already on HTTPS
-if (app.Environment.IsDevelopment())
-{
-    app.UseHttpsRedirection();
-}
+app.UseHttpsRedirection();
 
 app.UseStaticFiles();
 
