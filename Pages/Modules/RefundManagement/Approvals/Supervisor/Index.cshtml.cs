@@ -46,7 +46,7 @@ namespace TAB.Web.Pages.Modules.RefundManagement.Approvals.Supervisor
         [TempData]
         public string? StatusMessageClass { get; set; }
 
-        public async Task<IActionResult> OnGetAsync(int? requestId = null)
+        public async Task<IActionResult> OnGetAsync(Guid? requestId = null)
         {
             var currentUser = await _userManager.GetUserAsync(User);
             if (currentUser == null)
@@ -66,7 +66,7 @@ namespace TAB.Web.Pages.Modules.RefundManagement.Approvals.Supervisor
             // Check if this is a detail view request
             if (requestId.HasValue)
             {
-                CurrentRequest = await _context.RefundRequests.FindAsync(requestId.Value);
+                CurrentRequest = await _context.RefundRequests.FirstOrDefaultAsync(r => r.PublicId == requestId.Value);
                 if (CurrentRequest != null)
                 {
                     // Authorization check for specific request:
@@ -108,7 +108,7 @@ namespace TAB.Web.Pages.Modules.RefundManagement.Approvals.Supervisor
 
                     // Load request history
                     RequestHistory = await _context.RefundRequestHistories
-                        .Where(h => h.RefundRequestId == requestId.Value)
+                        .Where(h => h.RefundRequestId == CurrentRequest.Id)
                         .OrderBy(h => h.Timestamp)
                         .ToListAsync();
 
@@ -201,7 +201,7 @@ namespace TAB.Web.Pages.Modules.RefundManagement.Approvals.Supervisor
             return Page();
         }
 
-        public async Task<IActionResult> OnPostApproveAsync(int requestId, string? supervisorRemarks, string? budgetOfficerEmail)
+        public async Task<IActionResult> OnPostApproveAsync(Guid requestId, string? supervisorRemarks, string? budgetOfficerEmail)
         {
             var currentUser = await _userManager.GetUserAsync(User);
             if (currentUser == null)
@@ -211,7 +211,7 @@ namespace TAB.Web.Pages.Modules.RefundManagement.Approvals.Supervisor
                 return RedirectToPage("/Dashboard/Approver/Index");
             }
 
-            var request = await _context.RefundRequests.FindAsync(requestId);
+            var request = await _context.RefundRequests.FirstOrDefaultAsync(r => r.PublicId == requestId);
             if (request == null)
             {
                 StatusMessage = "Request not found.";
@@ -279,7 +279,7 @@ namespace TAB.Web.Pages.Modules.RefundManagement.Approvals.Supervisor
                     // Add history entry
                     var historyEntry = new RefundRequestHistory
                     {
-                        RefundRequestId = requestId,
+                        RefundRequestId = request.Id,
                         Action = RefundHistoryActions.SupervisorApproved,
                         PreviousStatus = RefundRequestStatus.PendingSupervisor.ToString(),
                         NewStatus = RefundRequestStatus.PendingBudgetOfficer.ToString(),
@@ -294,14 +294,14 @@ namespace TAB.Web.Pages.Modules.RefundManagement.Approvals.Supervisor
 
                     // Send notification to requester
                     await _notificationService.NotifyRefundSupervisorApprovedAsync(
-                        requestId,
+                        request.Id,
                         request.RequestedBy ?? "",
                         supervisorRemarks
                     );
 
                     // Log audit trail
                     await _auditLogService.LogRefundRequestApprovedAsync(
-                        requestId,
+                        request.Id,
                         "Supervisor",
                         $"{currentUser.FirstName} {currentUser.LastName}",
                         request.MobileNumberAssignedTo ?? "N/A",
@@ -313,10 +313,11 @@ namespace TAB.Web.Pages.Modules.RefundManagement.Approvals.Supervisor
 
                     // Send notification to Budget Officer
                     await _notificationService.NotifyNewRefundRequestPendingApprovalAsync(
-                        requestId,
+                        request.Id,
                         budgetOfficer.Id,
                         request.MobileNumberAssignedTo,
-                        "Budget Officer"
+                        "Budget Officer",
+                        request.PublicId
                     );
 
                     // Send email notifications
@@ -339,7 +340,7 @@ namespace TAB.Web.Pages.Modules.RefundManagement.Approvals.Supervisor
                         _logger.LogError(emailEx, "Failed to send approval email notifications for request {RequestId}", requestId);
                     }
 
-                    StatusMessage = $"Request #{requestId} has been approved and forwarded to {budgetOfficer.FirstName} {budgetOfficer.LastName}.";
+                    StatusMessage = $"Request #{request.Id} has been approved and forwarded to {budgetOfficer.FirstName} {budgetOfficer.LastName}.";
                     StatusMessageClass = "success";
                 }
                 catch (Exception ex)
@@ -368,14 +369,14 @@ namespace TAB.Web.Pages.Modules.RefundManagement.Approvals.Supervisor
 
                     // Send notification to requester
                     await _notificationService.NotifyRefundBudgetOfficerApprovedAsync(
-                        requestId,
+                        request.Id,
                         request.RequestedBy ?? "",
                         supervisorRemarks
                     );
 
                     // Log audit trail
                     await _auditLogService.LogRefundRequestApprovedAsync(
-                        requestId,
+                        request.Id,
                         "Budget Officer",
                         $"{currentUser.FirstName} {currentUser.LastName}",
                         request.MobileNumberAssignedTo ?? "N/A",
@@ -405,7 +406,7 @@ namespace TAB.Web.Pages.Modules.RefundManagement.Approvals.Supervisor
                         _logger.LogError(emailEx, "Failed to send budget approval email notifications for request {RequestId}", requestId);
                     }
 
-                    StatusMessage = $"Request #{requestId} has been approved and forwarded to Staff Claims Unit.";
+                    StatusMessage = $"Request #{request.Id} has been approved and forwarded to Staff Claims Unit.";
                     StatusMessageClass = "success";
                 }
                 catch (Exception ex)
@@ -426,7 +427,7 @@ namespace TAB.Web.Pages.Modules.RefundManagement.Approvals.Supervisor
             return RedirectToPage("/Dashboard/Approver/Index");
         }
 
-        public async Task<IActionResult> OnPostRevertAsync(int requestId, string? supervisorRemarks)
+        public async Task<IActionResult> OnPostRevertAsync(Guid requestId, string? supervisorRemarks)
         {
             var currentUser = await _userManager.GetUserAsync(User);
             if (currentUser == null)
@@ -436,7 +437,7 @@ namespace TAB.Web.Pages.Modules.RefundManagement.Approvals.Supervisor
                 return RedirectToPage("/Dashboard/Approver/Index");
             }
 
-            var request = await _context.RefundRequests.FindAsync(requestId);
+            var request = await _context.RefundRequests.FirstOrDefaultAsync(r => r.PublicId == requestId);
             if (request == null)
             {
                 StatusMessage = "Request not found.";
@@ -480,7 +481,7 @@ namespace TAB.Web.Pages.Modules.RefundManagement.Approvals.Supervisor
                     // Add history entry
                     var historyEntry = new RefundRequestHistory
                     {
-                        RefundRequestId = requestId,
+                        RefundRequestId = request.Id,
                         Action = RefundHistoryActions.SupervisorReverted,
                         PreviousStatus = previousStatus,
                         NewStatus = RefundRequestStatus.Draft.ToString(),
@@ -493,7 +494,7 @@ namespace TAB.Web.Pages.Modules.RefundManagement.Approvals.Supervisor
                     _context.RefundRequestHistories.Add(historyEntry);
                     await _context.SaveChangesAsync();
 
-                    StatusMessage = $"Request #{requestId} has been reverted to requestor.";
+                    StatusMessage = $"Request #{request.Id} has been reverted to requestor.";
                     StatusMessageClass = "info";
                 }
                 catch (Exception ex)
@@ -524,7 +525,7 @@ namespace TAB.Web.Pages.Modules.RefundManagement.Approvals.Supervisor
                     // Add history entry
                     var historyEntry = new RefundRequestHistory
                     {
-                        RefundRequestId = requestId,
+                        RefundRequestId = request.Id,
                         Action = RefundHistoryActions.BudgetOfficerReverted,
                         PreviousStatus = previousStatus,
                         NewStatus = RefundRequestStatus.PendingSupervisor.ToString(),
@@ -537,7 +538,7 @@ namespace TAB.Web.Pages.Modules.RefundManagement.Approvals.Supervisor
                     _context.RefundRequestHistories.Add(historyEntry);
                     await _context.SaveChangesAsync();
 
-                    StatusMessage = $"Request #{requestId} has been reverted to supervisor.";
+                    StatusMessage = $"Request #{request.Id} has been reverted to supervisor.";
                     StatusMessageClass = "info";
                 }
                 catch (Exception ex)
@@ -557,7 +558,7 @@ namespace TAB.Web.Pages.Modules.RefundManagement.Approvals.Supervisor
             return RedirectToPage("/Dashboard/Approver/Index");
         }
 
-        public async Task<IActionResult> OnPostRejectAsync(int requestId, string? supervisorRemarks)
+        public async Task<IActionResult> OnPostRejectAsync(Guid requestId, string? supervisorRemarks)
         {
             var currentUser = await _userManager.GetUserAsync(User);
             if (currentUser == null)
@@ -567,7 +568,7 @@ namespace TAB.Web.Pages.Modules.RefundManagement.Approvals.Supervisor
                 return RedirectToPage("/Dashboard/Approver/Index");
             }
 
-            var request = await _context.RefundRequests.FindAsync(requestId);
+            var request = await _context.RefundRequests.FirstOrDefaultAsync(r => r.PublicId == requestId);
             if (request == null)
             {
                 StatusMessage = "Request not found.";
@@ -622,7 +623,7 @@ namespace TAB.Web.Pages.Modules.RefundManagement.Approvals.Supervisor
                 var historyAction = canActAsSupervisor ? RefundHistoryActions.SupervisorRejected : RefundHistoryActions.BudgetOfficerRejected;
                 var historyEntry = new RefundRequestHistory
                 {
-                    RefundRequestId = requestId,
+                    RefundRequestId = request.Id,
                     Action = historyAction,
                     PreviousStatus = previousStatus,
                     NewStatus = RefundRequestStatus.Cancelled.ToString(),
@@ -639,14 +640,14 @@ namespace TAB.Web.Pages.Modules.RefundManagement.Approvals.Supervisor
                 if (canActAsSupervisor)
                 {
                     await _notificationService.NotifyRefundSupervisorRejectedAsync(
-                        requestId,
+                        request.Id,
                         request.RequestedBy ?? "",
                         supervisorRemarks
                     );
 
                     // Log audit trail
                     await _auditLogService.LogRefundRequestRejectedAsync(
-                        requestId,
+                        request.Id,
                         "Supervisor",
                         $"{currentUser.FirstName} {currentUser.LastName}",
                         request.MobileNumberAssignedTo ?? "N/A",
@@ -659,14 +660,14 @@ namespace TAB.Web.Pages.Modules.RefundManagement.Approvals.Supervisor
                 else if (canActAsBudgetOfficer)
                 {
                     await _notificationService.NotifyRefundBudgetOfficerRejectedAsync(
-                        requestId,
+                        request.Id,
                         request.RequestedBy ?? "",
                         supervisorRemarks
                     );
 
                     // Log audit trail
                     await _auditLogService.LogRefundRequestRejectedAsync(
-                        requestId,
+                        request.Id,
                         "Budget Officer",
                         $"{currentUser.FirstName} {currentUser.LastName}",
                         request.MobileNumberAssignedTo ?? "N/A",
@@ -692,7 +693,7 @@ namespace TAB.Web.Pages.Modules.RefundManagement.Approvals.Supervisor
                     _logger.LogError(emailEx, "Failed to send rejection email for request {RequestId}", requestId);
                 }
 
-                StatusMessage = $"Request #{requestId} has been rejected.";
+                StatusMessage = $"Request #{request.Id} has been rejected.";
                 StatusMessageClass = "success";
             }
             catch (Exception ex)
@@ -705,7 +706,7 @@ namespace TAB.Web.Pages.Modules.RefundManagement.Approvals.Supervisor
             return RedirectToPage("/Dashboard/Approver/Index");
         }
 
-        public async Task<IActionResult> OnPostBudgetApproveAsync(int requestId, string? costObject, string? costCenter, string? fundCommitment, string? budgetOfficerRemarks)
+        public async Task<IActionResult> OnPostBudgetApproveAsync(Guid requestId, string? costObject, string? costCenter, string? fundCommitment, string? budgetOfficerRemarks)
         {
             var currentUser = await _userManager.GetUserAsync(User);
             if (currentUser == null)
@@ -715,7 +716,7 @@ namespace TAB.Web.Pages.Modules.RefundManagement.Approvals.Supervisor
                 return RedirectToPage("/Dashboard/Approver/Index");
             }
 
-            var request = await _context.RefundRequests.FindAsync(requestId);
+            var request = await _context.RefundRequests.FirstOrDefaultAsync(r => r.PublicId == requestId);
             if (request == null)
             {
                 StatusMessage = "Request not found.";
@@ -756,7 +757,7 @@ namespace TAB.Web.Pages.Modules.RefundManagement.Approvals.Supervisor
                 // Add history entry
                 var historyEntry = new RefundRequestHistory
                 {
-                    RefundRequestId = requestId,
+                    RefundRequestId = request.Id,
                     Action = RefundHistoryActions.BudgetOfficerApproved,
                     PreviousStatus = RefundRequestStatus.PendingBudgetOfficer.ToString(),
                     NewStatus = RefundRequestStatus.PendingStaffClaimsUnit.ToString(),
@@ -769,7 +770,7 @@ namespace TAB.Web.Pages.Modules.RefundManagement.Approvals.Supervisor
                 _context.RefundRequestHistories.Add(historyEntry);
                 await _context.SaveChangesAsync();
 
-                StatusMessage = $"Request #{requestId} has been approved and forwarded to Staff Claims Unit.";
+                StatusMessage = $"Request #{request.Id} has been approved and forwarded to Staff Claims Unit.";
                 StatusMessageClass = "success";
             }
             catch (Exception ex)
@@ -781,7 +782,7 @@ namespace TAB.Web.Pages.Modules.RefundManagement.Approvals.Supervisor
             return RedirectToPage("/Dashboard/Approver/Index");
         }
 
-        public async Task<IActionResult> OnPostBudgetRevertToRequestorAsync(int requestId, string? budgetOfficerRemarks)
+        public async Task<IActionResult> OnPostBudgetRevertToRequestorAsync(Guid requestId, string? budgetOfficerRemarks)
         {
             var currentUser = await _userManager.GetUserAsync(User);
             if (currentUser == null)
@@ -791,7 +792,7 @@ namespace TAB.Web.Pages.Modules.RefundManagement.Approvals.Supervisor
                 return RedirectToPage("/Dashboard/Approver/Index");
             }
 
-            var request = await _context.RefundRequests.FindAsync(requestId);
+            var request = await _context.RefundRequests.FirstOrDefaultAsync(r => r.PublicId == requestId);
             if (request == null)
             {
                 StatusMessage = "Request not found.";
@@ -822,7 +823,7 @@ namespace TAB.Web.Pages.Modules.RefundManagement.Approvals.Supervisor
                 // Add history entry
                 var historyEntry = new RefundRequestHistory
                 {
-                    RefundRequestId = requestId,
+                    RefundRequestId = request.Id,
                     Action = RefundHistoryActions.BudgetOfficerReverted,
                     PreviousStatus = previousStatus,
                     NewStatus = RefundRequestStatus.Draft.ToString(),
@@ -835,7 +836,7 @@ namespace TAB.Web.Pages.Modules.RefundManagement.Approvals.Supervisor
                 _context.RefundRequestHistories.Add(historyEntry);
                 await _context.SaveChangesAsync();
 
-                StatusMessage = $"Request #{requestId} has been reverted to the requestor.";
+                StatusMessage = $"Request #{request.Id} has been reverted to the requestor.";
                 StatusMessageClass = "success";
             }
             catch (Exception ex)
@@ -847,7 +848,7 @@ namespace TAB.Web.Pages.Modules.RefundManagement.Approvals.Supervisor
             return RedirectToPage("/Dashboard/Approver/Index");
         }
 
-        public async Task<IActionResult> OnPostBudgetRevertToSupervisorAsync(int requestId, string? budgetOfficerRemarks)
+        public async Task<IActionResult> OnPostBudgetRevertToSupervisorAsync(Guid requestId, string? budgetOfficerRemarks)
         {
             var currentUser = await _userManager.GetUserAsync(User);
             if (currentUser == null)
@@ -857,7 +858,7 @@ namespace TAB.Web.Pages.Modules.RefundManagement.Approvals.Supervisor
                 return RedirectToPage("/Dashboard/Approver/Index");
             }
 
-            var request = await _context.RefundRequests.FindAsync(requestId);
+            var request = await _context.RefundRequests.FirstOrDefaultAsync(r => r.PublicId == requestId);
             if (request == null)
             {
                 StatusMessage = "Request not found.";
@@ -891,7 +892,7 @@ namespace TAB.Web.Pages.Modules.RefundManagement.Approvals.Supervisor
                 // Add history entry
                 var historyEntry = new RefundRequestHistory
                 {
-                    RefundRequestId = requestId,
+                    RefundRequestId = request.Id,
                     Action = RefundHistoryActions.BudgetOfficerReverted,
                     PreviousStatus = previousStatus,
                     NewStatus = RefundRequestStatus.PendingSupervisor.ToString(),
@@ -904,7 +905,7 @@ namespace TAB.Web.Pages.Modules.RefundManagement.Approvals.Supervisor
                 _context.RefundRequestHistories.Add(historyEntry);
                 await _context.SaveChangesAsync();
 
-                StatusMessage = $"Request #{requestId} has been reverted to the supervisor for review.";
+                StatusMessage = $"Request #{request.Id} has been reverted to the supervisor for review.";
                 StatusMessageClass = "success";
             }
             catch (Exception ex)
@@ -916,7 +917,7 @@ namespace TAB.Web.Pages.Modules.RefundManagement.Approvals.Supervisor
             return RedirectToPage("/Dashboard/Approver/Index");
         }
 
-        public async Task<IActionResult> OnGetRequestDetailsAsync(int requestId)
+        public async Task<IActionResult> OnGetRequestDetailsAsync(Guid requestId)
         {
             var currentUser = await _userManager.GetUserAsync(User);
             if (currentUser == null)
@@ -924,7 +925,7 @@ namespace TAB.Web.Pages.Modules.RefundManagement.Approvals.Supervisor
                 return BadRequest("User not found");
             }
 
-            var request = await _context.RefundRequests.FindAsync(requestId);
+            var request = await _context.RefundRequests.FirstOrDefaultAsync(r => r.PublicId == requestId);
             if (request == null)
             {
                 return NotFound("Request not found");
@@ -932,7 +933,7 @@ namespace TAB.Web.Pages.Modules.RefundManagement.Approvals.Supervisor
 
             // Check authorization based on user role
             var isSupervisor = await _userManager.IsInRoleAsync(currentUser, "Supervisor");
-            var isBudgetOfficer = await _userManager.IsInRoleAsync(currentUser, "Budget Officer") || 
+            var isBudgetOfficer = await _userManager.IsInRoleAsync(currentUser, "Budget Officer") ||
                                  await _userManager.IsInRoleAsync(currentUser, "BudgetOfficer");
             var isAdmin = await _userManager.IsInRoleAsync(currentUser, "Admin");
 
@@ -952,6 +953,7 @@ namespace TAB.Web.Pages.Modules.RefundManagement.Approvals.Supervisor
             var requestData = new
             {
                 id = request.Id,
+                publicId = request.PublicId,
                 primaryMobileNumber = request.PrimaryMobileNumber,
                 indexNo = request.IndexNo,
                 mobileNumberAssignedTo = request.MobileNumberAssignedTo,

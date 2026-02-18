@@ -99,10 +99,10 @@ namespace TAB.Web.Pages.Modules.RefundManagement.Approvals
         }
 
         // Budget Officer Handlers
-        public async Task<IActionResult> OnPostApproveBudgetAsync(int requestId, string costObject, string costCenter, 
+        public async Task<IActionResult> OnPostApproveBudgetAsync(Guid requestId, string costObject, string costCenter, 
             string fundCommitment, string budgetNotes, string? budgetRemarks)
         {
-            var request = await _context.RefundRequests.FindAsync(requestId);
+            var request = await _context.RefundRequests.FirstOrDefaultAsync(r => r.PublicId == requestId);
             if (request == null || request.Status != RefundRequestStatus.PendingBudgetOfficer)
             {
                 TempData["Error"] = "Request not found or already processed.";
@@ -128,9 +128,9 @@ namespace TAB.Web.Pages.Modules.RefundManagement.Approvals
             return RedirectToPage(new { tab = "budget" });
         }
 
-        public async Task<IActionResult> OnPostRejectBudgetAsync(int requestId, string rejectionType, string rejectionDetails)
+        public async Task<IActionResult> OnPostRejectBudgetAsync(Guid requestId, string rejectionType, string rejectionDetails)
         {
-            var request = await _context.RefundRequests.FindAsync(requestId);
+            var request = await _context.RefundRequests.FirstOrDefaultAsync(r => r.PublicId == requestId);
             if (request == null || request.Status != RefundRequestStatus.PendingBudgetOfficer)
             {
                 TempData["Error"] = "Request not found or already processed.";
@@ -152,10 +152,10 @@ namespace TAB.Web.Pages.Modules.RefundManagement.Approvals
         }
 
         // Claims Unit Handlers
-        public async Task<IActionResult> OnPostProcessClaimsAsync(int requestId, string umojaPaymentDocumentId, 
+        public async Task<IActionResult> OnPostProcessClaimsAsync(Guid requestId, string umojaPaymentDocumentId, 
             decimal refundUsdAmount, DateTime claimsActionDate, string claimsNotes, string? claimsRemarks)
         {
-            var request = await _context.RefundRequests.FindAsync(requestId);
+            var request = await _context.RefundRequests.FirstOrDefaultAsync(r => r.PublicId == requestId);
             if (request == null || request.Status != RefundRequestStatus.PendingStaffClaimsUnit)
             {
                 TempData["Error"] = "Request not found or already processed.";
@@ -181,9 +181,9 @@ namespace TAB.Web.Pages.Modules.RefundManagement.Approvals
             return RedirectToPage(new { tab = "claims" });
         }
 
-        public async Task<IActionResult> OnPostRejectClaimsAsync(int requestId, string rejectionType, string rejectionDetails)
+        public async Task<IActionResult> OnPostRejectClaimsAsync(Guid requestId, string rejectionType, string rejectionDetails)
         {
-            var request = await _context.RefundRequests.FindAsync(requestId);
+            var request = await _context.RefundRequests.FirstOrDefaultAsync(r => r.PublicId == requestId);
             if (request == null || request.Status != RefundRequestStatus.PendingStaffClaimsUnit)
             {
                 TempData["Error"] = "Request not found or already processed.";
@@ -205,10 +205,10 @@ namespace TAB.Web.Pages.Modules.RefundManagement.Approvals
         }
 
         // Payment Approver Handlers
-        public async Task<IActionResult> OnPostApprovePaymentAsync(int requestId, string paymentReference, 
+        public async Task<IActionResult> OnPostApprovePaymentAsync(Guid requestId, string paymentReference, 
             string paymentNotes, string? completionNotes)
         {
-            var request = await _context.RefundRequests.FindAsync(requestId);
+            var request = await _context.RefundRequests.FirstOrDefaultAsync(r => r.PublicId == requestId);
             if (request == null || request.Status != RefundRequestStatus.PendingPaymentApproval)
             {
                 TempData["Error"] = "Request not found or already processed.";
@@ -234,9 +234,9 @@ namespace TAB.Web.Pages.Modules.RefundManagement.Approvals
             return RedirectToPage(new { tab = "payment" });
         }
 
-        public async Task<IActionResult> OnPostRejectPaymentAsync(int requestId, string rejectionType, string rejectionDetails)
+        public async Task<IActionResult> OnPostRejectPaymentAsync(Guid requestId, string rejectionType, string rejectionDetails)
         {
-            var request = await _context.RefundRequests.FindAsync(requestId);
+            var request = await _context.RefundRequests.FirstOrDefaultAsync(r => r.PublicId == requestId);
             if (request == null || request.Status != RefundRequestStatus.PendingPaymentApproval)
             {
                 TempData["Error"] = "Request not found or already processed.";

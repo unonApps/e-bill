@@ -6,6 +6,7 @@ namespace TAB.Web.Models
     public class RefundRequest
     {
         public int Id { get; set; }
+        public Guid PublicId { get; set; } = Guid.NewGuid();
 
         // Mobile Information
         [Required]

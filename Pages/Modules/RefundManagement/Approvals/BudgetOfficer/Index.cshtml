@@ -753,33 +753,33 @@
                                             </button>
                                             <ul class="dropdown-menu dropdown-menu-end" style="min-width: 200px;">
                                                 <li>
-                                                    <a class="dropdown-item" href="/Modules/RefundManagement/Approvals/BudgetOfficer?requestId=@request.Id">
+                                                    <a class="dropdown-item" href="/Modules/RefundManagement/Approvals/BudgetOfficer?requestId=@request.PublicId">
                                                         <i class="bi bi-eye me-2" style="color: #009EDB;"></i>
                                                         View Details
                                                     </a>
                                                 </li>
                                                 <li><hr class="dropdown-divider"></li>
                                                 <li>
-                                                    <a class="dropdown-item" href="#" onclick="budgetOfficerApprove(@request.Id); return false;">
+                                                    <a class="dropdown-item" href="#" onclick="budgetOfficerApprove('@request.PublicId'); return false;">
                                                         <i class="bi bi-check-circle me-2" style="color: #72BF44;"></i>
                                                         Approve Budget
                                                     </a>
                                                 </li>
                                                 <li>
-                                                    <a class="dropdown-item" href="#" onclick="budgetRevertToRequestor(@request.Id); return false;">
+                                                    <a class="dropdown-item" href="#" onclick="budgetRevertToRequestor('@request.PublicId'); return false;">
                                                         <i class="bi bi-arrow-left-circle me-2" style="color: #E07A00;"></i>
                                                         Revert to Requestor
                                                     </a>
                                                 </li>
                                                 <li>
-                                                    <a class="dropdown-item" href="#" onclick="budgetRevertToSupervisor(@request.Id); return false;">
+                                                    <a class="dropdown-item" href="#" onclick="budgetRevertToSupervisor('@request.PublicId'); return false;">
                                                         <i class="bi bi-arrow-counterclockwise me-2" style="color: #E07A00;"></i>
                                                         Revert to Supervisor
                                                     </a>
                                                 </li>
                                                 <li><hr class="dropdown-divider"></li>
                                                 <li>
-                                                    <a class="dropdown-item text-danger" href="#" onclick="rejectRequest(@request.Id); return false;">
+                                                    <a class="dropdown-item text-danger" href="#" onclick="rejectRequest('@request.PublicId'); return false;">
                                                         <i class="bi bi-x-circle me-2"></i>
                                                         Reject Request
                                                     </a>
@@ -868,7 +868,7 @@
                                         </span>
                                     </td>
                                     <td class="text-center">
-                                        <a href="/Modules/RefundManagement/Approvals/BudgetOfficer?requestId=@request.Id" class="action-btn btn-view" title="View Details">
+                                        <a href="/Modules/RefundManagement/Approvals/BudgetOfficer?requestId=@request.PublicId" class="action-btn btn-view" title="View Details">
                                             <i class="bi bi-eye"></i>
                                         </a>
                                     </td>
@@ -947,7 +947,7 @@
                                         <span style="color: #64748b; font-size: 13px;">@(string.IsNullOrEmpty(request.BudgetOfficerRemarks) ? request.CancellationReason : request.BudgetOfficerRemarks)</span>
                                     </td>
                                     <td class="text-center">
-                                        <a href="/Modules/RefundManagement/Approvals/BudgetOfficer?requestId=@request.Id" class="action-btn btn-view" title="View Details">
+                                        <a href="/Modules/RefundManagement/Approvals/BudgetOfficer?requestId=@request.PublicId" class="action-btn btn-view" title="View Details">
                                             <i class="bi bi-eye"></i>
                                         </a>
                                     </td>
@@ -1491,7 +1491,7 @@
                     </div>
 
                     <form method="post" asp-page-handler="BudgetApprove">
-                        <input type="hidden" name="requestId" value="@Model.CurrentRequest.Id" />
+                        <input type="hidden" name="requestId" value="@Model.CurrentRequest.PublicId" />
 
                         <div class="row g-3">
                             <div class="col-md-4">
@@ -1527,13 +1527,13 @@
                             <a href="/Dashboard/Approver" class="btn btn-light" style="border-radius: 12px; padding: 12px 24px; font-weight: 500;">
                                 Cancel
                             </a>
-                            <button type="button" class="btn btn-secondary" data-bs-toggle="modal" data-bs-target="#detailReassignModal" onclick="setDetailRequestId(@Model.CurrentRequest.Id)" style="border-radius: 12px; padding: 12px 24px; font-weight: 500;">
+                            <button type="button" class="btn btn-secondary" data-bs-toggle="modal" data-bs-target="#detailReassignModal" onclick="setDetailRequestId('@Model.CurrentRequest.PublicId')" style="border-radius: 12px; padding: 12px 24px; font-weight: 500;">
                                 <i class="bi bi-person-plus me-2"></i>Reassign
                             </button>
-                            <button type="button" class="btn btn-warning" data-bs-toggle="modal" data-bs-target="#detailRevertToRequestorModal" onclick="setDetailRequestId(@Model.CurrentRequest.Id)" style="border-radius: 12px; padding: 12px 24px; font-weight: 500;">
+                            <button type="button" class="btn btn-warning" data-bs-toggle="modal" data-bs-target="#detailRevertToRequestorModal" onclick="setDetailRequestId('@Model.CurrentRequest.PublicId')" style="border-radius: 12px; padding: 12px 24px; font-weight: 500;">
                                 <i class="bi bi-arrow-left me-2"></i>Revert to Requestor
                             </button>
-                            <button type="button" class="btn btn-info" data-bs-toggle="modal" data-bs-target="#detailRevertToSupervisorModal" onclick="setDetailRequestId(@Model.CurrentRequest.Id)" style="border-radius: 12px; padding: 12px 24px; font-weight: 500;">
+                            <button type="button" class="btn btn-info" data-bs-toggle="modal" data-bs-target="#detailRevertToSupervisorModal" onclick="setDetailRequestId('@Model.CurrentRequest.PublicId')" style="border-radius: 12px; padding: 12px 24px; font-weight: 500;">
                                 <i class="bi bi-arrow-counterclockwise me-2"></i>Revert to Supervisor
                             </button>
                             <button type="submit" class="btn btn-success" style="border-radius: 12px; padding: 12px 24px; font-weight: 500;">

@@ -176,7 +176,7 @@
                         </div>
                         <form method="post" asp-page-handler="ApprovePayment">
                             <div class="modal-body compact-modal">
-                                <input type="hidden" name="requestId" value="@request.Id" />
+                                <input type="hidden" name="requestId" value="@request.PublicId" />
                                 
                                 <div class="alert alert-success compact-alert">
                                     <i class="bi bi-check-circle me-2"></i>
@@ -238,7 +238,7 @@
                         </div>
                         <form method="post" asp-page-handler="RejectPayment">
                             <div class="modal-body compact-modal">
-                                <input type="hidden" name="requestId" value="@request.Id" />
+                                <input type="hidden" name="requestId" value="@request.PublicId" />
                                 
                                 <div class="alert alert-danger compact-alert">
                                     <i class="bi bi-exclamation-triangle me-2"></i>

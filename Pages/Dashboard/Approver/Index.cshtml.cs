@@ -359,6 +359,7 @@ namespace TAB.Web.Pages.Dashboard.Approver
                 allRequests.AddRange(refundRequests.Select(r => new UnifiedRequest
                 {
                     Id = r.Id,
+                    PublicId = r.PublicId,
                     RequestType = RequestType.DeviceRefund,
                     StaffName = r.MobileNumberAssignedTo,
                     RequestTitle = $"Device Refund - {r.DevicePurchaseCurrency} {r.DevicePurchaseAmount:N2}",
@@ -467,6 +468,7 @@ namespace TAB.Web.Pages.Dashboard.Approver
                 allRequests.AddRange(budgetRefundRequests.Select(r => new UnifiedRequest
                 {
                     Id = r.Id,
+                    PublicId = r.PublicId,
                     RequestType = RequestType.DeviceRefund,
                     StaffName = r.MobileNumberAssignedTo,
                     RequestTitle = $"Device Refund - {r.DevicePurchaseCurrency} {r.DevicePurchaseAmount:N2} - Pending Budget Approval",
@@ -487,6 +489,7 @@ namespace TAB.Web.Pages.Dashboard.Approver
                 allRequests.AddRange(claimsRefundRequests.Select(r => new UnifiedRequest
                 {
                     Id = r.Id,
+                    PublicId = r.PublicId,
                     RequestType = RequestType.DeviceRefund,
                     StaffName = r.MobileNumberAssignedTo,
                     RequestTitle = $"Device Refund - {r.DevicePurchaseCurrency} {r.DevicePurchaseAmount:N2} - Pending Claims Processing",
@@ -571,6 +574,7 @@ namespace TAB.Web.Pages.Dashboard.Approver
                 allRequests.AddRange(supervisorRefundRequests.Select(r => new UnifiedRequest
                 {
                     Id = r.Id,
+                    PublicId = r.PublicId,
                     RequestType = RequestType.DeviceRefund,
                     StaffName = r.MobileNumberAssignedTo,
                     RequestTitle = $"Device Refund - {r.DevicePurchaseCurrency} {r.DevicePurchaseAmount:N2} - Pending Supervisor Approval",

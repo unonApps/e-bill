@@ -42,7 +42,7 @@ namespace TAB.Web.Pages.Modules.RefundManagement.Approvals.ClaimsUnit
         [TempData]
         public string? StatusMessageClass { get; set; }
 
-        public async Task OnGetAsync(int? requestId = null)
+        public async Task OnGetAsync(Guid? requestId = null)
         {
             var currentUser = await _userManager.GetUserAsync(User);
             if (currentUser != null)
@@ -54,13 +54,13 @@ namespace TAB.Web.Pages.Modules.RefundManagement.Approvals.ClaimsUnit
                 // Check if this is a detail view request
                 if (requestId.HasValue)
                 {
-                    CurrentRequest = await _context.RefundRequests.FindAsync(requestId.Value);
+                    CurrentRequest = await _context.RefundRequests.FirstOrDefaultAsync(r => r.PublicId == requestId.Value);
                     if (CurrentRequest != null)
                     {
                         IsDetailView = true;
                         // Load request history
                         RequestHistory = await _context.RefundRequestHistories
-                            .Where(h => h.RefundRequestId == requestId.Value)
+                            .Where(h => h.RefundRequestId == CurrentRequest.Id)
                             .OrderBy(h => h.Timestamp)
                             .ToListAsync();
                     }
@@ -88,7 +88,7 @@ namespace TAB.Web.Pages.Modules.RefundManagement.Approvals.ClaimsUnit
             }
         }
 
-        public async Task<IActionResult> OnPostApproveAsync(int requestId, string? claimsRemarks)
+        public async Task<IActionResult> OnPostApproveAsync(Guid requestId, string? claimsRemarks)
         {
             var currentUser = await _userManager.GetUserAsync(User);
             if (currentUser == null)
@@ -98,7 +98,7 @@ namespace TAB.Web.Pages.Modules.RefundManagement.Approvals.ClaimsUnit
                 return RedirectToPage("/Dashboard/Approver/Index");
             }
 
-            var request = await _context.RefundRequests.FindAsync(requestId);
+            var request = await _context.RefundRequests.FirstOrDefaultAsync(r => r.PublicId == requestId);
             if (request == null)
             {
                 StatusMessage = "Request not found.";
@@ -151,7 +151,7 @@ namespace TAB.Web.Pages.Modules.RefundManagement.Approvals.ClaimsUnit
                 // Add history entry
                 var historyEntry = new RefundRequestHistory
                 {
-                    RefundRequestId = requestId,
+                    RefundRequestId = request.Id,
                     Action = RefundHistoryActions.ClaimsUnitProcessed,
                     PreviousStatus = RefundRequestStatus.PendingStaffClaimsUnit.ToString(),
                     NewStatus = RefundRequestStatus.PendingPaymentApproval.ToString(),
@@ -166,14 +166,14 @@ namespace TAB.Web.Pages.Modules.RefundManagement.Approvals.ClaimsUnit
 
                 // Send notification to requester
                 await _notificationService.NotifyRefundClaimsUnitApprovedAsync(
-                    requestId,
+                    request.Id,
                     request.RequestedBy ?? "",
                     request.StaffClaimsRemarks
                 );
 
                 // Log audit trail
                 await _auditLogService.LogRefundRequestApprovedAsync(
-                    requestId,
+                    request.Id,
                     "Claims Unit Approver",
                     $"{currentUser.FirstName} {currentUser.LastName}",
                     request.MobileNumberAssignedTo ?? "N/A",
@@ -188,10 +188,11 @@ namespace TAB.Web.Pages.Modules.RefundManagement.Approvals.ClaimsUnit
                 foreach (var approver in paymentApprovers)
                 {
                     await _notificationService.NotifyNewRefundRequestPendingApprovalAsync(
-                        requestId,
+                        request.Id,
                         approver.Id,
                         request.MobileNumberAssignedTo,
-                        "Payment Approver"
+                        "Payment Approver",
+                        request.PublicId
                     );
                 }
 
@@ -218,7 +219,7 @@ namespace TAB.Web.Pages.Modules.RefundManagement.Approvals.ClaimsUnit
                     _logger.LogError(emailEx, "Failed to send claims processed email notifications for request {RequestId}", requestId);
                 }
 
-                StatusMessage = $"Request #{requestId} has been approved and forwarded to Payment Approval.";
+                StatusMessage = $"Request #{request.Id} has been approved and forwarded to Payment Approval.";
                 StatusMessageClass = "success";
             }
             catch (Exception ex)
@@ -230,7 +231,7 @@ namespace TAB.Web.Pages.Modules.RefundManagement.Approvals.ClaimsUnit
             return RedirectToPage("/Dashboard/Approver/Index");
         }
 
-        public async Task<IActionResult> OnPostRevertToRequestorAsync(int requestId, string? claimsRemarks)
+        public async Task<IActionResult> OnPostRevertToRequestorAsync(Guid requestId, string? claimsRemarks)
         {
             var currentUser = await _userManager.GetUserAsync(User);
             if (currentUser == null)
@@ -240,7 +241,7 @@ namespace TAB.Web.Pages.Modules.RefundManagement.Approvals.ClaimsUnit
                 return RedirectToPage("/Dashboard/Approver/Index");
             }
 
-            var request = await _context.RefundRequests.FindAsync(requestId);
+            var request = await _context.RefundRequests.FirstOrDefaultAsync(r => r.PublicId == requestId);
             if (request == null)
             {
                 StatusMessage = "Request not found.";
@@ -274,7 +275,7 @@ namespace TAB.Web.Pages.Modules.RefundManagement.Approvals.ClaimsUnit
                 // Add history entry
                 var historyEntry = new RefundRequestHistory
                 {
-                    RefundRequestId = requestId,
+                    RefundRequestId = request.Id,
                     Action = RefundHistoryActions.ClaimsUnitRevertedToRequestor,
                     PreviousStatus = previousStatus,
                     NewStatus = RefundRequestStatus.Draft.ToString(),
@@ -287,7 +288,7 @@ namespace TAB.Web.Pages.Modules.RefundManagement.Approvals.ClaimsUnit
                 _context.RefundRequestHistories.Add(historyEntry);
                 await _context.SaveChangesAsync();
 
-                StatusMessage = $"Request #{requestId} has been reverted to the requestor for revision.";
+                StatusMessage = $"Request #{request.Id} has been reverted to the requestor for revision.";
                 StatusMessageClass = "success";
             }
             catch (Exception ex)
@@ -299,7 +300,7 @@ namespace TAB.Web.Pages.Modules.RefundManagement.Approvals.ClaimsUnit
             return RedirectToPage("/Dashboard/Approver/Index");
         }
 
-        public async Task<IActionResult> OnPostRejectAsync(int requestId, string? claimsRemarks)
+        public async Task<IActionResult> OnPostRejectAsync(Guid requestId, string? claimsRemarks)
         {
             var currentUser = await _userManager.GetUserAsync(User);
             if (currentUser == null)
@@ -309,7 +310,7 @@ namespace TAB.Web.Pages.Modules.RefundManagement.Approvals.ClaimsUnit
                 return RedirectToPage("/Dashboard/Approver/Index");
             }
 
-            var request = await _context.RefundRequests.FindAsync(requestId);
+            var request = await _context.RefundRequests.FirstOrDefaultAsync(r => r.PublicId == requestId);
             if (request == null)
             {
                 StatusMessage = "Request not found.";
@@ -341,7 +342,7 @@ namespace TAB.Web.Pages.Modules.RefundManagement.Approvals.ClaimsUnit
                 // Add history entry
                 var historyEntry = new RefundRequestHistory
                 {
-                    RefundRequestId = requestId,
+                    RefundRequestId = request.Id,
                     Action = RefundHistoryActions.ClaimsUnitRejected,
                     PreviousStatus = previousStatus,
                     NewStatus = RefundRequestStatus.Cancelled.ToString(),
@@ -356,14 +357,14 @@ namespace TAB.Web.Pages.Modules.RefundManagement.Approvals.ClaimsUnit
 
                 // Send notification to requester
                 await _notificationService.NotifyRefundClaimsUnitRejectedAsync(
-                    requestId,
+                    request.Id,
                     request.RequestedBy ?? "",
                     claimsRemarks
                 );
 
                 // Log audit trail
                 await _auditLogService.LogRefundRequestRejectedAsync(
-                    requestId,
+                    request.Id,
                     "Claims Unit Approver",
                     $"{currentUser.FirstName} {currentUser.LastName}",
                     request.MobileNumberAssignedTo ?? "N/A",
@@ -388,7 +389,7 @@ namespace TAB.Web.Pages.Modules.RefundManagement.Approvals.ClaimsUnit
                     _logger.LogError(emailEx, "Failed to send rejection email for request {RequestId}", requestId);
                 }
 
-                StatusMessage = $"Request #{requestId} has been rejected.";
+                StatusMessage = $"Request #{request.Id} has been rejected.";
                 StatusMessageClass = "success";
             }
             catch (Exception ex)
@@ -400,7 +401,7 @@ namespace TAB.Web.Pages.Modules.RefundManagement.Approvals.ClaimsUnit
             return RedirectToPage("/Dashboard/Approver/Index");
         }
 
-        public async Task<IActionResult> OnPostRevertToBudgetOfficerAsync(int requestId, string? claimsRemarks)
+        public async Task<IActionResult> OnPostRevertToBudgetOfficerAsync(Guid requestId, string? claimsRemarks)
         {
             var currentUser = await _userManager.GetUserAsync(User);
             if (currentUser == null)
@@ -410,7 +411,7 @@ namespace TAB.Web.Pages.Modules.RefundManagement.Approvals.ClaimsUnit
                 return RedirectToPage("/Dashboard/Approver/Index");
             }
 
-            var request = await _context.RefundRequests.FindAsync(requestId);
+            var request = await _context.RefundRequests.FirstOrDefaultAsync(r => r.PublicId == requestId);
             if (request == null)
             {
                 StatusMessage = "Request not found.";
@@ -443,7 +444,7 @@ namespace TAB.Web.Pages.Modules.RefundManagement.Approvals.ClaimsUnit
                 // Add history entry
                 var historyEntry = new RefundRequestHistory
                 {
-                    RefundRequestId = requestId,
+                    RefundRequestId = request.Id,
                     Action = RefundHistoryActions.ClaimsUnitRevertedToBudgetOfficer,
                     PreviousStatus = previousStatus,
                     NewStatus = RefundRequestStatus.PendingBudgetOfficer.ToString(),
@@ -456,7 +457,7 @@ namespace TAB.Web.Pages.Modules.RefundManagement.Approvals.ClaimsUnit
                 _context.RefundRequestHistories.Add(historyEntry);
                 await _context.SaveChangesAsync();
 
-                StatusMessage = $"Request #{requestId} has been reverted to Budget Officer for review.";
+                StatusMessage = $"Request #{request.Id} has been reverted to Budget Officer for review.";
                 StatusMessageClass = "success";
             }
             catch (Exception ex)
@@ -468,9 +469,9 @@ namespace TAB.Web.Pages.Modules.RefundManagement.Approvals.ClaimsUnit
             return RedirectToPage("/Dashboard/Approver/Index");
         }
 
-        public async Task<IActionResult> OnGetRequestDetailsAsync(int requestId)
+        public async Task<IActionResult> OnGetRequestDetailsAsync(Guid requestId)
         {
-            var request = await _context.RefundRequests.FindAsync(requestId);
+            var request = await _context.RefundRequests.FirstOrDefaultAsync(r => r.PublicId == requestId);
             if (request == null)
             {
                 return new JsonResult(new { success = false, message = "Request not found" });
@@ -480,6 +481,7 @@ namespace TAB.Web.Pages.Modules.RefundManagement.Approvals.ClaimsUnit
             {
                 success = true,
                 id = request.Id,
+                publicId = request.PublicId,
                 mobileNumberAssignedTo = request.MobileNumberAssignedTo,
                 staffName = request.MobileNumberAssignedTo,
                 primaryMobileNumber = request.PrimaryMobileNumber,

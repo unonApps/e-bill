@@ -8,6 +8,7 @@ namespace TAB.Web.Models
     public class UnifiedRequest
     {
         public int Id { get; set; }
+        public Guid PublicId { get; set; }
         public RequestType RequestType { get; set; }
         public string StaffName { get; set; } = string.Empty;
         public string Email { get; set; } = string.Empty;

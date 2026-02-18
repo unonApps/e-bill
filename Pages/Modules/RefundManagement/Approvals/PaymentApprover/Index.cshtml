@@ -696,26 +696,26 @@
                                             </button>
                                             <ul class="dropdown-menu dropdown-menu-end">
                                                 <li>
-                                                    <a class="dropdown-item" href="/Modules/RefundManagement/Approvals/PaymentApprover?requestId=@request.Id">
+                                                    <a class="dropdown-item" href="/Modules/RefundManagement/Approvals/PaymentApprover?requestId=@request.PublicId">
                                                         <i class="bi bi-eye me-2" style="color: #009EDB;"></i>
                                                         View Details
                                                     </a>
                                                 </li>
                                                 <li><hr class="dropdown-divider"></li>
                                                 <li>
-                                                    <a class="dropdown-item" href="#" onclick="approvePayment(@request.Id); return false;">
+                                                    <a class="dropdown-item" href="#" onclick="approvePayment('@request.PublicId'); return false;">
                                                         <i class="bi bi-check-circle me-2" style="color: #72BF44;"></i>
                                                         Approve Payment
                                                     </a>
                                                 </li>
                                                 <li>
-                                                    <a class="dropdown-item" href="#" onclick="revertToClaims(@request.Id); return false;">
+                                                    <a class="dropdown-item" href="#" onclick="revertToClaims('@request.PublicId'); return false;">
                                                         <i class="bi bi-arrow-counterclockwise me-2" style="color: #E07A00;"></i>
                                                         Revert to Claims
                                                     </a>
                                                 </li>
                                                 <li>
-                                                    <a class="dropdown-item" href="#" onclick="rejectPayment(@request.Id); return false;">
+                                                    <a class="dropdown-item" href="#" onclick="rejectPayment('@request.PublicId'); return false;">
                                                         <i class="bi bi-x-circle me-2" style="color: #EB1C24;"></i>
                                                         Reject Payment
                                                     </a>
@@ -827,7 +827,7 @@
                                             </button>
                                             <ul class="dropdown-menu dropdown-menu-end">
                                                 <li>
-                                                    <a class="dropdown-item" href="/Modules/RefundManagement/Approvals/PaymentApprover?requestId=@request.Id">
+                                                    <a class="dropdown-item" href="/Modules/RefundManagement/Approvals/PaymentApprover?requestId=@request.PublicId">
                                                         <i class="bi bi-eye me-2" style="color: #009EDB;"></i>
                                                         View Details
                                                     </a>
@@ -939,7 +939,7 @@
                                             </button>
                                             <ul class="dropdown-menu dropdown-menu-end">
                                                 <li>
-                                                    <a class="dropdown-item" href="/Modules/RefundManagement/Approvals/PaymentApprover?requestId=@request.Id">
+                                                    <a class="dropdown-item" href="/Modules/RefundManagement/Approvals/PaymentApprover?requestId=@request.PublicId">
                                                         <i class="bi bi-eye me-2" style="color: #009EDB;"></i>
                                                         View Details
                                                     </a>
@@ -1484,13 +1484,13 @@
                         </div>
 
                         <div class="d-flex gap-3 justify-content-end mt-4 pt-3" style="border-top: 1px solid #e5e7eb;">
-                            <button type="button" class="btn btn-warning" data-bs-toggle="modal" data-bs-target="#detailRevertToClaimsModal" onclick="setDetailRequestId(@Model.CurrentRequest.Id)" style="border-radius: 12px; padding: 12px 24px; font-weight: 500;">
+                            <button type="button" class="btn btn-warning" data-bs-toggle="modal" data-bs-target="#detailRevertToClaimsModal" onclick="setDetailRequestId('@Model.CurrentRequest.PublicId')" style="border-radius: 12px; padding: 12px 24px; font-weight: 500;">
                                 <i class="bi bi-arrow-left me-2"></i>Revert to Claims Unit
                             </button>
-                            <button type="button" class="btn btn-danger" data-bs-toggle="modal" data-bs-target="#detailRejectPaymentModal" onclick="setDetailRequestId(@Model.CurrentRequest.Id)" style="border-radius: 12px; padding: 12px 24px; font-weight: 500;">
+                            <button type="button" class="btn btn-danger" data-bs-toggle="modal" data-bs-target="#detailRejectPaymentModal" onclick="setDetailRequestId('@Model.CurrentRequest.PublicId')" style="border-radius: 12px; padding: 12px 24px; font-weight: 500;">
                                 <i class="bi bi-x-circle me-2"></i>Reject Payment
                             </button>
-                            <button type="button" class="btn btn-success" onclick="submitDetailPaymentApproval(@Model.CurrentRequest.Id)" style="border-radius: 12px; padding: 12px 24px; font-weight: 500;">
+                            <button type="button" class="btn btn-success" onclick="submitDetailPaymentApproval('@Model.CurrentRequest.PublicId')" style="border-radius: 12px; padding: 12px 24px; font-weight: 500;">
                                 <i class="bi bi-check-circle me-2"></i>Approve Payment
                             </button>
                         </div>

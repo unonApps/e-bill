@@ -789,7 +789,7 @@
                                             </button>
                                             <ul class="dropdown-menu dropdown-menu-end" style="min-width: 200px;">
                                                 <li>
-                                                    <a class="dropdown-item" href="#" onclick="viewRequest(@request.Id); return false;">
+                                                    <a class="dropdown-item" href="#" onclick="viewRequest('@request.PublicId'); return false;">
                                                         <i class="bi bi-eye me-2" style="color: #009EDB;"></i>
                                                         View Details
                                                     </a>
@@ -798,14 +798,14 @@
                                                 {
                                                     <li><hr class="dropdown-divider"></li>
                                                     <li>
-                                                        <a class="dropdown-item" href="#" onclick="approveRequest(@request.Id); return false;">
+                                                        <a class="dropdown-item" href="#" onclick="approveRequest('@request.PublicId'); return false;">
                                                             <i class="bi bi-check-circle me-2" style="color: #72BF44;"></i>
                                                             Approve
                                                         </a>
                                                     </li>
                                                     <li><hr class="dropdown-divider"></li>
                                                     <li>
-                                                        <a class="dropdown-item text-danger" href="#" onclick="rejectRequest(@request.Id); return false;">
+                                                        <a class="dropdown-item text-danger" href="#" onclick="rejectRequest('@request.PublicId'); return false;">
                                                             <i class="bi bi-x-circle me-2"></i>
                                                             Reject Request
                                                         </a>
@@ -815,14 +815,14 @@
                                                 {
                                                     <li><hr class="dropdown-divider"></li>
                                                     <li>
-                                                        <a class="dropdown-item" href="#" onclick="budgetOfficerApprove(@request.Id); return false;">
+                                                        <a class="dropdown-item" href="#" onclick="budgetOfficerApprove('@request.PublicId'); return false;">
                                                             <i class="bi bi-check-circle me-2" style="color: #72BF44;"></i>
                                                             Approve Budget
                                                         </a>
                                                     </li>
                                                     <li><hr class="dropdown-divider"></li>
                                                     <li>
-                                                        <a class="dropdown-item text-danger" href="#" onclick="rejectRequest(@request.Id); return false;">
+                                                        <a class="dropdown-item text-danger" href="#" onclick="rejectRequest('@request.PublicId'); return false;">
                                                             <i class="bi bi-x-circle me-2"></i>
                                                             Reject Request
                                                         </a>
@@ -1284,7 +1284,7 @@
                     @if (Model.CanActAsSupervisor)
                     {
                         <form method="post" asp-page-handler="Approve">
-                            <input type="hidden" name="requestId" value="@Model.CurrentRequest.Id" />
+                            <input type="hidden" name="requestId" value="@Model.CurrentRequest.PublicId" />
 
                             <div class="row g-3">
                                 <div class="col-md-6">
@@ -1314,10 +1314,10 @@
                                 <a href="/Dashboard/Approver" class="btn btn-light" style="border-radius: 12px; padding: 12px 24px; font-weight: 500;">
                                     Cancel
                                 </a>
-                                <button type="button" class="btn btn-warning" data-bs-toggle="modal" data-bs-target="#detailRevertModal" onclick="setDetailRequestId(@Model.CurrentRequest.Id)" style="border-radius: 12px; padding: 12px 24px; font-weight: 500;">
+                                <button type="button" class="btn btn-warning" data-bs-toggle="modal" data-bs-target="#detailRevertModal" onclick="setDetailRequestId('@Model.CurrentRequest.PublicId')" style="border-radius: 12px; padding: 12px 24px; font-weight: 500;">
                                     <i class="bi bi-arrow-left me-2"></i>Revert to Requestor
                                 </button>
-                                <button type="button" class="btn btn-danger" data-bs-toggle="modal" data-bs-target="#detailRejectModal" onclick="setDetailRequestId(@Model.CurrentRequest.Id)" style="border-radius: 12px; padding: 12px 24px; font-weight: 500;">
+                                <button type="button" class="btn btn-danger" data-bs-toggle="modal" data-bs-target="#detailRejectModal" onclick="setDetailRequestId('@Model.CurrentRequest.PublicId')" style="border-radius: 12px; padding: 12px 24px; font-weight: 500;">
                                     <i class="bi bi-x-circle me-2"></i>Reject Request
                                 </button>
                                 <button type="submit" name="action" value="approve" class="btn btn-success" style="border-radius: 12px; padding: 12px 24px; font-weight: 500;">

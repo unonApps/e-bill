@@ -243,6 +243,8 @@ namespace TAB.Web.Data
             builder.Entity<RefundRequest>(entity =>
             {
                 entity.HasKey(e => e.Id);
+                entity.Property(e => e.PublicId).HasDefaultValueSql("NEWID()");
+                entity.HasIndex(e => e.PublicId).IsUnique();
                 entity.Property(e => e.PrimaryMobileNumber).IsRequired().HasMaxLength(9);
                 entity.Property(e => e.IndexNo).IsRequired().HasMaxLength(50);
                 entity.Property(e => e.MobileNumberAssignedTo).IsRequired().HasMaxLength(200);

@@ -84,7 +84,7 @@ namespace TAB.Web.Services
         Task NotifySimRequestCancelledAsync(int requestId, string requesterUserId, string? reason = null);
 
         // Refund Request Workflow Notifications
-        Task NotifyRefundRequestSubmittedAsync(int requestId, string requesterUserId, string supervisorUserId);
+        Task NotifyRefundRequestSubmittedAsync(int requestId, string requesterUserId, string supervisorUserId, Guid publicId);
         Task NotifyRefundSupervisorApprovedAsync(int requestId, string requesterUserId, string? comments = null);
         Task NotifyRefundSupervisorRejectedAsync(int requestId, string requesterUserId, string? reason = null);
         Task NotifyRefundBudgetOfficerApprovedAsync(int requestId, string requesterUserId, string? comments = null);
@@ -98,7 +98,7 @@ namespace TAB.Web.Services
 
         // Approver Notifications
         Task NotifyNewSimRequestPendingApprovalAsync(int requestId, string supervisorUserId, string requesterName);
-        Task NotifyNewRefundRequestPendingApprovalAsync(int requestId, string approverUserId, string requesterName, string approverRole);
+        Task NotifyNewRefundRequestPendingApprovalAsync(int requestId, string approverUserId, string requesterName, string approverRole, Guid publicId);
         Task NotifyNewPaymentAssignmentAsync(int assignmentId, string assigneeUserId, string assignerName, string phoneNumber);
         Task NotifyPaymentAssignmentAcceptedAsync(int assignmentId, string assignerUserId, string assigneeName);
         Task NotifyPaymentAssignmentRejectedAsync(int assignmentId, string assignerUserId, string assigneeName, string? reason = null);

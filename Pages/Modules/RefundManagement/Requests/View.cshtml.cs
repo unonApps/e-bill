@@ -28,7 +28,7 @@ namespace TAB.Web.Pages.Modules.RefundManagement.Requests
         public RefundRequest RefundRequest { get; set; } = null!;
         public bool IsAdmin { get; set; }
 
-        public async Task<IActionResult> OnGetAsync(int? id)
+        public async Task<IActionResult> OnGetAsync(Guid? id)
         {
             if (id == null)
             {
@@ -53,7 +53,7 @@ namespace TAB.Web.Pages.Modules.RefundManagement.Requests
                 query = query.Where(r => r.RequestedBy == currentUser.Id);
             }
 
-            RefundRequest = await query.FirstOrDefaultAsync(r => r.Id == id);
+            RefundRequest = await query.FirstOrDefaultAsync(r => r.PublicId == id);
 
             if (RefundRequest == null)
             {

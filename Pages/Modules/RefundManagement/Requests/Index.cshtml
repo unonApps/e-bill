@@ -1210,7 +1210,7 @@
                             </td>
                             <td>
                                 <div class="d-flex gap-2 justify-content-center">
-                                    <a href="/Modules/RefundManagement/Requests/View/@request.Id" class="action-btn btn-view" title="View Details">
+                                    <a href="/Modules/RefundManagement/Requests/View/@request.PublicId" class="action-btn btn-view" title="View Details">
                                         <i class="bi bi-eye"></i>
                                     </a>
                                     @if (request.Status == RefundRequestStatus.Draft)
@@ -1218,7 +1218,7 @@
                                         <a href="/Modules/RefundManagement/Requests/Edit/@request.Id" class="action-btn btn-edit" title="Edit">
                                             <i class="bi bi-pencil"></i>
                                         </a>
-                                        <a href="#" class="action-btn btn-cancel" onclick="cancelRequest(@request.Id); return false;" title="Cancel">
+                                        <a href="#" class="action-btn btn-cancel" onclick="cancelRequest('@request.PublicId'); return false;" title="Cancel">
                                             <i class="bi bi-x-circle"></i>
                                         </a>
                                     }
@@ -1383,7 +1383,7 @@
                         </div>
                     </div>
                     <div class="mobile-card-actions">
-                        <a href="/Modules/RefundManagement/Requests/View/@request.Id" class="action-btn btn-view">
+                        <a href="/Modules/RefundManagement/Requests/View/@request.PublicId" class="action-btn btn-view">
                             <i class="bi bi-eye"></i>
                             <span>View</span>
                         </a>
@@ -1393,7 +1393,7 @@
                                 <i class="bi bi-pencil"></i>
                                 <span>Edit</span>
                             </a>
-                            <a href="#" class="action-btn btn-cancel" onclick="cancelRequest(@request.Id)">
+                            <a href="#" class="action-btn btn-cancel" onclick="cancelRequest('@request.PublicId')">
                                 <i class="bi bi-x"></i>
                                 <span>Cancel</span>
                             </a>

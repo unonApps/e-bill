@@ -568,7 +568,7 @@ namespace TAB.Web.Services
         // Refund Request Workflow Notifications
         // ==================================================================
 
-        public async Task NotifyRefundRequestSubmittedAsync(int requestId, string requesterUserId, string supervisorUserId)
+        public async Task NotifyRefundRequestSubmittedAsync(int requestId, string requesterUserId, string supervisorUserId, Guid publicId)
         {
             try
             {
@@ -590,7 +590,7 @@ namespace TAB.Web.Services
                     "New Refund Request Pending",
                     "A new refund request is pending your approval.",
                     NotificationType.Action,
-                    $"/Modules/RefundManagement/Approvals/Supervisor?requestId={requestId}&tab=supervisor",
+                    $"/Modules/RefundManagement/Approvals/Supervisor?requestId={publicId}&tab=supervisor",
                     "bi-bell-fill",
                     "RefundRequest",
                     requestId.ToString()
@@ -897,17 +897,17 @@ namespace TAB.Web.Services
             }
         }
 
-        public async Task NotifyNewRefundRequestPendingApprovalAsync(int requestId, string approverUserId, string requesterName, string approverRole)
+        public async Task NotifyNewRefundRequestPendingApprovalAsync(int requestId, string approverUserId, string requesterName, string approverRole, Guid publicId)
         {
             try
             {
                 var link = approverRole switch
                 {
-                    "Supervisor" => $"/Modules/RefundManagement/Approvals/Supervisor?requestId={requestId}&tab=supervisor",
-                    "Budget Officer" => $"/Modules/RefundManagement/Approvals/BudgetOfficer?requestId={requestId}&tab=budget",
-                    "Staff Claims Unit" => $"/Modules/RefundManagement/Approvals/ClaimsUnit?requestId={requestId}&tab=claims",
-                    "Payment Approver" => $"/Modules/RefundManagement/Approvals/PaymentApprover?requestId={requestId}&tab=payment",
-                    _ => $"/Modules/RefundManagement/Approvals?requestId={requestId}"
+                    "Supervisor" => $"/Modules/RefundManagement/Approvals/Supervisor?requestId={publicId}&tab=supervisor",
+                    "Budget Officer" => $"/Modules/RefundManagement/Approvals/BudgetOfficer?requestId={publicId}&tab=budget",
+                    "Staff Claims Unit" => $"/Modules/RefundManagement/Approvals/ClaimsUnit?requestId={publicId}&tab=claims",
+                    "Payment Approver" => $"/Modules/RefundManagement/Approvals/PaymentApprover?requestId={publicId}&tab=payment",
+                    _ => $"/Modules/RefundManagement/Approvals?requestId={publicId}"
                 };
 
                 await CreateNotificationAsync(

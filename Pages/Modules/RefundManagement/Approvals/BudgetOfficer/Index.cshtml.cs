@@ -37,7 +37,7 @@ namespace TAB.Web.Pages.Modules.RefundManagement.Approvals.BudgetOfficer
         [TempData]
         public string? StatusMessageClass { get; set; }
 
-        public async Task OnGetAsync(int? requestId = null)
+        public async Task OnGetAsync(Guid? requestId = null)
         {
             var currentUser = await _userManager.GetUserAsync(User);
             if (currentUser != null)
@@ -50,7 +50,7 @@ namespace TAB.Web.Pages.Modules.RefundManagement.Approvals.BudgetOfficer
                 // Check if this is a detail view request
                 if (requestId.HasValue)
                 {
-                    CurrentRequest = await _context.RefundRequests.FindAsync(requestId.Value);
+                    CurrentRequest = await _context.RefundRequests.FirstOrDefaultAsync(r => r.PublicId == requestId.Value);
                     if (CurrentRequest != null)
                     {
                         IsDetailView = true;
@@ -97,7 +97,7 @@ namespace TAB.Web.Pages.Modules.RefundManagement.Approvals.BudgetOfficer
             }
         }
 
-        public async Task<IActionResult> OnPostBudgetApproveAsync(int requestId, string? costObject, string? costCenter, string? fundCommitment, string? budgetOfficerRemarks)
+        public async Task<IActionResult> OnPostBudgetApproveAsync(Guid requestId, string? costObject, string? costCenter, string? fundCommitment, string? budgetOfficerRemarks)
         {
             var currentUser = await _userManager.GetUserAsync(User);
             if (currentUser == null)
@@ -107,7 +107,7 @@ namespace TAB.Web.Pages.Modules.RefundManagement.Approvals.BudgetOfficer
                 return RedirectToPage("/Dashboard/Approver/Index");
             }
 
-            var request = await _context.RefundRequests.FindAsync(requestId);
+            var request = await _context.RefundRequests.FirstOrDefaultAsync(r => r.PublicId == requestId);
             if (request == null)
             {
                 StatusMessage = "Request not found.";
@@ -151,14 +151,15 @@ namespace TAB.Web.Pages.Modules.RefundManagement.Approvals.BudgetOfficer
                 foreach (var claimsUser in staffClaimsUsers)
                 {
                     await _notificationService.NotifyNewRefundRequestPendingApprovalAsync(
-                        requestId,
+                        request.Id,
                         claimsUser.Id,
                         request.MobileNumberAssignedTo,
-                        "Staff Claims Unit"
+                        "Staff Claims Unit",
+                        request.PublicId
                     );
                 }
 
-                StatusMessage = $"Request #{requestId} has been approved and forwarded to Staff Claims Unit.";
+                StatusMessage = $"Request #{request.Id} has been approved and forwarded to Staff Claims Unit.";
                 StatusMessageClass = "success";
             }
             catch (Exception ex)
@@ -171,7 +172,7 @@ namespace TAB.Web.Pages.Modules.RefundManagement.Approvals.BudgetOfficer
             return RedirectToPage("/Dashboard/Approver/Index");
         }
 
-        public async Task<IActionResult> OnPostBudgetRevertToRequestorAsync(int requestId, string? budgetOfficerRemarks)
+        public async Task<IActionResult> OnPostBudgetRevertToRequestorAsync(Guid requestId, string? budgetOfficerRemarks)
         {
             var currentUser = await _userManager.GetUserAsync(User);
             if (currentUser == null)
@@ -181,7 +182,7 @@ namespace TAB.Web.Pages.Modules.RefundManagement.Approvals.BudgetOfficer
                 return RedirectToPage("/Dashboard/Approver/Index");
             }
 
-            var request = await _context.RefundRequests.FindAsync(requestId);
+            var request = await _context.RefundRequests.FirstOrDefaultAsync(r => r.PublicId == requestId);
             if (request == null)
             {
                 StatusMessage = "Request not found.";
@@ -209,7 +210,7 @@ namespace TAB.Web.Pages.Modules.RefundManagement.Approvals.BudgetOfficer
 
                 await _context.SaveChangesAsync();
 
-                StatusMessage = $"Request #{requestId} has been reverted to the requestor.";
+                StatusMessage = $"Request #{request.Id} has been reverted to the requestor.";
                 StatusMessageClass = "success";
             }
             catch (Exception ex)
@@ -222,7 +223,7 @@ namespace TAB.Web.Pages.Modules.RefundManagement.Approvals.BudgetOfficer
             return RedirectToPage("/Dashboard/Approver/Index");
         }
 
-        public async Task<IActionResult> OnPostBudgetRevertToSupervisorAsync(int requestId, string? budgetOfficerRemarks)
+        public async Task<IActionResult> OnPostBudgetRevertToSupervisorAsync(Guid requestId, string? budgetOfficerRemarks)
         {
             var currentUser = await _userManager.GetUserAsync(User);
             if (currentUser == null)
@@ -232,7 +233,7 @@ namespace TAB.Web.Pages.Modules.RefundManagement.Approvals.BudgetOfficer
                 return RedirectToPage("/Dashboard/Approver/Index");
             }
 
-            var request = await _context.RefundRequests.FindAsync(requestId);
+            var request = await _context.RefundRequests.FirstOrDefaultAsync(r => r.PublicId == requestId);
             if (request == null)
             {
                 StatusMessage = "Request not found.";
@@ -263,7 +264,7 @@ namespace TAB.Web.Pages.Modules.RefundManagement.Approvals.BudgetOfficer
 
                 await _context.SaveChangesAsync();
 
-                StatusMessage = $"Request #{requestId} has been reverted to the supervisor for review.";
+                StatusMessage = $"Request #{request.Id} has been reverted to the supervisor for review.";
                 StatusMessageClass = "success";
             }
             catch (Exception ex)
@@ -276,7 +277,7 @@ namespace TAB.Web.Pages.Modules.RefundManagement.Approvals.BudgetOfficer
             return RedirectToPage("/Dashboard/Approver/Index");
         }
 
-        public async Task<IActionResult> OnPostRejectAsync(int requestId, string? budgetOfficerRemarks)
+        public async Task<IActionResult> OnPostRejectAsync(Guid requestId, string? budgetOfficerRemarks)
         {
             var currentUser = await _userManager.GetUserAsync(User);
             if (currentUser == null)
@@ -286,7 +287,7 @@ namespace TAB.Web.Pages.Modules.RefundManagement.Approvals.BudgetOfficer
                 return RedirectToPage("/Dashboard/Approver/Index");
             }
 
-            var request = await _context.RefundRequests.FindAsync(requestId);
+            var request = await _context.RefundRequests.FirstOrDefaultAsync(r => r.PublicId == requestId);
             if (request == null)
             {
                 StatusMessage = "Request not found.";
@@ -315,7 +316,7 @@ namespace TAB.Web.Pages.Modules.RefundManagement.Approvals.BudgetOfficer
 
                 await _context.SaveChangesAsync();
 
-                StatusMessage = $"Request #{requestId} has been rejected.";
+                StatusMessage = $"Request #{request.Id} has been rejected.";
                 StatusMessageClass = "success";
             }
             catch (Exception ex)
@@ -328,9 +329,9 @@ namespace TAB.Web.Pages.Modules.RefundManagement.Approvals.BudgetOfficer
             return RedirectToPage("/Dashboard/Approver/Index");
         }
 
-        public async Task<IActionResult> OnGetRequestDetailsAsync(int requestId)
+        public async Task<IActionResult> OnGetRequestDetailsAsync(Guid requestId)
         {
-            var request = await _context.RefundRequests.FindAsync(requestId);
+            var request = await _context.RefundRequests.FirstOrDefaultAsync(r => r.PublicId == requestId);
             if (request == null)
             {
                 return new JsonResult(new { success = false, message = "Request not found" });
@@ -340,6 +341,7 @@ namespace TAB.Web.Pages.Modules.RefundManagement.Approvals.BudgetOfficer
             {
                 success = true,
                 id = request.Id,
+                publicId = request.PublicId,
                 mobileNumberAssignedTo = request.MobileNumberAssignedTo,
                 staffName = request.MobileNumberAssignedTo,
                 primaryMobileNumber = request.PrimaryMobileNumber,
@@ -412,7 +414,7 @@ namespace TAB.Web.Pages.Modules.RefundManagement.Approvals.BudgetOfficer
             };
         }
 
-        public async Task<IActionResult> OnPostReassignBudgetOfficerAsync(int requestId, string newBudgetOfficerEmail, string? reassignmentReason)
+        public async Task<IActionResult> OnPostReassignBudgetOfficerAsync(Guid requestId, string newBudgetOfficerEmail, string? reassignmentReason)
         {
             var currentUser = await _userManager.GetUserAsync(User);
             if (currentUser == null)
@@ -422,7 +424,7 @@ namespace TAB.Web.Pages.Modules.RefundManagement.Approvals.BudgetOfficer
                 return RedirectToPage("/Dashboard/Approver/Index");
             }
 
-            var request = await _context.RefundRequests.FindAsync(requestId);
+            var request = await _context.RefundRequests.FirstOrDefaultAsync(r => r.PublicId == requestId);
             if (request == null)
             {
                 StatusMessage = "Request not found.";
@@ -483,7 +485,7 @@ namespace TAB.Web.Pages.Modules.RefundManagement.Approvals.BudgetOfficer
 
                 await _context.SaveChangesAsync();
 
-                StatusMessage = $"Request #{requestId} has been reassigned to {newBudgetOfficer.FirstName} {newBudgetOfficer.LastName}.";
+                StatusMessage = $"Request #{request.Id} has been reassigned to {newBudgetOfficer.FirstName} {newBudgetOfficer.LastName}.";
                 StatusMessageClass = "success";
             }
             catch (Exception ex)

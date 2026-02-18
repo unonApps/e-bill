@@ -208,14 +208,14 @@
 
     string GetRefundApprovalUrl(TAB.Web.Models.UnifiedRequest request)
     {
-        // Route to specific approval page based on status with requestId parameter
+        // Route to specific approval page based on status with PublicId parameter
         return request.Status switch
         {
-            "PendingSupervisor" => $"/Modules/RefundManagement/Approvals/Supervisor?requestId={request.Id}",
-            "PendingBudgetOfficer" => $"/Modules/RefundManagement/Approvals/BudgetOfficer?requestId={request.Id}",
-            "PendingStaffClaimsUnit" => $"/Modules/RefundManagement/Approvals/ClaimsUnit?requestId={request.Id}",
-            "PendingPaymentApproval" => $"/Modules/RefundManagement/Approvals/PaymentApprover?requestId={request.Id}",
-            _ => $"/Modules/RefundManagement/Approvals?requestId={request.Id}" // Fallback to main approvals page
+            "PendingSupervisor" => $"/Modules/RefundManagement/Approvals/Supervisor?requestId={request.PublicId}",
+            "PendingBudgetOfficer" => $"/Modules/RefundManagement/Approvals/BudgetOfficer?requestId={request.PublicId}",
+            "PendingStaffClaimsUnit" => $"/Modules/RefundManagement/Approvals/ClaimsUnit?requestId={request.PublicId}",
+            "PendingPaymentApproval" => $"/Modules/RefundManagement/Approvals/PaymentApprover?requestId={request.PublicId}",
+            _ => $"/Modules/RefundManagement/Approvals?requestId={request.PublicId}" // Fallback to main approvals page
         };
     }
 }

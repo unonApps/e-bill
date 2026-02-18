@@ -175,7 +175,7 @@
                         </div>
                         <form method="post" asp-page-handler="ProcessClaims">
                             <div class="modal-body compact-modal">
-                                <input type="hidden" name="requestId" value="@request.Id" />
+                                <input type="hidden" name="requestId" value="@request.PublicId" />
                                 
                                 <div class="alert alert-info compact-alert">
                                     <i class="bi bi-info-circle me-2"></i>
@@ -245,7 +245,7 @@
                         </div>
                         <form method="post" asp-page-handler="RejectClaims">
                             <div class="modal-body compact-modal">
-                                <input type="hidden" name="requestId" value="@request.Id" />
+                                <input type="hidden" name="requestId" value="@request.PublicId" />
                                 
                                 <div class="alert alert-warning compact-alert">
                                     <i class="bi bi-exclamation-triangle me-2"></i>

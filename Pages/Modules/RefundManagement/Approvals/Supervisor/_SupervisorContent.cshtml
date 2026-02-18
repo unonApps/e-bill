@@ -46,16 +46,16 @@
                                     <td>@request.RequestDate.ToString("MMM dd, yyyy")</td>
                                     <td>
                                         <div class="btn-group btn-group-sm">
-                                            <a href="/Modules/RefundManagement/Approvals/Supervisor/Details?id=@request.Id" 
+                                            <a href="/Modules/RefundManagement/Approvals/Supervisor?requestId=@request.PublicId"
                                                class="btn btn-outline-primary">
                                                 <i class="bi bi-eye"></i> View
                                             </a>
-                                            <button type="button" class="btn btn-success" 
-                                                    onclick="approveRefund(@request.Id)">
+                                            <button type="button" class="btn btn-success"
+                                                    onclick="approveRefund('@request.PublicId')">
                                                 <i class="bi bi-check"></i> Approve
                                             </button>
-                                            <button type="button" class="btn btn-danger" 
-                                                    onclick="rejectRefund(@request.Id)">
+                                            <button type="button" class="btn btn-danger"
+                                                    onclick="rejectRefund('@request.PublicId')">
                                                 <i class="bi bi-x"></i> Reject
                                             </button>
                                         </div>

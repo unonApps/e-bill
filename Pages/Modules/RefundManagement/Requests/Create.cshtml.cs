@@ -301,7 +301,8 @@ namespace TAB.Web.Pages.Modules.RefundManagement.Requests
                         await _notificationService.NotifyRefundRequestSubmittedAsync(
                             RefundRequest.Id,
                             RefundRequest.RequestedBy ?? currentUser.Id,
-                            supervisorUser.Id
+                            supervisorUser.Id,
+                            RefundRequest.PublicId
                         );
 
                         // Log audit trail - get index number from EbillUser
