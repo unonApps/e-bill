@@ -233,8 +233,7 @@ namespace TAB.Web.Pages.Modules.SimManagement.Approvals.ICTS
             StatusMessage = $"SIM request for {request.FirstName} {request.LastName} has been reverted to requestor.";
             StatusMessageClass = "warning";
 
-            await LoadIctsRequestsAsync();
-            return Page();
+            return RedirectToPage("/Dashboard/Approver/Index");
         }
 
         private async Task<IActionResult> IctsRequestNewSimAsync(Guid requestId, ApplicationUser currentUser, string? simSerialNo, string? serviceRequestNo, string? lineType, string? simPuk, string? lineUsage, string? previousLines, DateTime? spNotifiedDate, string? assignedNo, string? ictsRemark)
@@ -295,8 +294,7 @@ namespace TAB.Web.Pages.Modules.SimManagement.Approvals.ICTS
             StatusMessage = $"New SIM request for {request.FirstName} {request.LastName} has been processed and is now pending service provider SIM issuance.";
             StatusMessageClass = "success";
 
-            await LoadIctsRequestsAsync();
-            return Page();
+            return RedirectToPage("/Dashboard/Approver/Index");
         }
 
         private async Task<IActionResult> IctsNotifyCollectionAsync(Guid requestId, ApplicationUser currentUser, string? simSerialNo, string? serviceRequestNo, string? lineType, string? simPuk, string? lineUsage, string? previousLines, DateTime? spNotifiedDate, string? assignedNo, DateTime? collectionNotifiedDate, string? simIssuedBy, string? simCollectedBy, DateTime? simCollectedDate, string? ictsRemark)
@@ -361,8 +359,7 @@ namespace TAB.Web.Pages.Modules.SimManagement.Approvals.ICTS
             StatusMessage = $"Collection notification sent for {request.FirstName} {request.LastName}. Request is now pending SIM collection.";
             StatusMessageClass = "success";
 
-            await LoadIctsRequestsAsync();
-            return Page();
+            return RedirectToPage("/Dashboard/Approver/Index");
         }
 
         private async Task<IActionResult> IctsMarkAsCorrectedAsync(Guid requestId, ApplicationUser currentUser, string? simIssuedBy, string? simCollectedBy, DateTime? simCollectedDate, string? ictsRemark)
@@ -429,8 +426,7 @@ namespace TAB.Web.Pages.Modules.SimManagement.Approvals.ICTS
             StatusMessage = $"SIM collection completed for {request.FirstName} {request.LastName}. Request marked as completed.";
             StatusMessageClass = "success";
 
-            await LoadIctsRequestsAsync();
-            return Page();
+            return RedirectToPage("/Dashboard/Approver/Index");
         }
 
         private async Task<IActionResult> IctsCompleteExistingLineAsync(Guid requestId, ApplicationUser currentUser, string? ictsRemark)
@@ -502,8 +498,7 @@ namespace TAB.Web.Pages.Modules.SimManagement.Approvals.ICTS
             StatusMessage = $"Existing line request for {request.FirstName} {request.LastName} (Phone: {request.ExistingPhoneNumber}) has been marked as completed.";
             StatusMessageClass = "success";
 
-            await LoadIctsRequestsAsync();
-            return Page();
+            return RedirectToPage("/Dashboard/Approver/Index");
         }
 
         private async Task CreateOrUpdateEbillUserAsync(Models.SimRequest request, ApplicationUser currentUser)

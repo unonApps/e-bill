@@ -382,8 +382,7 @@ namespace TAB.Web.Pages.Modules.SimManagement.Approvals.Supervisor
 
             StatusMessage = "SIM request approved successfully and forwarded to UNON/ICTS.";
             StatusMessageClass = "success";
-            await LoadSimRequestsAsync();
-            return Page();
+            return RedirectToPage("/Dashboard/Approver/Index");
         }
 
         private async Task<IActionResult> RejectSimRequestAsync(Guid requestId, ApplicationUser currentUser, string? notes)
@@ -455,8 +454,7 @@ namespace TAB.Web.Pages.Modules.SimManagement.Approvals.Supervisor
 
             StatusMessage = "SIM request rejected successfully.";
             StatusMessageClass = "success";
-            await LoadSimRequestsAsync();
-            return Page();
+            return RedirectToPage("/Dashboard/Approver/Index");
         }
 
         private async Task<IActionResult> RevertSimRequestAsync(Guid requestId, ApplicationUser currentUser, string? notes)
@@ -496,8 +494,7 @@ namespace TAB.Web.Pages.Modules.SimManagement.Approvals.Supervisor
 
             StatusMessage = "SIM request reverted to requestor successfully.";
             StatusMessageClass = "success";
-            await LoadSimRequestsAsync();
-            return Page();
+            return RedirectToPage("/Dashboard/Approver/Index");
         }
 
         public string GetStatusBadgeClass(string status)
