@@ -728,6 +728,12 @@ namespace TAB.Web.Pages.Admin
                     return new JsonResult(new { success = false, message = "Phone record not found" });
                 }
 
+                // Do not deactivate fixed line numbers (Desk, Extension, Conference, Fax)
+                if (phone.PhoneType != PhoneTypes.Mobile && phone.PhoneType != PhoneTypes.Home && phone.PhoneType != PhoneTypes.Temporary)
+                {
+                    return new JsonResult(new { success = false, message = $"Cannot deactivate a fixed line ({phone.PhoneType}). Only mobile, home, and temporary lines can be deactivated." });
+                }
+
                 phone.Status = PhoneStatus.Deactivated;
                 phone.IsPrimary = false;
 

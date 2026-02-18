@@ -60,7 +60,7 @@ namespace TAB.Web.Pages.Admin
         public int BillingYear { get; set; } = DateTime.Now.Year;
 
         [BindProperty]
-        public int NumberOfDays { get; set; } = 7;
+        public int NumberOfDays { get; set; } = 14;
 
         // Display properties
         public List<BillingProcessingHistory> ProcessingHistory { get; set; } = new();

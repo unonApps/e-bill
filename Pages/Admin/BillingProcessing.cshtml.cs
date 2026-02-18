@@ -48,7 +48,7 @@ namespace TAB.Web.Pages.Admin
         public int BillingYear { get; set; } = DateTime.Now.Year;
 
         [BindProperty]
-        public int NumberOfDays { get; set; } = 7;
+        public int NumberOfDays { get; set; } = 14;
 
         [BindProperty]
         public string VerificationType { get; set; } = "Official";
