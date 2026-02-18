@@ -147,16 +147,14 @@ namespace TAB.Web.Pages.Modules.SimManagement.Approvals.Supervisor
                 {
                     StatusMessage = "Invalid action specified.";
                     StatusMessageClass = "danger";
-                    await LoadSimRequestsAsync();
-                    return Page();
+                    return RedirectToPage("/Dashboard/Approver/Index");
                 }
             }
             catch (Exception ex)
             {
                 StatusMessage = $"An error occurred while processing the request: {ex.Message}";
                 StatusMessageClass = "danger";
-                await LoadSimRequestsAsync();
-                return Page();
+                return RedirectToPage("/Dashboard/Approver/Index");
             }
         }
 
@@ -176,8 +174,7 @@ namespace TAB.Web.Pages.Modules.SimManagement.Approvals.Supervisor
             {
                 StatusMessage = "An error occurred while processing the rejection.";
                 StatusMessageClass = "danger";
-                await LoadSimRequestsAsync();
-                return Page();
+                return RedirectToPage("/Dashboard/Approver/Index");
             }
         }
 
@@ -188,7 +185,7 @@ namespace TAB.Web.Pages.Modules.SimManagement.Approvals.Supervisor
             {
                 StatusMessage = "User not found.";
                 StatusMessageClass = "danger";
-                return Page();
+                return RedirectToPage("/Dashboard/Approver/Index");
             }
 
             try
@@ -199,8 +196,7 @@ namespace TAB.Web.Pages.Modules.SimManagement.Approvals.Supervisor
             {
                 StatusMessage = $"Error processing request: {ex.Message}";
                 StatusMessageClass = "danger";
-                await LoadSimRequestsAsync();
-                return Page();
+                return RedirectToPage("/Dashboard/Approver/Index");
             }
         }
 
@@ -308,8 +304,7 @@ namespace TAB.Web.Pages.Modules.SimManagement.Approvals.Supervisor
             {
                 StatusMessage = "SIM request not found.";
                 StatusMessageClass = "danger";
-                await LoadSimRequestsAsync();
-                return Page();
+                return RedirectToPage("/Dashboard/Approver/Index");
             }
 
             // Check if request is already approved to prevent duplicate processing
@@ -317,8 +312,7 @@ namespace TAB.Web.Pages.Modules.SimManagement.Approvals.Supervisor
             {
                 StatusMessage = $"This request has already been processed. Current status: {simRequest.Status}";
                 StatusMessageClass = "warning";
-                await LoadSimRequestsAsync();
-                return Page();
+                return RedirectToPage("/Dashboard/Approver/Index");
             }
 
             // Update request with supervisor approval - now goes to ICTS instead of Admin
@@ -392,8 +386,7 @@ namespace TAB.Web.Pages.Modules.SimManagement.Approvals.Supervisor
             {
                 StatusMessage = "SIM request not found.";
                 StatusMessageClass = "danger";
-                await LoadSimRequestsAsync();
-                return Page();
+                return RedirectToPage("/Dashboard/Approver/Index");
             }
 
             // Check if request is already processed to prevent duplicate rejection
@@ -401,8 +394,7 @@ namespace TAB.Web.Pages.Modules.SimManagement.Approvals.Supervisor
             {
                 StatusMessage = $"This request has already been processed. Current status: {simRequest.Status}";
                 StatusMessageClass = "warning";
-                await LoadSimRequestsAsync();
-                return Page();
+                return RedirectToPage("/Dashboard/Approver/Index");
             }
 
             simRequest.Status = RequestStatus.Rejected;
@@ -464,8 +456,7 @@ namespace TAB.Web.Pages.Modules.SimManagement.Approvals.Supervisor
             {
                 StatusMessage = "SIM request not found.";
                 StatusMessageClass = "danger";
-                await LoadSimRequestsAsync();
-                return Page();
+                return RedirectToPage("/Dashboard/Approver/Index");
             }
 
             // Check if request is already processed to prevent duplicate reversion
@@ -473,8 +464,7 @@ namespace TAB.Web.Pages.Modules.SimManagement.Approvals.Supervisor
             {
                 StatusMessage = $"This request cannot be reverted. Current status: {simRequest.Status}";
                 StatusMessageClass = "warning";
-                await LoadSimRequestsAsync();
-                return Page();
+                return RedirectToPage("/Dashboard/Approver/Index");
             }
 
             simRequest.Status = RequestStatus.Draft;

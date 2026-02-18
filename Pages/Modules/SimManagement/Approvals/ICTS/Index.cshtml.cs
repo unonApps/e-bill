@@ -127,7 +127,7 @@ namespace TAB.Web.Pages.Modules.SimManagement.Approvals.ICTS
             {
                 StatusMessage = "User not found.";
                 StatusMessageClass = "danger";
-                return Page();
+                return RedirectToPage("/Dashboard/Approver/Index");
             }
 
             try
@@ -146,8 +146,7 @@ namespace TAB.Web.Pages.Modules.SimManagement.Approvals.ICTS
             {
                 StatusMessage = $"Error processing ICTS action: {ex.Message}";
                 StatusMessageClass = "danger";
-                await LoadIctsRequestsAsync();
-                return Page();
+                return RedirectToPage("/Dashboard/Approver/Index");
             }
         }
 
@@ -209,7 +208,7 @@ namespace TAB.Web.Pages.Modules.SimManagement.Approvals.ICTS
             {
                 StatusMessage = "Request not found or not pending ICTS processing.";
                 StatusMessageClass = "danger";
-                return Page();
+                return RedirectToPage("/Dashboard/Approver/Index");
             }
 
             // Revert to requestor
@@ -243,7 +242,7 @@ namespace TAB.Web.Pages.Modules.SimManagement.Approvals.ICTS
             {
                 StatusMessage = "Request not found or not pending ICTS processing.";
                 StatusMessageClass = "danger";
-                return Page();
+                return RedirectToPage("/Dashboard/Approver/Index");
             }
 
             // Update with ICTS processing details
@@ -304,7 +303,7 @@ namespace TAB.Web.Pages.Modules.SimManagement.Approvals.ICTS
             {
                 StatusMessage = "Request not found or not pending service provider processing.";
                 StatusMessageClass = "danger";
-                return Page();
+                return RedirectToPage("/Dashboard/Approver/Index");
             }
 
             // Update with collection notification details
@@ -369,7 +368,7 @@ namespace TAB.Web.Pages.Modules.SimManagement.Approvals.ICTS
             {
                 StatusMessage = "Request not found or not pending SIM collection.";
                 StatusMessageClass = "danger";
-                return Page();
+                return RedirectToPage("/Dashboard/Approver/Index");
             }
 
             // Update with collection completion details
@@ -436,7 +435,7 @@ namespace TAB.Web.Pages.Modules.SimManagement.Approvals.ICTS
             {
                 StatusMessage = "Request not found or not pending ICTS processing.";
                 StatusMessageClass = "danger";
-                return Page();
+                return RedirectToPage("/Dashboard/Approver/Index");
             }
 
             // Verify this is an existing line request
@@ -444,7 +443,7 @@ namespace TAB.Web.Pages.Modules.SimManagement.Approvals.ICTS
             {
                 StatusMessage = "This action is only available for existing line requests.";
                 StatusMessageClass = "danger";
-                return Page();
+                return RedirectToPage("/Dashboard/Approver/Index");
             }
 
             // Mark as completed directly for existing lines
