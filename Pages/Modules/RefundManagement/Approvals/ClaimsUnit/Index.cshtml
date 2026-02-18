@@ -1066,7 +1066,7 @@
     <!-- Tab Navigation -->
     <ul class="nav nav-tabs detail-view-tabs" style="background: #f8fafc; padding: 0.75rem 1.25rem 0; border-bottom: 2px solid #e2e8f0; margin-bottom: 0; border-radius: 12px 12px 0 0;">
         <li class="nav-item">
-            <button class="nav-link active" id="detail-overview-tab" data-bs-toggle="tab" data-bs-target="#detail-overview" type="button">
+            <button class="nav-link" id="detail-overview-tab" data-bs-toggle="tab" data-bs-target="#detail-overview" type="button">
                 <i class="bi bi-info-circle me-2"></i>Overview
             </button>
         </li>
@@ -1086,7 +1086,7 @@
             </button>
         </li>
         <li class="nav-item">
-            <button class="nav-link" id="detail-claims-tab" data-bs-toggle="tab" data-bs-target="#detail-claims" type="button">
+            <button class="nav-link active" id="detail-claims-tab" data-bs-toggle="tab" data-bs-target="#detail-claims" type="button">
                 <i class="bi bi-receipt me-2"></i>Claims Processing
             </button>
         </li>
@@ -1100,7 +1100,7 @@
     <!-- Tab Content -->
     <div class="tab-content" style="padding: 1.5rem; background: white; border-radius: 0 0 12px 12px; box-shadow: 0 2px 12px rgba(0, 0, 0, 0.04);">
         <!-- Overview Tab -->
-        <div class="tab-pane fade show active" id="detail-overview">
+        <div class="tab-pane fade" id="detail-overview">
             <!-- Staff Information Section -->
             <div class="mb-4" style="background: #f8fafc; border-radius: 16px; padding: 24px; border: 1px solid #e2e8f0;">
                 <div class="d-flex align-items-center mb-3">
@@ -1383,7 +1383,7 @@
         </div>
 
         <!-- Claims Processing Tab -->
-        <div class="tab-pane fade" id="detail-claims">
+        <div class="tab-pane fade show active" id="detail-claims">
             <!-- Request Summary Section -->
             <div class="mb-4" style="background: #f8fafc; border-radius: 16px; padding: 24px; border: 1px solid #e2e8f0;">
                 <div class="d-flex align-items-center mb-3">
@@ -2616,24 +2616,22 @@
             return;
         }
 
-        if (confirm('Are you sure you want to approve this request and forward it to Payment Approval?')) {
-            const formData = {
-                umojaPaymentDocId: document.getElementById('detailUmojaPaymentDocId').value,
-                claimsActionDate: document.getElementById('detailClaimsActionDate').value,
-                refundUsdAmount: document.getElementById('detailRefundUsdAmount').value,
-                claimsRemarks: document.getElementById('detailClaimsRemarks').value
-            };
+        const formData = {
+            umojaPaymentDocId: document.getElementById('detailUmojaPaymentDocId').value,
+            claimsActionDate: document.getElementById('detailClaimsActionDate').value,
+            refundUsdAmount: document.getElementById('detailRefundUsdAmount').value,
+            claimsRemarks: document.getElementById('detailClaimsRemarks').value
+        };
 
-            // Create a hidden input for claimsRemarks to submit JSON data
-            const claimsRemarksInput = document.createElement('input');
-            claimsRemarksInput.type = 'hidden';
-            claimsRemarksInput.name = 'claimsRemarks';
-            claimsRemarksInput.value = JSON.stringify(formData);
+        // Create a hidden input for claimsRemarks to submit JSON data
+        const claimsRemarksInput = document.createElement('input');
+        claimsRemarksInput.type = 'hidden';
+        claimsRemarksInput.name = 'claimsRemarks';
+        claimsRemarksInput.value = JSON.stringify(formData);
 
-            const form = document.getElementById('detailClaimsApprovalForm');
-            form.appendChild(claimsRemarksInput);
-            form.submit();
-        }
+        const form = document.getElementById('detailClaimsApprovalForm');
+        form.appendChild(claimsRemarksInput);
+        form.submit();
     }
 </script>
 

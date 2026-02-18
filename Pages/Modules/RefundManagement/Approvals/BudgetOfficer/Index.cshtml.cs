@@ -115,11 +115,12 @@ namespace TAB.Web.Pages.Modules.RefundManagement.Approvals.BudgetOfficer
                 return RedirectToPage("/Dashboard/Approver/Index");
             }
 
-            // Verify authorization - only budget officers assigned to this request
+            // Verify authorization - budget officers assigned to this request or Admin
             var isBudgetOfficer = await _userManager.IsInRoleAsync(currentUser, "Budget Officer") ||
                                  await _userManager.IsInRoleAsync(currentUser, "BudgetOfficer");
+            var isAdmin = await _userManager.IsInRoleAsync(currentUser, "Admin");
 
-            if (!isBudgetOfficer || request.BudgetOfficerEmail != currentUser.Email)
+            if (!isAdmin && (!isBudgetOfficer || request.BudgetOfficerEmail != currentUser.Email))
             {
                 StatusMessage = "You are not authorized to approve this request.";
                 StatusMessageClass = "danger";
@@ -191,8 +192,9 @@ namespace TAB.Web.Pages.Modules.RefundManagement.Approvals.BudgetOfficer
             // Verify authorization
             var isBudgetOfficer = await _userManager.IsInRoleAsync(currentUser, "Budget Officer") ||
                                  await _userManager.IsInRoleAsync(currentUser, "BudgetOfficer");
+            var isAdmin = await _userManager.IsInRoleAsync(currentUser, "Admin");
 
-            if (!isBudgetOfficer || request.BudgetOfficerEmail != currentUser.Email)
+            if (!isAdmin && (!isBudgetOfficer || request.BudgetOfficerEmail != currentUser.Email))
             {
                 StatusMessage = "You are not authorized to revert this request.";
                 StatusMessageClass = "danger";
@@ -241,8 +243,9 @@ namespace TAB.Web.Pages.Modules.RefundManagement.Approvals.BudgetOfficer
             // Verify authorization
             var isBudgetOfficer = await _userManager.IsInRoleAsync(currentUser, "Budget Officer") ||
                                  await _userManager.IsInRoleAsync(currentUser, "BudgetOfficer");
+            var isAdmin = await _userManager.IsInRoleAsync(currentUser, "Admin");
 
-            if (!isBudgetOfficer || request.BudgetOfficerEmail != currentUser.Email)
+            if (!isAdmin && (!isBudgetOfficer || request.BudgetOfficerEmail != currentUser.Email))
             {
                 StatusMessage = "You are not authorized to revert this request.";
                 StatusMessageClass = "danger";
@@ -294,8 +297,9 @@ namespace TAB.Web.Pages.Modules.RefundManagement.Approvals.BudgetOfficer
             // Verify authorization
             var isBudgetOfficer = await _userManager.IsInRoleAsync(currentUser, "Budget Officer") ||
                                  await _userManager.IsInRoleAsync(currentUser, "BudgetOfficer");
+            var isAdmin = await _userManager.IsInRoleAsync(currentUser, "Admin");
 
-            if (!isBudgetOfficer || request.BudgetOfficerEmail != currentUser.Email)
+            if (!isAdmin && (!isBudgetOfficer || request.BudgetOfficerEmail != currentUser.Email))
             {
                 StatusMessage = "You are not authorized to reject this request.";
                 StatusMessageClass = "danger";
@@ -426,11 +430,12 @@ namespace TAB.Web.Pages.Modules.RefundManagement.Approvals.BudgetOfficer
                 return RedirectToPage("/Dashboard/Approver/Index");
             }
 
-            // Verify authorization - only current budget officer can reassign
+            // Verify authorization - current budget officer or Admin can reassign
             var isBudgetOfficer = await _userManager.IsInRoleAsync(currentUser, "Budget Officer") ||
                                  await _userManager.IsInRoleAsync(currentUser, "BudgetOfficer");
+            var isAdmin = await _userManager.IsInRoleAsync(currentUser, "Admin");
 
-            if (!isBudgetOfficer || request.BudgetOfficerEmail != currentUser.Email)
+            if (!isAdmin && (!isBudgetOfficer || request.BudgetOfficerEmail != currentUser.Email))
             {
                 StatusMessage = "You are not authorized to reassign this request.";
                 StatusMessageClass = "danger";

@@ -989,7 +989,7 @@
     <!-- Tab Navigation -->
     <ul class="nav nav-tabs detail-view-tabs">
         <li class="nav-item">
-            <button class="nav-link active" id="detail-overview-tab" data-bs-toggle="tab" data-bs-target="#detail-overview" type="button">
+            <button class="nav-link" id="detail-overview-tab" data-bs-toggle="tab" data-bs-target="#detail-overview" type="button">
                 <i class="bi bi-info-circle me-2"></i>Overview
             </button>
         </li>
@@ -1014,7 +1014,7 @@
             </button>
         </li>
         <li class="nav-item">
-            <button class="nav-link" id="detail-payment-tab" data-bs-toggle="tab" data-bs-target="#detail-payment" type="button">
+            <button class="nav-link active" id="detail-payment-tab" data-bs-toggle="tab" data-bs-target="#detail-payment" type="button">
                 <i class="bi bi-credit-card me-2"></i>Payment Approval
             </button>
         </li>
@@ -1028,7 +1028,7 @@
     <!-- Tab Content -->
     <div class="tab-content" style="padding: 1.5rem; background: white; border-radius: 0 0 12px 12px; box-shadow: 0 2px 12px rgba(0, 0, 0, 0.04);">
         <!-- Overview Tab -->
-        <div class="tab-pane fade show active" id="detail-overview">
+        <div class="tab-pane fade" id="detail-overview">
             <!-- Staff Information Section -->
             <div class="mb-4" style="background: #f8fafc; border-radius: 16px; padding: 24px; border: 1px solid #e2e8f0;">
                 <div class="d-flex align-items-center mb-3">
@@ -1380,7 +1380,7 @@
         </div>
 
         <!-- Payment Approval Tab -->
-        <div class="tab-pane fade" id="detail-payment">
+        <div class="tab-pane fade show active" id="detail-payment">
             <!-- Request Summary Section -->
             <div class="mb-4" style="background: #f8fafc; border-radius: 16px; padding: 24px; border: 1px solid #e2e8f0;">
                 <div class="d-flex align-items-center mb-3">
@@ -2955,18 +2955,16 @@
         const paymentReference = document.getElementById('paymentReference').value;
         const paymentRemarks = document.getElementById('paymentRemarks').value;
         
-        if (confirm('Are you sure you want to approve this payment and mark it as completed?')) {
-            // Collect all form data
-            const formData = {
-                requestId: currentRequestId,
-                paymentReference: paymentReference,
-                paymentRemarks: paymentRemarks
-            };
-            
-            // Set hidden form values
-            document.getElementById('approvePaymentRemarks').value = JSON.stringify(formData);
-            document.getElementById('approvePaymentForm').submit();
-        }
+        // Collect all form data
+        const formData = {
+            requestId: currentRequestId,
+            paymentReference: paymentReference,
+            paymentRemarks: paymentRemarks
+        };
+
+        // Set hidden form values
+        document.getElementById('approvePaymentRemarks').value = JSON.stringify(formData);
+        document.getElementById('approvePaymentForm').submit();
     }
 
     function rejectPayment(requestId) {
@@ -3001,44 +2999,42 @@
         const paymentReference = document.getElementById('detailPaymentReference').value;
         const paymentRemarks = document.getElementById('detailPaymentRemarks').value;
 
-        if (confirm('Are you sure you want to approve this payment and mark it as completed?')) {
-            // Create a form and submit it
-            const form = document.createElement('form');
-            form.method = 'post';
-            form.action = '/Modules/RefundManagement/Approvals/PaymentApprover?handler=Approve';
+        // Create a form and submit it
+        const form = document.createElement('form');
+        form.method = 'post';
+        form.action = '/Modules/RefundManagement/Approvals/PaymentApprover?handler=Approve';
 
-            // Add request ID
-            const requestIdInput = document.createElement('input');
-            requestIdInput.type = 'hidden';
-            requestIdInput.name = 'requestId';
-            requestIdInput.value = requestId;
-            form.appendChild(requestIdInput);
+        // Add request ID
+        const requestIdInput = document.createElement('input');
+        requestIdInput.type = 'hidden';
+        requestIdInput.name = 'requestId';
+        requestIdInput.value = requestId;
+        form.appendChild(requestIdInput);
 
-            // Add payment data as JSON
-            const formData = {
-                paymentReference: paymentReference,
-                paymentRemarks: paymentRemarks
-            };
+        // Add payment data as JSON
+        const formData = {
+            paymentReference: paymentReference,
+            paymentRemarks: paymentRemarks
+        };
 
-            const remarksInput = document.createElement('input');
-            remarksInput.type = 'hidden';
-            remarksInput.name = 'paymentRemarks';
-            remarksInput.value = JSON.stringify(formData);
-            form.appendChild(remarksInput);
+        const remarksInput = document.createElement('input');
+        remarksInput.type = 'hidden';
+        remarksInput.name = 'paymentRemarks';
+        remarksInput.value = JSON.stringify(formData);
+        form.appendChild(remarksInput);
 
-            // Add anti-forgery token
-            const token = document.querySelector('input[name="__RequestVerificationToken"]');
-            if (token) {
-                const tokenInput = document.createElement('input');
-                tokenInput.type = 'hidden';
-                tokenInput.name = '__RequestVerificationToken';
-                tokenInput.value = token.value;
-                form.appendChild(tokenInput);
-            }
-
-            document.body.appendChild(form);
-            form.submit();
+        // Add anti-forgery token
+        const token = document.querySelector('input[name="__RequestVerificationToken"]');
+        if (token) {
+            const tokenInput = document.createElement('input');
+            tokenInput.type = 'hidden';
+            tokenInput.name = '__RequestVerificationToken';
+            tokenInput.value = token.value;
+            form.appendChild(tokenInput);
         }
+
+        document.body.appendChild(form);
+        form.submit();
     }
 </script>
 

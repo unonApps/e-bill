@@ -57,12 +57,6 @@
         <div class="stat-content">
             <div class="stat-number">@Model.TotalSimRequests</div>
             <div class="stat-label">SIM Requests</div>
-            <div class="stat-action">
-                <a href="@(Model.TotalIctsRequests > 0 ? "/Modules/SimManagement/Approvals/ICTS" : "/Modules/SimManagement/Approvals/Supervisor")" class="action-link">
-                    <span>Review</span>
-                    <i class="bi bi-arrow-right"></i>
-                </a>
-            </div>
         </div>
     </div>
 
@@ -74,12 +68,6 @@
         <div class="stat-content">
             <div class="stat-number">@Model.TotalRefundRequests</div>
             <div class="stat-label">Refund Requests</div>
-            <div class="stat-action">
-                <a href="/Modules/RefundManagement/Approvals" class="action-link">
-                    <span>Review</span>
-                    <i class="bi bi-arrow-right"></i>
-                </a>
-            </div>
         </div>
     </div>
 
