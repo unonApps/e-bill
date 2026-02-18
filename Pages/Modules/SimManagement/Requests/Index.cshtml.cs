@@ -92,9 +92,9 @@ namespace TAB.Web.Pages.Modules.SimManagement.Requests
             await LoadUserRequestsAsync();
         }
 
-        public async Task<IActionResult> OnPostCancelRequestAsync(int requestId)
+        public async Task<IActionResult> OnPostCancelRequestAsync(Guid requestId)
         {
-            var request = await _context.SimRequests.FindAsync(requestId);
+            var request = await _context.SimRequests.FirstOrDefaultAsync(s => s.PublicId == requestId);
             if (request == null)
             {
                 StatusMessage = "Request not found.";
@@ -133,7 +133,7 @@ namespace TAB.Web.Pages.Modules.SimManagement.Requests
             // Log history, notification, and audit trail
             var ipAddress = HttpContext.Connection.RemoteIpAddress?.ToString();
             await _historyService.AddHistoryAsync(
-                requestId,
+                request.Id,
                 HistoryActions.Cancelled,
                 request.Status.ToString(),
                 RequestStatus.Cancelled.ToString(),
@@ -144,12 +144,14 @@ namespace TAB.Web.Pages.Modules.SimManagement.Requests
             );
 
             await _notificationService.NotifySimRequestCancelledAsync(
-                requestId,
-                request.RequestedBy
+                request.Id,
+                request.RequestedBy,
+                null,
+                request.PublicId
             );
 
             await _auditLogService.LogSimRequestRejectedAsync(
-                requestId,
+                request.Id,
                 "Cancellation",
                 userName,
                 $"{request.FirstName} {request.LastName}",

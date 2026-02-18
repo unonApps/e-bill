@@ -73,15 +73,15 @@ namespace TAB.Web.Services
         Task CreateRefundRequestNotificationAsync(int requestId, string userId, string status, string? comments = null);
 
         // SIM Request Workflow Notifications
-        Task NotifySimRequestSubmittedAsync(int requestId, string requesterUserId, string supervisorUserId);
-        Task NotifySimRequestSupervisorApprovedAsync(int requestId, string requesterUserId, string? comments = null);
-        Task NotifySimRequestSupervisorRejectedAsync(int requestId, string requesterUserId, string? reason = null);
-        Task NotifySimRequestForwardedToIctsAsync(int requestId, string requesterUserId, string ictsUserId);
-        Task NotifySimRequestIctsProcessingAsync(int requestId, string requesterUserId, string? comments = null);
-        Task NotifySimRequestReadyForCollectionAsync(int requestId, string requesterUserId, string? comments = null);
-        Task NotifySimReadyForCollectionAsync(int requestId, string requesterUserId, string assignedNumber);
-        Task NotifySimRequestCompletedAsync(int requestId, string requesterUserId);
-        Task NotifySimRequestCancelledAsync(int requestId, string requesterUserId, string? reason = null);
+        Task NotifySimRequestSubmittedAsync(int requestId, string requesterUserId, string supervisorUserId, Guid publicId);
+        Task NotifySimRequestSupervisorApprovedAsync(int requestId, string requesterUserId, string? comments = null, Guid publicId = default);
+        Task NotifySimRequestSupervisorRejectedAsync(int requestId, string requesterUserId, string? reason = null, Guid publicId = default);
+        Task NotifySimRequestForwardedToIctsAsync(int requestId, string requesterUserId, string ictsUserId, Guid publicId = default);
+        Task NotifySimRequestIctsProcessingAsync(int requestId, string requesterUserId, string? comments = null, Guid publicId = default);
+        Task NotifySimRequestReadyForCollectionAsync(int requestId, string requesterUserId, string? comments = null, Guid publicId = default);
+        Task NotifySimReadyForCollectionAsync(int requestId, string requesterUserId, string assignedNumber, Guid publicId = default);
+        Task NotifySimRequestCompletedAsync(int requestId, string requesterUserId, Guid publicId = default);
+        Task NotifySimRequestCancelledAsync(int requestId, string requesterUserId, string? reason = null, Guid publicId = default);
 
         // Refund Request Workflow Notifications
         Task NotifyRefundRequestSubmittedAsync(int requestId, string requesterUserId, string supervisorUserId, Guid publicId);
@@ -97,7 +97,7 @@ namespace TAB.Web.Services
         Task NotifyRefundCancelledAsync(int requestId, string requesterUserId, string? reason = null);
 
         // Approver Notifications
-        Task NotifyNewSimRequestPendingApprovalAsync(int requestId, string supervisorUserId, string requesterName);
+        Task NotifyNewSimRequestPendingApprovalAsync(int requestId, string supervisorUserId, string requesterName, Guid publicId = default);
         Task NotifyNewRefundRequestPendingApprovalAsync(int requestId, string approverUserId, string requesterName, string approverRole, Guid publicId);
         Task NotifyNewPaymentAssignmentAsync(int assignmentId, string assigneeUserId, string assignerName, string phoneNumber);
         Task NotifyPaymentAssignmentAcceptedAsync(int assignmentId, string assignerUserId, string assigneeName);

@@ -191,6 +191,8 @@ namespace TAB.Web.Data
             builder.Entity<SimRequest>(entity =>
             {
                 entity.HasKey(e => e.Id);
+                entity.Property(e => e.PublicId).HasDefaultValueSql("NEWID()");
+                entity.HasIndex(e => e.PublicId).IsUnique();
                 entity.Property(e => e.IndexNo).IsRequired().HasMaxLength(20);
                 entity.Property(e => e.FirstName).IsRequired().HasMaxLength(100);
                 entity.Property(e => e.LastName).IsRequired().HasMaxLength(100);

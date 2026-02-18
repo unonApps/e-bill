@@ -1028,7 +1028,7 @@
                                     <div class="modal-dialog modal-lg modal-dialog-centered">
                                         <div class="modal-content" style="border: none; border-radius: 20px; box-shadow: 0 20px 60px rgba(0,0,0,0.1);">
                                             <form method="post" asp-page-handler="Approve">
-                                                <input type="hidden" name="requestId" value="@request.Id" />
+                                                <input type="hidden" name="requestId" value="@request.PublicId" />
                                                 
                                                 <!-- Header -->
                                                 <div class="modal-header" style="border: none; padding: 32px 32px 0 32px;">
@@ -1203,7 +1203,7 @@
                                     <div class="modal-dialog modal-dialog-centered">
                                         <div class="modal-content border-0 shadow-lg" style="border-radius: 16px;">
                                             <form method="post" asp-page-handler="Reject">
-                                                <input type="hidden" name="requestId" value="@request.Id" />
+                                                <input type="hidden" name="requestId" value="@request.PublicId" />
                                                 <div class="modal-header border-0 pb-0">
                                                     <h5 class="modal-title fw-bold">
                                                         <i class="bi bi-x-circle text-danger me-2"></i>
@@ -1666,7 +1666,7 @@
                 @* Supervisor Approval Tab - With Action Forms *@
                 <div class="tab-pane fade show active" id="supervisor-approval">
                     <form method="post" asp-page-handler="Approve" id="supervisorApprovalForm">
-                        <input type="hidden" name="requestId" value="@Model.CurrentRequest.Id" />
+                        <input type="hidden" name="requestId" value="@Model.CurrentRequest.PublicId" />
                         <input type="hidden" name="action" id="actionInput" value="" />
 
                         @* Class of Service Card *@
@@ -2093,7 +2093,7 @@
                     </div>
                     <form method="post" asp-page-handler="Approve">
                         <div class="modal-body">
-                            <input type="hidden" name="requestId" value="@Model.CurrentRequest.Id" />
+                            <input type="hidden" name="requestId" value="@Model.CurrentRequest.PublicId" />
                             <input type="hidden" name="action" value="revert" />
 
                         <div class="alert alert-warning d-flex align-items-start" role="alert">

@@ -64,7 +64,7 @@ namespace TAB.Web.Pages.Modules.SimManagement.Approvals.ICTS
         [TempData]
         public string? StatusMessageClass { get; set; }
 
-        public async Task<IActionResult> OnGetAsync(int? requestId)
+        public async Task<IActionResult> OnGetAsync(Guid? requestId)
         {
             var currentUser = await _userManager.GetUserAsync(User);
             if (currentUser != null)
@@ -81,7 +81,7 @@ namespace TAB.Web.Pages.Modules.SimManagement.Approvals.ICTS
                 CurrentRequest = await _context.SimRequests
                     .Include(s => s.ServiceProvider)
                     .Include(s => s.History)
-                    .FirstOrDefaultAsync(s => s.Id == requestId.Value);
+                    .FirstOrDefaultAsync(s => s.PublicId == requestId.Value);
 
                 if (CurrentRequest == null)
                 {
@@ -92,7 +92,7 @@ namespace TAB.Web.Pages.Modules.SimManagement.Approvals.ICTS
 
                 // Load request history
                 RequestHistory = await _context.SimRequestHistories
-                    .Where(h => h.SimRequestId == requestId.Value)
+                    .Where(h => h.SimRequestId == CurrentRequest.Id)
                     .OrderByDescending(h => h.Timestamp)
                     .ToListAsync();
 
@@ -106,7 +106,7 @@ namespace TAB.Web.Pages.Modules.SimManagement.Approvals.ICTS
         }
 
         public async Task<IActionResult> OnPostIctsProcessAsync(
-            int requestId,
+            Guid requestId,
             string action,
             string? simSerialNo,
             string? serviceRequestNo,
@@ -202,9 +202,9 @@ namespace TAB.Web.Pages.Modules.SimManagement.Approvals.ICTS
             ProcessedCount = ProcessedRequests.Count;
         }
 
-        private async Task<IActionResult> IctsRevertToRequestorAsync(int requestId, ApplicationUser currentUser, string? ictsRemark)
+        private async Task<IActionResult> IctsRevertToRequestorAsync(Guid requestId, ApplicationUser currentUser, string? ictsRemark)
         {
-            var request = await _context.SimRequests.FirstOrDefaultAsync(r => r.Id == requestId);
+            var request = await _context.SimRequests.FirstOrDefaultAsync(r => r.PublicId == requestId);
             if (request == null || request.Status != RequestStatus.PendingIcts)
             {
                 StatusMessage = "Request not found or not pending ICTS processing.";
@@ -222,9 +222,9 @@ namespace TAB.Web.Pages.Modules.SimManagement.Approvals.ICTS
 
             // Log history
             await _historyService.AddReversionHistoryAsync(
-                requestId, 
-                "icts", 
-                currentUser.Id, 
+                request.Id,
+                "icts",
+                currentUser.Id,
                 $"{currentUser.FirstName} {currentUser.LastName}",
                 ictsRemark,
                 HttpContext.Connection.RemoteIpAddress?.ToString()
@@ -237,9 +237,9 @@ namespace TAB.Web.Pages.Modules.SimManagement.Approvals.ICTS
             return Page();
         }
 
-        private async Task<IActionResult> IctsRequestNewSimAsync(int requestId, ApplicationUser currentUser, string? simSerialNo, string? serviceRequestNo, string? lineType, string? simPuk, string? lineUsage, string? previousLines, DateTime? spNotifiedDate, string? assignedNo, string? ictsRemark)
+        private async Task<IActionResult> IctsRequestNewSimAsync(Guid requestId, ApplicationUser currentUser, string? simSerialNo, string? serviceRequestNo, string? lineType, string? simPuk, string? lineUsage, string? previousLines, DateTime? spNotifiedDate, string? assignedNo, string? ictsRemark)
         {
-            var request = await _context.SimRequests.FirstOrDefaultAsync(r => r.Id == requestId);
+            var request = await _context.SimRequests.FirstOrDefaultAsync(r => r.PublicId == requestId);
             if (request == null || request.Status != RequestStatus.PendingIcts)
             {
                 StatusMessage = "Request not found or not pending ICTS processing.";
@@ -265,7 +265,7 @@ namespace TAB.Web.Pages.Modules.SimManagement.Approvals.ICTS
 
             // Log history
             await _historyService.AddIctsActionHistoryAsync(
-                requestId,
+                request.Id,
                 HistoryActions.IctsNewSimApproved,
                 currentUser.Id,
                 $"{currentUser.FirstName} {currentUser.LastName}",
@@ -275,14 +275,15 @@ namespace TAB.Web.Pages.Modules.SimManagement.Approvals.ICTS
 
             // Send notification to requester
             await _notificationService.NotifySimRequestIctsProcessingAsync(
-                requestId,
+                request.Id,
                 request.RequestedBy,
-                ictsRemark
+                ictsRemark,
+                request.PublicId
             );
 
             // Log audit trail
             await _auditLogService.LogSimRequestIctsProcessingAsync(
-                requestId,
+                request.Id,
                 $"{currentUser.FirstName} {currentUser.LastName}",
                 $"{request.FirstName} {request.LastName}",
                 assignedNo,
@@ -298,9 +299,9 @@ namespace TAB.Web.Pages.Modules.SimManagement.Approvals.ICTS
             return Page();
         }
 
-        private async Task<IActionResult> IctsNotifyCollectionAsync(int requestId, ApplicationUser currentUser, string? simSerialNo, string? serviceRequestNo, string? lineType, string? simPuk, string? lineUsage, string? previousLines, DateTime? spNotifiedDate, string? assignedNo, DateTime? collectionNotifiedDate, string? simIssuedBy, string? simCollectedBy, DateTime? simCollectedDate, string? ictsRemark)
+        private async Task<IActionResult> IctsNotifyCollectionAsync(Guid requestId, ApplicationUser currentUser, string? simSerialNo, string? serviceRequestNo, string? lineType, string? simPuk, string? lineUsage, string? previousLines, DateTime? spNotifiedDate, string? assignedNo, DateTime? collectionNotifiedDate, string? simIssuedBy, string? simCollectedBy, DateTime? simCollectedDate, string? ictsRemark)
         {
-            var request = await _context.SimRequests.FirstOrDefaultAsync(r => r.Id == requestId);
+            var request = await _context.SimRequests.FirstOrDefaultAsync(r => r.PublicId == requestId);
             if (request == null || request.Status != RequestStatus.PendingServiceProvider)
             {
                 StatusMessage = "Request not found or not pending service provider processing.";
@@ -319,7 +320,7 @@ namespace TAB.Web.Pages.Modules.SimManagement.Approvals.ICTS
 
             // Log history
             await _historyService.AddIctsActionHistoryAsync(
-                requestId,
+                request.Id,
                 HistoryActions.IctsCollectionNotified,
                 currentUser.Id,
                 $"{currentUser.FirstName} {currentUser.LastName}",
@@ -329,14 +330,15 @@ namespace TAB.Web.Pages.Modules.SimManagement.Approvals.ICTS
 
             // Send notification to requester
             await _notificationService.NotifySimRequestReadyForCollectionAsync(
-                requestId,
+                request.Id,
                 request.RequestedBy,
-                ictsRemark
+                ictsRemark,
+                request.PublicId
             );
 
             // Log audit trail
             await _auditLogService.LogSimRequestCollectionNotifiedAsync(
-                requestId,
+                request.Id,
                 $"{currentUser.FirstName} {currentUser.LastName}",
                 $"{request.FirstName} {request.LastName}",
                 assignedNo,
@@ -348,12 +350,12 @@ namespace TAB.Web.Pages.Modules.SimManagement.Approvals.ICTS
             try
             {
                 await SendCollectionReadyEmailAsync(request, assignedNo, ictsRemark);
-                _logger.LogInformation("Collection ready email sent for SIM request {RequestId}", requestId);
+                _logger.LogInformation("Collection ready email sent for SIM request {RequestId}", request.Id);
             }
             catch (Exception emailEx)
             {
                 // Log error but don't fail the notification
-                _logger.LogError(emailEx, "Failed to send collection ready email for request {RequestId}", requestId);
+                _logger.LogError(emailEx, "Failed to send collection ready email for request {RequestId}", request.Id);
             }
 
             StatusMessage = $"Collection notification sent for {request.FirstName} {request.LastName}. Request is now pending SIM collection.";
@@ -363,9 +365,9 @@ namespace TAB.Web.Pages.Modules.SimManagement.Approvals.ICTS
             return Page();
         }
 
-        private async Task<IActionResult> IctsMarkAsCorrectedAsync(int requestId, ApplicationUser currentUser, string? simIssuedBy, string? simCollectedBy, DateTime? simCollectedDate, string? ictsRemark)
+        private async Task<IActionResult> IctsMarkAsCorrectedAsync(Guid requestId, ApplicationUser currentUser, string? simIssuedBy, string? simCollectedBy, DateTime? simCollectedDate, string? ictsRemark)
         {
-            var request = await _context.SimRequests.FirstOrDefaultAsync(r => r.Id == requestId);
+            var request = await _context.SimRequests.FirstOrDefaultAsync(r => r.PublicId == requestId);
             if (request == null || request.Status != RequestStatus.PendingSIMCollection)
             {
                 StatusMessage = "Request not found or not pending SIM collection.";
@@ -386,7 +388,7 @@ namespace TAB.Web.Pages.Modules.SimManagement.Approvals.ICTS
 
             // Log history
             await _historyService.AddIctsActionHistoryAsync(
-                requestId,
+                request.Id,
                 HistoryActions.Completed,
                 currentUser.Id,
                 $"{currentUser.FirstName} {currentUser.LastName}",
@@ -396,13 +398,14 @@ namespace TAB.Web.Pages.Modules.SimManagement.Approvals.ICTS
 
             // Send notification to requester
             await _notificationService.NotifySimRequestCompletedAsync(
-                requestId,
-                request.RequestedBy
+                request.Id,
+                request.RequestedBy,
+                request.PublicId
             );
 
             // Log audit trail
             await _auditLogService.LogSimRequestCompletedAsync(
-                requestId,
+                request.Id,
                 $"{currentUser.FirstName} {currentUser.LastName}",
                 $"{request.FirstName} {request.LastName}",
                 request.AssignedNo ?? "N/A",
@@ -420,7 +423,7 @@ namespace TAB.Web.Pages.Modules.SimManagement.Approvals.ICTS
             }
             catch (Exception emailEx)
             {
-                _logger.LogError(emailEx, "Failed to send completion email for request {RequestId}", requestId);
+                _logger.LogError(emailEx, "Failed to send completion email for request {RequestId}", request.Id);
             }
 
             StatusMessage = $"SIM collection completed for {request.FirstName} {request.LastName}. Request marked as completed.";
@@ -430,9 +433,9 @@ namespace TAB.Web.Pages.Modules.SimManagement.Approvals.ICTS
             return Page();
         }
 
-        private async Task<IActionResult> IctsCompleteExistingLineAsync(int requestId, ApplicationUser currentUser, string? ictsRemark)
+        private async Task<IActionResult> IctsCompleteExistingLineAsync(Guid requestId, ApplicationUser currentUser, string? ictsRemark)
         {
-            var request = await _context.SimRequests.FirstOrDefaultAsync(r => r.Id == requestId);
+            var request = await _context.SimRequests.FirstOrDefaultAsync(r => r.PublicId == requestId);
             if (request == null || request.Status != RequestStatus.PendingIcts)
             {
                 StatusMessage = "Request not found or not pending ICTS processing.";
@@ -458,7 +461,7 @@ namespace TAB.Web.Pages.Modules.SimManagement.Approvals.ICTS
 
             // Log history
             await _historyService.AddIctsActionHistoryAsync(
-                requestId,
+                request.Id,
                 HistoryActions.Completed,
                 currentUser.Id,
                 $"{currentUser.FirstName} {currentUser.LastName}",
@@ -468,13 +471,14 @@ namespace TAB.Web.Pages.Modules.SimManagement.Approvals.ICTS
 
             // Send notification to requester
             await _notificationService.NotifySimRequestCompletedAsync(
-                requestId,
-                request.RequestedBy
+                request.Id,
+                request.RequestedBy,
+                request.PublicId
             );
 
             // Log audit trail
             await _auditLogService.LogSimRequestCompletedAsync(
-                requestId,
+                request.Id,
                 $"{currentUser.FirstName} {currentUser.LastName}",
                 $"{request.FirstName} {request.LastName}",
                 request.ExistingPhoneNumber ?? "N/A",
@@ -492,7 +496,7 @@ namespace TAB.Web.Pages.Modules.SimManagement.Approvals.ICTS
             }
             catch (Exception emailEx)
             {
-                _logger.LogError(emailEx, "Failed to send completion email for request {RequestId}", requestId);
+                _logger.LogError(emailEx, "Failed to send completion email for request {RequestId}", request.Id);
             }
 
             StatusMessage = $"Existing line request for {request.FirstName} {request.LastName} (Phone: {request.ExistingPhoneNumber}) has been marked as completed.";
@@ -705,7 +709,7 @@ namespace TAB.Web.Pages.Modules.SimManagement.Approvals.ICTS
                 { "ServiceProvider", requestWithProvider.ServiceProvider?.ServiceProviderName ?? "N/A" },
                 { "IndexNo", requestWithProvider.IndexNo ?? "" },
                 { "ProcessedBy", $"{processedByUser.FirstName} {processedByUser.LastName}" },
-                { "ViewRequestLink", $"{Request.Scheme}://{Request.Host}/Modules/SimManagement/Requests/Details/{requestWithProvider.Id}" },
+                { "ViewRequestLink", $"{Request.Scheme}://{Request.Host}/Modules/SimManagement/Requests/Details/{requestWithProvider.PublicId}" },
                 { "Year", DateTime.Now.Year.ToString() }
             };
 

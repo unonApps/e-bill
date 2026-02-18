@@ -195,14 +195,14 @@
 
     string GetSimCardApprovalUrl(TAB.Web.Models.UnifiedRequest request)
     {
-        // Route to specific approval page based on status with requestId parameter
+        // Route to specific approval page based on status with PublicId parameter
         return request.Status switch
         {
-            "PendingSupervisor" => $"/Modules/SimManagement/Approvals/Supervisor?requestId={request.Id}",
-            "PendingIcts" => $"/Modules/SimManagement/Approvals/ICTS?requestId={request.Id}",
-            "PendingServiceProvider" => $"/Modules/SimManagement/Approvals/ICTS?requestId={request.Id}",
-            "PendingSIMCollection" => $"/Modules/SimManagement/Approvals/ICTS?requestId={request.Id}",
-            _ => $"/Modules/SimManagement/Approvals?requestId={request.Id}" // Fallback to main approvals page
+            "PendingSupervisor" => $"/Modules/SimManagement/Approvals/Supervisor?requestId={request.PublicId}",
+            "PendingIcts" => $"/Modules/SimManagement/Approvals/ICTS?requestId={request.PublicId}",
+            "PendingServiceProvider" => $"/Modules/SimManagement/Approvals/ICTS?requestId={request.PublicId}",
+            "PendingSIMCollection" => $"/Modules/SimManagement/Approvals/ICTS?requestId={request.PublicId}",
+            _ => $"/Modules/SimManagement/Approvals?requestId={request.PublicId}" // Fallback to main approvals page
         };
     }
 

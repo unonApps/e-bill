@@ -1052,13 +1052,13 @@
                                 </td>
                                 <td class="px-4 py-3">
                                     <div class="d-flex gap-2 justify-content-center">
-                                        <a asp-page="Details" asp-route-id="@request.Id" class="action-btn btn-view" title="View Details">
+                                        <a asp-page="Details" asp-route-id="@request.PublicId" class="action-btn btn-view" title="View Details">
                                             <i class="bi bi-eye"></i>
                                         </a>
 
                                         @if (request.Status == TAB.Web.Models.RequestStatus.Draft)
                                         {
-                                            <a asp-page="Edit" asp-route-id="@request.Id" class="action-btn btn-edit" title="Edit">
+                                            <a asp-page="Edit" asp-route-id="@request.PublicId" class="action-btn btn-edit" title="Edit">
                                                 <i class="bi bi-pencil"></i>
                                             </a>
                                         }
@@ -1070,7 +1070,7 @@
                                             <button type="button" class="action-btn btn-cancel"
                                                     data-bs-toggle="modal"
                                                     data-bs-target="#cancelModal"
-                                                    data-request-id="@request.Id"
+                                                    data-request-id="@request.PublicId"
                                                     data-request-number="@request.Id"
                                                     title="Cancel">
                                                 <i class="bi bi-x-circle"></i>

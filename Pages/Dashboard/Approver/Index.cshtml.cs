@@ -318,6 +318,7 @@ namespace TAB.Web.Pages.Dashboard.Approver
                 allRequests.AddRange(simRequests.Select(r => new UnifiedRequest
                 {
                     Id = r.Id,
+                    PublicId = r.PublicId,
                     RequestType = RequestType.SimCard,
                     StaffName = $"{r.FirstName} {r.LastName}",
                     RequestTitle = $"SIM Card Request - {r.ServiceProvider?.ServiceProviderName ?? "Unknown Provider"}",
@@ -384,6 +385,7 @@ namespace TAB.Web.Pages.Dashboard.Approver
                 allRequests.AddRange(simRequests.Select(r => new UnifiedRequest
                 {
                     Id = r.Id,
+                    PublicId = r.PublicId,
                     RequestType = RequestType.SimCard,
                     StaffName = $"{r.FirstName} {r.LastName}",
                     RequestTitle = $"SIM Card Request - {r.ServiceProvider?.ServiceProviderName ?? "Unknown Provider"} - Pending ICTS Action",
@@ -428,6 +430,7 @@ namespace TAB.Web.Pages.Dashboard.Approver
                 allRequests.AddRange(simRequests.Select(r => new UnifiedRequest
                 {
                     Id = r.Id,
+                    PublicId = r.PublicId,
                     RequestType = RequestType.SimCard,
                     StaffName = $"{r.FirstName} {r.LastName}",
                     RequestTitle = $"SIM Card Request - {r.ServiceProvider?.ServiceProviderName ?? "Unknown Provider"} - Pending Budget Approval",
@@ -533,6 +536,7 @@ namespace TAB.Web.Pages.Dashboard.Approver
                 allRequests.AddRange(simRequests.Select(r => new UnifiedRequest
                 {
                     Id = r.Id,
+                    PublicId = r.PublicId,
                     RequestType = RequestType.SimCard,
                     StaffName = $"{r.FirstName} {r.LastName}",
                     RequestTitle = $"SIM Card Request - {r.ServiceProvider?.ServiceProviderName ?? "Unknown Provider"} - Pending Supervisor Approval",
@@ -596,6 +600,7 @@ namespace TAB.Web.Pages.Dashboard.Approver
                 allRequests.AddRange(simRequests.Select(r => new UnifiedRequest
                 {
                     Id = r.Id,
+                    PublicId = r.PublicId,
                     RequestType = RequestType.SimCard,
                     StaffName = $"{r.FirstName} {r.LastName}",
                     RequestTitle = $"My SIM Card Request - {r.ServiceProvider?.ServiceProviderName ?? "Unknown Provider"}",

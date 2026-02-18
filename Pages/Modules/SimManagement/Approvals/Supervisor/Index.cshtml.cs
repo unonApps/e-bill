@@ -66,7 +66,7 @@ namespace TAB.Web.Pages.Modules.SimManagement.Approvals.Supervisor
         [TempData]
         public string? StatusMessageClass { get; set; }
 
-        public async Task<IActionResult> OnGetAsync(int? requestId)
+        public async Task<IActionResult> OnGetAsync(Guid? requestId)
         {
             // Check if user has supervisor access
             var hasAccess = await CheckSupervisorAccessAsync();
@@ -90,7 +90,7 @@ namespace TAB.Web.Pages.Modules.SimManagement.Approvals.Supervisor
                 CurrentRequest = await _context.SimRequests
                     .Include(s => s.ServiceProvider)
                     .Include(s => s.History)
-                    .FirstOrDefaultAsync(s => s.Id == requestId.Value);
+                    .FirstOrDefaultAsync(s => s.PublicId == requestId.Value);
 
                 if (CurrentRequest == null)
                 {
@@ -101,7 +101,7 @@ namespace TAB.Web.Pages.Modules.SimManagement.Approvals.Supervisor
 
                 // Load request history
                 RequestHistory = await _context.SimRequestHistories
-                    .Where(h => h.SimRequestId == requestId.Value)
+                    .Where(h => h.SimRequestId == CurrentRequest.Id)
                     .OrderByDescending(h => h.Timestamp)
                     .ToListAsync();
 
@@ -115,7 +115,7 @@ namespace TAB.Web.Pages.Modules.SimManagement.Approvals.Supervisor
         }
 
         public async Task<IActionResult> OnPostApproveAsync(
-            int requestId,
+            Guid requestId,
             string? action,
             string? notes,
             string? mobileService,
@@ -160,7 +160,7 @@ namespace TAB.Web.Pages.Modules.SimManagement.Approvals.Supervisor
             }
         }
 
-        public async Task<IActionResult> OnPostRejectAsync(int requestId, string? notes)
+        public async Task<IActionResult> OnPostRejectAsync(Guid requestId, string? notes)
         {
             var currentUser = await _userManager.GetUserAsync(User);
             if (currentUser == null)
@@ -181,7 +181,7 @@ namespace TAB.Web.Pages.Modules.SimManagement.Approvals.Supervisor
             }
         }
 
-        public async Task<IActionResult> OnPostRevertAsync(int requestId, string? notes)
+        public async Task<IActionResult> OnPostRevertAsync(Guid requestId, string? notes)
         {
             var currentUser = await _userManager.GetUserAsync(User);
             if (currentUser == null)
@@ -274,6 +274,7 @@ namespace TAB.Web.Pages.Modules.SimManagement.Approvals.Supervisor
             var unifiedRequests = simRequests.Select(r => new UnifiedRequest
             {
                 Id = r.Id,
+                PublicId = r.PublicId,
                 RequestType = RequestType.SimCard,
                 StaffName = $"{r.FirstName} {r.LastName}",
                 Email = r.OfficialEmail,
@@ -300,9 +301,9 @@ namespace TAB.Web.Pages.Modules.SimManagement.Approvals.Supervisor
             RejectedCount = RejectedSimRequests.Count;
         }
 
-        private async Task<IActionResult> ApproveSimRequestAsync(int requestId, ApplicationUser currentUser, string? notes, string? mobileService, string? mobileServiceAllowance, string? handsetAllowance, string? supervisorRemarks, string? supervisorName, string? supervisorEmail, DateTime? supervisorActionDate)
+        private async Task<IActionResult> ApproveSimRequestAsync(Guid requestId, ApplicationUser currentUser, string? notes, string? mobileService, string? mobileServiceAllowance, string? handsetAllowance, string? supervisorRemarks, string? supervisorName, string? supervisorEmail, DateTime? supervisorActionDate)
         {
-            var simRequest = await _context.SimRequests.FindAsync(requestId);
+            var simRequest = await _context.SimRequests.FirstOrDefaultAsync(s => s.PublicId == requestId);
             if (simRequest == null)
             {
                 StatusMessage = "SIM request not found.";
@@ -335,7 +336,7 @@ namespace TAB.Web.Pages.Modules.SimManagement.Approvals.Supervisor
 
             // Add history entry
             await _historyService.AddApprovalHistoryAsync(
-                requestId,
+                simRequest.Id,
                 "supervisor",
                 true,
                 currentUser.Id,
@@ -345,14 +346,15 @@ namespace TAB.Web.Pages.Modules.SimManagement.Approvals.Supervisor
 
             // Send notification to requester
             await _notificationService.NotifySimRequestSupervisorApprovedAsync(
-                requestId,
+                simRequest.Id,
                 simRequest.RequestedBy,
-                supervisorRemarks
+                supervisorRemarks,
+                simRequest.PublicId
             );
 
             // Log audit trail
             await _auditLogService.LogSimRequestApprovedAsync(
-                requestId,
+                simRequest.Id,
                 "Supervisor",
                 $"{currentUser.FirstName} {currentUser.LastName}",
                 $"{simRequest.FirstName} {simRequest.LastName}",
@@ -370,12 +372,12 @@ namespace TAB.Web.Pages.Modules.SimManagement.Approvals.Supervisor
                 // 2. Send notification to ICTS team
                 await SendIctsNotificationEmailAsync(simRequest);
 
-                _logger.LogInformation("Approval email notifications sent for SIM request {RequestId}", requestId);
+                _logger.LogInformation("Approval email notifications sent for SIM request {RequestId}", simRequest.Id);
             }
             catch (Exception emailEx)
             {
                 // Log error but don't fail the approval
-                _logger.LogError(emailEx, "Failed to send approval email notifications for request {RequestId}", requestId);
+                _logger.LogError(emailEx, "Failed to send approval email notifications for request {RequestId}", simRequest.Id);
             }
 
             StatusMessage = "SIM request approved successfully and forwarded to UNON/ICTS.";
@@ -384,9 +386,9 @@ namespace TAB.Web.Pages.Modules.SimManagement.Approvals.Supervisor
             return Page();
         }
 
-        private async Task<IActionResult> RejectSimRequestAsync(int requestId, ApplicationUser currentUser, string? notes)
+        private async Task<IActionResult> RejectSimRequestAsync(Guid requestId, ApplicationUser currentUser, string? notes)
         {
-            var simRequest = await _context.SimRequests.FindAsync(requestId);
+            var simRequest = await _context.SimRequests.FirstOrDefaultAsync(s => s.PublicId == requestId);
             if (simRequest == null)
             {
                 StatusMessage = "SIM request not found.";
@@ -412,7 +414,7 @@ namespace TAB.Web.Pages.Modules.SimManagement.Approvals.Supervisor
 
             // Add history entry
             await _historyService.AddApprovalHistoryAsync(
-                requestId,
+                simRequest.Id,
                 "supervisor",
                 false,
                 currentUser.Id,
@@ -422,14 +424,15 @@ namespace TAB.Web.Pages.Modules.SimManagement.Approvals.Supervisor
 
             // Send notification to requester
             await _notificationService.NotifySimRequestSupervisorRejectedAsync(
-                requestId,
+                simRequest.Id,
                 simRequest.RequestedBy,
-                notes
+                notes,
+                simRequest.PublicId
             );
 
             // Log audit trail
             await _auditLogService.LogSimRequestRejectedAsync(
-                requestId,
+                simRequest.Id,
                 "Supervisor",
                 $"{currentUser.FirstName} {currentUser.LastName}",
                 $"{simRequest.FirstName} {simRequest.LastName}",
@@ -442,12 +445,12 @@ namespace TAB.Web.Pages.Modules.SimManagement.Approvals.Supervisor
             try
             {
                 await SendRejectionEmailAsync(simRequest, currentUser, notes);
-                _logger.LogInformation("Rejection email sent for SIM request {RequestId}", requestId);
+                _logger.LogInformation("Rejection email sent for SIM request {RequestId}", simRequest.Id);
             }
             catch (Exception emailEx)
             {
                 // Log error but don't fail the rejection
-                _logger.LogError(emailEx, "Failed to send rejection email for request {RequestId}", requestId);
+                _logger.LogError(emailEx, "Failed to send rejection email for request {RequestId}", simRequest.Id);
             }
 
             StatusMessage = "SIM request rejected successfully.";
@@ -456,9 +459,9 @@ namespace TAB.Web.Pages.Modules.SimManagement.Approvals.Supervisor
             return Page();
         }
 
-        private async Task<IActionResult> RevertSimRequestAsync(int requestId, ApplicationUser currentUser, string? notes)
+        private async Task<IActionResult> RevertSimRequestAsync(Guid requestId, ApplicationUser currentUser, string? notes)
         {
-            var simRequest = await _context.SimRequests.FindAsync(requestId);
+            var simRequest = await _context.SimRequests.FirstOrDefaultAsync(s => s.PublicId == requestId);
             if (simRequest == null)
             {
                 StatusMessage = "SIM request not found.";
@@ -484,7 +487,7 @@ namespace TAB.Web.Pages.Modules.SimManagement.Approvals.Supervisor
 
             // Add history entry
             await _historyService.AddReversionHistoryAsync(
-                requestId,
+                simRequest.Id,
                 "supervisor",
                 currentUser.Id,
                 $"{currentUser.FirstName} {currentUser.LastName}",

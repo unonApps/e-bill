@@ -6,6 +6,8 @@ namespace TAB.Web.Models
     {
         public int Id { get; set; }
 
+        public Guid PublicId { get; set; } = Guid.NewGuid();
+
         [Required]
         [StringLength(20)]
         [Display(Name = "Index No")]

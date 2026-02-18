@@ -215,7 +215,8 @@ namespace TAB.Web.Pages.Modules.SimManagement.Requests
                         await _notificationService.NotifySimRequestSubmittedAsync(
                             SimRequest.Id,
                             currentUser.Id,
-                            supervisorUser.Id
+                            supervisorUser.Id,
+                            SimRequest.PublicId
                         );
 
                         // Log audit trail

@@ -50,13 +50,13 @@ namespace TAB.Web.Pages.Modules.SimManagement.Requests
         public string? StatusMessage { get; set; }
         public string? StatusMessageClass { get; set; }
 
-        public async Task<IActionResult> OnGetAsync(int id)
+        public async Task<IActionResult> OnGetAsync(Guid id)
         {
             await LoadDropdownDataAsync();
 
             SimRequest = await _context.SimRequests
                 .Include(r => r.ServiceProvider)
-                .FirstOrDefaultAsync(r => r.Id == id);
+                .FirstOrDefaultAsync(r => r.PublicId == id);
 
             if (SimRequest == null)
             {
@@ -232,7 +232,8 @@ namespace TAB.Web.Pages.Modules.SimManagement.Requests
                         await _notificationService.NotifySimRequestSubmittedAsync(
                             existingRequest.Id,
                             currentUser.Id,
-                            supervisorUser.Id
+                            supervisorUser.Id,
+                            existingRequest.PublicId
                         );
 
                         await _auditLogService.LogSimRequestSubmittedAsync(

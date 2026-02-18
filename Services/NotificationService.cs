@@ -319,7 +319,7 @@ namespace TAB.Web.Services
         // SIM Request Workflow Notifications
         // ==================================================================
 
-        public async Task NotifySimRequestSubmittedAsync(int requestId, string requesterUserId, string supervisorUserId)
+        public async Task NotifySimRequestSubmittedAsync(int requestId, string requesterUserId, string supervisorUserId, Guid publicId)
         {
             try
             {
@@ -341,7 +341,7 @@ namespace TAB.Web.Services
                     "New SIM Request Pending",
                     "A new SIM card request is pending your approval.",
                     NotificationType.Action,
-                    $"/Modules/SimManagement/Approvals/Supervisor?requestId={requestId}",
+                    $"/Modules/SimManagement/Approvals/Supervisor?requestId={publicId}",
                     "bi-bell-fill",
                     "SimRequest",
                     requestId.ToString()
@@ -353,7 +353,7 @@ namespace TAB.Web.Services
             }
         }
 
-        public async Task NotifySimRequestSupervisorApprovedAsync(int requestId, string requesterUserId, string? comments = null)
+        public async Task NotifySimRequestSupervisorApprovedAsync(int requestId, string requesterUserId, string? comments = null, Guid publicId = default)
         {
             try
             {
@@ -380,7 +380,7 @@ namespace TAB.Web.Services
             }
         }
 
-        public async Task NotifySimRequestSupervisorRejectedAsync(int requestId, string requesterUserId, string? reason = null)
+        public async Task NotifySimRequestSupervisorRejectedAsync(int requestId, string requesterUserId, string? reason = null, Guid publicId = default)
         {
             try
             {
@@ -407,7 +407,7 @@ namespace TAB.Web.Services
             }
         }
 
-        public async Task NotifySimRequestForwardedToIctsAsync(int requestId, string requesterUserId, string ictsUserId)
+        public async Task NotifySimRequestForwardedToIctsAsync(int requestId, string requesterUserId, string ictsUserId, Guid publicId = default)
         {
             try
             {
@@ -429,7 +429,7 @@ namespace TAB.Web.Services
                     "New SIM Request",
                     "A new SIM card request requires your attention.",
                     NotificationType.Action,
-                    $"/Modules/SimManagement/Approvals/ICTS?requestId={requestId}",
+                    $"/Modules/SimManagement/Approvals/ICTS?requestId={publicId}",
                     "bi-bell-fill",
                     "SimRequest",
                     requestId.ToString()
@@ -441,7 +441,7 @@ namespace TAB.Web.Services
             }
         }
 
-        public async Task NotifySimReadyForCollectionAsync(int requestId, string requesterUserId, string assignedNumber)
+        public async Task NotifySimReadyForCollectionAsync(int requestId, string requesterUserId, string assignedNumber, Guid publicId = default)
         {
             try
             {
@@ -462,7 +462,7 @@ namespace TAB.Web.Services
             }
         }
 
-        public async Task NotifySimRequestIctsProcessingAsync(int requestId, string requesterUserId, string? comments = null)
+        public async Task NotifySimRequestIctsProcessingAsync(int requestId, string requesterUserId, string? comments = null, Guid publicId = default)
         {
             try
             {
@@ -489,7 +489,7 @@ namespace TAB.Web.Services
             }
         }
 
-        public async Task NotifySimRequestReadyForCollectionAsync(int requestId, string requesterUserId, string? comments = null)
+        public async Task NotifySimRequestReadyForCollectionAsync(int requestId, string requesterUserId, string? comments = null, Guid publicId = default)
         {
             try
             {
@@ -516,7 +516,7 @@ namespace TAB.Web.Services
             }
         }
 
-        public async Task NotifySimRequestCompletedAsync(int requestId, string requesterUserId)
+        public async Task NotifySimRequestCompletedAsync(int requestId, string requesterUserId, Guid publicId = default)
         {
             try
             {
@@ -537,7 +537,7 @@ namespace TAB.Web.Services
             }
         }
 
-        public async Task NotifySimRequestCancelledAsync(int requestId, string requesterUserId, string? reason = null)
+        public async Task NotifySimRequestCancelledAsync(int requestId, string requesterUserId, string? reason = null, Guid publicId = default)
         {
             try
             {
@@ -876,7 +876,7 @@ namespace TAB.Web.Services
         // Approver Notifications
         // ==================================================================
 
-        public async Task NotifyNewSimRequestPendingApprovalAsync(int requestId, string supervisorUserId, string requesterName)
+        public async Task NotifyNewSimRequestPendingApprovalAsync(int requestId, string supervisorUserId, string requesterName, Guid publicId = default)
         {
             try
             {
@@ -885,7 +885,7 @@ namespace TAB.Web.Services
                     "New SIM Request",
                     $"{requesterName} has submitted a SIM card request that requires your approval.",
                     NotificationType.Action,
-                    $"/Modules/SimManagement/Approvals/Supervisor?requestId={requestId}",
+                    $"/Modules/SimManagement/Approvals/Supervisor?requestId={publicId}",
                     "bi-bell-fill",
                     "SimRequest",
                     requestId.ToString()
