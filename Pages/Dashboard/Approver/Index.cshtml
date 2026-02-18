@@ -211,10 +211,10 @@
         // Route to specific approval page based on status with PublicId parameter
         return request.Status switch
         {
-            "PendingSupervisor" => $"/Modules/RefundManagement/Approvals/Supervisor?requestId={request.PublicId}",
-            "PendingBudgetOfficer" => $"/Modules/RefundManagement/Approvals/BudgetOfficer?requestId={request.PublicId}",
-            "PendingStaffClaimsUnit" => $"/Modules/RefundManagement/Approvals/ClaimsUnit?requestId={request.PublicId}",
-            "PendingPaymentApproval" => $"/Modules/RefundManagement/Approvals/PaymentApprover?requestId={request.PublicId}",
+            "PendingSupervisor" => $"/Modules/RefundManagement/Approvals/Supervisor?requestId={request.PublicId}&tab=supervisor",
+            "PendingBudgetOfficer" => $"/Modules/RefundManagement/Approvals/BudgetOfficer?requestId={request.PublicId}&tab=budget",
+            "PendingStaffClaimsUnit" => $"/Modules/RefundManagement/Approvals/ClaimsUnit?requestId={request.PublicId}&tab=claims",
+            "PendingPaymentApproval" => $"/Modules/RefundManagement/Approvals/PaymentApprover?requestId={request.PublicId}&tab=payment",
             _ => $"/Modules/RefundManagement/Approvals?requestId={request.PublicId}" // Fallback to main approvals page
         };
     }
