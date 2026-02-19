@@ -37,10 +37,10 @@ A new "Test Connection" button has been added to verify your SMTP settings **bef
 ```
 SMTP Server: smtp.gmail.com
 SMTP Port: 587
-From Email Address: acmichuki@gmail.com
+From Email Address: your-email@gmail.com
 From Display Name: TAB System
-Username: acmichuki@gmail.com
-Password: tuyq uych urha jnns
+Username: your-email@gmail.com
+Password: xxxx xxxx xxxx xxxx (your Gmail app password)
 
 Checkboxes:
 ✅ Enable SSL (checked)

@@ -51,16 +51,16 @@ After deployment completes and the app restarts, you can login with:
 
 ### Default Admin Account:
 - **Username**: `admin@example.com`
-- **Password**: `Admin123!`
+- **Password**: `<SET_ON_SERVER>`
 - **URL**: https://tabweb20250926123812.azurewebsites.net/Account/Login
 
 ### Other Test Accounts Created:
 - Budget Officers:
-  - `budget.officer1@example.com` (Password: `Budget123!`)
-  - `budget.officer2@example.com` (Password: `Budget123!`)
+  - `budget.officer1@example.com` (Password: `<SET_ON_SERVER>`)
+  - `budget.officer2@example.com` (Password: `<SET_ON_SERVER>`)
 - Claims Approvers:
-  - `claims.approver1@example.com` (Password: `Claims123!`)
-  - `amichuki@gmail.com` (Password: `Claims123!`)
+  - `claims.approver1@example.com` (Password: `<SET_ON_SERVER>`)
+  - `amichuki@gmail.com` (Password: `<SET_ON_SERVER>`)
 
 ## Verification Checklist
 

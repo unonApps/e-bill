@@ -19,7 +19,10 @@ Write-Host ""
 
 # Apply to Azure Database
 Write-Host "2. Applying to Azure Database (ebiling.database.windows.net)..." -ForegroundColor Yellow
-$connStr = "Server=tcp:ebiling.database.windows.net,1433;Initial Catalog=tabdb;Persist Security Info=False;User ID=ebiling;Password=KamitiF5%254;MultipleActiveResultSets=False;Encrypt=True;TrustServerCertificate=False;Connection Timeout=30;"
+$Password = Read-Host "Enter Azure SQL password" -AsSecureString
+$BSTR = [System.Runtime.InteropServices.Marshal]::SecureStringToBSTR($Password)
+$PlainPassword = [System.Runtime.InteropServices.Marshal]::PtrToStringAuto($BSTR)
+$connStr = "Server=tcp:ebiling.database.windows.net,1433;Initial Catalog=tabdb;Persist Security Info=False;User ID=ebiling;Password=$PlainPassword;MultipleActiveResultSets=False;Encrypt=True;TrustServerCertificate=False;Connection Timeout=30;"
 
 try {
     Add-Type -AssemblyName System.Data

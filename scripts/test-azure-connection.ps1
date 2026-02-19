@@ -1,7 +1,10 @@
 # Test Azure SQL Database Connection
 Write-Host "Testing Azure SQL Database Connection..." -ForegroundColor Yellow
 
-$connectionString = "Server=tcp:ebiling.database.windows.net,1433;Initial Catalog=tabdb;User ID=ebiling;Password=KamitiF5%254;Encrypt=True;TrustServerCertificate=False;"
+$Password = Read-Host "Enter Azure SQL password" -AsSecureString
+$BSTR = [System.Runtime.InteropServices.Marshal]::SecureStringToBSTR($Password)
+$PlainPassword = [System.Runtime.InteropServices.Marshal]::PtrToStringAuto($BSTR)
+$connectionString = "Server=tcp:ebiling.database.windows.net,1433;Initial Catalog=tabdb;User ID=ebiling;Password=$PlainPassword;Encrypt=True;TrustServerCertificate=False;"
 
 try {
     $connection = New-Object System.Data.SqlClient.SqlConnection

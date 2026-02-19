@@ -1,5 +1,8 @@
 # Direct SQL execution using .NET SqlClient
-$connectionString = "Server=tcp:ebiling.database.windows.net,1433;Initial Catalog=tabdb;Persist Security Info=False;User ID=ebiling;Password=KamitiF5%254;MultipleActiveResultSets=False;Encrypt=True;TrustServerCertificate=False;Connection Timeout=30;"
+$Password = Read-Host "Enter Azure SQL password" -AsSecureString
+$BSTR = [System.Runtime.InteropServices.Marshal]::SecureStringToBSTR($Password)
+$PlainPassword = [System.Runtime.InteropServices.Marshal]::PtrToStringAuto($BSTR)
+$connectionString = "Server=tcp:ebiling.database.windows.net,1433;Initial Catalog=tabdb;Persist Security Info=False;User ID=ebiling;Password=$PlainPassword;MultipleActiveResultSets=False;Encrypt=True;TrustServerCertificate=False;Connection Timeout=30;"
 
 $sqlScript = @"
 -- Add UserPhoneId column to PrivateWires if it doesn't exist

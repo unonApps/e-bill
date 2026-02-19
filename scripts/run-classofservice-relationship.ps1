@@ -1,6 +1,9 @@
 # PowerShell script to add ClassOfService relationship to UserPhones table
 
-$connectionString = "Server=localhost;Database=ebilldb;User Id=sa;Password=Micpat@77;TrustServerCertificate=True;"
+$Password = Read-Host "Enter local SQL Server SA password" -AsSecureString
+$BSTR = [System.Runtime.InteropServices.Marshal]::SecureStringToBSTR($Password)
+$PlainPassword = [System.Runtime.InteropServices.Marshal]::PtrToStringAuto($BSTR)
+$connectionString = "Server=localhost;Database=ebilldb;User Id=sa;Password=$PlainPassword;TrustServerCertificate=True;"
 
 $sqlScript = @"
 -- Add ClassOfService relationship to UserPhone table

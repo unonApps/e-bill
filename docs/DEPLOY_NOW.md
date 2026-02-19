@@ -67,7 +67,7 @@ After deploying, verify:
 **Expected!** New Azure AD users have NO ROLES by default.
 
 **Fix:**
-1. Login as local admin: `admin@example.com` / `Admin123!`
+1. Login as local admin: `admin@example.com` / `<PASSWORD_SET_ON_SERVER>`
 2. Go to **Admin → User Management**
 3. Find your Azure AD user
 4. Click **Edit** → Assign roles (e.g., Admin)

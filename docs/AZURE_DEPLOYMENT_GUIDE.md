@@ -17,7 +17,7 @@
 Server=tcp:ebiling.database.windows.net,1433;
 Initial Catalog=tabdb;
 User ID=ebiling;
-Password=KamitiF5%254;
+Password=<SET_IN_AZURE_PORTAL>;
 Encrypt=True;
 TrustServerCertificate=False;
 Connection Timeout=30;
@@ -93,7 +93,7 @@ In Azure Portal, navigate to your App Service and configure:
 #### Connection Strings
 Add under "Connection strings" section:
 - Name: `DefaultConnection`
-- Value: `Server=tcp:ebiling.database.windows.net,1433;Initial Catalog=tabdb;Persist Security Info=False;User ID=ebiling;Password=KamitiF5%254;MultipleActiveResultSets=False;Encrypt=True;TrustServerCertificate=False;Connection Timeout=30;`
+- Value: `Server=tcp:ebiling.database.windows.net,1433;Initial Catalog=tabdb;Persist Security Info=False;User ID=ebiling;Password=<SET_IN_AZURE_PORTAL>;MultipleActiveResultSets=False;Encrypt=True;TrustServerCertificate=False;Connection Timeout=30;`
 - Type: `SQLAzure`
 
 ### 4. Database Migration
@@ -101,7 +101,7 @@ Add under "Connection strings" section:
 #### Option A: Run Migrations from Local Machine
 ```bash
 # Update connection string in appsettings.json temporarily
-dotnet ef database update --connection "Server=tcp:ebiling.database.windows.net,1433;Initial Catalog=tabdb;User ID=ebiling;Password=KamitiF5%254;Encrypt=True;TrustServerCertificate=False;"
+dotnet ef database update --connection "Server=tcp:ebiling.database.windows.net,1433;Initial Catalog=tabdb;User ID=ebiling;Password=<SET_IN_AZURE_PORTAL>;Encrypt=True;TrustServerCertificate=False;"
 ```
 
 #### Option B: Using SQL Scripts

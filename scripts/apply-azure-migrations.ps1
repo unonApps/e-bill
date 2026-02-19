@@ -3,7 +3,10 @@
 Write-Host "Applying EF Migrations to Azure SQL Database..." -ForegroundColor Green
 
 # Azure SQL connection string
-$connectionString = "Server=tcp:ebiling.database.windows.net,1433;Initial Catalog=tabdb;User ID=ebiling;Password=KamitiF5%254;Encrypt=True;TrustServerCertificate=False;"
+$Password = Read-Host "Enter Azure SQL password" -AsSecureString
+$BSTR = [System.Runtime.InteropServices.Marshal]::SecureStringToBSTR($Password)
+$PlainPassword = [System.Runtime.InteropServices.Marshal]::PtrToStringAuto($BSTR)
+$connectionString = "Server=tcp:ebiling.database.windows.net,1433;Initial Catalog=tabdb;User ID=ebiling;Password=$PlainPassword;Encrypt=True;TrustServerCertificate=False;"
 
 Write-Host "Step 1: Checking current migrations..." -ForegroundColor Yellow
 dotnet ef migrations list
@@ -61,5 +64,5 @@ Console.WriteLine($"Total roles in database: {totalRoles}");
 
 Write-Host "`nLogin Credentials:" -ForegroundColor Cyan
 Write-Host "Username: admin@example.com" -ForegroundColor White
-Write-Host "Password: Admin123!" -ForegroundColor White
+Write-Host "Password: <configured during seeding>" -ForegroundColor White
 Write-Host "`nURL: https://tabweb20250926123812.azurewebsites.net/Account/Login" -ForegroundColor Cyan

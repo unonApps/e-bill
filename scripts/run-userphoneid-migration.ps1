@@ -2,7 +2,9 @@
 $ServerInstance = "ebiling.database.windows.net"
 $Database = "tabdb"
 $Username = "ebiling"
-$Password = "KamitiF5%4"
+$SecurePassword = Read-Host "Enter Azure SQL password" -AsSecureString
+$BSTR = [System.Runtime.InteropServices.Marshal]::SecureStringToBSTR($SecurePassword)
+$Password = [System.Runtime.InteropServices.Marshal]::PtrToStringAuto($BSTR)
 $SqlFile = "add-userphoneid-azure.sql"
 
 Write-Host "Connecting to Azure SQL Database..." -ForegroundColor Cyan
