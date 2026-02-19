@@ -239,6 +239,164 @@ This makes a strong case for Azure App Service unless there is a specific data s
 
 ---
 
+## Azure App Service -- Complete Settings Reference
+
+Every setting the app needs, mapped to the Azure Portal.
+
+### Application Settings (Environment Variables)
+
+In Azure Portal: **App Service > Settings > Environment variables > App settings**.
+
+| Name | Value | Purpose |
+|------|-------|---------|
+| `ASPNETCORE_ENVIRONMENT` | `Production` | Disables dev error pages, enables HSTS |
+| `AzureAd__Instance` | `https://login.microsoftonline.com/` | Azure AD login endpoint |
+| `AzureAd__TenantId` | `<your tenant ID>` | Azure AD tenant |
+| `AzureAd__ClientId` | `<your client ID>` | App registration client ID |
+| `AzureAd__ClientSecret` | `<your secret>` | OAuth client secret |
+| `AzureAd__CallbackPath` | `/signin-oidc` | OAuth callback path |
+| `AzureAd__SignedOutCallbackPath` | `/signout-callback-oidc` | Sign-out callback path |
+| `AzureAd__RedirectUri` | `https://<app>.azurewebsites.net/signin-oidc` | Must match Azure AD app registration |
+| `AzureBlobStorage__StorageConnection` | `DefaultEndpointsProtocol=https;AccountName=...` | Full blob connection string |
+| `AzureBlobStorage__ContainerName` | `ebill-imports` | Blob container for file uploads |
+| `AzureBlobStorage__StorageAccountName` | `unondataservices` | Storage account name |
+| `AzureBlobStorage__StorageAccountKey` | `<your key>` | Storage access key |
+| `DatabaseSchema` | `ebill` | Schema used by Hangfire and app tables |
+| `EmailSettings__SmtpServer` | `smtp.gmail.com` | SMTP server for notifications |
+| `EmailSettings__SmtpPort` | `587` | SMTP port (TLS) |
+| `EmailSettings__FromEmail` | `<sender email>` | Sender email address |
+| `EmailSettings__FromName` | `TAB System` | Sender display name |
+| `EmailSettings__Username` | `<smtp username>` | SMTP authentication username |
+| `EmailSettings__Password` | `<app password>` | Gmail app password |
+| `EmailSettings__EnableSsl` | `true` | Enable TLS for SMTP |
+
+Note: use double underscores (`__`) as section separators in environment variable names (e.g., `AzureAd__ClientSecret` maps to `AzureAd:ClientSecret` in appsettings).
+
+### Connection Strings
+
+In Azure Portal: **App Service > Settings > Environment variables > Connection strings**.
+
+| Name | Value | Type |
+|------|-------|------|
+| `DefaultConnection` | `Data Source=unonsqlsvr01.database.windows.net;Initial Catalog=UNONDB01;User id=eBill_usr;Password=<password>;Encrypt=True;TrustServerCertificate=True;` | `SQLAzure` |
+
+### General Settings
+
+In Azure Portal: **App Service > Settings > Configuration > General settings**.
+
+| Setting | Value | Why |
+|---------|-------|-----|
+| Stack | `.NET 8 (LTS)` | Target framework |
+| Platform | `64-bit` | Required -- project targets `x64` for ExcelDataReader |
+| Always On | **ON** | Required for Hangfire background jobs |
+| HTTP version | `2.0` | Better performance |
+| ARR affinity | `On` | Session stickiness for auth cookies |
+| Min TLS version | `1.2` | Security baseline |
+| HTTPS only | **ON** | Redirects all HTTP to HTTPS |
+
+### Networking and Firewall
+
+In Azure Portal: **App Service > Settings > Networking**.
+
+#### Inbound Access Restrictions (who can reach the app)
+
+**Option A: Intranet only (UN staff)**
+```
+Priority 100: Allow  -- UN Nairobi office IP range
+Priority 200: Allow  -- VPN IP range
+Default:      Deny   -- Everything else
+```
+
+**Option B: Public-facing (Azure AD handles auth)**
+- Leave access restrictions open
+- Consider Azure Front Door or WAF for DDoS protection
+
+#### Outbound Connections (what the app connects to)
+
+The app requires outbound access to these services (allowed by default):
+
+| Service | Endpoint | Port |
+|---------|----------|------|
+| Azure SQL | `unonsqlsvr01.database.windows.net` | 1433 |
+| Azure Blob Storage | `unondataservices.blob.core.windows.net` | 443 |
+| Azure AD | `login.microsoftonline.com` | 443 |
+| Gmail SMTP | `smtp.gmail.com` | 587 |
+
+No changes needed unless VNet Integration is enabled.
+
+### Azure SQL Firewall
+
+In Azure Portal: **SQL Server (unonsqlsvr01) > Security > Networking**.
+
+| Setting | Value | Why |
+|---------|-------|-----|
+| Allow Azure services and resources to access this server | **ON** | Lets App Service connect without IP whitelisting |
+| Public network access | `Selected networks` | Restrict to Azure services only |
+
+For tighter security: use VNet Integration + Private Endpoint (eliminates public SQL access entirely, requires Premium tier).
+
+### Azure Blob Storage Firewall
+
+In Azure Portal: **Storage Account (unondataservices) > Security + networking > Networking**.
+
+| Setting | Value |
+|---------|-------|
+| Allow Azure services on the trusted services list | **ON** |
+| Public network access | `Enabled from all networks` or `Selected virtual networks and IP addresses` |
+
+### Azure AD App Registration
+
+In Azure Portal: **Microsoft Entra ID > App registrations > your app > Authentication**.
+
+| Setting | Value |
+|---------|-------|
+| Redirect URI (Web) | `https://<app>.azurewebsites.net/signin-oidc` |
+| Front-channel logout URL | `https://<app>.azurewebsites.net/signout-callback-oidc` |
+| ID tokens | Checked |
+| Supported account types | Single tenant (your org only) |
+
+### App Service Plan (Tier Selection)
+
+| Tier | Price | Always On | Deployment Slots | VNet Integration | Recommendation |
+|------|-------|-----------|------------------|------------------|----------------|
+| B1 (Basic) | ~$55/mo | No | No | No | Dev/test only |
+| **S1 (Standard)** | **~$73/mo** | **Yes** | **1 slot** | **No** | **Production minimum** |
+| P1v3 (Premium) | ~$138/mo | Yes | 5 slots | Yes | If you need private SQL endpoints |
+
+Standard S1 is the minimum because Hangfire requires Always On and deployment slots enable zero-downtime deployments.
+
+### Settings Map (Visual)
+
+```
+Azure Portal
+  |
+  +-- App Service
+  |     +-- Environment variables
+  |     |     +-- App settings (19 settings above)
+  |     |     +-- Connection strings (DefaultConnection = SQLAzure)
+  |     +-- Configuration > General settings
+  |     |     +-- .NET 8, 64-bit, Always On, HTTPS only
+  |     +-- Networking
+  |     |     +-- Inbound: Access restrictions (IP allowlist or open)
+  |     |     +-- Outbound: Default allow all
+  |     +-- TLS/SSL settings
+  |     |     +-- Min TLS: 1.2, HTTPS only: ON
+  |     |     +-- Custom domain + cert (optional)
+  |     +-- Scale up: Standard S1 minimum
+  |
+  +-- SQL Server (unonsqlsvr01)
+  |     +-- Networking: Allow Azure services = ON
+  |
+  +-- Storage Account (unondataservices)
+  |     +-- Networking: Allow trusted Azure services = ON
+  |
+  +-- Microsoft Entra ID (App Registration)
+        +-- Redirect URI: https://<app>.azurewebsites.net/signin-oidc
+        +-- Logout URI: https://<app>.azurewebsites.net/signout-callback-oidc
+```
+
+---
+
 ## Migration Path (On-Prem to App Service)
 
 If you decide to move later, the migration is straightforward:
