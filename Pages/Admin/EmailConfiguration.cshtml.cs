@@ -175,7 +175,8 @@ namespace TAB.Web.Pages.Admin
             catch (Exception ex)
             {
                 _logger.LogError(ex, "Error saving email configuration");
-                StatusMessage = $"Error: {ex.Message}";
+                var innerMsg = ex.InnerException?.Message ?? ex.Message;
+                StatusMessage = $"Error: {innerMsg}";
                 StatusMessageClass = "danger";
                 return Page();
             }

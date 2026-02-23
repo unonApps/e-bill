@@ -647,8 +647,8 @@ namespace TAB.Web.Data
                 entity.Property(e => e.SmtpServer).IsRequired().HasMaxLength(255);
                 entity.Property(e => e.FromEmail).IsRequired().HasMaxLength(255);
                 entity.Property(e => e.FromName).IsRequired().HasMaxLength(255);
-                entity.Property(e => e.Username).IsRequired().HasMaxLength(255);
-                entity.Property(e => e.Password).IsRequired().HasMaxLength(500);
+                entity.Property(e => e.Username).HasMaxLength(255);
+                entity.Property(e => e.Password).HasMaxLength(500);
                 entity.Property(e => e.ModifiedBy).HasMaxLength(100);
                 entity.Property(e => e.Notes).HasMaxLength(500);
 

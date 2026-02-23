@@ -1856,7 +1856,6 @@ namespace TAB.Web.Migrations
                         .HasColumnType("nvarchar(500)");
 
                     b.Property<string>("Password")
-                        .IsRequired()
                         .HasMaxLength(500)
                         .HasColumnType("nvarchar(500)");
 
@@ -1875,7 +1874,6 @@ namespace TAB.Web.Migrations
                         .HasColumnType("bit");
 
                     b.Property<string>("Username")
-                        .IsRequired()
                         .HasMaxLength(255)
                         .HasColumnType("nvarchar(255)");
 
