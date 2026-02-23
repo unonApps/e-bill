@@ -12,7 +12,7 @@ namespace TAB.Web.Models
     public class Safaricom
     {
         [Key]
-        public int Id { get; set; }
+        public long Id { get; set; }
 
         [MaxLength(50)]
         [Display(Name = "Extension")]

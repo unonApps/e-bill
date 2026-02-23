@@ -3676,8 +3676,8 @@ namespace TAB.Web.Pages.Admin
             }
 
             var deletedCount = 0;
-            var failedRecords = new List<int>();
-            var stagedRecords = new List<int>();
+            var failedRecords = new List<long>();
+            var stagedRecords = new List<long>();
 
             try
             {
@@ -3808,7 +3808,7 @@ namespace TAB.Web.Pages.Admin
         public class BulkDeleteRequest
         {
             public string Type { get; set; } = string.Empty;
-            public List<int> Ids { get; set; } = new();
+            public List<long> Ids { get; set; } = new();
         }
 
         public async Task<IActionResult> OnPostDeleteImportBatchAsync(int importId)

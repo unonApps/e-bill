@@ -12,7 +12,7 @@ namespace TAB.Web.Models
     public class PrivateWire
     {
         [Key]
-        public int Id { get; set; }
+        public long Id { get; set; }
 
         // Call Origin Information
         [MaxLength(50)]

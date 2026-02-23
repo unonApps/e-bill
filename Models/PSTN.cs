@@ -11,7 +11,7 @@ namespace TAB.Web.Models
     public class PSTN
     {
         [Key]
-        public int Id { get; set; }
+        public long Id { get; set; }
 
         // Call Origin Information
         [MaxLength(50)]

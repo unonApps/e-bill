@@ -4,6 +4,7 @@ using System.Data;
 using System.Globalization;
 using System.IO;
 using System.Linq;
+using System.Threading;
 using System.Threading.Tasks;
 using ExcelDataReader;
 using Hangfire;
@@ -16,6 +17,24 @@ using TAB.Web.Models;
 
 namespace TAB.Web.Services
 {
+    internal static class ImportConstants
+    {
+        public const string Safaricom = "safaricom";
+        public const string Airtel = "airtel";
+        public const string Pstn = "pstn";
+        public const string PrivateWire = "privatewire";
+
+        public const string StatusProcessing = "Processing";
+        public const string StatusCompleted = "Completed";
+        public const string StatusFailed = "Failed";
+
+        public const int BatchSize = 50000;
+        public const int BulkCopyBatchSize = 10000;
+        public const int BulkCopyTimeoutSeconds = 300;
+        public const int MaxErrors = 1000;
+        public const int MaxErrorsBeforeAnySuccess = 100;
+    }
+
     public interface ISmartUploadImportService
     {
         Task<ImportResult> ImportFileAsync(Guid jobId, string filePath, int billingMonth, int billingYear, string provider, bool isExcelFile, IJobCancellationToken cancellationToken);
@@ -59,14 +78,14 @@ namespace TAB.Web.Services
                     jobId, provider, filePath, isExcelFile);
 
                 // Update job status to Processing - write step info to ErrorMessage so it's visible on ImportJobs page
-                await UpdateJobStatus(jobId, "Processing", null, null, "Step 1: Job started");
+                await UpdateJobStatus(jobId, ImportConstants.StatusProcessing, null, null, "Step 1: Job started");
                 _logger.LogInformation("[STEP 2/6] Job {JobId}: Status set to Processing", jobId);
 
                 // Check if filePath is a blob path (starts with "imports/") or local path
                 if (filePath.StartsWith("imports/"))
                 {
                     // Download from Azure Blob Storage
-                    await UpdateJobStatus(jobId, "Processing", null, null, "Step 2: Downloading file from Blob Storage...");
+                    await UpdateJobStatus(jobId, ImportConstants.StatusProcessing, null, null, "Step 2: Downloading file from Blob Storage...");
                     _logger.LogInformation("[STEP 3/6] Job {JobId}: Downloading file from Blob Storage: {BlobPath}", jobId, filePath);
 
                     var downloadResult = await _blobStorageService.DownloadAsync(filePath);
@@ -88,7 +107,7 @@ namespace TAB.Web.Services
 
                     var fileSize = new FileInfo(localFilePath).Length;
                     downloadedFromBlob = true;
-                    await UpdateJobStatus(jobId, "Processing", null, null, $"Step 3: Blob downloaded ({fileSize} bytes). Saving to temp file...");
+                    await UpdateJobStatus(jobId, ImportConstants.StatusProcessing, null, null, $"Step 3: Blob downloaded ({fileSize} bytes). Saving to temp file...");
                     _logger.LogInformation("[STEP 3/6] Job {JobId}: Downloaded blob to temp file: {TempPath} ({FileSize} bytes)", jobId, localFilePath, fileSize);
                 }
                 else
@@ -97,7 +116,7 @@ namespace TAB.Web.Services
                     localFilePath = filePath;
                 }
 
-                await UpdateJobStatus(jobId, "Processing", null, null, $"Step 4: File ready. Routing to {provider} handler (Excel: {isExcelFile})...");
+                await UpdateJobStatus(jobId, ImportConstants.StatusProcessing, null, null, $"Step 4: File ready. Routing to {provider} handler (Excel: {isExcelFile})...");
                 _logger.LogInformation("[STEP 4/6] Job {JobId}: Routing to {Provider} handler (Excel: {IsExcel})", jobId, provider, isExcelFile);
 
                 // Route to appropriate handler based on file type and provider
@@ -106,14 +125,14 @@ namespace TAB.Web.Services
                     // Excel files
                     switch (provider.ToLower())
                     {
-                        case "safaricom":
-                        case "airtel":
+                        case ImportConstants.Safaricom:
+                        case ImportConstants.Airtel:
                             result = await ImportMobileExcelAsync(jobId, localFilePath, billingMonth, billingYear, provider, cancellationToken);
                             break;
-                        case "pstn":
+                        case ImportConstants.Pstn:
                             result = await ImportPstnExcelAsync(jobId, localFilePath, billingMonth, billingYear, cancellationToken);
                             break;
-                        case "privatewire":
+                        case ImportConstants.PrivateWire:
                             result = await ImportPrivateWireExcelAsync(jobId, localFilePath, billingMonth, billingYear, cancellationToken);
                             break;
                         default:
@@ -125,14 +144,14 @@ namespace TAB.Web.Services
                     // CSV files
                     switch (provider.ToLower())
                     {
-                        case "safaricom":
-                        case "airtel":
+                        case ImportConstants.Safaricom:
+                        case ImportConstants.Airtel:
                             result = await ImportMobileCsvAsync(jobId, localFilePath, billingMonth, billingYear, provider, cancellationToken);
                             break;
-                        case "pstn":
+                        case ImportConstants.Pstn:
                             result = await ImportPstnCsvAsync(jobId, localFilePath, billingMonth, billingYear, cancellationToken);
                             break;
-                        case "privatewire":
+                        case ImportConstants.PrivateWire:
                             result = await ImportPrivateWireCsvAsync(jobId, localFilePath, billingMonth, billingYear, cancellationToken);
                             break;
                         default:
@@ -141,7 +160,7 @@ namespace TAB.Web.Services
                 }
 
                 // Update job status to Completed
-                await UpdateJobStatus(jobId, "Completed", result.SuccessCount, result.ErrorCount, null);
+                await UpdateJobStatus(jobId, ImportConstants.StatusCompleted, result.SuccessCount, result.ErrorCount, null);
 
                 result.EndTime = DateTime.UtcNow;
                 _logger.LogInformation("SmartUpload import completed for job {JobId}: {SuccessCount} success, {ErrorCount} errors",
@@ -162,7 +181,7 @@ namespace TAB.Web.Services
             catch (Exception ex)
             {
                 _logger.LogError(ex, "SmartUpload import failed for job {JobId}", jobId);
-                await UpdateJobStatus(jobId, "Failed", result.SuccessCount, result.ErrorCount, ex.Message);
+                await UpdateJobStatus(jobId, ImportConstants.StatusFailed, result.SuccessCount, result.ErrorCount, ex.Message);
 
                 // Clean up: delete temp file only (keep blob for Hangfire retry)
                 if (localFilePath != null)
@@ -185,21 +204,21 @@ namespace TAB.Web.Services
                 _logger.LogInformation("Starting SmartUpload Excel import for job {JobId}: {Provider} from {FilePath}", jobId, provider, filePath);
 
                 // Update job status to Processing
-                await UpdateJobStatus(jobId, "Processing", null, null, null);
+                await UpdateJobStatus(jobId, ImportConstants.StatusProcessing, null, null, null);
 
                 // Route to appropriate handler based on provider
                 switch (provider.ToLower())
                 {
-                    case "safaricom":
-                    case "airtel":
+                    case ImportConstants.Safaricom:
+                    case ImportConstants.Airtel:
                         result = await ImportMobileExcelAsync(jobId, filePath, billingMonth, billingYear, provider, cancellationToken);
                         break;
 
-                    case "pstn":
+                    case ImportConstants.Pstn:
                         result = await ImportPstnExcelAsync(jobId, filePath, billingMonth, billingYear, cancellationToken);
                         break;
 
-                    case "privatewire":
+                    case ImportConstants.PrivateWire:
                         result = await ImportPrivateWireExcelAsync(jobId, filePath, billingMonth, billingYear, cancellationToken);
                         break;
 
@@ -208,7 +227,7 @@ namespace TAB.Web.Services
                 }
 
                 // Update job status to Completed
-                await UpdateJobStatus(jobId, "Completed", result.SuccessCount, result.ErrorCount, null);
+                await UpdateJobStatus(jobId, ImportConstants.StatusCompleted, result.SuccessCount, result.ErrorCount, null);
 
                 result.EndTime = DateTime.UtcNow;
                 _logger.LogInformation("SmartUpload Excel import completed for job {JobId}: {SuccessCount} success, {ErrorCount} errors",
@@ -222,7 +241,7 @@ namespace TAB.Web.Services
             catch (Exception ex)
             {
                 _logger.LogError(ex, "SmartUpload Excel import failed for job {JobId}", jobId);
-                await UpdateJobStatus(jobId, "Failed", result.SuccessCount, result.ErrorCount, ex.Message);
+                await UpdateJobStatus(jobId, ImportConstants.StatusFailed, result.SuccessCount, result.ErrorCount, ex.Message);
 
                 // Clean up temp file
                 try { File.Delete(filePath); } catch (Exception cleanupEx) { _logger.LogWarning(cleanupEx, "Failed to delete temp file {FilePath}", filePath); }
@@ -233,8 +252,17 @@ namespace TAB.Web.Services
 
         private async Task<ImportResult> ImportMobileExcelAsync(Guid jobId, string filePath, int billingMonth, int billingYear, string provider, IJobCancellationToken cancellationToken)
         {
-            const int BATCH_SIZE = 50000;
             var result = new ImportResult { StartTime = DateTime.UtcNow };
+
+            // Clean up any rows from a previous failed attempt (Hangfire retry safety)
+            var mobileTable = provider.ToLower() == ImportConstants.Safaricom
+                ? "[ebill].[Safaricom]"
+                : "[ebill].[Airtel]";
+            await CleanupPreviousAttemptAsync(jobId, mobileTable, cancellationToken.ShutdownToken);
+
+            // Reuse a single connection across all batches
+            using var sharedConn = new SqlConnection(_context.Database.GetConnectionString());
+            await sharedConn.OpenAsync(cancellationToken.ShutdownToken);
 
             // Pre-load user phone lookups
             var userPhoneLookup = await LoadUserPhoneLookup(cancellationToken.ShutdownToken);
@@ -271,7 +299,7 @@ namespace TAB.Web.Services
                 currentWorksheet++;
 
                 // Skip the last worksheet for Airtel (it typically contains summary/metadata)
-                if (provider.ToLower() == "airtel" && totalWorksheets > 1 && currentWorksheet == totalWorksheets)
+                if (provider.ToLower() == ImportConstants.Airtel && totalWorksheets > 1 && currentWorksheet == totalWorksheets)
                 {
                     _logger.LogInformation("Skipping last worksheet ({Current}/{Total}) for Airtel", currentWorksheet, totalWorksheets);
                     continue;
@@ -342,10 +370,10 @@ namespace TAB.Web.Services
                         result.SuccessCount++;
 
                         // Bulk insert in batches
-                        if (dataTable.Rows.Count >= BATCH_SIZE)
+                        if (dataTable.Rows.Count >= ImportConstants.BatchSize)
                         {
-                            await BulkInsertMobileAsync(dataTable, provider);
-                            await UpdateJobStatus(jobId, "Processing", result.SuccessCount, result.ErrorCount, null);
+                            await BulkInsertMobileAsync(dataTable, provider, cancellationToken.ShutdownToken, sharedConn);
+                            await UpdateJobStatus(jobId, ImportConstants.StatusProcessing, result.SuccessCount, result.ErrorCount, null);
                             dataTable.Clear();
                         }
                     }
@@ -353,6 +381,12 @@ namespace TAB.Web.Services
                     {
                         _logger.LogWarning(ex, "Error processing row {Row} in worksheet {Worksheet}", rowNumber, currentWorksheet);
                         result.ErrorCount++;
+                        if (result.ErrorCount > ImportConstants.MaxErrors ||
+                            (result.ErrorCount > ImportConstants.MaxErrorsBeforeAnySuccess && result.SuccessCount == 0))
+                        {
+                            throw new InvalidOperationException(
+                                $"Too many errors ({result.ErrorCount}). Aborting import. Last error: {ex.Message}");
+                        }
                     }
                 }
 
@@ -364,7 +398,7 @@ namespace TAB.Web.Services
             // Insert remaining rows
             if (dataTable.Rows.Count > 0)
             {
-                await BulkInsertMobileAsync(dataTable, provider);
+                await BulkInsertMobileAsync(dataTable, provider, cancellationToken.ShutdownToken, sharedConn);
             }
 
             _logger.LogInformation("{Provider} Excel import complete: {Success} records imported, {Errors} errors",
@@ -375,8 +409,14 @@ namespace TAB.Web.Services
 
         private async Task<ImportResult> ImportPstnExcelAsync(Guid jobId, string filePath, int billingMonth, int billingYear, IJobCancellationToken cancellationToken)
         {
-            const int BATCH_SIZE = 50000;
             var result = new ImportResult { StartTime = DateTime.UtcNow };
+
+            // Clean up any rows from a previous failed attempt (Hangfire retry safety)
+            await CleanupPreviousAttemptAsync(jobId, "[ebill].[PSTNs]", cancellationToken.ShutdownToken);
+
+            // Reuse a single connection across all batches
+            using var sharedConn = new SqlConnection(_context.Database.GetConnectionString());
+            await sharedConn.OpenAsync(cancellationToken.ShutdownToken);
 
             // Pre-load user phone lookups
             var userPhoneLookup = await LoadUserPhoneLookup(cancellationToken.ShutdownToken);
@@ -454,7 +494,7 @@ namespace TAB.Web.Services
             _logger.LogInformation("PSTN Excel first rows sample:\n{Sample}", sampleInfo);
 
             // Save sample info to job for debugging
-            await UpdateJobStatus(jobId, "Processing", null, null, $"Format: {(isTabularFormat ? "TABULAR" : "GROUPED")}. Columns: {(tabularColumnIndices != null ? string.Join(", ", tabularColumnIndices.Keys) : "N/A")}. Sample:\n{sampleInfo}");
+            await UpdateJobStatus(jobId, ImportConstants.StatusProcessing, null, null, $"Format: {(isTabularFormat ? "TABULAR" : "GROUPED")}. Columns: {(tabularColumnIndices != null ? string.Join(", ", tabularColumnIndices.Keys) : "N/A")}. Sample:\n{sampleInfo}");
 
             // For GROUPED format: First pass to extract all extensions with Staff names for auto-creation
             if (!isTabularFormat)
@@ -612,10 +652,10 @@ namespace TAB.Web.Services
                         dataTable.Rows.Add(dataRow);
                         result.SuccessCount++;
 
-                        if (dataTable.Rows.Count >= BATCH_SIZE)
+                        if (dataTable.Rows.Count >= ImportConstants.BatchSize)
                         {
-                            await BulkInsertPSTNAsync(dataTable);
-                            await UpdateJobStatus(jobId, "Processing", result.SuccessCount, result.ErrorCount, null);
+                            await BulkInsertPSTNAsync(dataTable, cancellationToken.ShutdownToken, sharedConn);
+                            await UpdateJobStatus(jobId, ImportConstants.StatusProcessing, result.SuccessCount, result.ErrorCount, null);
                             dataTable.Clear();
                         }
                     }
@@ -623,6 +663,12 @@ namespace TAB.Web.Services
                     {
                         _logger.LogWarning(ex, "Error processing PSTN tabular row {Row}", rowNumber);
                         result.ErrorCount++;
+                        if (result.ErrorCount > ImportConstants.MaxErrors ||
+                            (result.ErrorCount > ImportConstants.MaxErrorsBeforeAnySuccess && result.SuccessCount == 0))
+                        {
+                            throw new InvalidOperationException(
+                                $"Too many errors ({result.ErrorCount}). Aborting import. Last error: {ex.Message}");
+                        }
                     }
                 }
             }
@@ -834,10 +880,10 @@ namespace TAB.Web.Services
                         result.SuccessCount++;
 
                         // Bulk insert in batches
-                        if (dataTable.Rows.Count >= BATCH_SIZE)
+                        if (dataTable.Rows.Count >= ImportConstants.BatchSize)
                         {
-                            await BulkInsertPSTNAsync(dataTable);
-                            await UpdateJobStatus(jobId, "Processing", result.SuccessCount, result.ErrorCount, null);
+                            await BulkInsertPSTNAsync(dataTable, cancellationToken.ShutdownToken, sharedConn);
+                            await UpdateJobStatus(jobId, ImportConstants.StatusProcessing, result.SuccessCount, result.ErrorCount, null);
                             dataTable.Clear();
                         }
                     }
@@ -845,6 +891,12 @@ namespace TAB.Web.Services
                     {
                         _logger.LogWarning(ex, "Error processing PSTN row {Row}", rowNumber);
                         result.ErrorCount++;
+                        if (result.ErrorCount > ImportConstants.MaxErrors ||
+                            (result.ErrorCount > ImportConstants.MaxErrorsBeforeAnySuccess && result.SuccessCount == 0))
+                        {
+                            throw new InvalidOperationException(
+                                $"Too many errors ({result.ErrorCount}). Aborting import. Last error: {ex.Message}");
+                        }
                     }
                 }
 
@@ -857,13 +909,13 @@ namespace TAB.Web.Services
                     ? $"Auto-created: {autoCreateResult.UsersCreated} users, {autoCreateResult.PhonesCreated} phones. "
                     : "";
                 var diagMsg = $"GROUPED format. {autoCreateInfo}ExtHeaders: {extensionHeadersFound}, DateRows: {dateRowsFound}, SkippedNoExt: {skippedNoExtension}, Extensions: [{extensionsSample}]. ColIndices: Time={colTime}, Distant={colDistant}, Duration={colDuration}, Cost={colCost}. Sample:\n{sampleInfo}";
-                await UpdateJobStatus(jobId, "Processing", result.SuccessCount, result.ErrorCount, diagMsg);
+                await UpdateJobStatus(jobId, ImportConstants.StatusProcessing, result.SuccessCount, result.ErrorCount, diagMsg);
             }
 
             // Insert remaining rows
             if (dataTable.Rows.Count > 0)
             {
-                await BulkInsertPSTNAsync(dataTable);
+                await BulkInsertPSTNAsync(dataTable, cancellationToken.ShutdownToken, sharedConn);
             }
 
             // Log auto-creation summary
@@ -879,8 +931,14 @@ namespace TAB.Web.Services
 
         private async Task<ImportResult> ImportPrivateWireExcelAsync(Guid jobId, string filePath, int billingMonth, int billingYear, IJobCancellationToken cancellationToken)
         {
-            const int BATCH_SIZE = 50000;
             var result = new ImportResult { StartTime = DateTime.UtcNow };
+
+            // Clean up any rows from a previous failed attempt (Hangfire retry safety)
+            await CleanupPreviousAttemptAsync(jobId, "[ebill].[PrivateWires]", cancellationToken.ShutdownToken);
+
+            // Reuse a single connection across all batches
+            using var sharedConn = new SqlConnection(_context.Database.GetConnectionString());
+            await sharedConn.OpenAsync(cancellationToken.ShutdownToken);
 
             // Pre-load user phone lookups
             var userPhoneLookup = await LoadUserPhoneLookup(cancellationToken.ShutdownToken);
@@ -1113,10 +1171,10 @@ namespace TAB.Web.Services
                         dataTable.Rows.Add(dataRow);
                         result.SuccessCount++;
 
-                        if (dataTable.Rows.Count >= BATCH_SIZE)
+                        if (dataTable.Rows.Count >= ImportConstants.BatchSize)
                         {
-                            await BulkInsertPrivateWireAsync(dataTable);
-                            await UpdateJobStatus(jobId, "Processing", result.SuccessCount, result.ErrorCount, null);
+                            await BulkInsertPrivateWireAsync(dataTable, cancellationToken.ShutdownToken, sharedConn);
+                            await UpdateJobStatus(jobId, ImportConstants.StatusProcessing, result.SuccessCount, result.ErrorCount, null);
                             dataTable.Clear();
                         }
                     }
@@ -1124,6 +1182,12 @@ namespace TAB.Web.Services
                     {
                         _logger.LogWarning(ex, "Error processing PrivateWire tabular row {Row}", rowNumber);
                         result.ErrorCount++;
+                        if (result.ErrorCount > ImportConstants.MaxErrors ||
+                            (result.ErrorCount > ImportConstants.MaxErrorsBeforeAnySuccess && result.SuccessCount == 0))
+                        {
+                            throw new InvalidOperationException(
+                                $"Too many errors ({result.ErrorCount}). Aborting import. Last error: {ex.Message}");
+                        }
                     }
                 }
             }
@@ -1324,10 +1388,10 @@ namespace TAB.Web.Services
                         result.SuccessCount++;
 
                         // Bulk insert in batches
-                        if (dataTable.Rows.Count >= BATCH_SIZE)
+                        if (dataTable.Rows.Count >= ImportConstants.BatchSize)
                         {
-                            await BulkInsertPrivateWireAsync(dataTable);
-                            await UpdateJobStatus(jobId, "Processing", result.SuccessCount, result.ErrorCount, null);
+                            await BulkInsertPrivateWireAsync(dataTable, cancellationToken.ShutdownToken, sharedConn);
+                            await UpdateJobStatus(jobId, ImportConstants.StatusProcessing, result.SuccessCount, result.ErrorCount, null);
                             dataTable.Clear();
                         }
                     }
@@ -1335,6 +1399,12 @@ namespace TAB.Web.Services
                     {
                         _logger.LogWarning(ex, "Error processing PrivateWire row {Row}", rowNumber);
                         result.ErrorCount++;
+                        if (result.ErrorCount > ImportConstants.MaxErrors ||
+                            (result.ErrorCount > ImportConstants.MaxErrorsBeforeAnySuccess && result.SuccessCount == 0))
+                        {
+                            throw new InvalidOperationException(
+                                $"Too many errors ({result.ErrorCount}). Aborting import. Last error: {ex.Message}");
+                        }
                     }
                 }
 
@@ -1347,13 +1417,13 @@ namespace TAB.Web.Services
                     ? $"Auto-created: {autoCreateResult.UsersCreated} users, {autoCreateResult.PhonesCreated} phones. "
                     : "";
                 var diagMsg = $"GROUPED format. {autoCreateInfo}ExtHeaders: {extensionHeadersFound}, DateRows: {dateRowsFound}, SkippedNoExt: {skippedNoExtension}, Extensions: [{extensionsSample}]. ColIndices: Time={colTime}, Distant={colDistant}, Duration={colDuration}, Cost={colCost}. Sample:\n{sampleInfo}";
-                await UpdateJobStatus(jobId, "Processing", result.SuccessCount, result.ErrorCount, diagMsg);
+                await UpdateJobStatus(jobId, ImportConstants.StatusProcessing, result.SuccessCount, result.ErrorCount, diagMsg);
             }
 
             // Insert remaining rows
             if (dataTable.Rows.Count > 0)
             {
-                await BulkInsertPrivateWireAsync(dataTable);
+                await BulkInsertPrivateWireAsync(dataTable, cancellationToken.ShutdownToken, sharedConn);
             }
 
             // Log auto-creation summary
@@ -1375,14 +1445,23 @@ namespace TAB.Web.Services
         /// </summary>
         private async Task<ImportResult> ImportMobileCsvAsync(Guid jobId, string filePath, int billingMonth, int billingYear, string provider, IJobCancellationToken cancellationToken)
         {
-            const int BATCH_SIZE = 50000;
             var result = new ImportResult { StartTime = DateTime.UtcNow };
 
+            // Clean up any rows from a previous failed attempt (Hangfire retry safety)
+            var mobileTable = provider.ToLower() == ImportConstants.Safaricom
+                ? "[ebill].[Safaricom]"
+                : "[ebill].[Airtel]";
+            await CleanupPreviousAttemptAsync(jobId, mobileTable, cancellationToken.ShutdownToken);
+
+            // Reuse a single connection across all batches
+            using var sharedConn = new SqlConnection(_context.Database.GetConnectionString());
+            await sharedConn.OpenAsync(cancellationToken.ShutdownToken);
+
             // Pre-load user phone lookups
-            await UpdateJobStatus(jobId, "Processing", null, null, "Step 5: Loading user phone lookups from database...");
+            await UpdateJobStatus(jobId, ImportConstants.StatusProcessing, null, null, "Step 5: Loading user phone lookups from database...");
             _logger.LogInformation("[STEP 5/6] Job {JobId}: Loading user phone lookups...", jobId);
             var userPhoneLookup = await LoadUserPhoneLookup(cancellationToken.ShutdownToken);
-            await UpdateJobStatus(jobId, "Processing", null, null, $"Step 5: Loaded {userPhoneLookup.Count} phone lookups. Opening CSV file...");
+            await UpdateJobStatus(jobId, ImportConstants.StatusProcessing, null, null, $"Step 5: Loaded {userPhoneLookup.Count} phone lookups. Opening CSV file...");
             _logger.LogInformation("[STEP 5/6] Job {JobId}: Loaded {Count} user phone lookups", jobId, userPhoneLookup.Count);
 
             var dataTable = CreateMobileDataTable();
@@ -1394,7 +1473,7 @@ namespace TAB.Web.Services
             Dictionary<string, int>? columnIndices = null;
             bool headerLogged = false;
 
-            await UpdateJobStatus(jobId, "Processing", null, null, "Step 6: Reading CSV lines...");
+            await UpdateJobStatus(jobId, ImportConstants.StatusProcessing, null, null, "Step 6: Reading CSV lines...");
             _logger.LogInformation("[STEP 6/6] Job {JobId}: Starting CSV import from {FilePath} for {Provider}", jobId, filePath, provider);
 
             while ((line = await reader.ReadLineAsync()) != null)
@@ -1466,13 +1545,13 @@ namespace TAB.Web.Services
                     result.SuccessCount++;
 
                     // Bulk insert in batches
-                    if (dataTable.Rows.Count >= BATCH_SIZE)
+                    if (dataTable.Rows.Count >= ImportConstants.BatchSize)
                     {
-                        await UpdateJobStatus(jobId, "Processing", result.SuccessCount, result.ErrorCount, $"Step 7: Bulk inserting batch ({result.SuccessCount} rows parsed so far)...");
+                        await UpdateJobStatus(jobId, ImportConstants.StatusProcessing, result.SuccessCount, result.ErrorCount, $"Step 7: Bulk inserting batch ({result.SuccessCount} rows parsed so far)...");
                         _logger.LogInformation("Job {JobId}: Bulk inserting batch of {Count} rows (total parsed: {Total})...", jobId, dataTable.Rows.Count, result.SuccessCount);
-                        await BulkInsertMobileAsync(dataTable, provider);
+                        await BulkInsertMobileAsync(dataTable, provider, cancellationToken.ShutdownToken, sharedConn);
                         _logger.LogInformation("Job {JobId}: Batch insert complete. Total success: {Total}", jobId, result.SuccessCount);
-                        await UpdateJobStatus(jobId, "Processing", result.SuccessCount, result.ErrorCount, $"Step 7: Batch inserted. {result.SuccessCount} rows so far.");
+                        await UpdateJobStatus(jobId, ImportConstants.StatusProcessing, result.SuccessCount, result.ErrorCount, $"Step 7: Batch inserted. {result.SuccessCount} rows so far.");
                         dataTable.Clear();
                     }
                 }
@@ -1480,31 +1559,34 @@ namespace TAB.Web.Services
                 {
                     _logger.LogWarning(ex, "Error processing CSV line {Line}", lineNumber);
                     result.ErrorCount++;
+                    if (result.ErrorCount > ImportConstants.MaxErrors ||
+                        (result.ErrorCount > ImportConstants.MaxErrorsBeforeAnySuccess && result.SuccessCount == 0))
+                    {
+                        throw new InvalidOperationException(
+                            $"Too many errors ({result.ErrorCount}). Aborting import. Last error: {ex.Message}");
+                    }
                 }
+            }
+
+            // Header not found = throw
+            if (columnIndices == null)
+            {
+                throw new InvalidOperationException(
+                    $"No CSV header found after {lineNumber} lines for {provider}. File may be in wrong format.");
             }
 
             // Insert remaining rows
             if (dataTable.Rows.Count > 0)
             {
-                await UpdateJobStatus(jobId, "Processing", result.SuccessCount, result.ErrorCount, $"Step 8: Final batch insert ({dataTable.Rows.Count} rows)...");
+                await UpdateJobStatus(jobId, ImportConstants.StatusProcessing, result.SuccessCount, result.ErrorCount, $"Step 8: Final batch insert ({dataTable.Rows.Count} rows)...");
                 _logger.LogInformation("Job {JobId}: Inserting final batch of {Count} rows...", jobId, dataTable.Rows.Count);
-                await BulkInsertMobileAsync(dataTable, provider);
+                await BulkInsertMobileAsync(dataTable, provider, cancellationToken.ShutdownToken, sharedConn);
                 _logger.LogInformation("Job {JobId}: Final batch insert complete", jobId);
             }
 
-            // Log completion status
-            if (columnIndices == null)
-            {
-                _logger.LogError("Job {JobId}: No header row was found in the CSV file for {Provider}. File: {FilePath}, Lines checked: {LineNumber}",
-                    jobId, provider, filePath, lineNumber);
-                await UpdateJobStatus(jobId, "Processing", result.SuccessCount, result.ErrorCount, $"WARNING: No CSV header found after {lineNumber} lines! File may be in wrong format.");
-            }
-            else
-            {
-                await UpdateJobStatus(jobId, "Processing", result.SuccessCount, result.ErrorCount, $"Step 9: CSV done. Lines: {lineNumber}, Success: {result.SuccessCount}, Errors: {result.ErrorCount}");
-                _logger.LogInformation("CSV import completed for {Provider}. Total lines: {LineNumber}, Success: {Success}, Errors: {Errors}",
-                    provider, lineNumber, result.SuccessCount, result.ErrorCount);
-            }
+            await UpdateJobStatus(jobId, ImportConstants.StatusProcessing, result.SuccessCount, result.ErrorCount, $"Step 9: CSV done. Lines: {lineNumber}, Success: {result.SuccessCount}, Errors: {result.ErrorCount}");
+            _logger.LogInformation("CSV import completed for {Provider}. Total lines: {LineNumber}, Success: {Success}, Errors: {Errors}",
+                provider, lineNumber, result.SuccessCount, result.ErrorCount);
 
             return result;
         }
@@ -1515,8 +1597,14 @@ namespace TAB.Web.Services
         /// </summary>
         private async Task<ImportResult> ImportPstnCsvAsync(Guid jobId, string filePath, int billingMonth, int billingYear, IJobCancellationToken cancellationToken)
         {
-            const int BATCH_SIZE = 50000;
             var result = new ImportResult { StartTime = DateTime.UtcNow };
+
+            // Clean up any rows from a previous failed attempt (Hangfire retry safety)
+            await CleanupPreviousAttemptAsync(jobId, "[ebill].[PSTNs]", cancellationToken.ShutdownToken);
+
+            // Reuse a single connection across all batches
+            using var sharedConn = new SqlConnection(_context.Database.GetConnectionString());
+            await sharedConn.OpenAsync(cancellationToken.ShutdownToken);
 
             // Pre-load user phone lookups
             var userPhoneLookup = await LoadUserPhoneLookup(cancellationToken.ShutdownToken);
@@ -1591,10 +1679,10 @@ namespace TAB.Web.Services
                     result.SuccessCount++;
 
                     // Bulk insert in batches
-                    if (dataTable.Rows.Count >= BATCH_SIZE)
+                    if (dataTable.Rows.Count >= ImportConstants.BatchSize)
                     {
-                        await BulkInsertPSTNAsync(dataTable);
-                        await UpdateJobStatus(jobId, "Processing", result.SuccessCount, result.ErrorCount, null);
+                        await BulkInsertPSTNAsync(dataTable, cancellationToken.ShutdownToken, sharedConn);
+                        await UpdateJobStatus(jobId, ImportConstants.StatusProcessing, result.SuccessCount, result.ErrorCount, null);
                         dataTable.Clear();
                     }
                 }
@@ -1602,13 +1690,26 @@ namespace TAB.Web.Services
                 {
                     _logger.LogWarning(ex, "Error processing PSTN CSV line {Line}", lineNumber);
                     result.ErrorCount++;
+                    if (result.ErrorCount > ImportConstants.MaxErrors ||
+                        (result.ErrorCount > ImportConstants.MaxErrorsBeforeAnySuccess && result.SuccessCount == 0))
+                    {
+                        throw new InvalidOperationException(
+                            $"Too many errors ({result.ErrorCount}). Aborting import. Last error: {ex.Message}");
+                    }
                 }
+            }
+
+            // Header not found = throw
+            if (columnIndices == null)
+            {
+                throw new InvalidOperationException(
+                    $"No CSV header found after {lineNumber} lines for PSTN. File may be in wrong format.");
             }
 
             // Insert remaining rows
             if (dataTable.Rows.Count > 0)
             {
-                await BulkInsertPSTNAsync(dataTable);
+                await BulkInsertPSTNAsync(dataTable, cancellationToken.ShutdownToken, sharedConn);
             }
 
             return result;
@@ -1619,8 +1720,14 @@ namespace TAB.Web.Services
         /// </summary>
         private async Task<ImportResult> ImportPrivateWireCsvAsync(Guid jobId, string filePath, int billingMonth, int billingYear, IJobCancellationToken cancellationToken)
         {
-            const int BATCH_SIZE = 50000;
             var result = new ImportResult { StartTime = DateTime.UtcNow };
+
+            // Clean up any rows from a previous failed attempt (Hangfire retry safety)
+            await CleanupPreviousAttemptAsync(jobId, "[ebill].[PrivateWires]", cancellationToken.ShutdownToken);
+
+            // Reuse a single connection across all batches
+            using var sharedConn = new SqlConnection(_context.Database.GetConnectionString());
+            await sharedConn.OpenAsync(cancellationToken.ShutdownToken);
 
             // Pre-load user phone lookups
             var userPhoneLookup = await LoadUserPhoneLookup(cancellationToken.ShutdownToken);
@@ -1694,10 +1801,10 @@ namespace TAB.Web.Services
                     result.SuccessCount++;
 
                     // Bulk insert in batches
-                    if (dataTable.Rows.Count >= BATCH_SIZE)
+                    if (dataTable.Rows.Count >= ImportConstants.BatchSize)
                     {
-                        await BulkInsertPrivateWireAsync(dataTable);
-                        await UpdateJobStatus(jobId, "Processing", result.SuccessCount, result.ErrorCount, null);
+                        await BulkInsertPrivateWireAsync(dataTable, cancellationToken.ShutdownToken, sharedConn);
+                        await UpdateJobStatus(jobId, ImportConstants.StatusProcessing, result.SuccessCount, result.ErrorCount, null);
                         dataTable.Clear();
                     }
                 }
@@ -1705,13 +1812,26 @@ namespace TAB.Web.Services
                 {
                     _logger.LogWarning(ex, "Error processing PrivateWire CSV line {Line}", lineNumber);
                     result.ErrorCount++;
+                    if (result.ErrorCount > ImportConstants.MaxErrors ||
+                        (result.ErrorCount > ImportConstants.MaxErrorsBeforeAnySuccess && result.SuccessCount == 0))
+                    {
+                        throw new InvalidOperationException(
+                            $"Too many errors ({result.ErrorCount}). Aborting import. Last error: {ex.Message}");
+                    }
                 }
+            }
+
+            // Header not found = throw
+            if (columnIndices == null)
+            {
+                throw new InvalidOperationException(
+                    $"No CSV header found after {lineNumber} lines for PrivateWire. File may be in wrong format.");
             }
 
             // Insert remaining rows
             if (dataTable.Rows.Count > 0)
             {
-                await BulkInsertPrivateWireAsync(dataTable);
+                await BulkInsertPrivateWireAsync(dataTable, cancellationToken.ShutdownToken, sharedConn);
             }
 
             return result;
@@ -1979,7 +2099,7 @@ namespace TAB.Web.Services
 
         private bool IsMobileHeaderRow(List<string> values, string provider)
         {
-            if (provider.ToLower() == "airtel")
+            if (provider.ToLower() == ImportConstants.Airtel)
             {
                 return values.Any(v => v.Contains("msisdn")) && values.Any(v => v.Contains("charge"));
             }
@@ -2274,8 +2394,10 @@ namespace TAB.Web.Services
             dt.Columns.Add("Cost", typeof(decimal));           // Cost in KES (property: Cost)
             dt.Columns.Add("call_type", typeof(string));       // Call type ([Column("call_type")])
             dt.Columns.Add("IndexNumber", typeof(string));
-            dt.Columns.Add("UserPhoneId", typeof(int));
-            dt.Columns.Add("EbillUserId", typeof(int));
+            var userPhoneIdCol = dt.Columns.Add("UserPhoneId", typeof(int));
+            userPhoneIdCol.AllowDBNull = true;
+            var ebillUserIdCol = dt.Columns.Add("EbillUserId", typeof(int));
+            ebillUserIdCol.AllowDBNull = true;
             dt.Columns.Add("BillingPeriod", typeof(string));
             dt.Columns.Add("call_month", typeof(int));         // [Column("call_month")]
             dt.Columns.Add("call_year", typeof(int));           // [Column("call_year")]
@@ -2300,8 +2422,10 @@ namespace TAB.Web.Services
             dt.Columns.Add("AmountUSD", typeof(decimal));
             dt.Columns.Add("IndexNumber", typeof(string));
             dt.Columns.Add("Carrier", typeof(string));
-            dt.Columns.Add("UserPhoneId", typeof(int));
-            dt.Columns.Add("EbillUserId", typeof(int));
+            var pstnUserPhoneIdCol = dt.Columns.Add("UserPhoneId", typeof(int));
+            pstnUserPhoneIdCol.AllowDBNull = true;
+            var pstnEbillUserIdCol = dt.Columns.Add("EbillUserId", typeof(int));
+            pstnEbillUserIdCol.AllowDBNull = true;
             dt.Columns.Add("BillingPeriod", typeof(string));
             dt.Columns.Add("CallMonth", typeof(int));
             dt.Columns.Add("CallYear", typeof(int));
@@ -2326,8 +2450,10 @@ namespace TAB.Web.Services
             dt.Columns.Add("AmountUSD", typeof(decimal));
             dt.Columns.Add("IndexNumber", typeof(string));
             // Note: PrivateWire model doesn't have Carrier column
-            dt.Columns.Add("UserPhoneId", typeof(int));
-            dt.Columns.Add("EbillUserId", typeof(int));
+            var pwUserPhoneIdCol = dt.Columns.Add("UserPhoneId", typeof(int));
+            pwUserPhoneIdCol.AllowDBNull = true;
+            var pwEbillUserIdCol = dt.Columns.Add("EbillUserId", typeof(int));
+            pwEbillUserIdCol.AllowDBNull = true;
             dt.Columns.Add("BillingPeriod", typeof(string));
             dt.Columns.Add("CallMonth", typeof(int));
             dt.Columns.Add("CallYear", typeof(int));
@@ -2341,109 +2467,130 @@ namespace TAB.Web.Services
 
         #region Bulk Insert Methods
 
-        private async Task BulkInsertMobileAsync(DataTable dataTable, string provider)
+        private static readonly Dictionary<string, string> MobileColumnMappings = new()
         {
-            var connectionString = _context.Database.GetConnectionString();
-            using var connection = new SqlConnection(connectionString);
-            await connection.OpenAsync();
+            ["Ext"] = "Ext",
+            ["call_date"] = "call_date",
+            ["call_time"] = "call_time",
+            ["Dialed"] = "Dialed",
+            ["Dur"] = "Dur",
+            ["Durx"] = "Durx",
+            ["Cost"] = "Cost",
+            ["call_type"] = "call_type",
+            ["IndexNumber"] = "IndexNumber",
+            ["UserPhoneId"] = "UserPhoneId",
+            ["EbillUserId"] = "EbillUserId",
+            ["BillingPeriod"] = "BillingPeriod",
+            ["call_month"] = "call_month",
+            ["call_year"] = "call_year",
+            ["CreatedDate"] = "CreatedDate",
+            ["ProcessingStatus"] = "ProcessingStatus",
+            ["ImportJobId"] = "ImportJobId"
+        };
 
-            using var bulkCopy = new SqlBulkCopy(connection);
-            // Use correct table name based on provider (with ebill schema for Azure)
-            bulkCopy.DestinationTableName = provider.ToLower() == "safaricom" ? "[ebill].[Safaricom]" : "[ebill].[Airtel]";
-            bulkCopy.BatchSize = 10000;
-            bulkCopy.BulkCopyTimeout = 300;
+        private static readonly Dictionary<string, string> PstnColumnMappings = new()
+        {
+            ["Extension"] = "Extension",
+            ["DialedNumber"] = "DialedNumber",
+            ["CallTime"] = "CallTime",
+            ["Destination"] = "Destination",
+            ["DestinationLine"] = "DestinationLine",
+            ["DurationExtended"] = "DurationExtended",
+            ["CallDate"] = "CallDate",
+            ["Duration"] = "Duration",
+            ["AmountKSH"] = "AmountKSH",
+            ["AmountUSD"] = "AmountUSD",
+            ["IndexNumber"] = "IndexNumber",
+            ["Carrier"] = "Carrier",
+            ["UserPhoneId"] = "UserPhoneId",
+            ["EbillUserId"] = "EbillUserId",
+            ["BillingPeriod"] = "BillingPeriod",
+            ["CallMonth"] = "CallMonth",
+            ["CallYear"] = "CallYear",
+            ["CreatedDate"] = "CreatedDate",
+            ["ProcessingStatus"] = "ProcessingStatus",
+            ["ImportJobId"] = "ImportJobId"
+        };
 
-            // Map columns to match Safaricom/Airtel table structure (exact DB column names from EF model)
-            bulkCopy.ColumnMappings.Add("Ext", "Ext");
-            bulkCopy.ColumnMappings.Add("call_date", "call_date");
-            bulkCopy.ColumnMappings.Add("call_time", "call_time");
-            bulkCopy.ColumnMappings.Add("Dialed", "Dialed");
-            bulkCopy.ColumnMappings.Add("Dur", "Dur");
-            bulkCopy.ColumnMappings.Add("Durx", "Durx");
-            bulkCopy.ColumnMappings.Add("Cost", "Cost");
-            bulkCopy.ColumnMappings.Add("call_type", "call_type");
-            bulkCopy.ColumnMappings.Add("IndexNumber", "IndexNumber");
-            bulkCopy.ColumnMappings.Add("UserPhoneId", "UserPhoneId");
-            bulkCopy.ColumnMappings.Add("EbillUserId", "EbillUserId");
-            bulkCopy.ColumnMappings.Add("BillingPeriod", "BillingPeriod");
-            bulkCopy.ColumnMappings.Add("call_month", "call_month");
-            bulkCopy.ColumnMappings.Add("call_year", "call_year");
-            bulkCopy.ColumnMappings.Add("CreatedDate", "CreatedDate");
-            bulkCopy.ColumnMappings.Add("ProcessingStatus", "ProcessingStatus");
-            bulkCopy.ColumnMappings.Add("ImportJobId", "ImportJobId");
+        private static readonly Dictionary<string, string> PrivateWireColumnMappings = new()
+        {
+            ["Extension"] = "Extension",
+            ["DialedNumber"] = "DialedNumber",
+            ["CallTime"] = "CallTime",
+            ["Destination"] = "Destination",
+            ["DestinationLine"] = "DestinationLine",
+            ["DurationExtended"] = "DurationExtended",
+            ["CallDate"] = "CallDate",
+            ["Duration"] = "Duration",
+            ["AmountKSH"] = "AmountKSH",
+            ["AmountUSD"] = "AmountUSD",
+            ["IndexNumber"] = "IndexNumber",
+            ["UserPhoneId"] = "UserPhoneId",
+            ["EbillUserId"] = "EbillUserId",
+            ["BillingPeriod"] = "BillingPeriod",
+            ["CallMonth"] = "CallMonth",
+            ["CallYear"] = "CallYear",
+            ["CreatedDate"] = "CreatedDate",
+            ["ProcessingStatus"] = "ProcessingStatus",
+            ["ImportJobId"] = "ImportJobId"
+        };
 
-            await bulkCopy.WriteToServerAsync(dataTable);
+        private async Task BulkInsertAsync(DataTable dataTable, string tableName,
+            Dictionary<string, string> columnMappings, CancellationToken ct, SqlConnection? existingConnection = null)
+        {
+            var ownsConnection = existingConnection == null;
+            var connection = existingConnection ?? new SqlConnection(_context.Database.GetConnectionString());
+            try
+            {
+                if (ownsConnection)
+                    await connection.OpenAsync(ct);
+
+                using var bulkCopy = new SqlBulkCopy(connection);
+                bulkCopy.DestinationTableName = tableName;
+                bulkCopy.BatchSize = ImportConstants.BulkCopyBatchSize;
+                bulkCopy.BulkCopyTimeout = ImportConstants.BulkCopyTimeoutSeconds;
+
+                foreach (var mapping in columnMappings)
+                    bulkCopy.ColumnMappings.Add(mapping.Key, mapping.Value);
+
+                await bulkCopy.WriteToServerAsync(dataTable, ct);
+            }
+            finally
+            {
+                if (ownsConnection)
+                    connection.Dispose();
+            }
         }
 
-        private async Task BulkInsertPSTNAsync(DataTable dataTable)
+        private Task BulkInsertMobileAsync(DataTable dataTable, string provider, CancellationToken ct, SqlConnection? conn = null)
         {
-            var connectionString = _context.Database.GetConnectionString();
-            using var connection = new SqlConnection(connectionString);
-            await connection.OpenAsync();
-
-            using var bulkCopy = new SqlBulkCopy(connection);
-            bulkCopy.DestinationTableName = "[ebill].[PSTNs]";
-            bulkCopy.BatchSize = 10000;
-            bulkCopy.BulkCopyTimeout = 300;
-
-            // Map columns
-            bulkCopy.ColumnMappings.Add("Extension", "Extension");
-            bulkCopy.ColumnMappings.Add("DialedNumber", "DialedNumber");
-            bulkCopy.ColumnMappings.Add("CallTime", "CallTime");
-            bulkCopy.ColumnMappings.Add("Destination", "Destination");
-            bulkCopy.ColumnMappings.Add("DestinationLine", "DestinationLine");
-            bulkCopy.ColumnMappings.Add("DurationExtended", "DurationExtended");
-            bulkCopy.ColumnMappings.Add("CallDate", "CallDate");
-            bulkCopy.ColumnMappings.Add("Duration", "Duration");
-            bulkCopy.ColumnMappings.Add("AmountKSH", "AmountKSH");
-            bulkCopy.ColumnMappings.Add("AmountUSD", "AmountUSD");
-            bulkCopy.ColumnMappings.Add("IndexNumber", "IndexNumber");
-            bulkCopy.ColumnMappings.Add("Carrier", "Carrier");
-            bulkCopy.ColumnMappings.Add("UserPhoneId", "UserPhoneId");
-            bulkCopy.ColumnMappings.Add("EbillUserId", "EbillUserId");
-            bulkCopy.ColumnMappings.Add("BillingPeriod", "BillingPeriod");
-            bulkCopy.ColumnMappings.Add("CallMonth", "CallMonth");
-            bulkCopy.ColumnMappings.Add("CallYear", "CallYear");
-            bulkCopy.ColumnMappings.Add("CreatedDate", "CreatedDate");
-            bulkCopy.ColumnMappings.Add("ProcessingStatus", "ProcessingStatus");
-            bulkCopy.ColumnMappings.Add("ImportJobId", "ImportJobId");
-
-            await bulkCopy.WriteToServerAsync(dataTable);
+            var tableName = provider.ToLower() == ImportConstants.Safaricom
+                ? "[ebill].[Safaricom]"
+                : "[ebill].[Airtel]";
+            return BulkInsertAsync(dataTable, tableName, MobileColumnMappings, ct, conn);
         }
 
-        private async Task BulkInsertPrivateWireAsync(DataTable dataTable)
+        private Task BulkInsertPSTNAsync(DataTable dataTable, CancellationToken ct, SqlConnection? conn = null)
         {
-            var connectionString = _context.Database.GetConnectionString();
-            using var connection = new SqlConnection(connectionString);
-            await connection.OpenAsync();
+            return BulkInsertAsync(dataTable, "[ebill].[PSTNs]", PstnColumnMappings, ct, conn);
+        }
 
-            using var bulkCopy = new SqlBulkCopy(connection);
-            bulkCopy.DestinationTableName = "[ebill].[PrivateWires]";
-            bulkCopy.BatchSize = 10000;
-            bulkCopy.BulkCopyTimeout = 300;
+        private Task BulkInsertPrivateWireAsync(DataTable dataTable, CancellationToken ct, SqlConnection? conn = null)
+        {
+            return BulkInsertAsync(dataTable, "[ebill].[PrivateWires]", PrivateWireColumnMappings, ct, conn);
+        }
 
-            // Map columns (PrivateWire model doesn't have Carrier column)
-            bulkCopy.ColumnMappings.Add("Extension", "Extension");
-            bulkCopy.ColumnMappings.Add("DialedNumber", "DialedNumber");
-            bulkCopy.ColumnMappings.Add("CallTime", "CallTime");
-            bulkCopy.ColumnMappings.Add("Destination", "Destination");
-            bulkCopy.ColumnMappings.Add("DestinationLine", "DestinationLine");
-            bulkCopy.ColumnMappings.Add("DurationExtended", "DurationExtended");
-            bulkCopy.ColumnMappings.Add("CallDate", "CallDate");
-            bulkCopy.ColumnMappings.Add("Duration", "Duration");
-            bulkCopy.ColumnMappings.Add("AmountKSH", "AmountKSH");
-            bulkCopy.ColumnMappings.Add("AmountUSD", "AmountUSD");
-            bulkCopy.ColumnMappings.Add("IndexNumber", "IndexNumber");
-            bulkCopy.ColumnMappings.Add("UserPhoneId", "UserPhoneId");
-            bulkCopy.ColumnMappings.Add("EbillUserId", "EbillUserId");
-            bulkCopy.ColumnMappings.Add("BillingPeriod", "BillingPeriod");
-            bulkCopy.ColumnMappings.Add("CallMonth", "CallMonth");
-            bulkCopy.ColumnMappings.Add("CallYear", "CallYear");
-            bulkCopy.ColumnMappings.Add("CreatedDate", "CreatedDate");
-            bulkCopy.ColumnMappings.Add("ProcessingStatus", "ProcessingStatus");
-            bulkCopy.ColumnMappings.Add("ImportJobId", "ImportJobId");
-
-            await bulkCopy.WriteToServerAsync(dataTable);
+        private async Task CleanupPreviousAttemptAsync(Guid jobId, string tableName, CancellationToken ct)
+        {
+            var cs = _context.Database.GetConnectionString();
+            using var conn = new SqlConnection(cs);
+            await conn.OpenAsync(ct);
+            using var cmd = new SqlCommand($"DELETE FROM {tableName} WHERE ImportJobId = @JobId", conn);
+            cmd.Parameters.AddWithValue("@JobId", jobId);
+            cmd.CommandTimeout = 120;
+            var deleted = await cmd.ExecuteNonQueryAsync(ct);
+            if (deleted > 0)
+                _logger.LogWarning("Cleaned up {Count} rows from previous attempt for job {JobId}", deleted, jobId);
         }
 
         #endregion
