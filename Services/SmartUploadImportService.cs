@@ -344,11 +344,15 @@ namespace TAB.Web.Services
                         var callingNo = NormalizePhoneNumber(GetReaderValue(reader, columnIndices, "callingno", provider));
                         if (string.IsNullOrWhiteSpace(callingNo)) continue;
 
+                        // Skip rows with invalid dates (e.g. summary rows after real data)
+                        var callDate = ParseReaderDate(reader, columnIndices, "date", provider);
+                        if (callDate == DateTime.MinValue) continue;
+
                         var phoneFound = userPhoneLookup.TryGetValue(callingNo, out var userPhone);
 
                         var dataRow = dataTable.NewRow();
                         dataRow["Ext"] = callingNo;
-                        dataRow["call_date"] = ParseReaderDate(reader, columnIndices, "date", provider);
+                        dataRow["call_date"] = callDate;
                         dataRow["call_time"] = ParseReaderTime(reader, columnIndices, "time", provider);
                         dataRow["Dialed"] = GetReaderValue(reader, columnIndices, "dialedno", provider) ?? "";
                         var durationRaw = GetReaderValue(reader, columnIndices, "duration", provider);
@@ -1519,11 +1523,15 @@ namespace TAB.Web.Services
                     var callingNo = NormalizePhoneNumber(GetCsvValue(values, columnIndices, "callingno", provider));
                     if (string.IsNullOrWhiteSpace(callingNo)) continue;
 
+                    // Skip rows with invalid dates (e.g. "Amount Due", summary rows after real data)
+                    var callDate = ParseCsvDate(values, columnIndices, "date", provider);
+                    if (callDate == DateTime.MinValue) continue;
+
                     var phoneFound = userPhoneLookup.TryGetValue(callingNo, out var userPhone);
 
                     var dataRow = dataTable.NewRow();
                     dataRow["Ext"] = callingNo;
-                    dataRow["call_date"] = ParseCsvDate(values, columnIndices, "date", provider);
+                    dataRow["call_date"] = callDate;
                     dataRow["call_time"] = ParseCsvTime(values, columnIndices, "time", provider);
                     dataRow["Dialed"] = GetCsvValue(values, columnIndices, "dialedno", provider) ?? "";
                     var durationRaw = GetCsvValue(values, columnIndices, "duration", provider);
