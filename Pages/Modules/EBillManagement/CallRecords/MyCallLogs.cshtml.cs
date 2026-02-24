@@ -1,7 +1,9 @@
+using System.Data;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Identity;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.AspNetCore.Mvc.RazorPages;
+using Microsoft.Data.SqlClient;
 using Microsoft.EntityFrameworkCore;
 using TAB.Web.Data;
 using TAB.Web.Models;
@@ -259,332 +261,90 @@ namespace TAB.Web.Pages.Modules.EBillManagement.CallRecords
 
         private async Task LoadCallRecordsAsync()
         {
-            // Check if user is admin
             bool isAdmin = User.IsInRole("Admin");
-
-            // If not admin and no UserIndexNumber, return empty
             if (string.IsNullOrEmpty(UserIndexNumber) && !isAdmin)
                 return;
 
-            var query = _context.CallRecords
-                .AsNoTracking()
-                .AsQueryable();
+            var conn = _context.Database.GetDbConnection();
+            var wasOpen = conn.State == ConnectionState.Open;
+            if (!wasOpen) await conn.OpenAsync();
 
-            // Filter by UserIndexNumber only if not admin
-            // Use Any() for exclusions which translates to efficient NOT EXISTS in SQL
-            if (!isAdmin && !string.IsNullOrEmpty(UserIndexNumber))
+            try
             {
-                var userIndex = UserIndexNumber; // Capture for lambda
+                using var cmd = conn.CreateCommand();
+                cmd.CommandText = "ebill.sp_GetMyCallLogExtensionGroups";
+                cmd.CommandType = CommandType.StoredProcedure;
+                cmd.CommandTimeout = 30;
 
-                if (!string.IsNullOrEmpty(FilterAssignmentType))
+                var p = cmd.Parameters;
+                p.Add(new SqlParameter("@UserIndexNumber", (object?)UserIndexNumber ?? DBNull.Value));
+                p.Add(new SqlParameter("@IsAdmin", isAdmin));
+                p.Add(new SqlParameter("@FilterMonth", (object?)FilterMonth ?? DBNull.Value));
+                p.Add(new SqlParameter("@FilterYear", (object?)FilterYear ?? DBNull.Value));
+                p.Add(new SqlParameter("@FilterStartDate", (object?)FilterStartDate ?? DBNull.Value));
+                p.Add(new SqlParameter("@FilterEndDate", (object?)FilterEndDate ?? DBNull.Value));
+                p.Add(new SqlParameter("@FilterMinCost", (object?)FilterMinCost ?? DBNull.Value));
+                p.Add(new SqlParameter("@FilterStatus", (object?)FilterStatus ?? DBNull.Value));
+                p.Add(new SqlParameter("@FilterAssignmentType", (object?)FilterAssignmentType ?? DBNull.Value));
+                p.Add(new SqlParameter("@PageNumber", PageNumber));
+                p.Add(new SqlParameter("@PageSize", PageSize));
+
+                using var reader = await cmd.ExecuteReaderAsync();
+
+                // Result set 1: TotalRecords
+                if (await reader.ReadAsync())
                 {
-                    switch (FilterAssignmentType.ToLower())
-                    {
-                        case "own":
-                            // Own calls: responsible for call, not assigned out (accepted), and not incoming assigned
-                            query = query.Where(c => c.ResponsibleIndexNumber == userIndex &&
-                                !_context.Set<CallLogPaymentAssignment>().Any(a =>
-                                    a.CallRecordId == c.Id && a.AssignedFrom == userIndex && a.AssignmentStatus == "Accepted") &&
-                                (c.PaymentAssignmentId == null ||
-                                 !_context.Set<CallLogPaymentAssignment>().Any(a =>
-                                    a.CallRecordId == c.Id && a.AssignedTo == userIndex &&
-                                    (a.AssignmentStatus == "Pending" || a.AssignmentStatus == "Accepted"))));
-                            break;
-                        case "assigned":
-                            // Only show calls assigned TO current user
-                            query = query.Where(c =>
-                                _context.Set<CallLogPaymentAssignment>().Any(a =>
-                                    a.CallRecordId == c.Id && a.AssignedTo == userIndex &&
-                                    (a.AssignmentStatus == "Pending" || a.AssignmentStatus == "Accepted")));
-                            break;
-                        default:
-                            // All: own calls (excluding accepted outgoing) + incoming assigned calls
-                            query = query.Where(c =>
-                                (c.ResponsibleIndexNumber == userIndex &&
-                                 !_context.Set<CallLogPaymentAssignment>().Any(a =>
-                                    a.CallRecordId == c.Id && a.AssignedFrom == userIndex && a.AssignmentStatus == "Accepted")) ||
-                                _context.Set<CallLogPaymentAssignment>().Any(a =>
-                                    a.CallRecordId == c.Id && a.AssignedTo == userIndex &&
-                                    (a.AssignmentStatus == "Pending" || a.AssignmentStatus == "Accepted")));
-                            break;
-                    }
+                    TotalRecords = reader.GetInt32(0);
+                    TotalPages = (int)Math.Ceiling(TotalRecords / (double)PageSize);
                 }
-                else
+
+                // Result set 2: Extension groups
+                await reader.NextResultAsync();
+                ExtensionGroups = new List<ExtensionGroup>();
+                while (await reader.ReadAsync())
                 {
-                    // Default: own calls (excluding accepted outgoing) + incoming assigned calls
-                    query = query.Where(c =>
-                        (c.ResponsibleIndexNumber == userIndex &&
-                         !_context.Set<CallLogPaymentAssignment>().Any(a =>
-                            a.CallRecordId == c.Id && a.AssignedFrom == userIndex && a.AssignmentStatus == "Accepted")) ||
-                        _context.Set<CallLogPaymentAssignment>().Any(a =>
-                            a.CallRecordId == c.Id && a.AssignedTo == userIndex &&
-                            (a.AssignmentStatus == "Pending" || a.AssignmentStatus == "Accepted")));
+                    var group = new ExtensionGroup
+                    {
+                        Extension = reader.GetString(reader.GetOrdinal("Extension")),
+                        Month = reader.GetInt32(reader.GetOrdinal("Month")),
+                        Year = reader.GetInt32(reader.GetOrdinal("Year")),
+                        CallCount = reader.GetInt32(reader.GetOrdinal("CallCount")),
+                        TotalCostUSD = reader.GetDecimal(reader.GetOrdinal("TotalCostUSD")),
+                        TotalCostKSH = reader.GetDecimal(reader.GetOrdinal("TotalCostKSH")),
+                        OfficialUSD = reader.GetDecimal(reader.GetOrdinal("OfficialUSD")),
+                        OfficialKSH = reader.GetDecimal(reader.GetOrdinal("OfficialKSH")),
+                        PersonalUSD = reader.GetDecimal(reader.GetOrdinal("PersonalUSD")),
+                        PersonalKSH = reader.GetDecimal(reader.GetOrdinal("PersonalKSH")),
+                        TotalRecoveredUSD = reader.GetDecimal(reader.GetOrdinal("TotalRecoveredUSD")),
+                        TotalRecoveredKSH = reader.GetDecimal(reader.GetOrdinal("TotalRecoveredKSH")),
+                        PrivateWireCount = reader.GetInt32(reader.GetOrdinal("PrivateWireCount")),
+                        KshSourceCount = reader.GetInt32(reader.GetOrdinal("KshSourceCount")),
+                        DialedNumberCount = reader.GetInt32(reader.GetOrdinal("DialedNumberCount")),
+                        SubmittedCount = reader.GetInt32(reader.GetOrdinal("SubmittedCount")),
+                        PendingApprovalCount = reader.GetInt32(reader.GetOrdinal("PendingApprovalCount")),
+                        ApprovedCount = reader.GetInt32(reader.GetOrdinal("ApprovedCount")),
+                        PartiallyApprovedCount = reader.GetInt32(reader.GetOrdinal("PartiallyApprovedCount")),
+                        RejectedCount = reader.GetInt32(reader.GetOrdinal("RejectedCount")),
+                        RevertedCount = reader.GetInt32(reader.GetOrdinal("RevertedCount")),
+                        IncomingAssignmentCount = reader.GetInt32(reader.GetOrdinal("IncomingAssignmentCount")),
+                        AssignedFromUser = reader.IsDBNull(reader.GetOrdinal("AssignedFromUser")) ? null : reader.GetString(reader.GetOrdinal("AssignedFromUser")),
+                        OutgoingPendingCount = reader.GetInt32(reader.GetOrdinal("OutgoingPendingCount")),
+                        AssignedToUser = reader.IsDBNull(reader.GetOrdinal("AssignedToUser")) ? null : reader.GetString(reader.GetOrdinal("AssignedToUser")),
+                        ClassOfService = reader.IsDBNull(reader.GetOrdinal("ClassOfService")) ? null : reader.GetString(reader.GetOrdinal("ClassOfService")),
+                        CosService = reader.IsDBNull(reader.GetOrdinal("CosService")) ? null : reader.GetString(reader.GetOrdinal("CosService")),
+                        CosEligibleStaff = reader.IsDBNull(reader.GetOrdinal("CosEligibleStaff")) ? null : reader.GetString(reader.GetOrdinal("CosEligibleStaff")),
+                        CosAirtimeAllowance = reader.IsDBNull(reader.GetOrdinal("CosAirtimeAllowance")) ? null : reader.GetString(reader.GetOrdinal("CosAirtimeAllowance")),
+                        CosDataAllowance = reader.IsDBNull(reader.GetOrdinal("CosDataAllowance")) ? null : reader.GetString(reader.GetOrdinal("CosDataAllowance")),
+                        CosHandsetAllowance = reader.IsDBNull(reader.GetOrdinal("CosHandsetAllowance")) ? null : reader.GetString(reader.GetOrdinal("CosHandsetAllowance"))
+                    };
+                    group.IsPrivateWirePrimary = group.PrivateWireCount > group.KshSourceCount;
+                    group.GroupId = $"{group.Extension}_{group.Month}_{group.Year}".Replace(" ", "_").Replace("-", "_").Replace("+", "");
+                    ExtensionGroups.Add(group);
                 }
             }
-
-            // Apply filters
-            if (FilterMonth.HasValue)
-                query = query.Where(c => c.CallMonth == FilterMonth.Value);
-
-            if (FilterYear.HasValue)
-                query = query.Where(c => c.CallYear == FilterYear.Value);
-
-            if (FilterStartDate.HasValue)
-                query = query.Where(c => c.CallDate >= FilterStartDate.Value);
-
-            if (FilterEndDate.HasValue)
-                query = query.Where(c => c.CallDate <= FilterEndDate.Value);
-
-            if (FilterMinCost.HasValue)
-                query = query.Where(c => c.CallCostUSD >= FilterMinCost.Value);
-
-            if (!string.IsNullOrEmpty(FilterStatus))
+            finally
             {
-                switch (FilterStatus.ToLower())
-                {
-                    case "unverified":
-                        query = query.Where(c => !c.IsVerified);
-                        break;
-                    case "verified":
-                        query = query.Where(c => c.IsVerified);
-                        break;
-                    case "approved":
-                        query = query.Where(c => c.SupervisorApprovalStatus == "Approved");
-                        break;
-                    case "pending":
-                        query = query.Where(c => c.IsVerified && c.SupervisorApprovalStatus == "Pending");
-                        break;
-                    case "overdue":
-                        query = query.Where(c => !c.IsVerified && c.VerificationPeriod.HasValue && c.VerificationPeriod.Value < DateTime.UtcNow);
-                        break;
-                }
-            }
-
-            // GROUP BY Extension + Month + Year to get unique extension groups
-            // Use ExtensionNumber directly (avoids LEFT JOIN to UserPhones)
-            // Use exact SourceSystem equality (avoids LOWER + LIKE per row)
-            var extensionGroupsQuery = query
-                .GroupBy(c => new {
-                    Extension = c.ExtensionNumber ?? "Unknown",
-                    c.CallMonth,
-                    c.CallYear
-                })
-                .Select(g => new ExtensionGroup
-                {
-                    Extension = g.Key.Extension,
-                    Month = g.Key.CallMonth,
-                    Year = g.Key.CallYear,
-                    CallCount = g.Count(),
-                    TotalCostUSD = g.Sum(c => c.CallCostUSD),
-                    TotalCostKSH = g.Sum(c => c.CallCostKSHS),
-                    OfficialUSD = g.Where(c => c.VerificationType == "Official").Sum(c => c.CallCostUSD),
-                    OfficialKSH = g.Where(c => c.VerificationType == "Official").Sum(c => c.CallCostKSHS),
-                    PersonalUSD = g.Where(c => c.VerificationType == "Personal").Sum(c => c.CallCostUSD),
-                    PersonalKSH = g.Where(c => c.VerificationType == "Personal").Sum(c => c.CallCostKSHS),
-                    TotalRecoveredUSD = g.Where(c => c.SourceSystem == "PrivateWire")
-                        .Sum(c => c.RecoveryAmount ?? 0),
-                    TotalRecoveredKSH = g.Where(c =>
-                        c.SourceSystem == "Safaricom" || c.SourceSystem == "Airtel" || c.SourceSystem == "PSTN")
-                        .Sum(c => c.RecoveryAmount ?? 0),
-                    PrivateWireCount = g.Count(c => c.SourceSystem == "PrivateWire"),
-                    KshSourceCount = g.Count(c =>
-                        c.SourceSystem == "Safaricom" || c.SourceSystem == "Airtel" || c.SourceSystem == "PSTN"),
-                    DialedNumberCount = g.Select(c => c.CallNumber).Distinct().Count()
-                });
-
-            // Order by Year DESC, Month DESC, Extension ASC
-            extensionGroupsQuery = extensionGroupsQuery
-                .OrderByDescending(g => g.Year)
-                .ThenByDescending(g => g.Month)
-                .ThenBy(g => g.Extension);
-
-            // Count distinct extension groups using lightweight projection (no JOINs needed)
-            TotalRecords = await query
-                .Select(c => new {
-                    Extension = c.ExtensionNumber ?? "Unknown",
-                    c.CallMonth,
-                    c.CallYear
-                })
-                .Distinct()
-                .CountAsync();
-            TotalPages = (int)Math.Ceiling(TotalRecords / (double)PageSize);
-
-            // Apply pagination to extension groups
-            ExtensionGroups = await extensionGroupsQuery
-                .Skip((PageNumber - 1) * PageSize)
-                .Take(PageSize)
-                .ToListAsync();
-
-            // Set IsPrivateWirePrimary for each group
-            foreach (var group in ExtensionGroups)
-            {
-                group.IsPrivateWirePrimary = group.PrivateWireCount > group.KshSourceCount;
-                group.GroupId = $"{group.Extension}_{group.Month}_{group.Year}".Replace(" ", "_").Replace("-", "_").Replace("+", "");
-            }
-
-            // Look up Class of Service for each extension from UserPhones
-            if (ExtensionGroups.Any())
-            {
-                var extensionNumbers = ExtensionGroups.Select(g => g.Extension).Distinct().ToList();
-                var phoneClassMap = await _context.UserPhones
-                    .AsNoTracking()
-                    .Where(up => extensionNumbers.Contains(up.PhoneNumber) && up.ClassOfServiceId != null)
-                    .Select(up => new {
-                        up.PhoneNumber,
-                        ClassName = up.ClassOfService != null ? up.ClassOfService.Class : null,
-                        Service = up.ClassOfService != null ? up.ClassOfService.Service : null,
-                        EligibleStaff = up.ClassOfService != null ? up.ClassOfService.EligibleStaff : null,
-                        AirtimeAllowance = up.ClassOfService != null ? up.ClassOfService.AirtimeAllowance : null,
-                        DataAllowance = up.ClassOfService != null ? up.ClassOfService.DataAllowance : null,
-                        HandsetAllowance = up.ClassOfService != null ? up.ClassOfService.HandsetAllowance : null
-                    })
-                    .ToListAsync();
-
-                foreach (var group in ExtensionGroups)
-                {
-                    var cos = phoneClassMap.FirstOrDefault(p => p.PhoneNumber == group.Extension);
-                    if (cos != null)
-                    {
-                        group.ClassOfService = cos.ClassName;
-                        group.CosService = cos.Service;
-                        group.CosEligibleStaff = cos.EligibleStaff;
-                        group.CosAirtimeAllowance = cos.AirtimeAllowance;
-                        group.CosDataAllowance = cos.DataAllowance;
-                        group.CosHandsetAllowance = cos.HandsetAllowance;
-                    }
-                }
-            }
-
-            // Get submission status counts per extension/month/year
-            if (ExtensionGroups.Any())
-            {
-                // Extract filter values that EF Core can translate to SQL
-                var extensions = ExtensionGroups.Select(g => g.Extension).Distinct().ToList();
-                var months = ExtensionGroups.Select(g => g.Month).Distinct().ToList();
-                var years = ExtensionGroups.Select(g => g.Year).Distinct().ToList();
-
-                var submissionCounts = await _context.CallLogVerifications
-                    .Where(v => v.SubmittedToSupervisor)
-                    .Join(_context.CallRecords,
-                          v => v.CallRecordId,
-                          cr => cr.Id,
-                          (v, cr) => new {
-                              Extension = cr.ExtensionNumber,
-                              cr.CallMonth,
-                              cr.CallYear,
-                              v.ApprovalStatus
-                          })
-                    .Where(x => extensions.Contains(x.Extension) &&
-                               months.Contains(x.CallMonth) &&
-                               years.Contains(x.CallYear))
-                    .GroupBy(x => new { x.Extension, x.CallMonth, x.CallYear })
-                    .Select(g => new {
-                        Extension = g.Key.Extension,
-                        Month = g.Key.CallMonth,
-                        Year = g.Key.CallYear,
-                        SubmittedCount = g.Count(),
-                        PendingCount = g.Count(x => x.ApprovalStatus == "Pending"),
-                        ApprovedCount = g.Count(x => x.ApprovalStatus == "Approved"),
-                        PartiallyApprovedCount = g.Count(x => x.ApprovalStatus == "PartiallyApproved"),
-                        RejectedCount = g.Count(x => x.ApprovalStatus == "Rejected"),
-                        RevertedCount = g.Count(x => x.ApprovalStatus == "Reverted")
-                    })
-                    .ToListAsync();
-
-                // Populate extension groups with submission counts
-                foreach (var group in ExtensionGroups)
-                {
-                    var counts = submissionCounts.FirstOrDefault(c =>
-                        c.Extension == group.Extension && c.Month == group.Month && c.Year == group.Year);
-                    if (counts != null)
-                    {
-                        group.SubmittedCount = counts.SubmittedCount;
-                        group.PendingApprovalCount = counts.PendingCount;
-                        group.ApprovedCount = counts.ApprovedCount;
-                        group.PartiallyApprovedCount = counts.PartiallyApprovedCount;
-                        group.RejectedCount = counts.RejectedCount;
-                        group.RevertedCount = counts.RevertedCount;
-                    }
-                }
-
-                // Get incoming assignment counts (calls assigned TO current user that are pending)
-                if (!string.IsNullOrEmpty(UserIndexNumber))
-                {
-                    var assignmentCounts = await _context.Set<CallLogPaymentAssignment>()
-                        .Where(a => a.AssignedTo == UserIndexNumber && a.AssignmentStatus == "Pending")
-                        .Join(_context.CallRecords,
-                              a => a.CallRecordId,
-                              cr => cr.Id,
-                              (a, cr) => new {
-                                  Extension = cr.ExtensionNumber,
-                                  cr.CallMonth,
-                                  cr.CallYear,
-                                  a.AssignedFrom
-                              })
-                        .Where(x => extensions.Contains(x.Extension) &&
-                                   months.Contains(x.CallMonth) &&
-                                   years.Contains(x.CallYear))
-                        .GroupBy(x => new { x.Extension, x.CallMonth, x.CallYear })
-                        .Select(g => new {
-                            Extension = g.Key.Extension,
-                            Month = g.Key.CallMonth,
-                            Year = g.Key.CallYear,
-                            AssignmentCount = g.Count(),
-                            AssignedFromUser = g.Select(x => x.AssignedFrom).Distinct().Count() == 1
-                                ? g.Select(x => x.AssignedFrom).FirstOrDefault()
-                                : null
-                        })
-                        .ToListAsync();
-
-                    foreach (var group in ExtensionGroups)
-                    {
-                        var assignmentInfo = assignmentCounts.FirstOrDefault(c =>
-                            c.Extension == group.Extension && c.Month == group.Month && c.Year == group.Year);
-                        if (assignmentInfo != null)
-                        {
-                            group.IncomingAssignmentCount = assignmentInfo.AssignmentCount;
-                            group.AssignedFromUser = assignmentInfo.AssignedFromUser;
-                        }
-                    }
-
-                    // Get outgoing pending reassignment counts (calls user reassigned to others, pending acceptance)
-                    var outgoingCounts = await _context.Set<CallLogPaymentAssignment>()
-                        .Where(a => a.AssignedFrom == UserIndexNumber && a.AssignmentStatus == "Pending")
-                        .Join(_context.CallRecords,
-                              a => a.CallRecordId,
-                              cr => cr.Id,
-                              (a, cr) => new {
-                                  Extension = cr.ExtensionNumber,
-                                  cr.CallMonth,
-                                  cr.CallYear,
-                                  a.AssignedTo
-                              })
-                        .Where(x => extensions.Contains(x.Extension) &&
-                                   months.Contains(x.CallMonth) &&
-                                   years.Contains(x.CallYear))
-                        .GroupBy(x => new { x.Extension, x.CallMonth, x.CallYear })
-                        .Select(g => new {
-                            Extension = g.Key.Extension,
-                            Month = g.Key.CallMonth,
-                            Year = g.Key.CallYear,
-                            OutgoingCount = g.Count(),
-                            AssignedToUser = g.Select(x => x.AssignedTo).Distinct().Count() == 1
-                                ? g.Select(x => x.AssignedTo).FirstOrDefault()
-                                : null
-                        })
-                        .ToListAsync();
-
-                    foreach (var group in ExtensionGroups)
-                    {
-                        var outgoingInfo = outgoingCounts.FirstOrDefault(c =>
-                            c.Extension == group.Extension && c.Month == group.Month && c.Year == group.Year);
-                        if (outgoingInfo != null)
-                        {
-                            group.OutgoingPendingCount = outgoingInfo.OutgoingCount;
-                            group.AssignedToUser = outgoingInfo.AssignedToUser;
-                        }
-                    }
-                }
+                if (!wasOpen) await conn.CloseAsync();
             }
         }
 
@@ -592,131 +352,66 @@ namespace TAB.Web.Pages.Modules.EBillManagement.CallRecords
         {
             bool isAdmin = User.IsInRole("Admin");
 
-            // For admin without UserIndexNumber, calculate summary for all records
+            var conn = _context.Database.GetDbConnection();
+            var wasOpen = conn.State == ConnectionState.Open;
+            if (!wasOpen) await conn.OpenAsync();
+
+            try
+            {
+                using var cmd = conn.CreateCommand();
+                cmd.CommandText = "ebill.sp_GetMyCallLogSummary";
+                cmd.CommandType = CommandType.StoredProcedure;
+                cmd.CommandTimeout = 30;
+
+                cmd.Parameters.Add(new SqlParameter("@UserIndexNumber", (object?)UserIndexNumber ?? DBNull.Value));
+                cmd.Parameters.Add(new SqlParameter("@IsAdmin", isAdmin));
+                cmd.Parameters.Add(new SqlParameter("@FilterMonth", (object?)FilterMonth ?? DBNull.Value));
+                cmd.Parameters.Add(new SqlParameter("@FilterYear", (object?)FilterYear ?? DBNull.Value));
+
+                using var reader = await cmd.ExecuteReaderAsync();
+                if (await reader.ReadAsync())
+                {
+                    var totalCalls = reader.GetInt32(reader.GetOrdinal("TotalCalls"));
+                    var verifiedCalls = reader.GetInt32(reader.GetOrdinal("VerifiedCalls"));
+
+                    Summary = new VerificationSummary
+                    {
+                        TotalCalls = totalCalls,
+                        VerifiedCalls = verifiedCalls,
+                        UnverifiedCalls = reader.GetInt32(reader.GetOrdinal("UnverifiedCalls")),
+                        TotalAmount = reader.GetDecimal(reader.GetOrdinal("TotalAmount")),
+                        VerifiedAmount = reader.GetDecimal(reader.GetOrdinal("VerifiedAmount")),
+                        PersonalCalls = reader.GetInt32(reader.GetOrdinal("PersonalCalls")),
+                        OfficialCalls = reader.GetInt32(reader.GetOrdinal("OfficialCalls")),
+                        CompliancePercentage = reader.GetDecimal(reader.GetOrdinal("CompliancePercentage")),
+                        OverageAmount = 0
+                    };
+                }
+            }
+            finally
+            {
+                if (!wasOpen) await conn.CloseAsync();
+            }
+
+            if (Summary == null) return;
+
+            // Admin path: no allowance calculation needed
             if (string.IsNullOrEmpty(UserIndexNumber) && isAdmin)
             {
-                // Build query for all records
-                var query = _context.CallRecords.AsNoTracking().AsQueryable();
-
-                // Apply month/year filter only if specified
-                if (FilterMonth.HasValue)
-                {
-                    query = query.Where(c => c.CallMonth == FilterMonth.Value);
-                }
-
-                if (FilterYear.HasValue)
-                {
-                    query = query.Where(c => c.CallYear == FilterYear.Value);
-                }
-
-                // Single database aggregation query (1 round-trip instead of 6)
-                var adminSummary = await query
-                    .GroupBy(c => 1)
-                    .Select(g => new
-                    {
-                        TotalCalls = g.Count(),
-                        VerifiedCalls = g.Count(c => c.IsVerified),
-                        TotalAmount = g.Sum(c => (decimal?)c.CallCostUSD) ?? 0,
-                        VerifiedAmount = g.Where(c => c.IsVerified).Sum(c => (decimal?)c.CallCostUSD) ?? 0,
-                        PersonalCalls = g.Count(c => c.VerificationType == "Personal"),
-                        OfficialCalls = g.Count(c => c.VerificationType == "Official")
-                    })
-                    .FirstOrDefaultAsync();
-
-                Summary = new VerificationSummary
-                {
-                    TotalCalls = adminSummary?.TotalCalls ?? 0,
-                    VerifiedCalls = adminSummary?.VerifiedCalls ?? 0,
-                    UnverifiedCalls = (adminSummary?.TotalCalls ?? 0) - (adminSummary?.VerifiedCalls ?? 0),
-                    TotalAmount = adminSummary?.TotalAmount ?? 0,
-                    VerifiedAmount = adminSummary?.VerifiedAmount ?? 0,
-                    PersonalCalls = adminSummary?.PersonalCalls ?? 0,
-                    OfficialCalls = adminSummary?.OfficialCalls ?? 0,
-                    CompliancePercentage = (adminSummary?.TotalCalls ?? 0) > 0
-                        ? (decimal)(adminSummary!.VerifiedCalls) / adminSummary.TotalCalls * 100
-                        : 0
-                };
-
-                AllowanceLimit = 0; // No specific limit for admin view
+                AllowanceLimit = 0;
                 CurrentUsage = Summary.TotalAmount;
                 RemainingAllowance = 0;
                 IsOverAllowance = false;
                 return;
             }
 
-            if (string.IsNullOrEmpty(UserIndexNumber))
-                return;
+            if (string.IsNullOrEmpty(UserIndexNumber)) return;
 
-            // Subquery for incoming assigned calls (calls assigned TO current user)
-            var incomingAssignedCallIdsQuery = _context.Set<CallLogPaymentAssignment>()
-                .Where(a => a.AssignedTo == UserIndexNumber &&
-                       (a.AssignmentStatus == "Pending" || a.AssignmentStatus == "Accepted"))
-                .Select(a => a.CallRecordId);
-
-            // Subquery for outgoing accepted assignments (calls assigned BY current user that were ACCEPTED)
-            // These should NOT appear in the current user's view anymore
-            var acceptedOutgoingCallIdsQuery = _context.Set<CallLogPaymentAssignment>()
-                .Where(a => a.AssignedFrom == UserIndexNumber && a.AssignmentStatus == "Accepted")
-                .Select(a => a.CallRecordId);
-
-            // Build query for user's calls: (own - accepted outgoing) + incoming assigned
-            var userQuery = _context.CallRecords
-                .AsNoTracking()
-                .Where(c =>
-                    (c.ResponsibleIndexNumber == UserIndexNumber && !acceptedOutgoingCallIdsQuery.Contains(c.Id)) ||
-                    incomingAssignedCallIdsQuery.Contains(c.Id));
-
-            // Apply month/year filter only if specified
-            if (FilterMonth.HasValue)
-            {
-                userQuery = userQuery.Where(c => c.CallMonth == FilterMonth.Value);
-            }
-
-            if (FilterYear.HasValue)
-            {
-                userQuery = userQuery.Where(c => c.CallYear == FilterYear.Value);
-            }
-
-            // Use single database aggregation query instead of loading all records into memory
-            var summaryData = await userQuery
-                .GroupBy(c => 1)
-                .Select(g => new
-                {
-                    TotalCalls = g.Count(),
-                    VerifiedCalls = g.Count(c => c.IsVerified),
-                    TotalAmount = g.Sum(c => (decimal?)c.CallCostUSD) ?? 0,
-                    VerifiedAmount = g.Where(c => c.IsVerified).Sum(c => (decimal?)c.CallCostUSD) ?? 0,
-                    PersonalCalls = g.Count(c => c.VerificationType == "Personal"),
-                    OfficialCalls = g.Count(c => c.VerificationType == "Official")
-                })
-                .FirstOrDefaultAsync();
-
-            var totalCalls = summaryData?.TotalCalls ?? 0;
-            var verifiedCalls = summaryData?.VerifiedCalls ?? 0;
-
-            Summary = new VerificationSummary
-            {
-                TotalCalls = totalCalls,
-                VerifiedCalls = verifiedCalls,
-                UnverifiedCalls = totalCalls - verifiedCalls,
-                TotalAmount = summaryData?.TotalAmount ?? 0,
-                VerifiedAmount = summaryData?.VerifiedAmount ?? 0,
-                PersonalCalls = summaryData?.PersonalCalls ?? 0,
-                OfficialCalls = summaryData?.OfficialCalls ?? 0,
-                CompliancePercentage = totalCalls > 0
-                    ? (decimal)verifiedCalls / totalCalls * 100
-                    : 0,
-                OverageAmount = 0 // Will be calculated below
-            };
-
-            // Get allowance limit and calculate usage
+            // Allowance calculation stays in C# (complex business logic with EF relationships)
             var limitNullable = await _calculationService.GetAllowanceLimitAsync(UserIndexNumber);
-            AllowanceLimit = limitNullable ?? 0; // Unlimited = 0 for display
-
-            // Current usage should be total cost of all calls user is responsible for
+            AllowanceLimit = limitNullable ?? 0;
             CurrentUsage = Summary.TotalAmount;
 
-            // Calculate remaining allowance and overage
             if (limitNullable.HasValue && limitNullable.Value > 0)
             {
                 if (CurrentUsage > limitNullable.Value)
@@ -734,7 +429,6 @@ namespace TAB.Web.Pages.Modules.EBillManagement.CallRecords
             }
             else
             {
-                // No limit set (unlimited) - set to 0, we'll handle display in the view
                 IsOverAllowance = false;
                 RemainingAllowance = 0;
                 Summary.OverageAmount = 0;
