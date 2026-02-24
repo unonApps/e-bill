@@ -153,10 +153,6 @@ namespace TAB.Web.Pages.Modules.EBillManagement.CallRecords
                 return;
 
             var query = _context.CallRecords
-                .Include(c => c.UserPhone)
-                    .ThenInclude(up => up.ClassOfService)
-                .Include(c => c.PayingUser)
-                .Include(c => c.ResponsibleUser)
                 .AsQueryable();
 
             // Filter by UserIndexNumber only if not admin
@@ -498,25 +494,31 @@ namespace TAB.Web.Pages.Modules.EBillManagement.CallRecords
                     query = query.Where(c => c.CallYear == FilterYear.Value);
                 }
 
-                // Use database aggregation instead of loading all records into memory
-                var totalCalls = await query.CountAsync();
-                var verifiedCalls = await query.CountAsync(c => c.IsVerified);
-                var totalAmount = await query.SumAsync(c => (decimal?)c.CallCostUSD) ?? 0;
-                var verifiedAmount = await query.Where(c => c.IsVerified).SumAsync(c => (decimal?)c.CallCostUSD) ?? 0;
-                var personalCalls = await query.CountAsync(c => c.VerificationType == "Personal");
-                var officialCalls = await query.CountAsync(c => c.VerificationType == "Official");
+                // Single database aggregation query (1 round-trip instead of 6)
+                var adminSummary = await query
+                    .GroupBy(c => 1)
+                    .Select(g => new
+                    {
+                        TotalCalls = g.Count(),
+                        VerifiedCalls = g.Count(c => c.IsVerified),
+                        TotalAmount = g.Sum(c => (decimal?)c.CallCostUSD) ?? 0,
+                        VerifiedAmount = g.Where(c => c.IsVerified).Sum(c => (decimal?)c.CallCostUSD) ?? 0,
+                        PersonalCalls = g.Count(c => c.VerificationType == "Personal"),
+                        OfficialCalls = g.Count(c => c.VerificationType == "Official")
+                    })
+                    .FirstOrDefaultAsync();
 
                 Summary = new VerificationSummary
                 {
-                    TotalCalls = totalCalls,
-                    VerifiedCalls = verifiedCalls,
-                    UnverifiedCalls = totalCalls - verifiedCalls,
-                    TotalAmount = totalAmount,
-                    VerifiedAmount = verifiedAmount,
-                    PersonalCalls = personalCalls,
-                    OfficialCalls = officialCalls,
-                    CompliancePercentage = totalCalls > 0
-                        ? (decimal)verifiedCalls / totalCalls * 100
+                    TotalCalls = adminSummary?.TotalCalls ?? 0,
+                    VerifiedCalls = adminSummary?.VerifiedCalls ?? 0,
+                    UnverifiedCalls = (adminSummary?.TotalCalls ?? 0) - (adminSummary?.VerifiedCalls ?? 0),
+                    TotalAmount = adminSummary?.TotalAmount ?? 0,
+                    VerifiedAmount = adminSummary?.VerifiedAmount ?? 0,
+                    PersonalCalls = adminSummary?.PersonalCalls ?? 0,
+                    OfficialCalls = adminSummary?.OfficialCalls ?? 0,
+                    CompliancePercentage = (adminSummary?.TotalCalls ?? 0) > 0
+                        ? (decimal)(adminSummary!.VerifiedCalls) / adminSummary.TotalCalls * 100
                         : 0
                 };
 
@@ -559,21 +561,34 @@ namespace TAB.Web.Pages.Modules.EBillManagement.CallRecords
                 userQuery = userQuery.Where(c => c.CallYear == FilterYear.Value);
             }
 
-            // Get all calls user is responsible for (own calls + assigned calls)
-            var allUserRecords = await userQuery.ToListAsync();
+            // Use single database aggregation query instead of loading all records into memory
+            var summaryData = await userQuery
+                .GroupBy(c => 1)
+                .Select(g => new
+                {
+                    TotalCalls = g.Count(),
+                    VerifiedCalls = g.Count(c => c.IsVerified),
+                    TotalAmount = g.Sum(c => (decimal?)c.CallCostUSD) ?? 0,
+                    VerifiedAmount = g.Where(c => c.IsVerified).Sum(c => (decimal?)c.CallCostUSD) ?? 0,
+                    PersonalCalls = g.Count(c => c.VerificationType == "Personal"),
+                    OfficialCalls = g.Count(c => c.VerificationType == "Official")
+                })
+                .FirstOrDefaultAsync();
 
-            // Calculate summary from actual user records (including assigned calls)
+            var totalCalls = summaryData?.TotalCalls ?? 0;
+            var verifiedCalls = summaryData?.VerifiedCalls ?? 0;
+
             Summary = new VerificationSummary
             {
-                TotalCalls = allUserRecords.Count,
-                VerifiedCalls = allUserRecords.Count(c => c.IsVerified),
-                UnverifiedCalls = allUserRecords.Count(c => !c.IsVerified),
-                TotalAmount = allUserRecords.Sum(c => c.CallCostUSD),
-                VerifiedAmount = allUserRecords.Where(c => c.IsVerified).Sum(c => c.CallCostUSD),
-                PersonalCalls = allUserRecords.Count(c => c.VerificationType == "Personal"),
-                OfficialCalls = allUserRecords.Count(c => c.VerificationType == "Official"),
-                CompliancePercentage = allUserRecords.Count > 0
-                    ? (decimal)allUserRecords.Count(c => c.IsVerified) / allUserRecords.Count * 100
+                TotalCalls = totalCalls,
+                VerifiedCalls = verifiedCalls,
+                UnverifiedCalls = totalCalls - verifiedCalls,
+                TotalAmount = summaryData?.TotalAmount ?? 0,
+                VerifiedAmount = summaryData?.VerifiedAmount ?? 0,
+                PersonalCalls = summaryData?.PersonalCalls ?? 0,
+                OfficialCalls = summaryData?.OfficialCalls ?? 0,
+                CompliancePercentage = totalCalls > 0
+                    ? (decimal)verifiedCalls / totalCalls * 100
                     : 0,
                 OverageAmount = 0 // Will be calculated below
             };
