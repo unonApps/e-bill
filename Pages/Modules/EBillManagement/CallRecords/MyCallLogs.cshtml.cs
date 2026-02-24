@@ -250,9 +250,11 @@ namespace TAB.Web.Pages.Modules.EBillManagement.CallRecords
             }
 
             // GROUP BY Extension + Month + Year to get unique extension groups
+            // Use ExtensionNumber directly (avoids LEFT JOIN to UserPhones)
+            // Use exact SourceSystem equality (avoids LOWER + LIKE per row)
             var extensionGroupsQuery = query
                 .GroupBy(c => new {
-                    Extension = c.UserPhone != null ? c.UserPhone.PhoneNumber : "Unknown",
+                    Extension = c.ExtensionNumber ?? "Unknown",
                     c.CallMonth,
                     c.CallYear
                 })
@@ -268,20 +270,14 @@ namespace TAB.Web.Pages.Modules.EBillManagement.CallRecords
                     OfficialKSH = g.Where(c => c.VerificationType == "Official").Sum(c => c.CallCostKSHS),
                     PersonalUSD = g.Where(c => c.VerificationType == "Personal").Sum(c => c.CallCostUSD),
                     PersonalKSH = g.Where(c => c.VerificationType == "Personal").Sum(c => c.CallCostKSHS),
-                    TotalRecoveredUSD = g.Where(c => c.SourceSystem != null &&
-                        (c.SourceSystem.ToLower().Contains("privatewire") || c.SourceSystem.ToLower().Contains("pw")))
+                    TotalRecoveredUSD = g.Where(c => c.SourceSystem == "PrivateWire")
                         .Sum(c => c.RecoveryAmount ?? 0),
-                    TotalRecoveredKSH = g.Where(c => c.SourceSystem != null &&
-                        (c.SourceSystem.ToLower().Contains("safaricom") ||
-                         c.SourceSystem.ToLower().Contains("airtel") ||
-                         c.SourceSystem.ToLower().Contains("pstn")))
+                    TotalRecoveredKSH = g.Where(c =>
+                        c.SourceSystem == "Safaricom" || c.SourceSystem == "Airtel" || c.SourceSystem == "PSTN")
                         .Sum(c => c.RecoveryAmount ?? 0),
-                    PrivateWireCount = g.Count(c => c.SourceSystem != null &&
-                        (c.SourceSystem.ToLower().Contains("privatewire") || c.SourceSystem.ToLower().Contains("pw"))),
-                    KshSourceCount = g.Count(c => c.SourceSystem != null &&
-                        (c.SourceSystem.ToLower().Contains("safaricom") ||
-                         c.SourceSystem.ToLower().Contains("airtel") ||
-                         c.SourceSystem.ToLower().Contains("pstn"))),
+                    PrivateWireCount = g.Count(c => c.SourceSystem == "PrivateWire"),
+                    KshSourceCount = g.Count(c =>
+                        c.SourceSystem == "Safaricom" || c.SourceSystem == "Airtel" || c.SourceSystem == "PSTN"),
                     DialedNumberCount = g.Select(c => c.CallNumber).Distinct().Count()
                 });
 
@@ -291,10 +287,10 @@ namespace TAB.Web.Pages.Modules.EBillManagement.CallRecords
                 .ThenByDescending(g => g.Month)
                 .ThenBy(g => g.Extension);
 
-            // Count distinct extension groups using lightweight projection (avoids re-running full GroupBy aggregation)
+            // Count distinct extension groups using lightweight projection (no JOINs needed)
             TotalRecords = await query
                 .Select(c => new {
-                    Extension = c.UserPhone != null ? c.UserPhone.PhoneNumber : "Unknown",
+                    Extension = c.ExtensionNumber ?? "Unknown",
                     c.CallMonth,
                     c.CallYear
                 })
