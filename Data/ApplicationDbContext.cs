@@ -464,6 +464,8 @@ namespace TAB.Web.Data
                 entity.HasIndex(e => e.SupervisorIndexNumber);
                 entity.HasIndex(e => e.SupervisorEmail);
                 entity.HasIndex(e => new { e.CallRecordId, e.VerifiedBy });
+                // Covering index for submission counts query in MyCallLogs
+                entity.HasIndex(e => new { e.SubmittedToSupervisor, e.CallRecordId, e.ApprovalStatus });
 
                 // Relationships
                 entity.HasOne(e => e.CallRecord)
@@ -491,6 +493,9 @@ namespace TAB.Web.Data
                 entity.HasIndex(e => e.AssignedTo);
                 entity.HasIndex(e => e.AssignmentStatus);
                 entity.HasIndex(e => new { e.AssignedFrom, e.AssignedTo });
+                // Composite indexes covering the common query patterns in MyCallLogs
+                entity.HasIndex(e => new { e.AssignedTo, e.AssignmentStatus, e.CallRecordId });
+                entity.HasIndex(e => new { e.AssignedFrom, e.AssignmentStatus, e.CallRecordId });
 
                 // Relationships
                 entity.HasOne(e => e.CallRecord)

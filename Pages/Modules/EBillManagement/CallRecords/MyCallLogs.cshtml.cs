@@ -140,6 +140,9 @@ namespace TAB.Web.Pages.Modules.EBillManagement.CallRecords
             // Load summary statistics
             await LoadSummaryAsync();
 
+            // Derive TotalCallRecords from summary (avoids a separate COUNT query)
+            TotalCallRecords = Summary?.TotalCalls ?? 0;
+
             return Page();
         }
 
@@ -153,6 +156,7 @@ namespace TAB.Web.Pages.Modules.EBillManagement.CallRecords
                 return;
 
             var query = _context.CallRecords
+                .AsNoTracking()
                 .AsQueryable();
 
             // Filter by UserIndexNumber only if not admin
@@ -245,9 +249,6 @@ namespace TAB.Web.Pages.Modules.EBillManagement.CallRecords
                 }
             }
 
-            // Get total call records count
-            TotalCallRecords = await query.CountAsync();
-
             // GROUP BY Extension + Month + Year to get unique extension groups
             var extensionGroupsQuery = query
                 .GroupBy(c => new {
@@ -290,8 +291,15 @@ namespace TAB.Web.Pages.Modules.EBillManagement.CallRecords
                 .ThenByDescending(g => g.Month)
                 .ThenBy(g => g.Extension);
 
-            // Count total extension groups for pagination
-            TotalRecords = await extensionGroupsQuery.CountAsync();
+            // Count distinct extension groups using lightweight projection (avoids re-running full GroupBy aggregation)
+            TotalRecords = await query
+                .Select(c => new {
+                    Extension = c.UserPhone != null ? c.UserPhone.PhoneNumber : "Unknown",
+                    c.CallMonth,
+                    c.CallYear
+                })
+                .Distinct()
+                .CountAsync();
             TotalPages = (int)Math.Ceiling(TotalRecords / (double)PageSize);
 
             // Apply pagination to extension groups
@@ -312,8 +320,8 @@ namespace TAB.Web.Pages.Modules.EBillManagement.CallRecords
             {
                 var extensionNumbers = ExtensionGroups.Select(g => g.Extension).Distinct().ToList();
                 var phoneClassMap = await _context.UserPhones
+                    .AsNoTracking()
                     .Where(up => extensionNumbers.Contains(up.PhoneNumber) && up.ClassOfServiceId != null)
-                    .Include(up => up.ClassOfService)
                     .Select(up => new {
                         up.PhoneNumber,
                         ClassName = up.ClassOfService != null ? up.ClassOfService.Class : null,
@@ -481,7 +489,7 @@ namespace TAB.Web.Pages.Modules.EBillManagement.CallRecords
             if (string.IsNullOrEmpty(UserIndexNumber) && isAdmin)
             {
                 // Build query for all records
-                var query = _context.CallRecords.AsQueryable();
+                var query = _context.CallRecords.AsNoTracking().AsQueryable();
 
                 // Apply month/year filter only if specified
                 if (FilterMonth.HasValue)
@@ -546,6 +554,7 @@ namespace TAB.Web.Pages.Modules.EBillManagement.CallRecords
 
             // Build query for user's calls: (own - accepted outgoing) + incoming assigned
             var userQuery = _context.CallRecords
+                .AsNoTracking()
                 .Where(c =>
                     (c.ResponsibleIndexNumber == UserIndexNumber && !acceptedOutgoingCallIdsQuery.Contains(c.Id)) ||
                     incomingAssignedCallIdsQuery.Contains(c.Id));
