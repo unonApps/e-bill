@@ -126,7 +126,6 @@ namespace TAB.Web.Pages.Modules.EBillManagement.CallRecords
             UserIndexNumber = ebillUser?.IndexNumber;
 
             // Set default filter to current month and year ONLY on first visit
-            // If user explicitly selects "All", don't override their choice
             bool isFirstVisit = !Request.Query.ContainsKey("FilterMonth") && !Request.Query.ContainsKey("FilterYear");
             if (isFirstVisit)
             {
@@ -134,16 +133,106 @@ namespace TAB.Web.Pages.Modules.EBillManagement.CallRecords
                 FilterYear = DateTime.UtcNow.Year;
             }
 
-            // Load call records with filters
+            // Page shell renders immediately — data loaded via AJAX (OnGetPageDataAsync)
+            return Page();
+        }
+
+        /// <summary>
+        /// AJAX endpoint: returns extension groups + summary + pagination in a single call.
+        /// The page shell loads instantly, then JavaScript calls this to fill in data.
+        /// </summary>
+        public async Task<IActionResult> OnGetPageDataAsync()
+        {
+            var user = await _userManager.GetUserAsync(User);
+            if (user == null)
+                return new JsonResult(new { error = "Unauthorized" }) { StatusCode = 401 };
+
+            var ebillUser = await _context.EbillUsers
+                .AsNoTracking()
+                .FirstOrDefaultAsync(u => u.Email == user.Email);
+
+            bool isAdmin = User.IsInRole("Admin");
+            UserIndexNumber = ebillUser?.IndexNumber;
+
+            if (string.IsNullOrEmpty(UserIndexNumber) && !isAdmin)
+                return new JsonResult(new { error = "Profile not linked" }) { StatusCode = 403 };
+
+            // Set default filter to current month/year on first visit
+            bool isFirstVisit = !Request.Query.ContainsKey("FilterMonth") && !Request.Query.ContainsKey("FilterYear");
+            if (isFirstVisit)
+            {
+                FilterMonth = DateTime.UtcNow.Month;
+                FilterYear = DateTime.UtcNow.Year;
+            }
+
+            // Load data
             await LoadCallRecordsAsync();
-
-            // Load summary statistics
             await LoadSummaryAsync();
-
-            // Derive TotalCallRecords from summary (avoids a separate COUNT query)
             TotalCallRecords = Summary?.TotalCalls ?? 0;
 
-            return Page();
+            // Return JSON with all data needed for rendering
+            return new JsonResult(new
+            {
+                summary = Summary == null ? null : new
+                {
+                    totalCalls = Summary.TotalCalls,
+                    verifiedCalls = Summary.VerifiedCalls,
+                    unverifiedCalls = Summary.UnverifiedCalls,
+                    totalAmount = Summary.TotalAmount,
+                    verifiedAmount = Summary.VerifiedAmount,
+                    personalCalls = Summary.PersonalCalls,
+                    officialCalls = Summary.OfficialCalls,
+                    compliancePercentage = Summary.CompliancePercentage,
+                    overageAmount = Summary.OverageAmount
+                },
+                allowanceLimit = AllowanceLimit,
+                currentUsage = CurrentUsage,
+                remainingAllowance = RemainingAllowance,
+                isOverAllowance = IsOverAllowance,
+                extensionGroups = ExtensionGroups.Select(g => new
+                {
+                    groupId = g.GroupId,
+                    extension = g.Extension,
+                    monthName = g.MonthName,
+                    month = g.Month,
+                    year = g.Year,
+                    callCount = g.CallCount,
+                    totalCostUSD = g.TotalCostUSD,
+                    totalCostKSH = g.TotalCostKSH,
+                    officialUSD = g.OfficialUSD,
+                    officialKSH = g.OfficialKSH,
+                    personalUSD = g.PersonalUSD,
+                    personalKSH = g.PersonalKSH,
+                    totalRecoveredUSD = g.TotalRecoveredUSD,
+                    totalRecoveredKSH = g.TotalRecoveredKSH,
+                    isPrivateWirePrimary = g.IsPrivateWirePrimary,
+                    dialedNumberCount = g.DialedNumberCount,
+                    submittedCount = g.SubmittedCount,
+                    pendingApprovalCount = g.PendingApprovalCount,
+                    approvedCount = g.ApprovedCount,
+                    rejectedCount = g.RejectedCount,
+                    revertedCount = g.RevertedCount,
+                    partiallyApprovedCount = g.PartiallyApprovedCount,
+                    incomingAssignmentCount = g.IncomingAssignmentCount,
+                    assignedFromUser = g.AssignedFromUser,
+                    outgoingPendingCount = g.OutgoingPendingCount,
+                    assignedToUser = g.AssignedToUser,
+                    classOfService = g.ClassOfService,
+                    cosService = g.CosService,
+                    cosEligibleStaff = g.CosEligibleStaff,
+                    cosAirtimeAllowance = g.CosAirtimeAllowance,
+                    cosDataAllowance = g.CosDataAllowance,
+                    cosHandsetAllowance = g.CosHandsetAllowance
+                }),
+                pagination = new
+                {
+                    pageNumber = PageNumber,
+                    pageSize = PageSize,
+                    totalRecords = TotalRecords,
+                    totalPages = TotalPages,
+                    totalCallRecords = TotalCallRecords
+                }
+            });
         }
 
         private async Task LoadCallRecordsAsync()
