@@ -4374,27 +4374,50 @@
             `;
         }
 
-        // Load page data via AJAX (page shell loads instantly)
+        // Load page data via two parallel AJAX calls:
+        // 1) Extension groups + pagination (table) — renders FIRST
+        // 2) Summary stats — fills in after
         async function loadPageData() {
             const params = new URLSearchParams(window.location.search);
-            params.set('handler', 'PageData');
+
+            // Build URLs for both endpoints
+            const groupParams = new URLSearchParams(params);
+            groupParams.set('handler', 'ExtensionGroups');
+            const summaryParams = new URLSearchParams(params);
+            summaryParams.set('handler', 'Summary');
+
+            // Fire both requests in parallel
+            const groupsPromise = fetch(`?${groupParams.toString()}`);
+            const summaryPromise = fetch(`?${summaryParams.toString()}`);
+
+            // Render table as soon as extension groups arrive (don't wait for summary)
             try {
-                const response = await fetch(`?${params.toString()}`);
-                if (!response.ok) throw new Error('Failed to load data');
-                const data = await response.json();
-                renderStats(data.summary);
-                renderExtensionGroups(data.extensionGroups);
-                renderPagination(data.pagination);
-                renderActionAlert(data.extensionGroups);
-                document.getElementById('recordCountLabel').textContent = `(${data.pagination.totalRecords} records)`;
-                // Set page size dropdown
+                const groupsResponse = await groupsPromise;
+                if (!groupsResponse.ok) throw new Error('Failed to load extension groups');
+                const groupsData = await groupsResponse.json();
+                renderExtensionGroups(groupsData.extensionGroups);
+                // Compute total calls from the loaded groups for the pagination info
+                const totalCalls = groupsData.extensionGroups.reduce((sum, g) => sum + g.callCount, 0);
+                groupsData.pagination.totalCallRecords = totalCalls;
+                renderPagination(groupsData.pagination);
+                renderActionAlert(groupsData.extensionGroups);
+                document.getElementById('recordCountLabel').textContent = `(${groupsData.pagination.totalRecords} records)`;
                 const pageSizeSelect = document.getElementById('pageSizeSelect');
-                if (pageSizeSelect) pageSizeSelect.value = data.pagination.pageSize;
-                // Re-init tooltips/popovers for new content
+                if (pageSizeSelect) pageSizeSelect.value = groupsData.pagination.pageSize;
                 initTooltipsAndPopovers();
             } catch (error) {
-                console.error('Error loading page data:', error);
+                console.error('Error loading extension groups:', error);
                 document.getElementById('callRecordsTableBody').innerHTML = `<tr><td colspan="11" class="text-center py-5 text-danger"><i class="bi bi-exclamation-triangle display-4"></i><p class="mt-3">Error loading data. Please refresh the page.</p></td></tr>`;
+            }
+
+            // Render stats when summary arrives (independently)
+            try {
+                const summaryResponse = await summaryPromise;
+                if (!summaryResponse.ok) throw new Error('Failed to load summary');
+                const summaryData = await summaryResponse.json();
+                renderStats(summaryData.summary);
+            } catch (error) {
+                console.error('Error loading summary stats:', error);
             }
         }
 

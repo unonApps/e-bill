@@ -138,10 +138,10 @@ namespace TAB.Web.Pages.Modules.EBillManagement.CallRecords
         }
 
         /// <summary>
-        /// AJAX endpoint: returns extension groups + summary + pagination in a single call.
-        /// The page shell loads instantly, then JavaScript calls this to fill in data.
+        /// Common auth + filter setup for AJAX endpoints.
+        /// Returns null on success (properties set), or an error IActionResult.
         /// </summary>
-        public async Task<IActionResult> OnGetPageDataAsync()
+        private async Task<IActionResult?> InitAjaxRequestAsync()
         {
             var user = await _userManager.GetUserAsync(User);
             if (user == null)
@@ -157,7 +157,6 @@ namespace TAB.Web.Pages.Modules.EBillManagement.CallRecords
             if (string.IsNullOrEmpty(UserIndexNumber) && !isAdmin)
                 return new JsonResult(new { error = "Profile not linked" }) { StatusCode = 403 };
 
-            // Set default filter to current month/year on first visit
             bool isFirstVisit = !Request.Query.ContainsKey("FilterMonth") && !Request.Query.ContainsKey("FilterYear");
             if (isFirstVisit)
             {
@@ -165,30 +164,22 @@ namespace TAB.Web.Pages.Modules.EBillManagement.CallRecords
                 FilterYear = DateTime.UtcNow.Year;
             }
 
-            // Load data
-            await LoadCallRecordsAsync();
-            await LoadSummaryAsync();
-            TotalCallRecords = Summary?.TotalCalls ?? 0;
+            return null; // success
+        }
 
-            // Return JSON with all data needed for rendering
+        /// <summary>
+        /// AJAX endpoint 1: returns extension groups + pagination (table data).
+        /// This is the fast path — renders the table immediately.
+        /// </summary>
+        public async Task<IActionResult> OnGetExtensionGroupsAsync()
+        {
+            var error = await InitAjaxRequestAsync();
+            if (error != null) return error;
+
+            await LoadCallRecordsAsync();
+
             return new JsonResult(new
             {
-                summary = Summary == null ? null : new
-                {
-                    totalCalls = Summary.TotalCalls,
-                    verifiedCalls = Summary.VerifiedCalls,
-                    unverifiedCalls = Summary.UnverifiedCalls,
-                    totalAmount = Summary.TotalAmount,
-                    verifiedAmount = Summary.VerifiedAmount,
-                    personalCalls = Summary.PersonalCalls,
-                    officialCalls = Summary.OfficialCalls,
-                    compliancePercentage = Summary.CompliancePercentage,
-                    overageAmount = Summary.OverageAmount
-                },
-                allowanceLimit = AllowanceLimit,
-                currentUsage = CurrentUsage,
-                remainingAllowance = RemainingAllowance,
-                isOverAllowance = IsOverAllowance,
                 extensionGroups = ExtensionGroups.Select(g => new
                 {
                     groupId = g.GroupId,
@@ -229,9 +220,40 @@ namespace TAB.Web.Pages.Modules.EBillManagement.CallRecords
                     pageNumber = PageNumber,
                     pageSize = PageSize,
                     totalRecords = TotalRecords,
-                    totalPages = TotalPages,
-                    totalCallRecords = TotalCallRecords
+                    totalPages = TotalPages
                 }
+            });
+        }
+
+        /// <summary>
+        /// AJAX endpoint 2: returns summary stats + allowance info.
+        /// This can be slower — stats cards fill in after the table is already visible.
+        /// </summary>
+        public async Task<IActionResult> OnGetSummaryAsync()
+        {
+            var error = await InitAjaxRequestAsync();
+            if (error != null) return error;
+
+            await LoadSummaryAsync();
+
+            return new JsonResult(new
+            {
+                summary = Summary == null ? null : new
+                {
+                    totalCalls = Summary.TotalCalls,
+                    verifiedCalls = Summary.VerifiedCalls,
+                    unverifiedCalls = Summary.UnverifiedCalls,
+                    totalAmount = Summary.TotalAmount,
+                    verifiedAmount = Summary.VerifiedAmount,
+                    personalCalls = Summary.PersonalCalls,
+                    officialCalls = Summary.OfficialCalls,
+                    compliancePercentage = Summary.CompliancePercentage,
+                    overageAmount = Summary.OverageAmount
+                },
+                allowanceLimit = AllowanceLimit,
+                currentUsage = CurrentUsage,
+                remainingAllowance = RemainingAllowance,
+                isOverAllowance = IsOverAllowance
             });
         }
 
