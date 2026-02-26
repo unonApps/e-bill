@@ -65,6 +65,22 @@ namespace TAB.Web.Pages.Modules.RefundManagement.Requests
 
         public async Task<IActionResult> OnGetAsync()
         {
+            // Block UNON staff from accessing refund requests (unless they have an authorized role)
+            var companyName = User.FindFirst("CompanyName")?.Value;
+            if (string.Equals(companyName, "UNON", StringComparison.OrdinalIgnoreCase))
+            {
+                var currentUserForCheck = await _userManager.GetUserAsync(User);
+                if (currentUserForCheck != null)
+                {
+                    var roles = await _userManager.GetRolesAsync(currentUserForCheck);
+                    var allowedRoles = new[] { "Admin", "Budget Officer", "ICTS", "Staff Claims Unit", "Claims Unit Approver", "ICTS Service Desk" };
+                    if (!roles.Any(r => allowedRoles.Contains(r)))
+                    {
+                        return RedirectToPage("/Index");
+                    }
+                }
+            }
+
             var currentUser = await _userManager.GetUserAsync(User);
             if (currentUser == null)
             {

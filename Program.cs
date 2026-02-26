@@ -208,6 +208,8 @@ builder.Services.AddAuthentication(OpenIdConnectDefaults.AuthenticationScheme)
                 var upn = context.Principal?.FindFirst("preferred_username")?.Value ?? email;
                 var firstName = context.Principal?.FindFirst(ClaimTypes.GivenName)?.Value;
                 var lastName = context.Principal?.FindFirst(ClaimTypes.Surname)?.Value;
+                var companyName = context.Principal?.FindFirst("company")?.Value
+                    ?? context.Principal?.FindFirst("extension_companyName")?.Value;
                 var tenantId = context.Principal?.FindFirst("http://schemas.microsoft.com/identity/claims/tenantid")?.Value
                     ?? context.Principal?.FindFirst("tid")?.Value;
 
@@ -247,6 +249,7 @@ builder.Services.AddAuthentication(OpenIdConnectDefaults.AuthenticationScheme)
                             AzureAdUpn = upn,
                             FirstName = firstName,
                             LastName = lastName,
+                            CompanyName = companyName,
                             Status = UserStatus.Active,
                             EbillUserId = ebillUser?.Id  // Link to EbillUser if exists
                         };
@@ -271,6 +274,7 @@ builder.Services.AddAuthentication(OpenIdConnectDefaults.AuthenticationScheme)
                         user.AzureAdUpn = upn;
                         user.FirstName = firstName ?? user.FirstName;
                         user.LastName = lastName ?? user.LastName;
+                        user.CompanyName = companyName ?? user.CompanyName;
 
                         // Link EbillUser if one was created since last login
                         if (!user.EbillUserId.HasValue)
@@ -301,6 +305,7 @@ builder.Services.AddAuthentication(OpenIdConnectDefaults.AuthenticationScheme)
                     user.AzureAdUpn = upn;
                     user.FirstName = firstName ?? user.FirstName;
                     user.LastName = lastName ?? user.LastName;
+                    user.CompanyName = companyName ?? user.CompanyName;
 
                     // Link EbillUser if one was created since last login
                     if (!user.EbillUserId.HasValue)
@@ -343,6 +348,12 @@ builder.Services.AddAuthentication(OpenIdConnectDefaults.AuthenticationScheme)
                     if (user.EbillUserId.HasValue)
                     {
                         claimsIdentity.AddClaim(new System.Security.Claims.Claim("EbillUserId", user.EbillUserId.Value.ToString()));
+                    }
+
+                    // Add CompanyName claim for menu visibility
+                    if (!string.IsNullOrEmpty(user.CompanyName))
+                    {
+                        claimsIdentity.AddClaim(new System.Security.Claims.Claim("CompanyName", user.CompanyName));
                     }
                 }
 
