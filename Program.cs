@@ -271,6 +271,24 @@ builder.Services.AddAuthentication(OpenIdConnectDefaults.AuthenticationScheme)
                         user.AzureAdUpn = upn;
                         user.FirstName = firstName ?? user.FirstName;
                         user.LastName = lastName ?? user.LastName;
+
+                        // Link EbillUser if one was created since last login
+                        if (!user.EbillUserId.HasValue)
+                        {
+                            var ebillUser = await dbContext.EbillUsers
+                                .FirstOrDefaultAsync(e => e.Email == email);
+                            if (ebillUser != null)
+                            {
+                                user.EbillUserId = ebillUser.Id;
+                                ebillUser.ApplicationUserId = user.Id;
+                                ebillUser.HasLoginAccount = true;
+                                ebillUser.LoginEnabled = true;
+                                await dbContext.SaveChangesAsync();
+                                logger.LogInformation("Linked EbillUser {IndexNumber} to existing ApplicationUser {Email} on Azure AD login",
+                                    ebillUser.IndexNumber, email);
+                            }
+                        }
+
                         await userManager.UpdateAsync(user);
                         logger.LogInformation("Linked existing ApplicationUser to Azure AD: {Email}", email);
                     }
@@ -283,6 +301,24 @@ builder.Services.AddAuthentication(OpenIdConnectDefaults.AuthenticationScheme)
                     user.AzureAdUpn = upn;
                     user.FirstName = firstName ?? user.FirstName;
                     user.LastName = lastName ?? user.LastName;
+
+                    // Link EbillUser if one was created since last login
+                    if (!user.EbillUserId.HasValue)
+                    {
+                        var ebillUser = await dbContext.EbillUsers
+                            .FirstOrDefaultAsync(e => e.Email == email);
+                        if (ebillUser != null)
+                        {
+                            user.EbillUserId = ebillUser.Id;
+                            ebillUser.ApplicationUserId = user.Id;
+                            ebillUser.HasLoginAccount = true;
+                            ebillUser.LoginEnabled = true;
+                            await dbContext.SaveChangesAsync();
+                            logger.LogInformation("Linked EbillUser {IndexNumber} to existing ApplicationUser {Email} on Azure AD login",
+                                ebillUser.IndexNumber, email);
+                        }
+                    }
+
                     await userManager.UpdateAsync(user);
                 }
 
