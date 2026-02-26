@@ -181,7 +181,7 @@ $(document).ready(function() {
     
     // Close mobile menu when clicking a menu link (for better UX)
     $('#sidebar a').on('click', function() {
-        if ($(window).width() <= 768) {
+        if ($(window).width() <= 1100) {
             // Don't close if it's a submenu toggle
             if (!$(this).parent().hasClass('has-submenu') && 
                 !$(this).parent().hasClass('has-nested-submenu')) {
@@ -194,7 +194,7 @@ $(document).ready(function() {
     
     // Handle window resize
     $(window).on('resize', function() {
-        if ($(window).width() > 768) {
+        if ($(window).width() > 1100) {
             $('#sidebar').removeClass('active');
             $('#sidebarOverlay').removeClass('active');
             $('body').removeClass('sidebar-open');
