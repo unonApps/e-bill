@@ -9,6 +9,7 @@ using Microsoft.Identity.Web.UI;
 using Microsoft.AspNetCore.Authentication.OpenIdConnect;
 using Microsoft.AspNetCore.Authentication.Cookies;
 using System.Security.Claims;
+using System.Text.Json;
 using Microsoft.AspNetCore.HttpOverrides;
 using Microsoft.AspNetCore.Http;
 using Microsoft.AspNetCore.DataProtection;
@@ -208,8 +209,6 @@ builder.Services.AddAuthentication(OpenIdConnectDefaults.AuthenticationScheme)
                 var upn = context.Principal?.FindFirst("preferred_username")?.Value ?? email;
                 var firstName = context.Principal?.FindFirst(ClaimTypes.GivenName)?.Value;
                 var lastName = context.Principal?.FindFirst(ClaimTypes.Surname)?.Value;
-                var companyName = context.Principal?.FindFirst("company")?.Value
-                    ?? context.Principal?.FindFirst("extension_companyName")?.Value;
                 var tenantId = context.Principal?.FindFirst("http://schemas.microsoft.com/identity/claims/tenantid")?.Value
                     ?? context.Principal?.FindFirst("tid")?.Value;
 
@@ -249,7 +248,6 @@ builder.Services.AddAuthentication(OpenIdConnectDefaults.AuthenticationScheme)
                             AzureAdUpn = upn,
                             FirstName = firstName,
                             LastName = lastName,
-                            CompanyName = companyName,
                             Status = UserStatus.Active,
                             EbillUserId = ebillUser?.Id  // Link to EbillUser if exists
                         };
@@ -274,7 +272,6 @@ builder.Services.AddAuthentication(OpenIdConnectDefaults.AuthenticationScheme)
                         user.AzureAdUpn = upn;
                         user.FirstName = firstName ?? user.FirstName;
                         user.LastName = lastName ?? user.LastName;
-                        user.CompanyName = companyName ?? user.CompanyName;
 
                         // Link EbillUser if one was created since last login
                         if (!user.EbillUserId.HasValue)
@@ -305,7 +302,6 @@ builder.Services.AddAuthentication(OpenIdConnectDefaults.AuthenticationScheme)
                     user.AzureAdUpn = upn;
                     user.FirstName = firstName ?? user.FirstName;
                     user.LastName = lastName ?? user.LastName;
-                    user.CompanyName = companyName ?? user.CompanyName;
 
                     // Link EbillUser if one was created since last login
                     if (!user.EbillUserId.HasValue)
@@ -325,6 +321,59 @@ builder.Services.AddAuthentication(OpenIdConnectDefaults.AuthenticationScheme)
                     }
 
                     await userManager.UpdateAsync(user);
+                }
+
+                // Fetch CompanyName from Microsoft Graph if not already stored
+                if (string.IsNullOrEmpty(user.CompanyName) && !string.IsNullOrEmpty(objectId))
+                {
+                    try
+                    {
+                        var config = context.HttpContext.RequestServices.GetRequiredService<IConfiguration>();
+                        var graphClientId = config["AzureAd:ClientId"];
+                        var graphClientSecret = config["AzureAd:ClientSecret"];
+                        var graphTenantId = config["AzureAd:TenantId"];
+
+                        using var httpClient = new HttpClient();
+                        var tokenRequest = new FormUrlEncodedContent(new Dictionary<string, string>
+                        {
+                            ["client_id"] = graphClientId!,
+                            ["client_secret"] = graphClientSecret!,
+                            ["scope"] = "https://graph.microsoft.com/.default",
+                            ["grant_type"] = "client_credentials"
+                        });
+
+                        var tokenResponse = await httpClient.PostAsync(
+                            $"https://login.microsoftonline.com/{graphTenantId}/oauth2/v2.0/token", tokenRequest);
+
+                        if (tokenResponse.IsSuccessStatusCode)
+                        {
+                            var tokenJson = JsonDocument.Parse(await tokenResponse.Content.ReadAsStringAsync());
+                            var accessToken = tokenJson.RootElement.GetProperty("access_token").GetString();
+
+                            httpClient.DefaultRequestHeaders.Authorization =
+                                new System.Net.Http.Headers.AuthenticationHeaderValue("Bearer", accessToken);
+
+                            var graphResponse = await httpClient.GetAsync(
+                                $"https://graph.microsoft.com/v1.0/users/{objectId}?$select=companyName");
+
+                            if (graphResponse.IsSuccessStatusCode)
+                            {
+                                var profileJson = JsonDocument.Parse(await graphResponse.Content.ReadAsStringAsync());
+                                if (profileJson.RootElement.TryGetProperty("companyName", out var companyProp) &&
+                                    companyProp.ValueKind == JsonValueKind.String)
+                                {
+                                    user.CompanyName = companyProp.GetString();
+                                    await userManager.UpdateAsync(user);
+                                    logger.LogInformation("Fetched CompanyName '{CompanyName}' from Graph for {Email}",
+                                        user.CompanyName, email);
+                                }
+                            }
+                        }
+                    }
+                    catch (Exception ex)
+                    {
+                        logger.LogWarning(ex, "Failed to fetch CompanyName from Microsoft Graph for {Email}", email);
+                    }
                 }
 
                 // Sign in the user with ASP.NET Identity
