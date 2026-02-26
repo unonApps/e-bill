@@ -632,6 +632,11 @@ footer {
 .header-left {
     display: flex;
     align-items: center;
+    color: inherit;
+}
+
+.header-left:hover {
+    color: inherit;
 }
 
 .un-logo {
