@@ -4524,13 +4524,43 @@
                     <td class="px-3 py-2" onclick="toggleCallDetails('${g.groupId}')" style="cursor:pointer;">${officialCol}</td>
                     <td class="px-3 py-2" onclick="toggleCallDetails('${g.groupId}')" style="cursor:pointer;">${personalCol}</td>
                     <td class="px-3 py-2" onclick="toggleCallDetails('${g.groupId}')" style="cursor:pointer;">${recoveredMain}</td>
-                    <td class="px-3 py-2 text-center">
-                        <select class="form-select form-select-sm" style="width:auto;border-radius:8px;font-size:0.75rem;"
-                                onchange="verifyAllCallsForExtensionMonth('${g.extension}',${g.month},${g.year},this.value,${g.callCount})">
-                            <option value="">Mark All...</option>
-                            <option value="Official">All Official</option>
-                            <option value="Personal">All Personal</option>
-                        </select>
+                    <td class="text-end px-2" onclick="event.stopPropagation();">
+                        <div class="d-flex gap-2 align-items-center justify-content-end flex-wrap">
+                            ${g.incomingAssignmentCount > 0 ? `<span class="badge bg-info" style="font-size:0.7rem;padding:0.25rem 0.5rem;" title="Calls assigned to you pending acceptance"><i class="bi bi-arrow-left me-1"></i>${g.incomingAssignmentCount} Assigned to you</span>` : ''}
+                            ${g.outgoingPendingCount > 0 ? `<span class="badge bg-warning text-dark" style="font-size:0.7rem;padding:0.25rem 0.5rem;" title="${g.outgoingPendingCount} calls pending acceptance by ${g.assignedToUser || 'others'}"><i class="bi bi-hourglass-split me-1"></i>${g.outgoingPendingCount} Pending with ${g.assignedToUser || 'others'}</span>` : ''}
+                            <select class="form-select form-select-sm" style="width:130px;border-radius:8px;font-size:0.8rem;"
+                                    onchange="verifyAllCallsForExtensionMonth('${g.extension}',${g.month},${g.year},this.value,${g.callCount})"
+                                    onclick="event.stopPropagation();">
+                                <option value="Official" ${!(g.personalUSD > 0 && !(g.officialUSD > 0 || g.officialKSH > 0)) ? 'selected' : ''} style="color:#10b981;">Official</option>
+                                <option value="Personal" ${(g.personalUSD > 0 && !(g.officialUSD > 0 || g.officialKSH > 0)) ? 'selected' : ''} style="color:#f59e0b;">Personal</option>
+                            </select>
+                            <button type="button" class="btn btn-outline-secondary btn-sm"
+                                    onclick="openReassignDialogForExtension('${escapeHtmlAttr(g.extension)}', ${g.month}, ${g.year}, ${g.callCount})"
+                                    title="Reassign all calls in this extension"
+                                    style="font-size:0.7rem;padding:0.25rem 0.5rem;">
+                                <i class="bi bi-person-plus"></i>
+                            </button>
+                            ${g.incomingAssignmentCount > 0 ? `<div class="btn-group btn-group-sm" onclick="event.stopPropagation();">
+                                <button type="button" class="btn btn-success btn-sm"
+                                        onclick="showAcceptBulkModal('extension', '${escapeHtmlAttr(g.extension)}', ${g.month}, ${g.year}, '', ${g.incomingAssignmentCount}, ${g.totalCostUSD}, '${escapeHtmlAttr(g.assignedFromUser || '')}')"
+                                        title="Accept all ${g.incomingAssignmentCount} assignments"
+                                        style="font-size:0.7rem;padding:0.25rem 0.5rem;">
+                                    <i class="bi bi-check-lg"></i> Accept
+                                </button>
+                                <button type="button" class="btn btn-danger btn-sm"
+                                        onclick="showRejectBulkModal('extension', '${escapeHtmlAttr(g.extension)}', ${g.month}, ${g.year}, '', ${g.incomingAssignmentCount}, ${g.totalCostUSD}, '${escapeHtmlAttr(g.assignedFromUser || '')}')"
+                                        title="Reject all ${g.incomingAssignmentCount} assignments"
+                                        style="font-size:0.7rem;padding:0.25rem 0.5rem;">
+                                    <i class="bi bi-x-lg"></i> Reject
+                                </button>
+                            </div>` : ''}
+                            ${g.outgoingPendingCount > 0 ? `<button type="button" class="btn btn-outline-warning btn-sm"
+                                    onclick="event.stopPropagation(); showRecallBulkModal('extension', '${escapeHtmlAttr(g.extension)}', ${g.month}, ${g.year}, '', ${g.outgoingPendingCount}, ${g.totalCostUSD}, '${escapeHtmlAttr(g.assignedToUser || '')}')"
+                                    title="Recall all ${g.outgoingPendingCount} pending reassignments"
+                                    style="font-size:0.7rem;padding:0.25rem 0.5rem;">
+                                <i class="bi bi-arrow-return-left me-1"></i>Recall
+                            </button>` : ''}
+                        </div>
                     </td>
                 </tr>
                 <tr class="dialed-numbers-container" id="dialed-container-${g.groupId}" style="display:none;">
