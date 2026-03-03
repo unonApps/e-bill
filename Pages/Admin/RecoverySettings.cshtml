@@ -593,6 +593,107 @@
                 </div>
             </div>
 
+            <!-- Organization COS Verification Settings -->
+            <div class="col-lg-12 mb-4">
+                <div class="modern-card">
+                    <div class="modern-card-header info">
+                        <h6 class="modern-card-title">
+                            <i class="bi bi-building text-info"></i>Organization Verification Settings
+                        </h6>
+                    </div>
+                    <div class="modern-card-body">
+                        <div class="info-alert mb-4">
+                            <i class="bi bi-info-circle me-2"></i>
+                            <strong>COS Auto-Verification:</strong> When enabled for an organization, staff whose total monthly usage
+                            is within their Class of Service allowance will have calls auto-verified as Official. No manual verification
+                            or supervisor submission required. If usage exceeds the COS allowance, all calls follow the normal
+                            verification flow.
+                        </div>
+
+                        @if (Model.Organizations.Any())
+                        {
+                            <!-- Filters -->
+                            <div class="d-flex flex-wrap gap-2 mb-3 align-items-center">
+                                <div class="flex-grow-1" style="max-width: 320px;">
+                                    <input type="text" id="cosOrgSearch" placeholder="Search by code or name..."
+                                           class="form-control-modern" style="padding: 0.5rem 0.875rem; font-size: 0.875rem;" />
+                                </div>
+                                <div>
+                                    <select id="cosStatusFilter" class="form-control-modern" style="padding: 0.5rem 0.875rem; font-size: 0.875rem; width: auto; min-width: 160px;">
+                                        <option value="all">All Statuses</option>
+                                        <option value="enabled">Enabled Only</option>
+                                        <option value="disabled">Disabled Only</option>
+                                    </select>
+                                </div>
+                                <div class="ms-auto" style="font-size: 0.813rem; color: #6b7280;">
+                                    <span id="cosOrgCount">@Model.Organizations.Count</span> of @Model.Organizations.Count organizations
+                                </div>
+                            </div>
+
+                            <div class="table-responsive">
+                                <table class="table table-hover mb-0" id="cosOrgTable" style="border-collapse: separate; border-spacing: 0;">
+                                    <thead>
+                                        <tr style="background: #f8f9fa;">
+                                            <th style="font-weight: 600; color: #374151; padding: 0.875rem 1rem; border-bottom: 2px solid #e5e7eb; font-size: 0.875rem;">Code</th>
+                                            <th style="font-weight: 600; color: #374151; padding: 0.875rem 1rem; border-bottom: 2px solid #e5e7eb; font-size: 0.875rem;">Organization</th>
+                                            <th style="font-weight: 600; color: #374151; padding: 0.875rem 1rem; border-bottom: 2px solid #e5e7eb; font-size: 0.875rem; text-align: center;">Skip Verification Within COS</th>
+                                        </tr>
+                                    </thead>
+                                    <tbody id="cosOrgBody">
+                                        @foreach (var org in Model.Organizations)
+                                        {
+                                            <tr data-code="@(org.Code ?? "")" data-name="@org.Name" data-enabled="@org.SkipVerificationWithinCOS.ToString().ToLower()">
+                                                <td style="padding: 0.75rem 1rem; border-bottom: 1px solid #f0f0f0; color: #6b7280; font-size: 0.875rem; font-weight: 500;">
+                                                    @(org.Code ?? "---")
+                                                </td>
+                                                <td style="padding: 0.75rem 1rem; border-bottom: 1px solid #f0f0f0; color: #1f2937; font-weight: 500;">
+                                                    @org.Name
+                                                </td>
+                                                <td style="padding: 0.75rem 1rem; border-bottom: 1px solid #f0f0f0; text-align: center;">
+                                                    <label class="switch-wrapper" style="margin: 0;">
+                                                        <input type="checkbox"
+                                                               class="cos-toggle"
+                                                               data-org-id="@org.Id"
+                                                               @(org.SkipVerificationWithinCOS ? "checked" : "")>
+                                                        <span class="switch-slider"></span>
+                                                    </label>
+                                                </td>
+                                            </tr>
+                                        }
+                                    </tbody>
+                                </table>
+                            </div>
+
+                            <!-- Pagination -->
+                            <div class="d-flex justify-content-between align-items-center mt-3 pt-3" style="border-top: 1px solid #f0f0f0;">
+                                <div class="d-flex align-items-center gap-2">
+                                    <span style="font-size: 0.813rem; color: #6b7280;">Rows per page:</span>
+                                    <select id="cosPageSize" class="form-control-modern" style="padding: 0.35rem 0.5rem; font-size: 0.813rem; width: auto; min-width: 60px;">
+                                        <option value="10" selected>10</option>
+                                        <option value="25">25</option>
+                                        <option value="50">50</option>
+                                        <option value="100">All</option>
+                                    </select>
+                                </div>
+                                <div class="d-flex align-items-center gap-2">
+                                    <span id="cosPaginationInfo" style="font-size: 0.813rem; color: #6b7280;"></span>
+                                    <button type="button" id="cosPrevBtn" class="btn btn-sm btn-outline-secondary" style="border-radius: 8px; padding: 0.25rem 0.625rem;" disabled>
+                                        <i class="bi bi-chevron-left"></i>
+                                    </button>
+                                    <button type="button" id="cosNextBtn" class="btn btn-sm btn-outline-secondary" style="border-radius: 8px; padding: 0.25rem 0.625rem;" disabled>
+                                        <i class="bi bi-chevron-right"></i>
+                                    </button>
+                                </div>
+                            </div>
+                        }
+                        else
+                        {
+                            <p class="text-muted text-center py-3">No organizations found.</p>
+                        }
+                    </div>
+                </div>
+            </div>
+
             <!-- Recovery Rules Summary -->
             <div class="col-lg-12 mb-4">
                 <div class="modern-card">
@@ -744,6 +845,135 @@
                     toggleEmailSettings(this.checked);
                 });
             }
+
+            // =============================================
+            // COS Organization Table: Filter + Pagination
+            // =============================================
+            var cosState = { page: 1, pageSize: 10, search: '', status: 'all' };
+            var cosAllRows = Array.from(document.querySelectorAll('#cosOrgBody tr'));
+            var cosFilteredRows = cosAllRows.slice();
+
+            function cosApplyFilters() {
+                var search = cosState.search.toLowerCase();
+                var status = cosState.status;
+
+                cosFilteredRows = cosAllRows.filter(function(row) {
+                    var code = (row.dataset.code || '').toLowerCase();
+                    var name = (row.dataset.name || '').toLowerCase();
+                    var enabled = row.dataset.enabled;
+
+                    var matchSearch = !search || code.indexOf(search) !== -1 || name.indexOf(search) !== -1;
+                    var matchStatus = status === 'all' ||
+                        (status === 'enabled' && enabled === 'true') ||
+                        (status === 'disabled' && enabled === 'false');
+
+                    return matchSearch && matchStatus;
+                });
+
+                cosState.page = 1;
+                cosRenderPage();
+            }
+
+            function cosRenderPage() {
+                var total = cosFilteredRows.length;
+                var pageSize = cosState.pageSize >= 100 ? total : cosState.pageSize;
+                var totalPages = Math.max(1, Math.ceil(total / pageSize));
+                if (cosState.page > totalPages) cosState.page = totalPages;
+
+                var start = (cosState.page - 1) * pageSize;
+                var end = Math.min(start + pageSize, total);
+
+                // Hide all, show filtered slice
+                cosAllRows.forEach(function(row) { row.style.display = 'none'; });
+                for (var i = start; i < end; i++) {
+                    cosFilteredRows[i].style.display = '';
+                }
+
+                // Update count
+                var countEl = document.getElementById('cosOrgCount');
+                if (countEl) countEl.textContent = total;
+
+                // Update pagination info
+                var infoEl = document.getElementById('cosPaginationInfo');
+                if (infoEl) {
+                    infoEl.textContent = total === 0 ? '0 of 0' : (start + 1) + '-' + end + ' of ' + total;
+                }
+
+                // Update buttons
+                var prevBtn = document.getElementById('cosPrevBtn');
+                var nextBtn = document.getElementById('cosNextBtn');
+                if (prevBtn) prevBtn.disabled = cosState.page <= 1;
+                if (nextBtn) nextBtn.disabled = cosState.page >= totalPages;
+            }
+
+            // Search input
+            var cosSearchInput = document.getElementById('cosOrgSearch');
+            if (cosSearchInput) {
+                cosSearchInput.addEventListener('input', function() {
+                    cosState.search = this.value;
+                    cosApplyFilters();
+                });
+            }
+
+            // Status filter
+            var cosStatusSelect = document.getElementById('cosStatusFilter');
+            if (cosStatusSelect) {
+                cosStatusSelect.addEventListener('change', function() {
+                    cosState.status = this.value;
+                    cosApplyFilters();
+                });
+            }
+
+            // Page size
+            var cosPageSizeSelect = document.getElementById('cosPageSize');
+            if (cosPageSizeSelect) {
+                cosPageSizeSelect.addEventListener('change', function() {
+                    cosState.pageSize = parseInt(this.value);
+                    cosState.page = 1;
+                    cosRenderPage();
+                });
+            }
+
+            // Prev / Next
+            var cosPrevBtn = document.getElementById('cosPrevBtn');
+            var cosNextBtn = document.getElementById('cosNextBtn');
+            if (cosPrevBtn) cosPrevBtn.addEventListener('click', function() { cosState.page--; cosRenderPage(); });
+            if (cosNextBtn) cosNextBtn.addEventListener('click', function() { cosState.page++; cosRenderPage(); });
+
+            // Initial render
+            cosRenderPage();
+
+            // COS toggle AJAX handlers
+            document.querySelectorAll('.cos-toggle').forEach(function(toggle) {
+                toggle.addEventListener('change', function() {
+                    var orgId = this.dataset.orgId;
+                    var enabled = this.checked;
+                    var checkbox = this;
+                    var row = checkbox.closest('tr');
+
+                    fetch('@Url.Page("/Admin/RecoverySettings", "ToggleCOSSetting")', {
+                        method: 'POST',
+                        headers: {
+                            'Content-Type': 'application/x-www-form-urlencoded',
+                            'RequestVerificationToken': document.querySelector('input[name="__RequestVerificationToken"]').value
+                        },
+                        body: 'orgId=' + orgId + '&enabled=' + enabled
+                    })
+                    .then(function(response) {
+                        if (!response.ok) throw new Error('Failed to update setting');
+                        return response.json();
+                    })
+                    .then(function(data) {
+                        if (!data.success) throw new Error('Update failed');
+                        // Update data attribute so filters reflect new state
+                        if (row) row.dataset.enabled = enabled.toString();
+                    })
+                    .catch(function(error) {
+                        checkbox.checked = !enabled;
+                        alert('Failed to update COS setting. Please try again.');
+                    });
+                });
+            });
 
             // Update interval display dynamically
             var intervalInput = document.querySelector('input[name="Settings.JobIntervalMinutes"]');

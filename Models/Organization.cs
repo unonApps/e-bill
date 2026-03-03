@@ -21,6 +21,11 @@ namespace TAB.Web.Models
         
         public DateTime CreatedDate { get; set; } = DateTime.UtcNow;
 
+        /// <summary>
+        /// When true, calls within COS allowance are auto-verified as Official (no staff action needed).
+        /// </summary>
+        public bool SkipVerificationWithinCOS { get; set; } = false;
+
         // Navigation property for related offices
         public virtual ICollection<Office> Offices { get; set; } = new List<Office>();
 

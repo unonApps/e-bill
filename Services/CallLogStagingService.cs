@@ -21,6 +21,7 @@ namespace TAB.Web.Services
         private readonly IEnhancedEmailService _emailService;
         private readonly IConfiguration _configuration;
         private readonly IBackgroundJobClient _backgroundJobs;
+        private readonly IClassOfServiceCalculationService _cosService;
 
         public CallLogStagingService(
             ApplicationDbContext context,
@@ -28,7 +29,8 @@ namespace TAB.Web.Services
             IDeadlineManagementService deadlineService,
             IEnhancedEmailService emailService,
             IConfiguration configuration,
-            IBackgroundJobClient backgroundJobs)
+            IBackgroundJobClient backgroundJobs,
+            IClassOfServiceCalculationService cosService)
         {
             _context = context;
             _logger = logger;
@@ -36,6 +38,7 @@ namespace TAB.Web.Services
             _emailService = emailService;
             _configuration = configuration;
             _backgroundJobs = backgroundJobs;
+            _cosService = cosService;
         }
 
         public async Task<StagingBatch> ConsolidateCallLogsAsync(DateTime startDate, DateTime endDate, string createdBy)
@@ -1325,6 +1328,19 @@ namespace TAB.Web.Services
             // Reload batch to get updated status from stored procedure
             await _context.Entry(batch).ReloadAsync();
 
+            // Auto-verify calls within COS for qualifying organizations
+            try
+            {
+                var cosAutoCount = await AutoVerifyWithinCOSAsync(batchId);
+                if (cosAutoCount > 0)
+                    _logger.LogInformation("COS auto-verified {Count} records for batch {BatchId}", cosAutoCount, batchId);
+            }
+            catch (Exception ex)
+            {
+                _logger.LogError(ex, "Error during COS auto-verification for batch {BatchId}", batchId);
+                // Don't fail the push operation
+            }
+
             // Create deadline tracking entries if verification period is set
             if (verificationPeriod.HasValue)
             {
@@ -1980,6 +1996,151 @@ namespace TAB.Web.Services
                 _logger.LogError(ex, "Error in SendPublishedNotificationsAsync");
                 throw;
             }
+        }
+
+        private async Task<int> AutoVerifyWithinCOSAsync(Guid batchId)
+        {
+            // 1. Get org IDs where COS auto-verification is enabled
+            var cosOrgIds = await _context.Organizations
+                .Where(o => o.SkipVerificationWithinCOS)
+                .Select(o => o.Id)
+                .ToListAsync();
+
+            if (!cosOrgIds.Any())
+                return 0;
+
+            // 2. Get unverified call records from this batch where the responsible user belongs to a qualifying org
+            var batchCalls = await _context.CallRecords
+                .Where(r => r.SourceBatchId == batchId && !r.IsVerified)
+                .ToListAsync();
+
+            if (!batchCalls.Any())
+                return 0;
+
+            // 3. Get ebill users in qualifying orgs for fast lookup
+            var qualifyingIndexNumbers = await _context.EbillUsers
+                .Where(u => u.OrganizationId.HasValue && cosOrgIds.Contains(u.OrganizationId.Value))
+                .Select(u => u.IndexNumber)
+                .ToListAsync();
+
+            var qualifyingIndexSet = new HashSet<string>(qualifyingIndexNumbers, StringComparer.OrdinalIgnoreCase);
+
+            // 4. Filter batch calls to only those from qualifying users
+            var qualifyingCalls = batchCalls
+                .Where(c => !string.IsNullOrEmpty(c.ResponsibleIndexNumber) && qualifyingIndexSet.Contains(c.ResponsibleIndexNumber))
+                .GroupBy(c => c.ResponsibleIndexNumber!)
+                .ToList();
+
+            if (!qualifyingCalls.Any())
+                return 0;
+
+            int autoVerifiedCount = 0;
+
+            foreach (var staffGroup in qualifyingCalls)
+            {
+                var indexNumber = staffGroup.Key;
+                var staffCalls = staffGroup.ToList();
+
+                try
+                {
+                    // Get the allowance limit for this user
+                    var allowanceLimit = await _cosService.GetAllowanceLimitAsync(indexNumber);
+
+                    // Skip if user has no COS assigned (null with no phones)
+                    // But treat null-from-unlimited as unlimited (auto-verify)
+                    var userPhones = await _context.UserPhones
+                        .Include(up => up.ClassOfService)
+                        .Where(up => up.IndexNumber == indexNumber && up.IsActive)
+                        .ToListAsync();
+
+                    if (!userPhones.Any())
+                    {
+                        _logger.LogDebug("Skipping COS auto-verify for {IndexNumber} - no active phones", indexNumber);
+                        continue;
+                    }
+
+                    bool isUnlimited = userPhones.Any(up => up.ClassOfService?.AirtimeAllowanceAmount == null);
+
+                    if (!isUnlimited && allowanceLimit == null)
+                    {
+                        _logger.LogDebug("Skipping COS auto-verify for {IndexNumber} - no COS assigned", indexNumber);
+                        continue;
+                    }
+
+                    // Determine the billing month/year from the calls
+                    var sampleCall = staffCalls.First();
+                    int callMonth = sampleCall.CallMonth;
+                    int callYear = sampleCall.CallYear;
+
+                    // Calculate total usage for the month: existing official + all new batch calls
+                    var existingUsage = await _cosService.GetMonthlyUsageAsync(indexNumber, callMonth, callYear);
+                    var batchUsage = staffCalls.Sum(c => c.CallCostUSD);
+                    var totalUsage = existingUsage + batchUsage;
+
+                    // Check if within allowance
+                    if (!isUnlimited && totalUsage > allowanceLimit!.Value)
+                    {
+                        _logger.LogDebug("Skipping COS auto-verify for {IndexNumber} - usage {Usage} exceeds allowance {Allowance}",
+                            indexNumber, totalUsage, allowanceLimit.Value);
+                        continue;
+                    }
+
+                    // Get the primary COS ID for the verification record
+                    var primaryPhone = userPhones.FirstOrDefault(up => up.IsPrimary) ?? userPhones.First();
+                    int? classOfServiceId = primaryPhone.ClassOfServiceId;
+                    decimal? cosAllowance = primaryPhone.ClassOfService?.AirtimeAllowanceAmount;
+
+                    // Auto-verify all batch calls for this user
+                    foreach (var call in staffCalls)
+                    {
+                        call.IsVerified = true;
+                        call.VerificationDate = DateTime.UtcNow;
+                        call.VerificationType = "Official";
+                        call.AssignmentStatus = "Official";
+                        call.FinalAssignmentType = "Official";
+                        call.RecoveryStatus = "Processed";
+                        call.RecoveryAmount = 0;
+                        call.RecoveryDate = DateTime.UtcNow;
+                        call.RecoveryProcessedBy = "System-COSAutoVerify";
+
+                        var verification = new CallLogVerification
+                        {
+                            CallRecordId = call.Id,
+                            VerifiedBy = indexNumber + " (COS-Auto)",
+                            VerifiedDate = DateTime.UtcNow,
+                            VerificationType = Models.Enums.VerificationType.Official,
+                            ClassOfServiceId = classOfServiceId,
+                            AllowanceAmount = cosAllowance,
+                            ActualAmount = call.CallCostUSD,
+                            IsOverage = false,
+                            ApprovalStatus = "Approved",
+                            SupervisorApprovalStatus = "Approved",
+                            SupervisorApprovedBy = "System-COSAutoVerify",
+                            SupervisorApprovedDate = DateTime.UtcNow,
+                            BatchId = batchId,
+                            SubmittedToSupervisor = true,
+                            SubmittedDate = DateTime.UtcNow,
+                            CreatedDate = DateTime.UtcNow
+                        };
+
+                        _context.CallLogVerifications.Add(verification);
+                        autoVerifiedCount++;
+                    }
+
+                    _logger.LogInformation("COS auto-verified {Count} calls for {IndexNumber} (usage: {Usage}, allowance: {Allowance})",
+                        staffCalls.Count, indexNumber, totalUsage, isUnlimited ? "Unlimited" : allowanceLimit!.Value.ToString("F2"));
+                }
+                catch (Exception ex)
+                {
+                    _logger.LogError(ex, "Error auto-verifying calls for {IndexNumber}", indexNumber);
+                    // Continue with next staff member
+                }
+            }
+
+            if (autoVerifiedCount > 0)
+                await _context.SaveChangesAsync();
+
+            return autoVerifiedCount;
         }
     }
 

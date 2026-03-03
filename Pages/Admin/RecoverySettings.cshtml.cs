@@ -31,6 +31,8 @@ namespace TAB.Web.Pages.Admin
         [BindProperty]
         public RecoverySettingsViewModel Settings { get; set; } = new();
 
+        public List<Organization> Organizations { get; set; } = new();
+
         public async Task OnGetAsync()
         {
             // Load existing configuration or create defaults
@@ -60,10 +62,14 @@ namespace TAB.Web.Pages.Admin
                 Settings.EnableEmailNotifications = false;
                 Settings.AdminNotificationEmail = "";
             }
+
+            await LoadOrganizationsAsync();
         }
 
         public async Task<IActionResult> OnPostSaveSettingsAsync()
         {
+            await LoadOrganizationsAsync();
+
             if (!ModelState.IsValid)
             {
                 ErrorMessage = "Please correct the validation errors.";
@@ -200,6 +206,27 @@ namespace TAB.Web.Pages.Admin
                 ErrorMessage = $"Error resetting settings: {ex.Message}";
                 return RedirectToPage();
             }
+        }
+
+        public async Task<IActionResult> OnPostToggleCOSSettingAsync(int orgId, bool enabled)
+        {
+            var org = await _context.Organizations.FindAsync(orgId);
+            if (org == null) return NotFound();
+
+            org.SkipVerificationWithinCOS = enabled;
+            await _context.SaveChangesAsync();
+
+            _logger.LogInformation("COS auto-verification {Status} for organization {OrgId} ({OrgName}) by {User}",
+                enabled ? "enabled" : "disabled", orgId, org.Name, User.Identity?.Name);
+
+            return new JsonResult(new { success = true });
+        }
+
+        private async Task LoadOrganizationsAsync()
+        {
+            Organizations = await _context.Organizations
+                .OrderBy(o => o.Code).ThenBy(o => o.Name)
+                .ToListAsync();
         }
 
         private bool IsValidEmail(string email)
