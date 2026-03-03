@@ -109,7 +109,8 @@ namespace TAB.Web.Services
             List<string>? attachmentPaths = null,
             string? createdBy = null,
             string? relatedEntityType = null,
-            string? relatedEntityId = null)
+            string? relatedEntityId = null,
+            bool redactBody = false)
         {
             try
             {
@@ -122,6 +123,8 @@ namespace TAB.Web.Services
 
                 var (subject, htmlBody, plainTextBody) = await _templateService.RenderTemplateAsync(templateCode, data);
 
+                const string redactedMessage = "[Redacted - email body not stored because it contains sensitive credentials.]";
+
                 // Create email log entry with template reference
                 var emailLog = new EmailLog
                 {
@@ -129,8 +132,8 @@ namespace TAB.Web.Services
                     CcEmails = cc,
                     BccEmails = bcc,
                     Subject = subject,
-                    Body = htmlBody,
-                    PlainTextBody = plainTextBody,
+                    Body = redactBody ? redactedMessage : htmlBody,
+                    PlainTextBody = redactBody ? redactedMessage : plainTextBody,
                     EmailTemplateId = template.Id,
                     Status = "Pending",
                     CreatedDate = DateTime.UtcNow,
@@ -486,7 +489,8 @@ namespace TAB.Web.Services
                 data,
                 createdBy: "System",
                 relatedEntityType: "User",
-                relatedEntityId: to);
+                relatedEntityId: to,
+                redactBody: true);
         }
 
         private async Task<EmailConfiguration?> GetActiveEmailConfigurationAsync()

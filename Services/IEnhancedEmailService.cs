@@ -31,7 +31,8 @@ namespace TAB.Web.Services
             List<string>? attachmentPaths = null,
             string? createdBy = null,
             string? relatedEntityType = null,
-            string? relatedEntityId = null);
+            string? relatedEntityId = null,
+            bool redactBody = false);
 
         /// <summary>
         /// Queues an email for later sending

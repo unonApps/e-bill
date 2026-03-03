@@ -289,7 +289,8 @@ namespace TAB.Web.Pages.Admin
                         to: user.Email ?? string.Empty,
                         templateCode: "USER_ACCOUNT_CREATED",
                         data: emailData,
-                        createdBy: User.Identity?.Name
+                        createdBy: User.Identity?.Name,
+                        redactBody: true
                     );
 
                     StatusMessage = $"Successfully created user {Input.Email} with role {Input.Role}. A welcome email with login instructions has been sent.";
@@ -463,7 +464,8 @@ namespace TAB.Web.Pages.Admin
                             to: user.Email ?? string.Empty,
                             templateCode: "USER_PASSWORD_RESET",
                             data: emailData,
-                            createdBy: User.Identity?.Name
+                            createdBy: User.Identity?.Name,
+                            redactBody: true
                         );
 
                         StatusMessage = $"User {user.Email} updated successfully. Password has been reset and notification email sent.";
@@ -572,7 +574,8 @@ namespace TAB.Web.Pages.Admin
                         to: user.Email ?? string.Empty,
                         templateCode: "USER_PASSWORD_RESET",
                         data: emailData,
-                        createdBy: User.Identity?.Name
+                        createdBy: User.Identity?.Name,
+                        redactBody: true
                     );
 
                     emailSent = true;
