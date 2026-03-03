@@ -249,6 +249,12 @@
                                 <span>Billing Reports</span>
                             </a>
                         </li>
+                        <li>
+                            <a asp-page="/Admin/StaffBillingReport" class="nested-submenu-item @(ViewContext.RouteData.Values["Page"]?.ToString() == "/Admin/StaffBillingReport" ? "active" : "")">
+                                <i class="menu-icon bi bi-person-lines-fill"></i>
+                                <span>Staff Billing Report</span>
+                            </a>
+                        </li>
 
                         <!-- System Configuration Section -->
                         <li class="menu-divider"></li>
@@ -425,15 +431,75 @@
                             <span>CALL LOG MANAGEMENT</span>
                         </li>
                         <li>
+                            <a asp-page="/Admin/SmartUpload" class="nested-submenu-item @(ViewContext.RouteData.Values["Page"]?.ToString() == "/Admin/SmartUpload" ? "active" : "")">
+                                <i class="menu-icon bi bi-magic text-success"></i>
+                                <span>Smart Upload</span>
+                            </a>
+                        </li>
+                        <li>
                             <a asp-page="/Admin/CallLogs" class="nested-submenu-item @(ViewContext.RouteData.Values["Page"]?.ToString() == "/Admin/CallLogs" ? "active" : "")">
                                 <i class="menu-icon bi bi-telephone-fill"></i>
                                 <span>Call Logs</span>
                             </a>
                         </li>
                         <li>
+                            <a asp-page="/Admin/BillingProcessing" class="nested-submenu-item @(ViewContext.RouteData.Values["Page"]?.ToString() == "/Admin/BillingProcessing" ? "active" : "")">
+                                <i class="menu-icon bi bi-calculator"></i>
+                                <span>Billing Processing</span>
+                            </a>
+                        </li>
+                        <li>
+                            <a asp-page="/Admin/EOSProcessing" class="nested-submenu-item @(ViewContext.RouteData.Values["Page"]?.ToString() == "/Admin/EOSProcessing" ? "active" : "")">
+                                <i class="menu-icon bi bi-person-x"></i>
+                                <span>EOS Processing</span>
+                            </a>
+                        </li>
+                        <li>
                             <a asp-page="/Admin/BillingReports" class="nested-submenu-item @(ViewContext.RouteData.Values["Page"]?.ToString() == "/Admin/BillingReports" ? "active" : "")">
                                 <i class="menu-icon bi bi-bar-chart-line"></i>
                                 <span>Billing Reports</span>
+                            </a>
+                        </li>
+                        <li>
+                            <a asp-page="/Admin/StaffBillingReport" class="nested-submenu-item @(ViewContext.RouteData.Values["Page"]?.ToString() == "/Admin/StaffBillingReport" ? "active" : "")">
+                                <i class="menu-icon bi bi-person-lines-fill"></i>
+                                <span>Staff Billing Report</span>
+                            </a>
+                        </li>
+
+                        <!-- Recovery Management Section -->
+                        <li class="menu-divider"></li>
+                        <li class="nested-section-header">
+                            <span>RECOVERY MANAGEMENT</span>
+                        </li>
+                        <li>
+                            <a asp-page="/Admin/RecoveryDashboard" class="nested-submenu-item @(ViewContext.RouteData.Values["Page"]?.ToString() == "/Admin/RecoveryDashboard" ? "active" : "")">
+                                <i class="menu-icon bi bi-speedometer2"></i>
+                                <span>Recovery Dashboard</span>
+                            </a>
+                        </li>
+                        <li>
+                            <a asp-page="/Admin/EOSRecovery" class="nested-submenu-item @(ViewContext.RouteData.Values["Page"]?.ToString() == "/Admin/EOSRecovery" ? "active" : "")">
+                                <i class="menu-icon bi bi-person-dash"></i>
+                                <span>EOS Recovery</span>
+                            </a>
+                        </li>
+                        <li>
+                            <a asp-page="/Admin/RecoveryReports" class="nested-submenu-item @(ViewContext.RouteData.Values["Page"]?.ToString() == "/Admin/RecoveryReports" ? "active" : "")">
+                                <i class="menu-icon bi bi-file-earmark-bar-graph"></i>
+                                <span>Recovery Reports</span>
+                            </a>
+                        </li>
+                        <li>
+                            <a asp-page="/Admin/RecoveryJobStatus" class="nested-submenu-item @(ViewContext.RouteData.Values["Page"]?.ToString() == "/Admin/RecoveryJobStatus" ? "active" : "")">
+                                <i class="menu-icon bi bi-clock-history"></i>
+                                <span>Job Execution History</span>
+                            </a>
+                        </li>
+                        <li>
+                            <a asp-page="/Admin/RecoverySettings" class="nested-submenu-item @(ViewContext.RouteData.Values["Page"]?.ToString() == "/Admin/RecoverySettings" ? "active" : "")">
+                                <i class="menu-icon bi bi-sliders"></i>
+                                <span>Recovery Settings</span>
                             </a>
                         </li>
                     </ul>
