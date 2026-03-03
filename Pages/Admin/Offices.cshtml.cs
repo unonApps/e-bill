@@ -6,11 +6,12 @@ using Microsoft.AspNetCore.Mvc.Rendering;
 using Microsoft.EntityFrameworkCore;
 using TAB.Web.Data;
 using TAB.Web.Models;
+using TAB.Web.Services;
 using System.ComponentModel.DataAnnotations;
 
 namespace TAB.Web.Pages.Admin
 {
-    [Authorize(Roles = "Admin")]
+    [Authorize(Roles = "Admin,Agency Focal Point")]
     public class OfficesModel : PageModel
     {
         private readonly ApplicationDbContext _context;
@@ -194,6 +195,18 @@ namespace TAB.Web.Pages.Admin
                 return Page();
             }
 
+            // Focal point guard: validate org ownership
+            if (FocalPointHelper.IsFocalPoint(User))
+            {
+                var fp = await _userManager.GetUserAsync(User);
+                if (Input.OrganizationId != (fp?.OrganizationId ?? -1))
+                {
+                    StatusMessage = "Error: You can only create offices in your own organization.";
+                    StatusMessageClass = "danger";
+                    return Page();
+                }
+            }
+
             // Check if office name already exists in the same organization
             var existingOffice = await _context.Offices
                 .FirstOrDefaultAsync(o => o.Name.ToLower() == Input.Name.ToLower() &&
@@ -251,6 +264,19 @@ namespace TAB.Web.Pages.Admin
                 return Page();
             }
 
+            // Focal point guard: can only edit offices in their org
+            if (FocalPointHelper.IsFocalPoint(User))
+            {
+                var fp = await _userManager.GetUserAsync(User);
+                if (office.OrganizationId != (fp?.OrganizationId ?? -1)) return Forbid();
+                if (Input.OrganizationId != (fp?.OrganizationId ?? -1))
+                {
+                    StatusMessage = "Error: You cannot move an office to a different organization.";
+                    StatusMessageClass = "danger";
+                    return Page();
+                }
+            }
+
             // Check if another office with this name exists in the same organization
             var existingOffice = await _context.Offices
                 .FirstOrDefaultAsync(o => o.Name.ToLower() == Input.Name.ToLower() &&
@@ -290,6 +316,13 @@ namespace TAB.Web.Pages.Admin
                 StatusMessageClass = "danger";
                 await LoadDataAsync();
                 return Page();
+            }
+
+            // Focal point guard
+            if (FocalPointHelper.IsFocalPoint(User))
+            {
+                var fp = await _userManager.GetUserAsync(User);
+                if (office.OrganizationId != (fp?.OrganizationId ?? -1)) return Forbid();
             }
 
             // Check if office has ApplicationUsers
@@ -537,8 +570,12 @@ namespace TAB.Web.Pages.Admin
 
         private async Task LoadDataAsync()
         {
-            // Load Organizations for dropdown - ALWAYS load this
-            var orgsQuery = _context.Organizations.OrderBy(o => o.Name);
+            var scopedOrgId = await FocalPointHelper.GetScopedOrgIdAsync(User, _userManager);
+
+            // Load Organizations for dropdown - scoped for focal points
+            var orgsQuery = _context.Organizations.OrderBy(o => o.Name).AsQueryable();
+            if (scopedOrgId.HasValue)
+                orgsQuery = orgsQuery.Where(o => o.Id == scopedOrgId.Value);
             var orgsList = await orgsQuery.ToListAsync();
 
             Organizations = orgsList.Select(o => new SelectListItem
@@ -556,6 +593,10 @@ namespace TAB.Web.Pages.Admin
                 .Include(o => o.Users)
                 .Include(o => o.SubOffices)
                 .AsQueryable();
+
+            // Scope to focal point's org
+            if (scopedOrgId.HasValue)
+                query = query.Where(o => o.OrganizationId == scopedOrgId.Value);
 
             // Apply search filter
             if (!string.IsNullOrWhiteSpace(SearchTerm))
@@ -598,8 +639,12 @@ namespace TAB.Web.Pages.Admin
                 .Take(PageSize)
                 .ToListAsync();
 
-            // Load offices for SubOffice dropdown
-            OfficesList = await _context.Offices
+            // Load offices for SubOffice dropdown (scoped for focal points)
+            var officesListQuery = _context.Offices.AsQueryable();
+            if (scopedOrgId.HasValue)
+                officesListQuery = officesListQuery.Where(o => o.OrganizationId == scopedOrgId.Value);
+
+            OfficesList = await officesListQuery
                 .OrderBy(o => o.Name)
                 .Select(o => new SelectListItem
                 {
@@ -622,11 +667,16 @@ namespace TAB.Web.Pages.Admin
             ActiveOffices = await statsQuery.CountAsync(o => o.Users.Any());
             TotalSubOffices = await statsQuery.SelectMany(o => o.SubOffices).CountAsync();
 
-            // Load all sub-offices
-            SubOffices = await _context.SubOffices
+            // Load all sub-offices (scoped for focal points)
+            var subOfficesQuery = _context.SubOffices
                 .Include(s => s.Office)
                     .ThenInclude(o => o.Organization)
                 .Include(s => s.Users)
+                .AsQueryable();
+            if (scopedOrgId.HasValue)
+                subOfficesQuery = subOfficesQuery.Where(s => s.Office.OrganizationId == scopedOrgId.Value);
+
+            SubOffices = await subOfficesQuery
                 .OrderBy(s => s.Office.Name)
                 .ThenBy(s => s.Name)
                 .ToListAsync();

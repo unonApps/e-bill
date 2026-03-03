@@ -8,7 +8,7 @@ using TAB.Web.Models;
 
 namespace TAB.Web.Pages.Admin
 {
-    [Authorize(Roles = "Admin")]
+    [Authorize(Roles = "Admin,Agency Focal Point")]
     public class ServiceProviderModel : PageModel
     {
         private readonly ApplicationDbContext _context;

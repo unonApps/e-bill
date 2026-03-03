@@ -14,7 +14,7 @@ using System.Text.Json;
 
 namespace TAB.Web.Pages.Admin
 {
-    [Authorize(Roles = "Admin")]
+    [Authorize(Roles = "Admin,Agency Focal Point")]
     public class EbillUsersModel : PageModel
     {
         private readonly ApplicationDbContext _context;
@@ -269,6 +269,14 @@ namespace TAB.Web.Pages.Admin
 
             try
             {
+                // Focal point guard: enforce org scoping
+                if (FocalPointHelper.IsFocalPoint(User))
+                {
+                    var fp = await _userManager.GetUserAsync(User);
+                    if (Input.OrganizationId != fp?.OrganizationId)
+                        return new JsonResult(new { success = false, message = "You can only create users in your own organization." });
+                }
+
                 // Check if IndexNumber already exists
                 if (await _context.EbillUsers.AnyAsync(e => e.IndexNumber == Input.IndexNumber))
                 {
@@ -1280,12 +1288,18 @@ namespace TAB.Web.Pages.Admin
 
         private async Task LoadPageDataAsync()
         {
+            var scopedOrgId = await FocalPointHelper.GetScopedOrgIdAsync(User, _userManager);
+
             // Build query with filters
             var query = _context.EbillUsers
                 .Include(e => e.OrganizationEntity)
                 .Include(e => e.OfficeEntity)
                 .Include(e => e.SubOfficeEntity)
                 .AsQueryable();
+
+            // Scope to focal point's org
+            if (scopedOrgId.HasValue)
+                query = query.Where(e => e.OrganizationId == scopedOrgId.Value);
 
             // Apply search filter
             if (!string.IsNullOrWhiteSpace(SearchTerm))
@@ -1309,8 +1323,8 @@ namespace TAB.Web.Pages.Admin
             }
 
 
-            // Apply organization filter
-            if (!string.IsNullOrWhiteSpace(SelectedOrganization) && int.TryParse(SelectedOrganization, out var orgId))
+            // Apply organization filter (admin only — focal points are already org-scoped)
+            if (!scopedOrgId.HasValue && !string.IsNullOrWhiteSpace(SelectedOrganization) && int.TryParse(SelectedOrganization, out var orgId))
             {
                 query = query.Where(e => e.OrganizationId == orgId);
             }
@@ -1376,6 +1390,10 @@ namespace TAB.Web.Pages.Admin
             // Calculate statistics from the full query (without pagination)
             var statsQuery = _context.EbillUsers.AsQueryable();
 
+            // Scope stats to focal point's org
+            if (scopedOrgId.HasValue)
+                statsQuery = statsQuery.Where(e => e.OrganizationId == scopedOrgId.Value);
+
             // Apply the same filters for statistics
             if (!string.IsNullOrWhiteSpace(SearchTerm))
             {
@@ -1395,7 +1413,7 @@ namespace TAB.Web.Pages.Admin
             }
 
 
-            if (!string.IsNullOrWhiteSpace(SelectedOrganization) && int.TryParse(SelectedOrganization, out var statsOrgId))
+            if (!scopedOrgId.HasValue && !string.IsNullOrWhiteSpace(SelectedOrganization) && int.TryParse(SelectedOrganization, out var statsOrgId))
             {
                 statsQuery = statsQuery.Where(e => e.OrganizationId == statsOrgId);
             }
@@ -1435,9 +1453,11 @@ namespace TAB.Web.Pages.Admin
 
             // Prepare dropdown lists
 
-            OrganizationList = await _context.Organizations
-                .OrderBy(o => o.Code)
-                .ThenBy(o => o.Name)
+            var orgListQuery = _context.Organizations.OrderBy(o => o.Code).ThenBy(o => o.Name).AsQueryable();
+            if (scopedOrgId.HasValue)
+                orgListQuery = orgListQuery.Where(o => o.Id == scopedOrgId.Value);
+
+            OrganizationList = await orgListQuery
                 .Select(o => new SelectListItem
                 {
                     Value = o.Id.ToString(),
@@ -1445,9 +1465,12 @@ namespace TAB.Web.Pages.Admin
                 })
                 .ToListAsync();
 
-            // Load office list
-            OfficeList = await _context.Offices
-                .OrderBy(o => o.Name)
+            // Load office list (scoped for focal points)
+            var officeListQuery = _context.Offices.OrderBy(o => o.Name).AsQueryable();
+            if (scopedOrgId.HasValue)
+                officeListQuery = officeListQuery.Where(o => o.OrganizationId == scopedOrgId.Value);
+
+            OfficeList = await officeListQuery
                 .Select(o => new SelectListItem
                 {
                     Value = o.Id.ToString(),

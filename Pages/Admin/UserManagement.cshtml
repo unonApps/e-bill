@@ -946,6 +946,13 @@
 
 <div class="row">
     <div class="col-md-12">
+        @if (User.IsInRole("Agency Focal Point") && !User.IsInRole("Admin"))
+        {
+            <div class="alert alert-info d-flex align-items-center gap-2 mb-3" role="alert">
+                <i class="bi bi-info-circle-fill"></i>
+                <span>You are viewing users within your organization only. You cannot assign Admin or Agency Focal Point roles.</span>
+            </div>
+        }
         @if (Model.StatusMessage != null)
         {
             <div class="alert alert-@Model.StatusMessageClass alert-dismissible fade show" role="alert">

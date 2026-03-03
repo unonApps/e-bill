@@ -5,11 +5,12 @@ using Microsoft.AspNetCore.Mvc.RazorPages;
 using Microsoft.EntityFrameworkCore;
 using TAB.Web.Data;
 using TAB.Web.Models;
+using TAB.Web.Services;
 using System.ComponentModel.DataAnnotations;
 
 namespace TAB.Web.Pages.Admin
 {
-    [Authorize(Roles = "Admin")]
+    [Authorize(Roles = "Admin,Agency Focal Point")]
     public class OrganizationsModel : PageModel
     {
         private readonly ApplicationDbContext _context;
@@ -89,6 +90,9 @@ namespace TAB.Web.Pages.Admin
 
         public async Task<IActionResult> OnPostCreateAsync()
         {
+            // Focal points cannot create new organizations
+            if (FocalPointHelper.IsFocalPoint(User)) return Forbid();
+
             if (!ModelState.IsValid)
             {
                 StatusMessage = "Error: Please check the form fields.";
@@ -136,6 +140,13 @@ namespace TAB.Web.Pages.Admin
                 return Page();
             }
 
+            // Focal point can only edit their own org
+            if (FocalPointHelper.IsFocalPoint(User))
+            {
+                var fp = await _userManager.GetUserAsync(User);
+                if (fp?.OrganizationId != Input.Id.Value) return Forbid();
+            }
+
             var organization = await _context.Organizations.FindAsync(Input.Id.Value);
             if (organization == null)
             {
@@ -171,6 +182,9 @@ namespace TAB.Web.Pages.Admin
 
         public async Task<IActionResult> OnPostDeleteAsync(int id)
         {
+            // Focal points cannot delete organizations
+            if (FocalPointHelper.IsFocalPoint(User)) return Forbid();
+
             var organization = await _context.Organizations
                 .Include(o => o.Offices)
                 .Include(o => o.Users)
@@ -222,6 +236,13 @@ namespace TAB.Web.Pages.Admin
 
         public async Task<IActionResult> OnGetEditAsync(int id)
         {
+            // Focal point can only edit their own org
+            if (FocalPointHelper.IsFocalPoint(User))
+            {
+                var fp = await _userManager.GetUserAsync(User);
+                if (fp?.OrganizationId != id) return Forbid();
+            }
+
             var organization = await _context.Organizations.FindAsync(id);
             if (organization == null)
             {
@@ -245,13 +266,19 @@ namespace TAB.Web.Pages.Admin
 
         private async Task LoadDataAsync()
         {
+            var scopedOrgId = await FocalPointHelper.GetScopedOrgIdAsync(User, _userManager);
+
             // Build query with filters
             var query = _context.Organizations
                 .Include(o => o.Offices)
                     .ThenInclude(office => office.SubOffices)
                 .Include(o => o.Users)
                 .AsQueryable();
-            
+
+            // Scope to focal point's org
+            if (scopedOrgId.HasValue)
+                query = query.Where(o => o.Id == scopedOrgId.Value);
+
             // Apply search filter
             if (!string.IsNullOrWhiteSpace(SearchTerm))
             {

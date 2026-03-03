@@ -10,7 +10,7 @@ using Hangfire;
 
 namespace TAB.Web.Pages.Admin
 {
-    [Authorize]
+    [Authorize(Roles = "Admin")]
     public class CallLogsUploadModel : PageModel
     {
         private readonly ApplicationDbContext _context;

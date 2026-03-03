@@ -6,7 +6,7 @@ using TAB.Web.Models;
 
 namespace TAB.Web.Pages.Admin
 {
-    [Authorize]
+    [Authorize(Roles = "Admin")]
     public class ImportJobsModel : PageModel
     {
         private readonly ApplicationDbContext _context;

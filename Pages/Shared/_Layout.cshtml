@@ -349,6 +349,97 @@
                 </li>
             </ul>
             }
+
+            @if (User.IsInRole("Agency Focal Point") && !User.IsInRole("Admin"))
+            {
+            <ul class="list-unstyled menu-sections">
+                <li class="has-nested-submenu">
+                    <a href="#" class="menu-item @(ViewContext.RouteData.Values["Page"]?.ToString()?.StartsWith("/Admin/") == true ? "active" : "")">
+                        <i class="menu-icon bi bi-building-gear"></i>
+                        <span>Agency Administration</span>
+                        <span class="submenu-icon"><i class="bi bi-chevron-right"></i></span>
+                    </a>
+                    <ul class="nested-submenu list-unstyled">
+                        <!-- User & Organization Setup Section -->
+                        <li class="nested-section-header">
+                            <span>USER & ORGANIZATION SETUP</span>
+                        </li>
+                        <li>
+                            <a asp-page="/Admin/UserManagement" class="nested-submenu-item @(ViewContext.RouteData.Values["Page"]?.ToString() == "/Admin/UserManagement" ? "active" : "")">
+                                <i class="menu-icon bi bi-people"></i>
+                                <span>User Management</span>
+                            </a>
+                        </li>
+                        <li>
+                            <a asp-page="/Admin/Organizations" class="nested-submenu-item @(ViewContext.RouteData.Values["Page"]?.ToString() == "/Admin/Organizations" ? "active" : "")">
+                                <i class="menu-icon bi bi-building"></i>
+                                <span>Organizations</span>
+                            </a>
+                        </li>
+                        <li>
+                            <a asp-page="/Admin/Offices" class="nested-submenu-item @(ViewContext.RouteData.Values["Page"]?.ToString() == "/Admin/Offices" ? "active" : "")">
+                                <i class="menu-icon bi bi-door-open"></i>
+                                <span>Offices</span>
+                            </a>
+                        </li>
+                        <li>
+                            <a asp-page="/Admin/EbillUsers" class="nested-submenu-item @(ViewContext.RouteData.Values["Page"]?.ToString() == "/Admin/EbillUsers" ? "active" : "")">
+                                <i class="menu-icon bi bi-person-lines-fill"></i>
+                                <span>Ebill Users</span>
+                            </a>
+                        </li>
+
+                        <!-- Telecom Configuration Section -->
+                        <li class="menu-divider"></li>
+                        <li class="nested-section-header">
+                            <span>TELECOM CONFIGURATION</span>
+                        </li>
+                        <li>
+                            <a asp-page="/Admin/ClassOfService" class="nested-submenu-item @(ViewContext.RouteData.Values["Page"]?.ToString() == "/Admin/ClassOfService" ? "active" : "")">
+                                <i class="menu-icon bi bi-telephone"></i>
+                                <span>Class of Service</span>
+                            </a>
+                        </li>
+                        <li>
+                            <a asp-page="/Admin/ServiceProvider" class="nested-submenu-item @(ViewContext.RouteData.Values["Page"]?.ToString() == "/Admin/ServiceProvider" ? "active" : "")">
+                                <i class="menu-icon bi bi-broadcast"></i>
+                                <span>Service Provider</span>
+                            </a>
+                        </li>
+                        <li>
+                            <a asp-page="/Admin/PhoneNumbers" class="nested-submenu-item @(ViewContext.RouteData.Values["Page"]?.ToString() == "/Admin/PhoneNumbers" ? "active" : "")">
+                                <i class="menu-icon bi bi-telephone-fill"></i>
+                                <span>Phone Numbers</span>
+                            </a>
+                        </li>
+                        <li>
+                            <a asp-page="/Admin/UserPhones" class="nested-submenu-item @(ViewContext.RouteData.Values["Page"]?.ToString() == "/Admin/UserPhones" ? "active" : "")">
+                                <i class="menu-icon bi bi-telephone-plus"></i>
+                                <span>User Phones</span>
+                            </a>
+                        </li>
+
+                        <!-- Call Log Management Section -->
+                        <li class="menu-divider"></li>
+                        <li class="nested-section-header">
+                            <span>CALL LOG MANAGEMENT</span>
+                        </li>
+                        <li>
+                            <a asp-page="/Admin/CallLogs" class="nested-submenu-item @(ViewContext.RouteData.Values["Page"]?.ToString() == "/Admin/CallLogs" ? "active" : "")">
+                                <i class="menu-icon bi bi-telephone-fill"></i>
+                                <span>Call Logs</span>
+                            </a>
+                        </li>
+                        <li>
+                            <a asp-page="/Admin/BillingReports" class="nested-submenu-item @(ViewContext.RouteData.Values["Page"]?.ToString() == "/Admin/BillingReports" ? "active" : "")">
+                                <i class="menu-icon bi bi-bar-chart-line"></i>
+                                <span>Billing Reports</span>
+                            </a>
+                        </li>
+                    </ul>
+                </li>
+            </ul>
+            }
         </nav>
 
         <!-- Page Content -->

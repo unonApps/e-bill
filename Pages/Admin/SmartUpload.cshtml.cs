@@ -14,7 +14,7 @@ using Hangfire;
 
 namespace TAB.Web.Pages.Admin
 {
-    [Authorize]
+    [Authorize(Roles = "Admin")]
     public class SmartUploadModel : PageModel
     {
         private readonly ApplicationDbContext _context;

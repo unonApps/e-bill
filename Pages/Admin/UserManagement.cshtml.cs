@@ -15,7 +15,7 @@ using Microsoft.Extensions.Options;
 
 namespace TAB.Web.Pages.Admin
 {
-    [Authorize(Roles = "Admin")]
+    [Authorize(Roles = "Admin,Agency Focal Point")]
     public class UserManagementModel : PageModel
     {
         private readonly UserManager<ApplicationUser> _userManager;
@@ -149,6 +149,14 @@ namespace TAB.Web.Pages.Admin
                 return Page();
             }
 
+            // Focal point guards
+            if (FocalPointHelper.IsFocalPoint(User))
+            {
+                var fp = await _userManager.GetUserAsync(User);
+                if (user.OrganizationId != fp?.OrganizationId) return Forbid();
+                if (role is "Admin" or "Agency Focal Point") return Forbid();
+            }
+
             if (!await _userManager.IsInRoleAsync(user, role))
             {
                 var result = await _userManager.AddToRoleAsync(user, role);
@@ -176,6 +184,14 @@ namespace TAB.Web.Pages.Admin
                 StatusMessageClass = "danger";
                 await LoadPageDataAsync();
                 return Page();
+            }
+
+            // Focal point guards
+            if (FocalPointHelper.IsFocalPoint(User))
+            {
+                var fp = await _userManager.GetUserAsync(User);
+                if (user.OrganizationId != fp?.OrganizationId) return Forbid();
+                if (role is "Admin" or "Agency Focal Point") return Forbid();
             }
 
             if (await _userManager.IsInRoleAsync(user, role))
@@ -230,6 +246,27 @@ namespace TAB.Web.Pages.Admin
                 return Page();
             }
             
+            // Focal point guards: enforce org scoping and block admin-level role assignment
+            if (FocalPointHelper.IsFocalPoint(User))
+            {
+                var fp = await _userManager.GetUserAsync(User);
+                var fpOrgId = fp?.OrganizationId ?? -1;
+                if (Input.OrganizationId != fpOrgId)
+                {
+                    StatusMessage = "Error: You can only create users in your own organization.";
+                    StatusMessageClass = "danger";
+                    await LoadPageDataAsync();
+                    return Page();
+                }
+                if (Input.Role is "Admin" or "Agency Focal Point")
+                {
+                    StatusMessage = "Error: You are not permitted to assign this role.";
+                    StatusMessageClass = "danger";
+                    await LoadPageDataAsync();
+                    return Page();
+                }
+            }
+
             // Check if user already exists
             var existingUser = await _userManager.FindByEmailAsync(Input.Email);
             if (existingUser != null)
@@ -239,7 +276,7 @@ namespace TAB.Web.Pages.Admin
                 await LoadPageDataAsync();
                 return Page();
             }
-            
+
             // Create the new user with email as password
             var user = new ApplicationUser
             {
@@ -324,7 +361,14 @@ namespace TAB.Web.Pages.Admin
                 await LoadPageDataAsync();
                 return Page();
             }
-            
+
+            // Focal point guard
+            if (FocalPointHelper.IsFocalPoint(User))
+            {
+                var fp = await _userManager.GetUserAsync(User);
+                if (user.OrganizationId != fp?.OrganizationId) return Forbid();
+            }
+
             // Don't allow deleting the last admin
             if (await _userManager.IsInRoleAsync(user, "Admin"))
             {
@@ -362,6 +406,13 @@ namespace TAB.Web.Pages.Admin
                 StatusMessageClass = "danger";
                 await LoadPageDataAsync();
                 return Page();
+            }
+
+            // Focal point guard
+            if (FocalPointHelper.IsFocalPoint(User))
+            {
+                var fp = await _userManager.GetUserAsync(User);
+                if (user.OrganizationId != fp?.OrganizationId) return Forbid();
             }
 
             // Don't allow deactivating the last admin
@@ -406,7 +457,23 @@ namespace TAB.Web.Pages.Admin
                 await LoadPageDataAsync();
                 return Page();
             }
-            
+
+            // Focal point guard
+            if (FocalPointHelper.IsFocalPoint(User))
+            {
+                var fp = await _userManager.GetUserAsync(User);
+                var fpOrgId = fp?.OrganizationId ?? -1;
+                if (user.OrganizationId != fpOrgId) return Forbid();
+                // Prevent moving user to a different org
+                if (organizationId != fpOrgId)
+                {
+                    StatusMessage = "Error: You cannot move users outside your organization.";
+                    StatusMessageClass = "danger";
+                    await LoadPageDataAsync();
+                    return Page();
+                }
+            }
+
             // Update user properties
             user.Email = email;
             user.UserName = email; // Username is the same as email
@@ -652,28 +719,34 @@ namespace TAB.Web.Pages.Admin
                     ? $"{currentUser.FirstName} {currentUser.LastName}"
                     : currentUser.UserName ?? "Administrator";
             }
-            
+
             Users.Clear();
-            
+
+            var scopedOrgId = await FocalPointHelper.GetScopedOrgIdAsync(User, _userManager);
+
             // Build query with filters
             var query = _userManager.Users
                 .Include(u => u.Organization)
                 .Include(u => u.Office)
                 .Include(u => u.SubOffice)
                 .AsQueryable();
-            
+
+            // Scope to focal point's org
+            if (scopedOrgId.HasValue)
+                query = query.Where(u => u.OrganizationId == scopedOrgId.Value);
+
             // Apply status filter
             if (SelectedStatus.HasValue)
             {
                 query = query.Where(u => u.Status == SelectedStatus.Value);
             }
-            
-            // Apply organization filter
-            if (SelectedOrganizationId.HasValue)
+
+            // Apply organization filter (admin only — focal points are already scoped)
+            if (!scopedOrgId.HasValue && SelectedOrganizationId.HasValue)
             {
                 query = query.Where(u => u.OrganizationId == SelectedOrganizationId.Value);
             }
-            
+
             // Apply office filter
             if (SelectedOfficeId.HasValue)
             {
@@ -730,13 +803,20 @@ namespace TAB.Web.Pages.Admin
                 .ToList();
 
             AvailableRoles = await _roleManager.Roles.Select(r => r.Name ?? string.Empty).ToListAsync();
-            
+
+            // Focal points cannot assign admin-level roles
+            if (FocalPointHelper.IsFocalPoint(User))
+                AvailableRoles = AvailableRoles.Where(r => r != "Admin" && r != "Agency Focal Point").ToList();
+
             // Calculate role-based statistics
             await CalculateRoleStatisticsAsync();
-            
-            // Load organizations and offices
-            AvailableOrganizations = await _context.Organizations
-                .OrderBy(o => o.Name)
+
+            // Load organizations (scoped for focal points)
+            var orgsQuery = _context.Organizations.OrderBy(o => o.Name).AsQueryable();
+            if (scopedOrgId.HasValue)
+                orgsQuery = orgsQuery.Where(o => o.Id == scopedOrgId.Value);
+
+            AvailableOrganizations = await orgsQuery
                 .Select(o => new SelectListItem
                 {
                     Value = o.Id.ToString(),

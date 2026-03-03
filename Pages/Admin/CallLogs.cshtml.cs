@@ -11,7 +11,7 @@ using System.Text.Json;
 
 namespace TAB.Web.Pages.Admin
 {
-    [Authorize(Roles = "Admin")]
+    [Authorize(Roles = "Admin,Agency Focal Point")]
     public class CallLogsModel : PageModel
     {
         private readonly ApplicationDbContext _context;
@@ -99,6 +99,9 @@ namespace TAB.Web.Pages.Admin
                 .ToListAsync();
             var registeredPhoneSet = new HashSet<string>(registeredPhones ?? new List<string>(), StringComparer.OrdinalIgnoreCase);
 
+            // Get org scope for focal point
+            var scopedOrgId = await FocalPointHelper.GetScopedOrgIdAsync(User, _userManager);
+
             // Calculate how many records to load per table for pagination
             // We need enough records to fill the page after combining and sorting
             var recordsToLoad = PageSize * 2; // Load 2x page size per table to ensure we have enough after merge
@@ -107,6 +110,10 @@ namespace TAB.Web.Pages.Admin
             var query = _context.CallLogs
                 .Include(c => c.EbillUser)
                 .AsQueryable();
+
+            // Scope to focal point's org
+            if (scopedOrgId.HasValue)
+                query = query.Where(c => c.EbillUser != null && c.EbillUser.OrganizationId == scopedOrgId.Value);
 
             // Apply search filter for CallLogs
             if (!string.IsNullOrWhiteSpace(SearchTerm))
@@ -219,6 +226,9 @@ namespace TAB.Web.Pages.Admin
                 .Include(p => p.EbillUser)
                 .AsQueryable();
 
+            if (scopedOrgId.HasValue)
+                pstnQuery = pstnQuery.Where(p => p.EbillUser != null && p.EbillUser.OrganizationId == scopedOrgId.Value);
+
             if (ImportJobId.HasValue && SelectedImportJob?.CallLogType == "PSTN")
             {
                 pstnQuery = pstnQuery.Where(p => p.ImportJobId == ImportJobId.Value);
@@ -303,6 +313,9 @@ namespace TAB.Web.Pages.Admin
             var privateWireQuery = _context.PrivateWires
                 .Include(p => p.EbillUser)
                 .AsQueryable();
+
+            if (scopedOrgId.HasValue)
+                privateWireQuery = privateWireQuery.Where(p => p.EbillUser != null && p.EbillUser.OrganizationId == scopedOrgId.Value);
 
             if (ImportJobId.HasValue && SelectedImportJob?.CallLogType == "PrivateWire")
             {
@@ -389,6 +402,9 @@ namespace TAB.Web.Pages.Admin
                 .Include(s => s.EbillUser)
                 .AsQueryable();
 
+            if (scopedOrgId.HasValue)
+                safaricomQuery = safaricomQuery.Where(s => s.EbillUser != null && s.EbillUser.OrganizationId == scopedOrgId.Value);
+
             if (ImportJobId.HasValue && SelectedImportJob?.CallLogType == "Safaricom")
             {
                 safaricomQuery = safaricomQuery.Where(s => s.ImportJobId == ImportJobId.Value);
@@ -473,6 +489,9 @@ namespace TAB.Web.Pages.Admin
             var airtelQuery = _context.Airtels
                 .Include(a => a.EbillUser)
                 .AsQueryable();
+
+            if (scopedOrgId.HasValue)
+                airtelQuery = airtelQuery.Where(a => a.EbillUser != null && a.EbillUser.OrganizationId == scopedOrgId.Value);
 
             if (ImportJobId.HasValue && SelectedImportJob?.CallLogType == "Airtel")
             {

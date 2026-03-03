@@ -1,4 +1,5 @@
 using Microsoft.AspNetCore.Authorization;
+using Microsoft.AspNetCore.Identity;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.AspNetCore.Mvc.RazorPages;
 using Microsoft.EntityFrameworkCore;
@@ -9,7 +10,7 @@ using System.ComponentModel.DataAnnotations;
 
 namespace TAB.Web.Pages.Admin
 {
-    [Authorize(Roles = "Admin")]
+    [Authorize(Roles = "Admin,Agency Focal Point")]
     public class PhoneNumbersModel : PageModel
     {
         private readonly ApplicationDbContext _context;
@@ -17,19 +18,22 @@ namespace TAB.Web.Pages.Admin
         private readonly ILogger<PhoneNumbersModel> _logger;
         private readonly IUserPhoneHistoryService _historyService;
         private readonly IAuditLogService _auditLogService;
+        private readonly UserManager<ApplicationUser> _userManager;
 
         public PhoneNumbersModel(
             ApplicationDbContext context,
             IUserPhoneService phoneService,
             ILogger<PhoneNumbersModel> logger,
             IUserPhoneHistoryService historyService,
-            IAuditLogService auditLogService)
+            IAuditLogService auditLogService,
+            UserManager<ApplicationUser> userManager)
         {
             _context = context;
             _phoneService = phoneService;
             _logger = logger;
             _historyService = historyService;
             _auditLogService = auditLogService;
+            _userManager = userManager;
         }
 
         public List<UserPhone> Phones { get; set; } = new();
@@ -592,11 +596,17 @@ namespace TAB.Web.Pages.Admin
 
         private async Task LoadDataAsync()
         {
+            var scopedOrgId = await FocalPointHelper.GetScopedOrgIdAsync(User, _userManager);
+
             // Build query
             var query = _context.UserPhones
                 .Include(p => p.EbillUser)
                 .Include(p => p.ClassOfService)
                 .AsQueryable();
+
+            // Scope to focal point's org via EbillUser.OrganizationId
+            if (scopedOrgId.HasValue)
+                query = query.Where(p => p.EbillUser != null && p.EbillUser.OrganizationId == scopedOrgId.Value);
 
             // Apply filters
             if (!string.IsNullOrWhiteSpace(SearchTerm))
@@ -656,11 +666,11 @@ namespace TAB.Web.Pages.Admin
                 .Take(PageSize)
                 .ToListAsync();
 
-            // Load users for dropdown
-            AllUsers = await _context.EbillUsers
-                .OrderBy(u => u.FirstName)
-                .ThenBy(u => u.LastName)
-                .ToListAsync();
+            // Load users for dropdown (scoped for focal points)
+            var usersQuery = _context.EbillUsers.OrderBy(u => u.FirstName).ThenBy(u => u.LastName).AsQueryable();
+            if (scopedOrgId.HasValue)
+                usersQuery = usersQuery.Where(u => u.OrganizationId == scopedOrgId.Value);
+            AllUsers = await usersQuery.ToListAsync();
 
             // Load classes of service
             ClassesOfService = await _context.ClassOfServices

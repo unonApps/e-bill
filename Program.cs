@@ -493,13 +493,14 @@ builder.Services.AddRazorPages(options =>
     
     // Admin-only pages
     options.Conventions.AuthorizePage("/Account/Register", "AdminOnly");
-    options.Conventions.AuthorizeFolder("/Admin", "AdminOnly");
 });
 
-// Add policy for admin-only pages
+// Add policies for admin pages
 builder.Services.AddAuthorization(options =>
 {
     options.AddPolicy("AdminOnly", policy => policy.RequireRole("Admin"));
+    options.AddPolicy("AdminOrFocalPoint", policy =>
+        policy.RequireRole("Admin", "Agency Focal Point"));
 });
 
 builder.Services.AddRazorPages()
@@ -584,7 +585,7 @@ _ = Task.Run(async () =>
         var userManager = services.GetRequiredService<UserManager<ApplicationUser>>();
 
         // Create roles if they don't exist
-        string[] roleNames = { "Admin", "User", "ICTS", "ICTS Service Desk", "Budget Officer", "Staff Claims Unit", "Claims Unit Approver", "Supervisor" };
+        string[] roleNames = { "Admin", "User", "ICTS", "ICTS Service Desk", "Budget Officer", "Staff Claims Unit", "Claims Unit Approver", "Supervisor", "Agency Focal Point" };
         foreach (var roleName in roleNames)
         {
             if (!await roleManager.RoleExistsAsync(roleName))

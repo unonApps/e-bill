@@ -5,21 +5,26 @@ using System.Text;
 using System.Threading.Tasks;
 using ClosedXML.Excel;
 using Microsoft.AspNetCore.Authorization;
+using Microsoft.AspNetCore.Identity;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.AspNetCore.Mvc.RazorPages;
 using Microsoft.EntityFrameworkCore;
 using TAB.Web.Data;
+using TAB.Web.Models;
+using TAB.Web.Services;
 
 namespace TAB.Web.Pages.Admin
 {
-    [Authorize(Roles = "Admin,SuperAdmin")]
+    [Authorize(Roles = "Admin,SuperAdmin,Agency Focal Point")]
     public class BillingReportsModel : PageModel
     {
         private readonly ApplicationDbContext _context;
+        private readonly UserManager<ApplicationUser> _userManager;
 
-        public BillingReportsModel(ApplicationDbContext context)
+        public BillingReportsModel(ApplicationDbContext context, UserManager<ApplicationUser> userManager)
         {
             _context = context;
+            _userManager = userManager;
         }
 
         // Summary totals for the last 12 months
@@ -54,10 +59,18 @@ namespace TAB.Web.Pages.Admin
             var startYear = startDate.Year;
             var startMonth = startDate.Month;
 
+            var scopedOrgId = await FocalPointHelper.GetScopedOrgIdAsync(User, _userManager);
+
             // Query raw data grouped by month and provider
-            var rawData = await _context.CallRecords
+            var baseQuery = _context.CallRecords
                 .Where(c => (c.CallYear > startYear) ||
-                            (c.CallYear == startYear && c.CallMonth >= startMonth))
+                            (c.CallYear == startYear && c.CallMonth >= startMonth));
+
+            // Scope to focal point's org via ResponsibleUser
+            if (scopedOrgId.HasValue)
+                baseQuery = baseQuery.Where(c => c.ResponsibleUser != null && c.ResponsibleUser.OrganizationId == scopedOrgId.Value);
+
+            var rawData = await baseQuery
                 .GroupBy(c => new { c.CallYear, c.CallMonth, c.SourceSystem })
                 .Select(g => new
                 {

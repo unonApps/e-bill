@@ -1,4 +1,5 @@
 using Microsoft.AspNetCore.Authorization;
+using Microsoft.AspNetCore.Identity;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.AspNetCore.Mvc.RazorPages;
 using Microsoft.EntityFrameworkCore;
@@ -10,7 +11,7 @@ using System.Linq;
 
 namespace TAB.Web.Pages.Admin
 {
-    [Authorize(Roles = "Admin")]
+    [Authorize(Roles = "Admin,Agency Focal Point")]
     public class UserPhonesModel : PageModel
     {
         private readonly ApplicationDbContext _context;
@@ -21,6 +22,7 @@ namespace TAB.Web.Pages.Admin
         private readonly IUserPhoneHistoryService _historyService;
         private readonly IEnhancedEmailService _enhancedEmailService;
         private readonly IHttpContextAccessor _httpContextAccessor;
+        private readonly UserManager<ApplicationUser> _userManager;
 
         public UserPhonesModel(
             ApplicationDbContext context,
@@ -30,7 +32,8 @@ namespace TAB.Web.Pages.Admin
             INotificationService notificationService,
             IUserPhoneHistoryService historyService,
             IEnhancedEmailService enhancedEmailService,
-            IHttpContextAccessor httpContextAccessor)
+            IHttpContextAccessor httpContextAccessor,
+            UserManager<ApplicationUser> userManager)
         {
             _context = context;
             _phoneService = phoneService;
@@ -40,6 +43,7 @@ namespace TAB.Web.Pages.Admin
             _historyService = historyService;
             _enhancedEmailService = enhancedEmailService;
             _httpContextAccessor = httpContextAccessor;
+            _userManager = userManager;
         }
 
         [BindProperty(SupportsGet = true)]
@@ -944,6 +948,8 @@ namespace TAB.Web.Pages.Admin
 
         private async Task LoadDataAsync()
         {
+            var scopedOrgId = await FocalPointHelper.GetScopedOrgIdAsync(HttpContext.User, _userManager);
+
             if (!string.IsNullOrEmpty(IndexNumber))
             {
                 User = await _context.EbillUsers
@@ -951,7 +957,13 @@ namespace TAB.Web.Pages.Admin
                     .Include(u => u.OfficeEntity)
                     .FirstOrDefaultAsync(u => u.IndexNumber == IndexNumber);
 
-                if (User != null)
+                // Focal point: deny access if this user is from a different org
+                if (User != null && scopedOrgId.HasValue && User.OrganizationId != scopedOrgId.Value)
+                {
+                    User = null;
+                    UserPhones = new();
+                }
+                else if (User != null)
                 {
                     UserPhones = await _phoneService.GetUserPhonesAsync(IndexNumber);
                 }
@@ -969,11 +981,11 @@ namespace TAB.Web.Pages.Admin
                 .OrderBy(p => p.PhoneNumber)
                 .ToListAsync();
 
-            // Load all users for reassignment dropdown
-            AllUsers = await _context.EbillUsers
-                .OrderBy(u => u.FirstName)
-                .ThenBy(u => u.LastName)
-                .ToListAsync();
+            // Load all users for reassignment dropdown (scoped for focal points)
+            var usersQuery = _context.EbillUsers.OrderBy(u => u.FirstName).ThenBy(u => u.LastName).AsQueryable();
+            if (scopedOrgId.HasValue)
+                usersQuery = usersQuery.Where(u => u.OrganizationId == scopedOrgId.Value);
+            AllUsers = await usersQuery.ToListAsync();
         }
 
         // Email notification helper methods
