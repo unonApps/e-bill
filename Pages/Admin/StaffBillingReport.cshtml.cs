@@ -1,5 +1,6 @@
 using System;
 using System.Collections.Generic;
+using System.Data;
 using System.Linq;
 using System.Text;
 using System.Threading.Tasks;
@@ -8,6 +9,7 @@ using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Identity;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.AspNetCore.Mvc.RazorPages;
+using Microsoft.Data.SqlClient;
 using Microsoft.EntityFrameworkCore;
 using TAB.Web.Data;
 using TAB.Web.Models;
@@ -109,123 +111,77 @@ namespace TAB.Web.Pages.Admin
             FilterMonth ??= DateTime.UtcNow.Month;
             FilterYear ??= DateTime.UtcNow.Year;
 
-            var baseQuery = _context.CallRecords
-                .Where(c => c.CallYear == FilterYear && c.ResponsibleIndexNumber != null);
+            var conn = _context.Database.GetDbConnection();
+            var wasOpen = conn.State == ConnectionState.Open;
+            if (!wasOpen) await conn.OpenAsync();
 
-            // Month filter: 0 = All Months, otherwise specific month
-            if (FilterMonth > 0)
-                baseQuery = baseQuery.Where(c => c.CallMonth == FilterMonth);
+            try
+            {
+                using var cmd = conn.CreateCommand();
+                cmd.CommandText = "ebill.sp_StaffBillingReport";
+                cmd.CommandType = CommandType.StoredProcedure;
+                cmd.CommandTimeout = 30;
 
-            // Organization filter (prefer snapshot, fallback to live EbillUser)
-            if (FilterOrganization.HasValue && FilterOrganization > 0)
-                baseQuery = baseQuery.Where(c =>
-                    c.SnapshotOrganizationId == FilterOrganization ||
-                    (c.SnapshotOrganizationId == null && c.ResponsibleUser != null && c.ResponsibleUser.OrganizationId == FilterOrganization));
+                var p = cmd.Parameters;
+                p.Add(new SqlParameter("@Year", FilterYear ?? DateTime.UtcNow.Year));
+                p.Add(new SqlParameter("@Month", FilterMonth ?? 0));
+                p.Add(new SqlParameter("@OrgId", (object?)FilterOrganization ?? DBNull.Value));
+                p.Add(new SqlParameter("@OfficeId", (object?)FilterOffice ?? DBNull.Value));
+                p.Add(new SqlParameter("@SortBy", SortBy ?? "FullName"));
+                p.Add(new SqlParameter("@SortDir", SortDir ?? "asc"));
+                p.Add(new SqlParameter("@PageNumber", applyPagination ? PageNumber : 1));
+                p.Add(new SqlParameter("@PageSize", applyPagination ? PageSize : 0));
 
-            // Office filter (prefer snapshot, fallback to live EbillUser)
-            if (FilterOffice.HasValue && FilterOffice > 0)
-                baseQuery = baseQuery.Where(c =>
-                    c.SnapshotOfficeId == FilterOffice ||
-                    (c.SnapshotOfficeId == null && c.ResponsibleUser != null && c.ResponsibleUser.OfficeId == FilterOffice));
+                using var reader = await cmd.ExecuteReaderAsync();
 
-            // Group by staff member and compute aggregates
-            var grouped = await baseQuery
-                .GroupBy(c => c.ResponsibleIndexNumber!)
-                .Select(g => new
+                // Result set 1: KPI totals
+                if (await reader.ReadAsync())
                 {
-                    IndexNumber = g.Key,
-                    // Snapshot org/office (take first non-null from the group)
-                    SnapshotOrgName = g.Select(c => c.SnapshotOrganizationName).FirstOrDefault(n => n != null),
-                    SnapshotOfficeName = g.Select(c => c.SnapshotOfficeName).FirstOrDefault(n => n != null),
-                    // Personal calls
-                    PersonalCallCount = g.Count(c => c.VerificationType == "Personal"),
-                    PersonalCallCostKES = g.Where(c => c.VerificationType == "Personal").Sum(c => c.CallCostKSHS),
-                    PersonalCallCostUSD = g.Where(c => c.VerificationType == "Personal").Sum(c => c.CallCostUSD),
-                    // Official calls
-                    OfficialCallCount = g.Count(c => c.VerificationType == "Official"),
-                    OfficialCallCostKES = g.Where(c => c.VerificationType == "Official").Sum(c => c.CallCostKSHS),
-                    OfficialCallCostUSD = g.Where(c => c.VerificationType == "Official").Sum(c => c.CallCostUSD),
-                    // Recovered
-                    RecoveredCallCount = g.Count(c => c.RecoveryStatus == "Processed"),
-                    RecoveredCallCostKES = g.Where(c => c.RecoveryStatus == "Processed").Sum(c => (decimal?)c.RecoveryAmount) ?? 0,
-                    // Totals
-                    TotalCallCount = g.Count(),
-                    TotalCostKES = g.Sum(c => c.CallCostKSHS),
-                    TotalCostUSD = g.Sum(c => c.CallCostUSD)
-                })
-                .ToListAsync();
+                    TotalStaffCount = reader.GetInt32(reader.GetOrdinal("TotalStaffCount"));
+                    TotalCallCount = reader.GetInt32(reader.GetOrdinal("TotalCallCount"));
+                    TotalPersonalCostKES = reader.GetDecimal(reader.GetOrdinal("TotalPersonalCostKES"));
+                    TotalOfficialCostKES = reader.GetDecimal(reader.GetOrdinal("TotalOfficialCostKES"));
+                    TotalRecoveredCostKES = reader.GetDecimal(reader.GetOrdinal("TotalRecoveredCostKES"));
+                }
 
-            // Bulk-load EbillUser details to avoid N+1
-            var indexNumbers = grouped.Select(g => g.IndexNumber).ToList();
-            var users = await _context.EbillUsers
-                .Where(u => indexNumbers.Contains(u.IndexNumber))
-                .Include(u => u.OrganizationEntity)
-                .Include(u => u.OfficeEntity)
-                .ToDictionaryAsync(u => u.IndexNumber);
-
-            var allRows = grouped.Select(g =>
-            {
-                users.TryGetValue(g.IndexNumber, out var user);
-                return new StaffBillingRow
+                // Result set 2: Staff rows
+                await reader.NextResultAsync();
+                StaffRows = new List<StaffBillingRow>();
+                while (await reader.ReadAsync())
                 {
-                    IndexNumber = g.IndexNumber,
-                    FullName = user?.FullName ?? "Unknown",
-                    OrganizationName = g.SnapshotOrgName ?? user?.OrganizationEntity?.Name ?? "-",
-                    OfficeName = g.SnapshotOfficeName ?? user?.OfficeEntity?.Name ?? "-",
-                    PersonalCallCount = g.PersonalCallCount,
-                    PersonalCallCostKES = g.PersonalCallCostKES,
-                    PersonalCallCostUSD = g.PersonalCallCostUSD,
-                    OfficialCallCount = g.OfficialCallCount,
-                    OfficialCallCostKES = g.OfficialCallCostKES,
-                    OfficialCallCostUSD = g.OfficialCallCostUSD,
-                    RecoveredCallCount = g.RecoveredCallCount,
-                    RecoveredCallCostKES = g.RecoveredCallCostKES,
-                    TotalCallCount = g.TotalCallCount,
-                    TotalCostKES = g.TotalCostKES,
-                    TotalCostUSD = g.TotalCostUSD
-                };
-            }).ToList();
+                    if (TotalCount == 0 && applyPagination)
+                        TotalCount = reader.GetInt32(reader.GetOrdinal("TotalCount"));
 
-            // KPI totals (from ALL filtered rows, before pagination)
-            TotalStaffCount = allRows.Count;
-            TotalCallCount = allRows.Sum(r => r.TotalCallCount);
-            TotalPersonalCostKES = allRows.Sum(r => r.PersonalCallCostKES);
-            TotalOfficialCostKES = allRows.Sum(r => r.OfficialCallCostKES);
-            TotalRecoveredCostKES = allRows.Sum(r => r.RecoveredCallCostKES);
+                    StaffRows.Add(new StaffBillingRow
+                    {
+                        IndexNumber = reader.GetString(reader.GetOrdinal("IndexNumber")),
+                        FullName = reader.GetString(reader.GetOrdinal("FullName")),
+                        OrganizationName = reader.GetString(reader.GetOrdinal("OrganizationName")),
+                        OfficeName = reader.GetString(reader.GetOrdinal("OfficeName")),
+                        PersonalCallCount = reader.GetInt32(reader.GetOrdinal("PersonalCallCount")),
+                        PersonalCallCostKES = reader.GetDecimal(reader.GetOrdinal("PersonalCallCostKES")),
+                        PersonalCallCostUSD = reader.GetDecimal(reader.GetOrdinal("PersonalCallCostUSD")),
+                        OfficialCallCount = reader.GetInt32(reader.GetOrdinal("OfficialCallCount")),
+                        OfficialCallCostKES = reader.GetDecimal(reader.GetOrdinal("OfficialCallCostKES")),
+                        OfficialCallCostUSD = reader.GetDecimal(reader.GetOrdinal("OfficialCallCostUSD")),
+                        RecoveredCallCount = reader.GetInt32(reader.GetOrdinal("RecoveredCallCount")),
+                        RecoveredCallCostKES = reader.GetDecimal(reader.GetOrdinal("RecoveredCallCostKES")),
+                        TotalCallCount = reader.GetInt32(reader.GetOrdinal("TotalCallCount")),
+                        TotalCostKES = reader.GetDecimal(reader.GetOrdinal("TotalCostKES")),
+                        TotalCostUSD = reader.GetDecimal(reader.GetOrdinal("TotalCostUSD"))
+                    });
+                }
 
-            // Sorting
-            allRows = SortBy?.ToLower() switch
-            {
-                "personalcallcostkes" => SortDir == "desc"
-                    ? allRows.OrderByDescending(r => r.PersonalCallCostKES).ToList()
-                    : allRows.OrderBy(r => r.PersonalCallCostKES).ToList(),
-                "officialcallcostkes" => SortDir == "desc"
-                    ? allRows.OrderByDescending(r => r.OfficialCallCostKES).ToList()
-                    : allRows.OrderBy(r => r.OfficialCallCostKES).ToList(),
-                "recoveredcallcostkes" => SortDir == "desc"
-                    ? allRows.OrderByDescending(r => r.RecoveredCallCostKES).ToList()
-                    : allRows.OrderBy(r => r.RecoveredCallCostKES).ToList(),
-                "totalcostkes" => SortDir == "desc"
-                    ? allRows.OrderByDescending(r => r.TotalCostKES).ToList()
-                    : allRows.OrderBy(r => r.TotalCostKES).ToList(),
-                _ => SortDir == "desc"
-                    ? allRows.OrderByDescending(r => r.FullName).ToList()
-                    : allRows.OrderBy(r => r.FullName).ToList(),
-            };
-
-            if (applyPagination)
-            {
-                // Pagination
-                TotalCount = allRows.Count;
-                TotalPages = (int)Math.Ceiling(TotalCount / (double)PageSize);
-                if (PageNumber < 1) PageNumber = 1;
-                if (PageNumber > TotalPages && TotalPages > 0) PageNumber = TotalPages;
-
-                StaffRows = allRows.Skip((PageNumber - 1) * PageSize).Take(PageSize).ToList();
+                if (applyPagination)
+                {
+                    TotalPages = PageSize > 0 ? (int)Math.Ceiling(TotalCount / (double)PageSize) : 1;
+                    if (PageNumber < 1) PageNumber = 1;
+                    if (PageNumber > TotalPages && TotalPages > 0) PageNumber = TotalPages;
+                }
             }
-            else
+            finally
             {
-                StaffRows = allRows;
+                if (!wasOpen) await conn.CloseAsync();
             }
         }
 
