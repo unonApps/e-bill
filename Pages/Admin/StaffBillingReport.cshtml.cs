@@ -116,13 +116,17 @@ namespace TAB.Web.Pages.Admin
             if (FilterMonth > 0)
                 baseQuery = baseQuery.Where(c => c.CallMonth == FilterMonth);
 
-            // Organization filter
+            // Organization filter (prefer snapshot, fallback to live EbillUser)
             if (FilterOrganization.HasValue && FilterOrganization > 0)
-                baseQuery = baseQuery.Where(c => c.ResponsibleUser != null && c.ResponsibleUser.OrganizationId == FilterOrganization);
+                baseQuery = baseQuery.Where(c =>
+                    c.SnapshotOrganizationId == FilterOrganization ||
+                    (c.SnapshotOrganizationId == null && c.ResponsibleUser != null && c.ResponsibleUser.OrganizationId == FilterOrganization));
 
-            // Office filter
+            // Office filter (prefer snapshot, fallback to live EbillUser)
             if (FilterOffice.HasValue && FilterOffice > 0)
-                baseQuery = baseQuery.Where(c => c.ResponsibleUser != null && c.ResponsibleUser.OfficeId == FilterOffice);
+                baseQuery = baseQuery.Where(c =>
+                    c.SnapshotOfficeId == FilterOffice ||
+                    (c.SnapshotOfficeId == null && c.ResponsibleUser != null && c.ResponsibleUser.OfficeId == FilterOffice));
 
             // Group by staff member and compute aggregates
             var grouped = await baseQuery
@@ -130,6 +134,9 @@ namespace TAB.Web.Pages.Admin
                 .Select(g => new
                 {
                     IndexNumber = g.Key,
+                    // Snapshot org/office (take first non-null from the group)
+                    SnapshotOrgName = g.Select(c => c.SnapshotOrganizationName).FirstOrDefault(n => n != null),
+                    SnapshotOfficeName = g.Select(c => c.SnapshotOfficeName).FirstOrDefault(n => n != null),
                     // Personal calls
                     PersonalCallCount = g.Count(c => c.VerificationType == "Personal"),
                     PersonalCallCostKES = g.Where(c => c.VerificationType == "Personal").Sum(c => c.CallCostKSHS),
@@ -163,8 +170,8 @@ namespace TAB.Web.Pages.Admin
                 {
                     IndexNumber = g.IndexNumber,
                     FullName = user?.FullName ?? "Unknown",
-                    OrganizationName = user?.OrganizationEntity?.Name ?? "-",
-                    OfficeName = user?.OfficeEntity?.Name ?? "-",
+                    OrganizationName = g.SnapshotOrgName ?? user?.OrganizationEntity?.Name ?? "-",
+                    OfficeName = g.SnapshotOfficeName ?? user?.OfficeEntity?.Name ?? "-",
                     PersonalCallCount = g.PersonalCallCount,
                     PersonalCallCostKES = g.PersonalCallCostKES,
                     PersonalCallCostUSD = g.PersonalCallCostUSD,

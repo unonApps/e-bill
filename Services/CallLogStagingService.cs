@@ -1328,6 +1328,19 @@ namespace TAB.Web.Services
             // Reload batch to get updated status from stored procedure
             await _context.Entry(batch).ReloadAsync();
 
+            // Snapshot org/office from EbillUser onto published CallRecords for historical accuracy
+            try
+            {
+                var snapshotCount = await SnapshotOrgOfficeAsync(batchId);
+                if (snapshotCount > 0)
+                    _logger.LogInformation("Snapshotted org/office for {Count} records in batch {BatchId}", snapshotCount, batchId);
+            }
+            catch (Exception ex)
+            {
+                _logger.LogError(ex, "Error snapshotting org/office for batch {BatchId}", batchId);
+                // Don't fail the push operation
+            }
+
             // Auto-verify calls within COS for qualifying organizations
             try
             {
@@ -1389,6 +1402,45 @@ namespace TAB.Web.Services
                 pushResult.RecordsPushed, batchId);
 
             return pushResult.RecordsPushed;
+        }
+
+        private async Task<int> SnapshotOrgOfficeAsync(Guid batchId)
+        {
+            var records = await _context.CallRecords
+                .Where(r => r.SourceBatchId == batchId && r.SnapshotOrganizationId == null)
+                .ToListAsync();
+
+            if (records.Count == 0) return 0;
+
+            var indexNumbers = records
+                .Where(r => r.ResponsibleIndexNumber != null)
+                .Select(r => r.ResponsibleIndexNumber!)
+                .Distinct()
+                .ToList();
+
+            var users = await _context.EbillUsers
+                .Where(u => indexNumbers.Contains(u.IndexNumber))
+                .Include(u => u.OrganizationEntity)
+                .Include(u => u.OfficeEntity)
+                .Include(u => u.SubOfficeEntity)
+                .ToDictionaryAsync(u => u.IndexNumber);
+
+            foreach (var record in records)
+            {
+                if (record.ResponsibleIndexNumber != null &&
+                    users.TryGetValue(record.ResponsibleIndexNumber, out var user))
+                {
+                    record.SnapshotOrganizationId = user.OrganizationId;
+                    record.SnapshotOrganizationName = user.OrganizationEntity?.Name;
+                    record.SnapshotOfficeId = user.OfficeId;
+                    record.SnapshotOfficeName = user.OfficeEntity?.Name;
+                    record.SnapshotSubOfficeId = user.SubOfficeId;
+                    record.SnapshotSubOfficeName = user.SubOfficeEntity?.Name;
+                }
+            }
+
+            await _context.SaveChangesAsync();
+            return records.Count;
         }
 
         public async Task PushToProductionInBackgroundAsync(Guid batchId, DateTime? verificationPeriod, string? verificationType, string publishedBy, bool sendNotifications = true)

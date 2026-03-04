@@ -487,13 +487,19 @@ namespace TAB.Web.Pages.Admin
                 recoveryQuery = recoveryQuery.Where(rl => rl.RecoveryDate.Year == FilterYear.Value);
             }
 
-            // Join with CallRecords for currency and phone (no Include) - avoids loading full entities
+            // Join with CallRecords for currency, phone, and snapshot org/office
             // Use Max() for PhoneNumber instead of FirstOrDefault() to avoid correlated subquery
             var financeData = await recoveryQuery
                 .Join(_context.CallRecords.AsNoTracking(),
                       rl => rl.CallRecordId,
                       cr => cr.Id,
-                      (rl, cr) => new { rl.RecoveredFrom, rl.AmountRecovered, rl.RecoveryDate, Currency = cr.CallCurrencyCode ?? "KES", cr.ExtensionNumber })
+                      (rl, cr) => new {
+                          rl.RecoveredFrom, rl.AmountRecovered, rl.RecoveryDate,
+                          Currency = cr.CallCurrencyCode ?? "KES", cr.ExtensionNumber,
+                          cr.SnapshotOrganizationId, cr.SnapshotOrganizationName,
+                          cr.SnapshotOfficeId, cr.SnapshotOfficeName,
+                          cr.SnapshotSubOfficeId, cr.SnapshotSubOfficeName
+                      })
                 .GroupBy(x => new { x.RecoveredFrom, x.Currency })
                 .Select(g => new
                 {
@@ -501,7 +507,13 @@ namespace TAB.Web.Pages.Admin
                     Currency = g.Key.Currency,
                     TotalAmount = g.Sum(x => x.AmountRecovered),
                     PhoneNumber = g.Max(x => x.ExtensionNumber),
-                    RecoveryDate = g.Max(x => x.RecoveryDate)
+                    RecoveryDate = g.Max(x => x.RecoveryDate),
+                    SnapshotOrgId = g.Select(x => x.SnapshotOrganizationId).FirstOrDefault(id => id != null),
+                    SnapshotOrgName = g.Select(x => x.SnapshotOrganizationName).FirstOrDefault(n => n != null),
+                    SnapshotOfficeId = g.Select(x => x.SnapshotOfficeId).FirstOrDefault(id => id != null),
+                    SnapshotOfficeName = g.Select(x => x.SnapshotOfficeName).FirstOrDefault(n => n != null),
+                    SnapshotSubOfficeId = g.Select(x => x.SnapshotSubOfficeId).FirstOrDefault(id => id != null),
+                    SnapshotSubOfficeName = g.Select(x => x.SnapshotSubOfficeName).FirstOrDefault(n => n != null)
                 })
                 .OrderBy(g => g.IndexNumber)
                 .ThenBy(g => g.Currency)
@@ -549,16 +561,21 @@ namespace TAB.Web.Pages.Admin
             {
                 var user = recovery.IndexNumber != null && userDetails.TryGetValue(recovery.IndexNumber, out var u) ? u : null;
 
+                // Prefer snapshot org/office (historical) over live EbillUser lookup
+                var liveOrgName = user?.OrganizationId.HasValue == true && orgNames.TryGetValue(user.OrganizationId.Value, out var orgN) ? orgN : "";
+                var liveOfficeName = user?.OfficeId.HasValue == true && officeNames.TryGetValue(user.OfficeId.Value, out var offN) ? offN : "";
+                var liveSubOfficeName = user?.SubOfficeId.HasValue == true && subOfficeNames.TryGetValue(user.SubOfficeId.Value, out var subOffN) ? subOffN : "";
+
                 var detail = new FinanceRecoveryDetail
                 {
                     IndexNumber = recovery.IndexNumber ?? "",
                     StaffName = user?.FullName ?? "Unknown User",
-                    OrgUnit = user?.OrganizationId.HasValue == true && orgNames.TryGetValue(user.OrganizationId.Value, out var orgName) ? orgName : "",
+                    OrgUnit = recovery.SnapshotOrgName ?? liveOrgName,
                     Amount = recovery.TotalAmount,
                     Currency = recovery.Currency,
                     PhoneNumber = recovery.PhoneNumber ?? "",
-                    Office = user?.OfficeId.HasValue == true && officeNames.TryGetValue(user.OfficeId.Value, out var officeName) ? officeName : "",
-                    SubOffice = user?.SubOfficeId.HasValue == true && subOfficeNames.TryGetValue(user.SubOfficeId.Value, out var subOfficeName) ? subOfficeName : "",
+                    Office = recovery.SnapshotOfficeName ?? liveOfficeName,
+                    SubOffice = recovery.SnapshotSubOfficeName ?? liveSubOfficeName,
                     EffectiveDate = recovery.RecoveryDate,
                     ExpirationDate = recovery.RecoveryDate.AddMonths(2)
                 };
@@ -566,34 +583,42 @@ namespace TAB.Web.Pages.Admin
                 financeDetails.Add(detail);
             }
 
-            // Apply post-processing filters
+            // Apply post-processing filters (use snapshot IDs when available, fallback to EbillUser)
             var filteredDetails = financeDetails.AsEnumerable();
+
+            // Build a lookup of snapshot org/office IDs per recovery for filtering
+            var snapshotLookup = financeData.ToDictionary(
+                r => (r.IndexNumber ?? "", r.Currency),
+                r => new { r.SnapshotOrgId, r.SnapshotOfficeId, r.SnapshotSubOfficeId });
 
             if (FilterOrganizationId.HasValue)
             {
-                var filteredIndexNumbers = userDetails.Values
-                    .Where(u => u.OrganizationId == FilterOrganizationId.Value)
-                    .Select(u => u.IndexNumber)
-                    .ToHashSet();
-                filteredDetails = filteredDetails.Where(f => filteredIndexNumbers.Contains(f.IndexNumber));
+                filteredDetails = filteredDetails.Where(f =>
+                {
+                    if (snapshotLookup.TryGetValue((f.IndexNumber, f.Currency), out var snap) && snap.SnapshotOrgId.HasValue)
+                        return snap.SnapshotOrgId == FilterOrganizationId.Value;
+                    return userDetails.TryGetValue(f.IndexNumber, out var u) && u.OrganizationId == FilterOrganizationId.Value;
+                });
             }
 
             if (FilterOfficeId.HasValue)
             {
-                var filteredIndexNumbers = userDetails.Values
-                    .Where(u => u.OfficeId == FilterOfficeId.Value)
-                    .Select(u => u.IndexNumber)
-                    .ToHashSet();
-                filteredDetails = filteredDetails.Where(f => filteredIndexNumbers.Contains(f.IndexNumber));
+                filteredDetails = filteredDetails.Where(f =>
+                {
+                    if (snapshotLookup.TryGetValue((f.IndexNumber, f.Currency), out var snap) && snap.SnapshotOfficeId.HasValue)
+                        return snap.SnapshotOfficeId == FilterOfficeId.Value;
+                    return userDetails.TryGetValue(f.IndexNumber, out var u) && u.OfficeId == FilterOfficeId.Value;
+                });
             }
 
             if (FilterSubOfficeId.HasValue)
             {
-                var filteredIndexNumbers = userDetails.Values
-                    .Where(u => u.SubOfficeId == FilterSubOfficeId.Value)
-                    .Select(u => u.IndexNumber)
-                    .ToHashSet();
-                filteredDetails = filteredDetails.Where(f => filteredIndexNumbers.Contains(f.IndexNumber));
+                filteredDetails = filteredDetails.Where(f =>
+                {
+                    if (snapshotLookup.TryGetValue((f.IndexNumber, f.Currency), out var snap) && snap.SnapshotSubOfficeId.HasValue)
+                        return snap.SnapshotSubOfficeId == FilterSubOfficeId.Value;
+                    return userDetails.TryGetValue(f.IndexNumber, out var u) && u.SubOfficeId == FilterSubOfficeId.Value;
+                });
             }
 
             if (!string.IsNullOrEmpty(SearchText))

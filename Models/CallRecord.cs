@@ -164,6 +164,28 @@ namespace TAB.Web.Models
         [Column("call_dest_descr")]
         public string? CallDestinationDescription { get; set; }
 
+        // Snapshot of org/office at time of publication (for historical accuracy)
+        [Column("snapshot_org_id")]
+        public int? SnapshotOrganizationId { get; set; }
+
+        [Column("snapshot_org_name")]
+        [StringLength(100)]
+        public string? SnapshotOrganizationName { get; set; }
+
+        [Column("snapshot_office_id")]
+        public int? SnapshotOfficeId { get; set; }
+
+        [Column("snapshot_office_name")]
+        [StringLength(100)]
+        public string? SnapshotOfficeName { get; set; }
+
+        [Column("snapshot_suboffice_id")]
+        public int? SnapshotSubOfficeId { get; set; }
+
+        [Column("snapshot_suboffice_name")]
+        [StringLength(100)]
+        public string? SnapshotSubOfficeName { get; set; }
+
         // Additional metadata for tracking
         [MaxLength(50)]
         public string? SourceSystem { get; set; }
