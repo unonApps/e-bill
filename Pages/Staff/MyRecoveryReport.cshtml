@@ -529,7 +529,6 @@
             <form method="post" asp-page-handler="Export" class="d-inline">
                 <input type="hidden" name="StartDate" value="@Model.StartDate?.ToString("yyyy-MM-dd")" />
                 <input type="hidden" name="EndDate" value="@Model.EndDate?.ToString("yyyy-MM-dd")" />
-                <input type="hidden" name="HideZeroCost" value="@Model.HideZeroCost.ToString().ToLower()" />
                 <button type="submit" class="btn btn-success" style="border-radius: 12px;">
                     <i class="bi bi-download me-1"></i>Export CSV
                 </button>
@@ -575,20 +574,13 @@
                         </div>
                     </div>
                     <div class="row mt-3">
-                        <div class="col d-flex align-items-center gap-3 flex-wrap">
+                        <div class="col">
                             <button type="submit" class="btn btn-primary" style="border-radius: 12px;">
                                 <i class="bi bi-search me-1"></i>Apply Filters
                             </button>
                             <a asp-page="/Staff/MyRecoveryReport" class="btn btn-outline-secondary" style="border-radius: 12px;">
                                 <i class="bi bi-x-circle me-1"></i>Clear
                             </a>
-                            <div class="form-check ms-2">
-                                <input type="checkbox" class="form-check-input" id="HideZeroCost" name="HideZeroCost"
-                                       value="true" @(Model.HideZeroCost ? "checked" : "") />
-                                <label class="form-check-label" for="HideZeroCost" style="font-size: 0.875rem; color: #4b5563;">
-                                    <i class="bi bi-funnel-fill me-1"></i>Hide zero-cost calls
-                                </label>
-                            </div>
                         </div>
                     </div>
                 </form>
