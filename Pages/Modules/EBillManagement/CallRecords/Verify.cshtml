@@ -186,39 +186,7 @@
         padding: 1rem;
         border: 1px solid #e5e7eb;
         transition: all 0.3s ease;
-        position: relative;
-        overflow: hidden;
         height: 100%;
-    }
-
-    .stat-card::before {
-        content: '';
-        position: absolute;
-        top: 0;
-        left: 0;
-        right: 0;
-        height: 4px;
-        background: linear-gradient(90deg, var(--gradient-start), var(--gradient-end));
-    }
-
-    .stat-card:nth-child(1)::before {
-        --gradient-start: #3b82f6;
-        --gradient-end: #60a5fa;
-    }
-
-    .stat-card:nth-child(2)::before {
-        --gradient-start: #10b981;
-        --gradient-end: #34d399;
-    }
-
-    .stat-card:nth-child(3)::before {
-        --gradient-start: #06b6d4;
-        --gradient-end: #22d3ee;
-    }
-
-    .stat-card:nth-child(4)::before {
-        --gradient-start: #8b5cf6;
-        --gradient-end: #a78bfa;
     }
 
     .stat-card:hover {

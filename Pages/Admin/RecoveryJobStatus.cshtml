@@ -79,8 +79,6 @@
         border-radius: 16px;
         padding: 1.5rem;
         border: 2px solid #e5e7eb;
-        position: relative;
-        overflow: hidden;
         margin-bottom: 1.5rem;
         transition: all 0.2s;
     }
@@ -88,26 +86,6 @@
     .status-card:hover {
         border-color: #009edb;
         box-shadow: 0 4px 12px rgba(0, 158, 219, 0.1);
-    }
-
-    .status-card::before {
-        content: '';
-        position: absolute;
-        top: 0;
-        left: 0;
-        right: 0;
-        height: 4px;
-        background: linear-gradient(90deg, var(--gradient-start), var(--gradient-end));
-    }
-
-    .status-card.primary::before {
-        --gradient-start: #3b82f6;
-        --gradient-end: #60a5fa;
-    }
-
-    .status-card.success::before {
-        --gradient-start: #10b981;
-        --gradient-end: #34d399;
     }
 
     .status-header {
@@ -160,38 +138,6 @@
         border-radius: 12px;
         padding: 1.5rem;
         border: 1px solid #e5e7eb;
-        position: relative;
-        overflow: hidden;
-    }
-
-    .stat-card::before {
-        content: '';
-        position: absolute;
-        top: 0;
-        left: 0;
-        right: 0;
-        height: 4px;
-        background: linear-gradient(90deg, var(--gradient-start), var(--gradient-end));
-    }
-
-    .stat-card:nth-child(1)::before {
-        --gradient-start: #3b82f6;
-        --gradient-end: #60a5fa;
-    }
-
-    .stat-card:nth-child(2)::before {
-        --gradient-start: #10b981;
-        --gradient-end: #34d399;
-    }
-
-    .stat-card:nth-child(3)::before {
-        --gradient-start: #06b6d4;
-        --gradient-end: #22d3ee;
-    }
-
-    .stat-card:nth-child(4)::before {
-        --gradient-start: #f59e0b;
-        --gradient-end: #fbbf24;
     }
 
     .stat-card:hover {
