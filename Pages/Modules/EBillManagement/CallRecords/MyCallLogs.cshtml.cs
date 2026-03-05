@@ -953,7 +953,7 @@ namespace TAB.Web.Pages.Modules.EBillManagement.CallRecords
         }
 
         /// <summary>
-        /// ULTRA-FAST bulk recall using raw SQL
+        /// Bulk recall using stored procedure sp_BulkRecallAssignments
         /// </summary>
         private async Task<(int RecalledCount, List<string> Errors)> BulkRecallAssignmentsRawAsync(
             string indexNumber,
@@ -963,98 +963,35 @@ namespace TAB.Web.Pages.Modules.EBillManagement.CallRecords
             string? dialedNumber = null)
         {
             var errors = new List<string>();
-            var now = DateTime.UtcNow;
             int recalledCount = 0;
 
             try
             {
-                var strategy = _context.Database.CreateExecutionStrategy();
+                var conn = _context.Database.GetDbConnection();
+                var wasOpen = conn.State == ConnectionState.Open;
+                if (!wasOpen) await conn.OpenAsync();
 
-                await strategy.ExecuteAsync(async () =>
+                try
                 {
-                    using var transaction = await _context.Database.BeginTransactionAsync();
+                    using var cmd = conn.CreateCommand();
+                    cmd.CommandText = "ebill.sp_BulkRecallAssignments";
+                    cmd.CommandType = CommandType.StoredProcedure;
+                    cmd.CommandTimeout = 30;
 
-                    // Build filter clauses
-                    var additionalFilters = new List<string>();
-                    var parameters = new List<Microsoft.Data.SqlClient.SqlParameter>
-                    {
-                        new Microsoft.Data.SqlClient.SqlParameter("@indexNumber", indexNumber),
-                        new Microsoft.Data.SqlClient.SqlParameter("@now", now)
-                    };
+                    cmd.Parameters.Add(new SqlParameter("@IndexNumber", indexNumber));
+                    cmd.Parameters.Add(new SqlParameter("@Extension", (object?)extension ?? DBNull.Value));
+                    cmd.Parameters.Add(new SqlParameter("@Month", (object?)month ?? DBNull.Value));
+                    cmd.Parameters.Add(new SqlParameter("@Year", (object?)year ?? DBNull.Value));
+                    cmd.Parameters.Add(new SqlParameter("@DialedNumber", (object?)dialedNumber ?? DBNull.Value));
 
-                    var needsUserPhoneJoin = !string.IsNullOrEmpty(extension);
-                    var userPhoneJoin = needsUserPhoneJoin ? "INNER JOIN UserPhones up ON cr.UserPhoneId = up.Id" : "";
-
-                    if (!string.IsNullOrEmpty(extension))
-                    {
-                        additionalFilters.Add("up.PhoneNumber = @extension");
-                        parameters.Add(new Microsoft.Data.SqlClient.SqlParameter("@extension", extension));
-                    }
-                    if (month.HasValue)
-                    {
-                        additionalFilters.Add("cr.call_month = @month");
-                        parameters.Add(new Microsoft.Data.SqlClient.SqlParameter("@month", month.Value));
-                    }
-                    if (year.HasValue)
-                    {
-                        additionalFilters.Add("cr.call_year = @year");
-                        parameters.Add(new Microsoft.Data.SqlClient.SqlParameter("@year", year.Value));
-                    }
-                    if (!string.IsNullOrEmpty(dialedNumber))
-                    {
-                        additionalFilters.Add("ISNULL(cr.call_number, '') = @dialedNumber");
-                        parameters.Add(new Microsoft.Data.SqlClient.SqlParameter("@dialedNumber", dialedNumber));
-                    }
-
-                    var additionalFilterClause = additionalFilters.Count > 0 ? "AND " + string.Join(" AND ", additionalFilters) : "";
-
-                    // Step 1: Update CallRecords - revert payment back to original owner
-                    var updateCallRecordsSql = $@"
-                        UPDATE cr
-                        SET cr.call_pay_index = pa.AssignedFrom,
-                            cr.payment_assignment_id = NULL,
-                            cr.assignment_status = 'None'
-                        FROM CallRecords cr
-                        INNER JOIN CallLogPaymentAssignments pa ON cr.payment_assignment_id = pa.Id
-                        {userPhoneJoin}
-                        WHERE pa.AssignedFrom = @indexNumber
-                          AND pa.AssignmentStatus = 'Pending'
-                          {additionalFilterClause}";
-
-                    await _context.Database.ExecuteSqlRawAsync(updateCallRecordsSql, parameters.ToArray());
-
-                    // Step 2: Update CallLogPaymentAssignments to Recalled
-                    var updateAssignmentsSql = $@"
-                        UPDATE pa
-                        SET pa.AssignmentStatus = 'Recalled',
-                            pa.ModifiedDate = @now2
-                        FROM CallLogPaymentAssignments pa
-                        INNER JOIN CallRecords cr ON pa.CallRecordId = cr.Id
-                        {userPhoneJoin}
-                        WHERE pa.AssignedFrom = @indexNumber2
-                          AND pa.AssignmentStatus = 'Pending'
-                          {additionalFilterClause.Replace("@", "@2_")}";
-
-                    // Build parameters for second query
-                    var parameters2 = new List<Microsoft.Data.SqlClient.SqlParameter>
-                    {
-                        new Microsoft.Data.SqlClient.SqlParameter("@indexNumber2", indexNumber),
-                        new Microsoft.Data.SqlClient.SqlParameter("@now2", now)
-                    };
-                    if (!string.IsNullOrEmpty(extension))
-                        parameters2.Add(new Microsoft.Data.SqlClient.SqlParameter("@2_extension", extension));
-                    if (month.HasValue)
-                        parameters2.Add(new Microsoft.Data.SqlClient.SqlParameter("@2_month", month.Value));
-                    if (year.HasValue)
-                        parameters2.Add(new Microsoft.Data.SqlClient.SqlParameter("@2_year", year.Value));
-                    if (!string.IsNullOrEmpty(dialedNumber))
-                        parameters2.Add(new Microsoft.Data.SqlClient.SqlParameter("@2_dialedNumber", dialedNumber));
-
-                    recalledCount = await _context.Database.ExecuteSqlRawAsync(
-                        updateAssignmentsSql, parameters2.ToArray());
-
-                    await transaction.CommitAsync();
-                });
+                    using var reader = await cmd.ExecuteReaderAsync();
+                    if (await reader.ReadAsync())
+                        recalledCount = reader.GetInt32(0);
+                }
+                finally
+                {
+                    if (!wasOpen) await conn.CloseAsync();
+                }
 
                 return (recalledCount, errors);
             }
@@ -1314,13 +1251,13 @@ namespace TAB.Web.Pages.Modules.EBillManagement.CallRecords
 
         /// <summary>
         /// AJAX endpoint to get dialed numbers for a specific extension/month/year (Level 2)
+        /// Uses stored procedure sp_GetDialedNumberGroups for single-round-trip performance.
         /// </summary>
         public async Task<JsonResult> OnGetDialedNumbersAsync(
             string? extension, int month, int year, int page = 1, int pageSize = 20)
         {
             try
             {
-                // Validate required parameters
                 if (string.IsNullOrEmpty(extension))
                     return new JsonResult(new { error = "Extension is required" });
 
@@ -1329,6 +1266,7 @@ namespace TAB.Web.Pages.Modules.EBillManagement.CallRecords
                     return new JsonResult(new { error = "User not authenticated" });
 
                 var ebillUser = await _context.EbillUsers
+                    .AsNoTracking()
                     .FirstOrDefaultAsync(u => u.Email == user.Email);
 
                 bool isAdmin = User.IsInRole("Admin");
@@ -1337,56 +1275,68 @@ namespace TAB.Web.Pages.Modules.EBillManagement.CallRecords
                 if (ebillUser == null && !isAdmin)
                     return new JsonResult(new { error = "User profile not found" });
 
-                // Use ExtensionNumber directly (indexed column) - no JOIN to UserPhones
-                var query = _context.CallRecords
-                    .Where(c => c.ExtensionNumber == extension &&
-                               c.CallMonth == month && c.CallYear == year);
+                var conn = _context.Database.GetDbConnection();
+                var wasOpen = conn.State == ConnectionState.Open;
+                if (!wasOpen) await conn.OpenAsync();
 
-                // Filter by user if not admin
-                if (!isAdmin && !string.IsNullOrEmpty(userIndexNumber))
+                var dialedNumbers = new List<DialedNumberGroupDto>();
+                int totalCount = 0;
+
+                try
                 {
-                    var incomingAssignedCallIdsQuery = _context.Set<CallLogPaymentAssignment>()
-                        .Where(a => a.AssignedTo == userIndexNumber &&
-                               (a.AssignmentStatus == "Pending" || a.AssignmentStatus == "Accepted"))
-                        .Select(a => a.CallRecordId);
+                    using var cmd = conn.CreateCommand();
+                    cmd.CommandText = "ebill.sp_GetDialedNumberGroups";
+                    cmd.CommandType = CommandType.StoredProcedure;
+                    cmd.CommandTimeout = 30;
 
-                    var acceptedOutgoingCallIdsQuery = _context.Set<CallLogPaymentAssignment>()
-                        .Where(a => a.AssignedFrom == userIndexNumber && a.AssignmentStatus == "Accepted")
-                        .Select(a => a.CallRecordId);
+                    var p = cmd.Parameters;
+                    p.Add(new SqlParameter("@UserIndexNumber", (object?)userIndexNumber ?? DBNull.Value));
+                    p.Add(new SqlParameter("@IsAdmin", isAdmin));
+                    p.Add(new SqlParameter("@Extension", extension));
+                    p.Add(new SqlParameter("@Month", month));
+                    p.Add(new SqlParameter("@Year", year));
+                    p.Add(new SqlParameter("@Page", page));
+                    p.Add(new SqlParameter("@PageSize", pageSize));
 
-                    query = query.Where(c =>
-                        (c.ResponsibleIndexNumber == userIndexNumber && !acceptedOutgoingCallIdsQuery.Contains(c.Id)) ||
-                        incomingAssignedCallIdsQuery.Contains(c.Id));
+                    using var reader = await cmd.ExecuteReaderAsync();
+
+                    // Result set 1: Total count
+                    if (await reader.ReadAsync())
+                        totalCount = reader.GetInt32(0);
+
+                    // Result set 2: Dialed number groups
+                    await reader.NextResultAsync();
+                    while (await reader.ReadAsync())
+                    {
+                        dialedNumbers.Add(new DialedNumberGroupDto
+                        {
+                            DialedNumber = reader.GetString(reader.GetOrdinal("DialedNumber")),
+                            Destination = reader.GetString(reader.GetOrdinal("Destination")),
+                            CallCount = reader.GetInt32(reader.GetOrdinal("CallCount")),
+                            TotalCostUSD = reader.GetDecimal(reader.GetOrdinal("TotalCostUSD")),
+                            TotalCostKSH = reader.GetDecimal(reader.GetOrdinal("TotalCostKSH")),
+                            TotalDuration = reader.GetDecimal(reader.GetOrdinal("TotalDuration")),
+                            AssignmentStatus = reader.GetString(reader.GetOrdinal("AssignmentStatus")),
+                            IsDataSession = reader.GetBoolean(reader.GetOrdinal("IsDataSession")),
+                            SubmittedCount = reader.GetInt32(reader.GetOrdinal("SubmittedCount")),
+                            PendingApprovalCount = reader.GetInt32(reader.GetOrdinal("PendingApprovalCount")),
+                            ApprovedCount = reader.GetInt32(reader.GetOrdinal("ApprovedCount")),
+                            RejectedCount = reader.GetInt32(reader.GetOrdinal("RejectedCount")),
+                            RevertedCount = reader.GetInt32(reader.GetOrdinal("RevertedCount")),
+                            PartiallyApprovedCount = reader.GetInt32(reader.GetOrdinal("PartiallyApprovedCount")),
+                            IncomingAssignmentCount = reader.GetInt32(reader.GetOrdinal("IncomingAssignmentCount")),
+                            AssignedFromUser = reader.IsDBNull(reader.GetOrdinal("AssignedFromUser")) ? null : reader.GetString(reader.GetOrdinal("AssignedFromUser")),
+                            OutgoingPendingCount = reader.GetInt32(reader.GetOrdinal("OutgoingPendingCount")),
+                            AssignedToUser = reader.IsDBNull(reader.GetOrdinal("AssignedToUser")) ? null : reader.GetString(reader.GetOrdinal("AssignedToUser"))
+                        });
+                    }
+                }
+                finally
+                {
+                    if (!wasOpen) await conn.CloseAsync();
                 }
 
-                // Single GroupBy execution - fetch all groups, paginate in memory
-                // (typically < 100 distinct dialed numbers per extension/month)
-                // IsDataSession moved to post-processing to avoid expensive LOWER()+LIKE in GroupBy
-                var allDialedNumbers = await query
-                    .GroupBy(c => c.CallNumber ?? "")
-                    .Select(g => new DialedNumberGroupDto
-                    {
-                        DialedNumber = g.Key == "" ? "Subscription" : g.Key,
-                        Destination = g.Select(c => c.CallDestination).FirstOrDefault() ?? "",
-                        CallCount = g.Count(),
-                        TotalCostUSD = g.Sum(c => c.CallCostUSD),
-                        TotalCostKSH = g.Sum(c => c.CallCostKSHS),
-                        TotalDuration = g.Sum(c => (decimal)c.CallDuration),
-                        AssignmentStatus = g.Select(c => c.VerificationType).Distinct().Count() > 1 ? "Mixed" :
-                                          (g.Select(c => c.VerificationType).FirstOrDefault() ?? "Unverified"),
-                        IsDataSession = false
-                    })
-                    .OrderByDescending(d => d.CallCount)
-                    .ToListAsync();
-
-                var totalCount = allDialedNumbers.Count;
                 var totalPages = (int)Math.Ceiling(totalCount / (double)pageSize);
-
-                // Paginate in memory (avoids re-executing the GroupBy for count)
-                var dialedNumbers = allDialedNumbers
-                    .Skip((page - 1) * pageSize)
-                    .Take(pageSize)
-                    .ToList();
 
                 // Set DialedGroupId for each
                 var safeExtension = (extension ?? "Unknown").Replace(" ", "_").Replace("-", "_").Replace("+", "");
@@ -1395,127 +1345,6 @@ namespace TAB.Web.Pages.Modules.EBillManagement.CallRecords
                 {
                     var safeDialedNumber = (dn.DialedNumber ?? "Subscription").Replace("+", "").Replace(" ", "_").Replace("-", "_");
                     dn.DialedGroupId = $"{groupId}_dialed_{safeDialedNumber}";
-                }
-
-                if (dialedNumbers.Any())
-                {
-                    var dialedNumbersList = dialedNumbers
-                        .Select(d => d.DialedNumber == "Subscription" ? "" : d.DialedNumber)
-                        .ToList();
-                    var hasSubscription = dialedNumbers.Any(d => d.DialedNumber == "Subscription");
-
-                    // Pre-filter CallRecords for this extension/month/year (reused by multiple queries below)
-                    var filteredCallRecords = _context.CallRecords
-                        .Where(cr => cr.ExtensionNumber == extension && cr.CallMonth == month && cr.CallYear == year);
-
-                    // Determine IsDataSession - lightweight query using case-insensitive LIKE (no LOWER())
-                    var dataSessionNumbers = await filteredCallRecords
-                        .Where(c => dialedNumbersList.Contains(c.CallNumber ?? "") ||
-                                   (hasSubscription && (c.CallNumber == null || c.CallNumber == "")))
-                        .Where(c => c.CallType != null &&
-                            (EF.Functions.Like(c.CallType, "%GPRS%") || EF.Functions.Like(c.CallType, "%data%")))
-                        .Select(c => c.CallNumber ?? "")
-                        .Distinct()
-                        .ToListAsync();
-
-                    // Submission counts - uses ExtensionNumber (indexed), no UserPhone JOIN
-                    var submissionCounts = await filteredCallRecords
-                        .Where(c => dialedNumbersList.Contains(c.CallNumber ?? "") ||
-                                   (hasSubscription && (c.CallNumber == null || c.CallNumber == "")))
-                        .Join(_context.CallLogVerifications.Where(v => v.SubmittedToSupervisor),
-                              cr => cr.Id,
-                              v => v.CallRecordId,
-                              (cr, v) => new { cr.CallNumber, v.ApprovalStatus })
-                        .GroupBy(x => x.CallNumber ?? "")
-                        .Select(g => new
-                        {
-                            DialedNumber = g.Key == "" ? "Subscription" : g.Key,
-                            SubmittedCount = g.Count(),
-                            PendingCount = g.Count(x => x.ApprovalStatus == "Pending"),
-                            ApprovedCount = g.Count(x => x.ApprovalStatus == "Approved"),
-                            RejectedCount = g.Count(x => x.ApprovalStatus == "Rejected"),
-                            RevertedCount = g.Count(x => x.ApprovalStatus == "Reverted"),
-                            PartiallyApprovedCount = g.Count(x => x.ApprovalStatus == "PartiallyApproved")
-                        })
-                        .ToDictionaryAsync(x => x.DialedNumber, x => x);
-
-                    // Apply IsDataSession and submission counts
-                    foreach (var dn in dialedNumbers)
-                    {
-                        var key = dn.DialedNumber == "Subscription" ? "" : dn.DialedNumber;
-                        dn.IsDataSession = dataSessionNumbers.Contains(key);
-
-                        if (submissionCounts.TryGetValue(dn.DialedNumber, out var counts))
-                        {
-                            dn.SubmittedCount = counts.SubmittedCount;
-                            dn.PendingApprovalCount = counts.PendingCount;
-                            dn.ApprovedCount = counts.ApprovedCount;
-                            dn.RejectedCount = counts.RejectedCount;
-                            dn.RevertedCount = counts.RevertedCount;
-                            dn.PartiallyApprovedCount = counts.PartiallyApprovedCount;
-                        }
-                    }
-
-                    // Assignment queries - use pre-filtered CallRecords (no UserPhone JOIN)
-                    if (!string.IsNullOrEmpty(userIndexNumber))
-                    {
-                        var assignmentCounts = await _context.Set<CallLogPaymentAssignment>()
-                            .Where(a => a.AssignedTo == userIndexNumber && a.AssignmentStatus == "Pending")
-                            .Join(filteredCallRecords,
-                                  a => a.CallRecordId,
-                                  cr => cr.Id,
-                                  (a, cr) => new { cr.CallNumber, a.AssignedFrom })
-                            .Where(x => dialedNumbersList.Contains(x.CallNumber ?? "") ||
-                                       (hasSubscription && (x.CallNumber == null || x.CallNumber == "")))
-                            .GroupBy(x => x.CallNumber ?? "")
-                            .Select(g => new
-                            {
-                                DialedNumber = g.Key == "" ? "Subscription" : g.Key,
-                                AssignmentCount = g.Count(),
-                                AssignedFromUser = g.Select(x => x.AssignedFrom).Distinct().Count() == 1
-                                    ? g.Select(x => x.AssignedFrom).FirstOrDefault()
-                                    : null
-                            })
-                            .ToDictionaryAsync(x => x.DialedNumber, x => x);
-
-                        foreach (var dn in dialedNumbers)
-                        {
-                            if (assignmentCounts.TryGetValue(dn.DialedNumber, out var assignmentInfo))
-                            {
-                                dn.IncomingAssignmentCount = assignmentInfo.AssignmentCount;
-                                dn.AssignedFromUser = assignmentInfo.AssignedFromUser;
-                            }
-                        }
-
-                        // Outgoing counts - use ExtensionNumber (no Include/UserPhone JOIN)
-                        var outgoingCounts = await _context.Set<CallLogPaymentAssignment>()
-                            .Where(a => a.AssignedFrom == userIndexNumber && a.AssignmentStatus == "Pending")
-                            .Join(filteredCallRecords,
-                                  a => a.CallRecordId,
-                                  cr => cr.Id,
-                                  (a, cr) => new { cr.CallNumber, a.AssignedTo })
-                            .Where(x => dialedNumbersList.Contains(x.CallNumber ?? "") ||
-                                       (hasSubscription && (x.CallNumber == null || x.CallNumber == "")))
-                            .GroupBy(x => x.CallNumber ?? "")
-                            .Select(g => new
-                            {
-                                DialedNumber = g.Key == "" ? "Subscription" : g.Key,
-                                OutgoingCount = g.Count(),
-                                AssignedToUser = g.Select(x => x.AssignedTo).Distinct().Count() == 1
-                                    ? g.Select(x => x.AssignedTo).FirstOrDefault()
-                                    : null
-                            })
-                            .ToDictionaryAsync(x => x.DialedNumber, x => x);
-
-                        foreach (var dn in dialedNumbers)
-                        {
-                            if (outgoingCounts.TryGetValue(dn.DialedNumber, out var outgoingInfo))
-                            {
-                                dn.OutgoingPendingCount = outgoingInfo.OutgoingCount;
-                                dn.AssignedToUser = outgoingInfo.AssignedToUser;
-                            }
-                        }
-                    }
                 }
 
                 return new JsonResult(new DialedNumbersResponse
@@ -1539,6 +1368,7 @@ namespace TAB.Web.Pages.Modules.EBillManagement.CallRecords
 
         /// <summary>
         /// AJAX endpoint to get call logs for a specific dialed number within extension/month/year (Level 3)
+        /// Uses stored procedure sp_GetCallLogs for single-round-trip performance.
         /// </summary>
         public async Task<JsonResult> OnGetCallLogsAsync(
             string? extension, int month, int year, string? dialedNumber,
@@ -1547,7 +1377,6 @@ namespace TAB.Web.Pages.Modules.EBillManagement.CallRecords
         {
             try
             {
-                // Validate required parameters
                 if (string.IsNullOrEmpty(extension))
                     return new JsonResult(new { error = "Extension is required" });
 
@@ -1556,6 +1385,7 @@ namespace TAB.Web.Pages.Modules.EBillManagement.CallRecords
                     return new JsonResult(new { error = "User not authenticated" });
 
                 var ebillUser = await _context.EbillUsers
+                    .AsNoTracking()
                     .FirstOrDefaultAsync(u => u.Email == user.Email);
 
                 bool isAdmin = User.IsInRole("Admin");
@@ -1564,108 +1394,81 @@ namespace TAB.Web.Pages.Modules.EBillManagement.CallRecords
                 if (ebillUser == null && !isAdmin)
                     return new JsonResult(new { error = "User profile not found" });
 
-                // Build base query - filter by extension (indexed), month, year
-                var query = _context.CallRecords
-                    .Where(c => c.ExtensionNumber == extension &&
-                               c.CallMonth == month && c.CallYear == year);
-
-                // Filter by dialed number
-                // If dialedNumber is empty/null or "Subscription", filter for records with blank dialed numbers (subscriptions)
-                if (string.IsNullOrEmpty(dialedNumber) || dialedNumber == "Subscription" || dialedNumber == "Unknown")
+                // Map sort parameter to SP expected values
+                var spSortBy = sortBy?.ToLower() switch
                 {
-                    query = query.Where(c => c.CallNumber == null || c.CallNumber == "");
-                }
-                else
-                {
-                    query = query.Where(c => c.CallNumber == dialedNumber);
-                }
-
-                // Filter by user if not admin - use Any() for efficient NOT EXISTS/EXISTS in SQL
-                Dictionary<int, string> assignmentData = new Dictionary<int, string>(); // CallRecordId -> AssignedFrom
-                Dictionary<int, (string Status, string AssignedTo)> outgoingAssignmentData = new Dictionary<int, (string, string)>();
-
-                if (!isAdmin && !string.IsNullOrEmpty(userIndexNumber))
-                {
-                    var userIndex = userIndexNumber; // Capture for lambda
-                    // Filter using Any() which translates to efficient EXISTS/NOT EXISTS in SQL
-                    query = query.Where(c =>
-                        (c.ResponsibleIndexNumber == userIndex &&
-                         !_context.Set<CallLogPaymentAssignment>().Any(a =>
-                            a.CallRecordId == c.Id && a.AssignedFrom == userIndex && a.AssignmentStatus == "Accepted")) ||
-                        _context.Set<CallLogPaymentAssignment>().Any(a =>
-                            a.CallRecordId == c.Id && a.AssignedTo == userIndex &&
-                            (a.AssignmentStatus == "Pending" || a.AssignmentStatus == "Accepted")));
-                }
-
-                var totalCount = await query.CountAsync();
-                var totalPages = (int)Math.Ceiling(totalCount / (double)callLogPageSize);
-
-                // Apply sorting
-                IOrderedQueryable<CallRecord> orderedQuery = sortBy?.ToLower() switch
-                {
-                    "duration" => sortDesc ? query.OrderByDescending(c => c.CallDuration) : query.OrderBy(c => c.CallDuration),
-                    "costksh" => sortDesc ? query.OrderByDescending(c => c.CallCostKSHS) : query.OrderBy(c => c.CallCostKSHS),
-                    "costusd" => sortDesc ? query.OrderByDescending(c => c.CallCostUSD) : query.OrderBy(c => c.CallCostUSD),
-                    "type" => sortDesc ? query.OrderByDescending(c => c.CallType) : query.OrderBy(c => c.CallType),
-                    "status" => sortDesc ? query.OrderByDescending(c => c.IsVerified).ThenByDescending(c => c.VerificationType)
-                                         : query.OrderBy(c => c.IsVerified).ThenBy(c => c.VerificationType),
-                    _ => sortDesc ? query.OrderByDescending(c => c.CallDate) : query.OrderBy(c => c.CallDate) // Default: CallDate
+                    "duration" => "Duration",
+                    "costksh" => "CostKSH",
+                    "costusd" => "CostUSD",
+                    "type" => "Type",
+                    "status" => "Status",
+                    _ => "CallDate"
                 };
 
-                var callRecords = await orderedQuery
-                    .Skip((callLogPage - 1) * callLogPageSize)
-                    .Take(callLogPageSize)
-                    .ToListAsync();
+                var conn = _context.Database.GetDbConnection();
+                var wasOpen = conn.State == ConnectionState.Open;
+                if (!wasOpen) await conn.OpenAsync();
 
-                // Get data for these specific calls only (much more efficient)
-                var callIds = callRecords.Select(c => c.Id).ToList();
+                var callLogs = new List<CallLogItemDto>();
+                int totalCount = 0;
 
-                // Fetch verification, incoming assignment, and outgoing assignment data sequentially
-                // (DbContext is not thread-safe, cannot run concurrent queries)
-                var verificationData = await _context.CallLogVerifications
-                    .Where(v => callIds.Contains(v.CallRecordId) && v.SubmittedToSupervisor)
-                    .Select(v => new { v.CallRecordId, v.ApprovalStatus })
-                    .ToDictionaryAsync(v => v.CallRecordId, v => v.ApprovalStatus);
-
-                assignmentData = !isAdmin && !string.IsNullOrEmpty(userIndexNumber)
-                    ? await _context.Set<CallLogPaymentAssignment>()
-                        .Where(a => callIds.Contains(a.CallRecordId) &&
-                               a.AssignedTo == userIndexNumber &&
-                               (a.AssignmentStatus == "Pending" || a.AssignmentStatus == "Accepted"))
-                        .ToDictionaryAsync(a => a.CallRecordId, a => a.AssignedFrom ?? "Unknown")
-                    : new Dictionary<int, string>();
-
-                outgoingAssignmentData = !isAdmin && !string.IsNullOrEmpty(userIndexNumber)
-                    ? await _context.Set<CallLogPaymentAssignment>()
-                        .Where(a => callIds.Contains(a.CallRecordId) &&
-                               a.AssignedFrom == userIndexNumber &&
-                               (a.AssignmentStatus == "Pending" || a.AssignmentStatus == "Accepted"))
-                        .ToDictionaryAsync(a => a.CallRecordId, a => (a.AssignmentStatus, a.AssignedTo ?? "Unknown"))
-                    : new Dictionary<int, (string, string)>();
-                var assignedCallIds = assignmentData.Keys.ToHashSet();
-
-                // Convert to CallLogItemDto
-                var callLogs = callRecords.Select(c => new CallLogItemDto
+                try
                 {
-                    Id = c.Id,
-                    DialedNumber = string.IsNullOrEmpty(c.CallNumber) ? "Subscription" : c.CallNumber,
-                    CallDate = c.CallDate,
-                    CallEndTime = c.CallEndTime,
-                    CallDuration = c.CallDuration,
-                    CallCostUSD = c.CallCostUSD,
-                    CallCostKSH = c.CallCostKSHS,
-                    Destination = c.CallDestination ?? "",
-                    CallType = c.CallType ?? "",
-                    VerificationType = c.VerificationType ?? "",
-                    IsVerified = c.IsVerified,
-                    SupervisorApprovalStatus = c.SupervisorApprovalStatus,
-                    IsSubmittedToSupervisor = verificationData.ContainsKey(c.Id),
-                    AssignmentStatus = assignedCallIds.Contains(c.Id) ? "assigned" :
-                                      (outgoingAssignmentData.TryGetValue(c.Id, out var outgoing) && outgoing.Item1 == "Pending" ? "assigned_out_pending" : "own"),
-                    AssignedFrom = assignmentData.TryGetValue(c.Id, out var fromUser) ? fromUser : null,
-                    AssignedTo = outgoingAssignmentData.TryGetValue(c.Id, out var outgoingData) ? outgoingData.Item2 : null,
-                    IsLocked = c.SupervisorApprovalStatus == "Approved"
-                }).ToList();
+                    using var cmd = conn.CreateCommand();
+                    cmd.CommandText = "ebill.sp_GetCallLogs";
+                    cmd.CommandType = CommandType.StoredProcedure;
+                    cmd.CommandTimeout = 30;
+
+                    var p = cmd.Parameters;
+                    p.Add(new SqlParameter("@UserIndexNumber", (object?)userIndexNumber ?? DBNull.Value));
+                    p.Add(new SqlParameter("@IsAdmin", isAdmin));
+                    p.Add(new SqlParameter("@Extension", extension));
+                    p.Add(new SqlParameter("@Month", month));
+                    p.Add(new SqlParameter("@Year", year));
+                    p.Add(new SqlParameter("@DialedNumber", (object?)dialedNumber ?? DBNull.Value));
+                    p.Add(new SqlParameter("@Page", callLogPage));
+                    p.Add(new SqlParameter("@PageSize", callLogPageSize));
+                    p.Add(new SqlParameter("@SortBy", spSortBy));
+                    p.Add(new SqlParameter("@SortDesc", sortDesc));
+
+                    using var reader = await cmd.ExecuteReaderAsync();
+
+                    // Result set 1: Total count
+                    if (await reader.ReadAsync())
+                        totalCount = reader.GetInt32(0);
+
+                    // Result set 2: Call log items
+                    await reader.NextResultAsync();
+                    while (await reader.ReadAsync())
+                    {
+                        callLogs.Add(new CallLogItemDto
+                        {
+                            Id = reader.GetInt32(reader.GetOrdinal("Id")),
+                            DialedNumber = reader.GetString(reader.GetOrdinal("DialedNumber")),
+                            CallDate = reader.GetDateTime(reader.GetOrdinal("CallDate")),
+                            CallEndTime = reader.GetDateTime(reader.GetOrdinal("CallEndTime")),
+                            CallDuration = reader.GetInt32(reader.GetOrdinal("CallDuration")),
+                            CallCostUSD = reader.GetDecimal(reader.GetOrdinal("CallCostUSD")),
+                            CallCostKSH = reader.GetDecimal(reader.GetOrdinal("CallCostKSH")),
+                            Destination = reader.GetString(reader.GetOrdinal("Destination")),
+                            CallType = reader.GetString(reader.GetOrdinal("CallType")),
+                            VerificationType = reader.GetString(reader.GetOrdinal("VerificationType")),
+                            IsVerified = reader.GetBoolean(reader.GetOrdinal("IsVerified")),
+                            SupervisorApprovalStatus = reader.IsDBNull(reader.GetOrdinal("SupervisorApprovalStatus")) ? null : reader.GetString(reader.GetOrdinal("SupervisorApprovalStatus")),
+                            IsSubmittedToSupervisor = reader.GetBoolean(reader.GetOrdinal("IsSubmittedToSupervisor")),
+                            AssignmentStatus = reader.GetString(reader.GetOrdinal("AssignmentStatus")),
+                            AssignedFrom = reader.IsDBNull(reader.GetOrdinal("AssignedFrom")) ? null : reader.GetString(reader.GetOrdinal("AssignedFrom")),
+                            AssignedTo = reader.IsDBNull(reader.GetOrdinal("AssignedTo")) ? null : reader.GetString(reader.GetOrdinal("AssignedTo")),
+                            IsLocked = reader.GetBoolean(reader.GetOrdinal("IsLocked"))
+                        });
+                    }
+                }
+                finally
+                {
+                    if (!wasOpen) await conn.CloseAsync();
+                }
+
+                var totalPages = (int)Math.Ceiling(totalCount / (double)callLogPageSize);
 
                 var safeExtension = (extension ?? "Unknown").Replace(" ", "_").Replace("-", "_").Replace("+", "");
                 var groupId = $"{safeExtension}_{month}_{year}";
@@ -1693,13 +1496,12 @@ namespace TAB.Web.Pages.Modules.EBillManagement.CallRecords
 
         /// <summary>
         /// AJAX endpoint to get all call IDs for a specific extension/month/year
-        /// Used for bulk submit to supervisor when content is not expanded
+        /// Uses stored procedure sp_GetCallIdsForExtension for single-round-trip performance.
         /// </summary>
         public async Task<JsonResult> OnGetCallIdsForExtensionAsync(string? extension, int month, int year)
         {
             try
             {
-                // Validate required parameters
                 if (string.IsNullOrEmpty(extension))
                     return new JsonResult(new { error = "Extension is required" });
 
@@ -1708,45 +1510,48 @@ namespace TAB.Web.Pages.Modules.EBillManagement.CallRecords
                     return new JsonResult(new { error = "Unauthorized" });
 
                 var ebillUser = await _context.EbillUsers
+                    .AsNoTracking()
                     .FirstOrDefaultAsync(u => u.Email == user.Email);
 
                 if (ebillUser == null)
                     return new JsonResult(new { error = "User not found" });
 
-                var userIndexNumber = ebillUser.IndexNumber;
-                var userIndex = userIndexNumber; // Capture for lambda
+                var conn = _context.Database.GetDbConnection();
+                var wasOpen = conn.State == ConnectionState.Open;
+                if (!wasOpen) await conn.OpenAsync();
 
-                // Query call records for this extension/month/year using Any() for efficient SQL
-                // Include calls that are Official OR unverified (unverified defaults to Official)
-                // Exclude calls that have been assigned out and accepted
-                var query = _context.CallRecords
-                    .Where(c => c.ExtensionNumber == extension
-                           && c.CallMonth == month
-                           && c.CallYear == year
-                           && c.VerificationType != "Personal") // Exclude only Personal calls
-                    .Where(c =>
-                        (c.ResponsibleIndexNumber == userIndex &&
-                         !_context.Set<CallLogPaymentAssignment>().Any(a =>
-                            a.CallRecordId == c.Id && a.AssignedFrom == userIndex && a.AssignmentStatus == "Accepted")) ||
-                        _context.Set<CallLogPaymentAssignment>().Any(a =>
-                            a.CallRecordId == c.Id && a.AssignedTo == userIndex &&
-                            (a.AssignmentStatus == "Pending" || a.AssignmentStatus == "Accepted")));
+                var callIds = new List<int>();
+                int skippedCount = 0;
 
-                // Get all matching call IDs
-                var allCallIds = await query.Select(c => c.Id).ToListAsync();
+                try
+                {
+                    using var cmd = conn.CreateCommand();
+                    cmd.CommandText = "ebill.sp_GetCallIdsForExtension";
+                    cmd.CommandType = CommandType.StoredProcedure;
+                    cmd.CommandTimeout = 30;
 
-                // Get IDs of calls that are already submitted and pending/approved (exclude these)
-                var submittedPendingIds = await _context.CallLogVerifications
-                    .Where(v => allCallIds.Contains(v.CallRecordId)
-                           && v.SubmittedToSupervisor
-                           && (v.ApprovalStatus == "Pending" || v.ApprovalStatus == "Approved"))
-                    .Select(v => v.CallRecordId)
-                    .ToListAsync();
+                    cmd.Parameters.Add(new SqlParameter("@UserIndexNumber", ebillUser.IndexNumber));
+                    cmd.Parameters.Add(new SqlParameter("@Extension", extension));
+                    cmd.Parameters.Add(new SqlParameter("@Month", month));
+                    cmd.Parameters.Add(new SqlParameter("@Year", year));
 
-                // Exclude already submitted calls
-                var callIds = allCallIds.Except(submittedPendingIds).ToList();
+                    using var reader = await cmd.ExecuteReaderAsync();
 
-                return new JsonResult(new { callIds, skippedCount = submittedPendingIds.Count });
+                    // Result set 1: Call IDs
+                    while (await reader.ReadAsync())
+                        callIds.Add(reader.GetInt32(0));
+
+                    // Result set 2: Skipped count
+                    await reader.NextResultAsync();
+                    if (await reader.ReadAsync())
+                        skippedCount = reader.GetInt32(0);
+                }
+                finally
+                {
+                    if (!wasOpen) await conn.CloseAsync();
+                }
+
+                return new JsonResult(new { callIds, skippedCount });
             }
             catch (Exception ex)
             {
@@ -1756,13 +1561,12 @@ namespace TAB.Web.Pages.Modules.EBillManagement.CallRecords
 
         /// <summary>
         /// AJAX endpoint to get all call IDs for a specific dialed number within extension/month/year
-        /// Used for bulk submit to supervisor when content is not expanded
+        /// Uses stored procedure sp_GetCallIdsForDialedNumber for single-round-trip performance.
         /// </summary>
         public async Task<JsonResult> OnGetCallIdsForDialedNumberAsync(string? extension, int month, int year, string? dialedNumber)
         {
             try
             {
-                // Validate required parameters
                 if (string.IsNullOrEmpty(extension))
                     return new JsonResult(new { error = "Extension is required", callIds = new List<int>() });
 
@@ -1771,55 +1575,49 @@ namespace TAB.Web.Pages.Modules.EBillManagement.CallRecords
                     return new JsonResult(new { error = "Unauthorized", callIds = new List<int>() });
 
                 var ebillUser = await _context.EbillUsers
+                    .AsNoTracking()
                     .FirstOrDefaultAsync(u => u.Email == user.Email);
 
                 if (ebillUser == null)
                     return new JsonResult(new { error = "User not found", callIds = new List<int>() });
 
-                var userIndexNumber = ebillUser.IndexNumber;
-                var userIndex = userIndexNumber; // Capture for lambda
+                var conn = _context.Database.GetDbConnection();
+                var wasOpen = conn.State == ConnectionState.Open;
+                if (!wasOpen) await conn.OpenAsync();
 
-                // Query call records for this extension/month/year/dialedNumber using Any() for efficient SQL
-                // Include calls that are Official OR unverified (unverified defaults to Official)
-                // Exclude calls that have been assigned out and accepted
-                var query = _context.CallRecords
-                    .Where(c => c.ExtensionNumber == extension
-                           && c.CallMonth == month
-                           && c.CallYear == year
-                           && c.VerificationType != "Personal") // Exclude only Personal calls
-                    .Where(c =>
-                        (c.ResponsibleIndexNumber == userIndex &&
-                         !_context.Set<CallLogPaymentAssignment>().Any(a =>
-                            a.CallRecordId == c.Id && a.AssignedFrom == userIndex && a.AssignmentStatus == "Accepted")) ||
-                        _context.Set<CallLogPaymentAssignment>().Any(a =>
-                            a.CallRecordId == c.Id && a.AssignedTo == userIndex &&
-                            (a.AssignmentStatus == "Pending" || a.AssignmentStatus == "Accepted")));
+                var callIds = new List<int>();
+                int skippedCount = 0;
 
-                // Filter by dialed number - handle "Subscription" for empty/null dialed numbers
-                if (string.IsNullOrEmpty(dialedNumber) || dialedNumber == "Subscription")
+                try
                 {
-                    query = query.Where(c => c.CallNumber == null || c.CallNumber == "");
+                    using var cmd = conn.CreateCommand();
+                    cmd.CommandText = "ebill.sp_GetCallIdsForDialedNumber";
+                    cmd.CommandType = CommandType.StoredProcedure;
+                    cmd.CommandTimeout = 30;
+
+                    cmd.Parameters.Add(new SqlParameter("@UserIndexNumber", ebillUser.IndexNumber));
+                    cmd.Parameters.Add(new SqlParameter("@Extension", extension));
+                    cmd.Parameters.Add(new SqlParameter("@Month", month));
+                    cmd.Parameters.Add(new SqlParameter("@Year", year));
+                    cmd.Parameters.Add(new SqlParameter("@DialedNumber", (object?)dialedNumber ?? DBNull.Value));
+
+                    using var reader = await cmd.ExecuteReaderAsync();
+
+                    // Result set 1: Call IDs
+                    while (await reader.ReadAsync())
+                        callIds.Add(reader.GetInt32(0));
+
+                    // Result set 2: Skipped count
+                    await reader.NextResultAsync();
+                    if (await reader.ReadAsync())
+                        skippedCount = reader.GetInt32(0);
                 }
-                else
+                finally
                 {
-                    query = query.Where(c => c.CallNumber == dialedNumber);
+                    if (!wasOpen) await conn.CloseAsync();
                 }
 
-                // Get all matching call IDs
-                var allCallIds = await query.Select(c => c.Id).ToListAsync();
-
-                // Get IDs of calls that are already submitted and pending/approved (exclude these)
-                var submittedPendingIds = await _context.CallLogVerifications
-                    .Where(v => allCallIds.Contains(v.CallRecordId)
-                           && v.SubmittedToSupervisor
-                           && (v.ApprovalStatus == "Pending" || v.ApprovalStatus == "Approved"))
-                    .Select(v => v.CallRecordId)
-                    .ToListAsync();
-
-                // Exclude already submitted calls
-                var callIds = allCallIds.Except(submittedPendingIds).ToList();
-
-                return new JsonResult(new { callIds, skippedCount = submittedPendingIds.Count });
+                return new JsonResult(new { callIds, skippedCount });
             }
             catch (Exception ex)
             {
@@ -2015,16 +1813,22 @@ namespace TAB.Web.Pages.Modules.EBillManagement.CallRecords
                 var monthlyAllowance = allowanceNullable ?? 0;
                 bool hasOverage = monthlyAllowance > 0 && officialCallsCost > monthlyAllowance;
 
-                // Get or create verifications for each call record
+                // Get or create verifications - batch lookup instead of per-call queries
                 var verificationIds = new List<int>();
                 var alreadySubmittedCalls = new List<int>();
 
+                // Single query: get all existing verifications for these call IDs
+                var existingVerifications = await _context.CallLogVerifications
+                    .Where(v => callRecordIds.Contains(v.CallRecordId) && v.VerifiedBy == ebillUser.IndexNumber)
+                    .ToListAsync();
+
+                var existingByCallId = existingVerifications.ToDictionary(v => v.CallRecordId, v => v);
+
+                var newVerifications = new List<CallLogVerification>();
+
                 foreach (var callRecordId in callRecordIds)
                 {
-                    var existingVerification = await _context.CallLogVerifications
-                        .FirstOrDefaultAsync(v => v.CallRecordId == callRecordId && v.VerifiedBy == ebillUser.IndexNumber);
-
-                    if (existingVerification != null)
+                    if (existingByCallId.TryGetValue(callRecordId, out var existingVerification))
                     {
                         if (existingVerification.SubmittedToSupervisor &&
                             (existingVerification.ApprovalStatus == "Pending" ||
@@ -2052,10 +1856,16 @@ namespace TAB.Web.Pages.Modules.EBillManagement.CallRecords
                             ActualAmount = callRecord.CallCostUSD,
                             JustificationText = string.Empty
                         };
-                        _context.CallLogVerifications.Add(newVerification);
-                        await _context.SaveChangesAsync();
-                        verificationIds.Add(newVerification.Id);
+                        newVerifications.Add(newVerification);
                     }
+                }
+
+                // Batch insert all new verifications in a single SaveChanges call
+                if (newVerifications.Any())
+                {
+                    _context.CallLogVerifications.AddRange(newVerifications);
+                    await _context.SaveChangesAsync();
+                    verificationIds.AddRange(newVerifications.Select(v => v.Id));
                 }
 
                 if (alreadySubmittedCalls.Any() && !verificationIds.Any())
@@ -2132,59 +1942,63 @@ namespace TAB.Web.Pages.Modules.EBillManagement.CallRecords
 
         /// <summary>
         /// Calculate phone-level overages for submission preview
+        /// Uses stored procedure sp_GetPhoneLevelOverages to eliminate N+1 queries.
         /// </summary>
         private async Task<List<SubmissionPhoneOverageDto>> CalculatePhoneLevelOveragesAsync(
             List<CallRecord> calls, int callMonth, int callYear)
         {
+            var callIds = calls.Select(c => c.Id).ToList();
+            if (!callIds.Any()) return new List<SubmissionPhoneOverageDto>();
+
             var phoneOverages = new List<SubmissionPhoneOverageDto>();
 
-            var callsByPhone = calls
-                .Where(c => c.UserPhoneId.HasValue)
-                .GroupBy(c => c.UserPhoneId.Value)
-                .ToList();
+            var conn = _context.Database.GetDbConnection();
+            var wasOpen = conn.State == ConnectionState.Open;
+            if (!wasOpen) await conn.OpenAsync();
 
-            foreach (var phoneGroup in callsByPhone)
+            try
             {
-                var userPhoneId = phoneGroup.Key;
-                var phoneCalls = phoneGroup.ToList();
-                var userPhone = phoneCalls.First().UserPhone;
-                if (userPhone == null) continue;
+                using var cmd = conn.CreateCommand();
+                cmd.CommandText = "ebill.sp_GetPhoneLevelOverages";
+                cmd.CommandType = CommandType.StoredProcedure;
+                cmd.CommandTimeout = 30;
 
-                var allowanceLimit = await _calculationService.GetPhoneAllowanceLimitAsync(userPhoneId);
-                if (allowanceLimit == null || allowanceLimit == 0) continue;
+                cmd.Parameters.Add(new SqlParameter("@CallRecordIds", string.Join(",", callIds)));
+                cmd.Parameters.Add(new SqlParameter("@Month", callMonth));
+                cmd.Parameters.Add(new SqlParameter("@Year", callYear));
 
-                var totalUsage = await _calculationService.GetPhoneMonthlyUsageAsync(userPhoneId, callMonth, callYear);
-
-                var existingJustification = await _context.PhoneOverageJustifications
-                    .Include(j => j.Documents)
-                    .FirstOrDefaultAsync(j =>
-                        j.UserPhoneId == userPhoneId &&
-                        j.Month == callMonth &&
-                        j.Year == callYear);
-
-                var hasOverage = allowanceLimit.Value > 0 && totalUsage > allowanceLimit.Value;
-                var overageAmount = hasOverage ? totalUsage - allowanceLimit.Value : 0;
-
-                phoneOverages.Add(new SubmissionPhoneOverageDto
+                using var reader = await cmd.ExecuteReaderAsync();
+                while (await reader.ReadAsync())
                 {
-                    UserPhoneId = userPhoneId,
-                    PhoneNumber = userPhone.PhoneNumber,
-                    PhoneType = userPhone.PhoneType,
-                    ClassOfService = userPhone.ClassOfService?.Class,
-                    AllowanceLimit = allowanceLimit.Value,
-                    TotalUsage = totalUsage,
-                    OverageAmount = overageAmount,
-                    HasOverage = hasOverage,
-                    CallCount = phoneCalls.Count,
-                    HasExistingJustification = existingJustification != null,
-                    ExistingJustificationText = existingJustification?.JustificationText,
-                    ExistingJustificationDate = existingJustification?.SubmittedDate.ToString("MMMM dd, yyyy"),
-                    ExistingJustificationStatus = existingJustification?.ApprovalStatus,
-                    ExistingDocumentCount = existingJustification?.Documents?.Count ?? 0
-                });
+                    var justDate = reader.IsDBNull(reader.GetOrdinal("ExistingJustificationDate"))
+                        ? null
+                        : reader.GetDateTime(reader.GetOrdinal("ExistingJustificationDate")).ToString("MMMM dd, yyyy");
+
+                    phoneOverages.Add(new SubmissionPhoneOverageDto
+                    {
+                        UserPhoneId = reader.GetInt32(reader.GetOrdinal("UserPhoneId")),
+                        PhoneNumber = reader.GetString(reader.GetOrdinal("PhoneNumber")),
+                        PhoneType = reader.GetString(reader.GetOrdinal("PhoneType")),
+                        ClassOfService = reader.IsDBNull(reader.GetOrdinal("ClassOfService")) ? null : reader.GetString(reader.GetOrdinal("ClassOfService")),
+                        AllowanceLimit = reader.GetDecimal(reader.GetOrdinal("AllowanceLimit")),
+                        TotalUsage = reader.GetDecimal(reader.GetOrdinal("TotalUsage")),
+                        OverageAmount = reader.GetDecimal(reader.GetOrdinal("OverageAmount")),
+                        HasOverage = reader.GetBoolean(reader.GetOrdinal("HasOverage")),
+                        CallCount = reader.GetInt32(reader.GetOrdinal("CallCount")),
+                        HasExistingJustification = reader.GetBoolean(reader.GetOrdinal("HasExistingJustification")),
+                        ExistingJustificationText = reader.IsDBNull(reader.GetOrdinal("ExistingJustificationText")) ? null : reader.GetString(reader.GetOrdinal("ExistingJustificationText")),
+                        ExistingJustificationDate = justDate,
+                        ExistingJustificationStatus = reader.IsDBNull(reader.GetOrdinal("ExistingJustificationStatus")) ? null : reader.GetString(reader.GetOrdinal("ExistingJustificationStatus")),
+                        ExistingDocumentCount = reader.GetInt32(reader.GetOrdinal("ExistingDocumentCount"))
+                    });
+                }
+            }
+            finally
+            {
+                if (!wasOpen) await conn.CloseAsync();
             }
 
-            return phoneOverages.OrderByDescending(p => p.OverageAmount).ToList();
+            return phoneOverages;
         }
 
         /// <summary>
