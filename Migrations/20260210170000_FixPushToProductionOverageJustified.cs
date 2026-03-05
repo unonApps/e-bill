@@ -62,18 +62,18 @@ BEGIN
             RETURN;
         END
 
-        -- Count verified records (VerificationStatus: 0=Pending, 1=Verified, 2=Rejected, 3=RequiresReview)
+        -- Count verified records NOT already pushed (ProcessingStatus != 2)
         SELECT @VerifiedCount = COUNT(*)
         FROM CallLogStagings
-        WHERE BatchId = @BatchId AND VerificationStatus = 1;
+        WHERE BatchId = @BatchId AND VerificationStatus = 1 AND ProcessingStatus != 2;
 
         IF @VerifiedCount = 0 BEGIN
-            SELECT 0 AS Success, 0 AS RecordsPushed, 0 AS RemainingUnprocessed, 'No verified records found in batch' AS Error;
+            SELECT 0 AS Success, 0 AS RecordsPushed, 0 AS RemainingUnprocessed, 'No verified records found in batch (all already pushed)' AS Error;
             ROLLBACK TRANSACTION;
             RETURN;
         END
 
-        -- STEP 1: Insert verified records into CallRecords (production)
+        -- STEP 1: Insert only verified records NOT already pushed
         INSERT INTO CallRecords (
             ext_no, call_date, call_number, call_destination, call_endtime, call_duration,
             call_curr_code, call_cost, call_cost_usd, call_cost_kshs, call_type, call_dest_type,
@@ -90,16 +90,15 @@ BEGIN
             @VerificationPeriod, @ApprovalPeriod, 0, 0, 0,
             @CurrentDateTime, SourceSystem, BatchId, Id
         FROM CallLogStagings
-        WHERE BatchId = @BatchId AND VerificationStatus = 1;
+        WHERE BatchId = @BatchId AND VerificationStatus = 1 AND ProcessingStatus != 2;
 
         SET @CallRecordsInserted = @@ROWCOUNT;
 
-        -- STEP 2: Update CallLogStagings records as Completed
-        -- ProcessingStatus: 0=Staged, 1=Processing, 2=Completed, 3=Failed, 4=Verified
+        -- STEP 2: Mark pushed staging records as Completed
         UPDATE CallLogStagings
         SET ProcessingStatus = 2,
             ProcessedDate = @CurrentDateTime
-        WHERE BatchId = @BatchId AND VerificationStatus = 1;
+        WHERE BatchId = @BatchId AND VerificationStatus = 1 AND ProcessingStatus != 2;
 
         SET @StagingUpdated = @@ROWCOUNT;
 
