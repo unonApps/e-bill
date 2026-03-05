@@ -75,9 +75,16 @@ BEGIN
     SELECT
         COUNT(*) AS TotalStaffCount,
         ISNULL(SUM(TotalCallCount), 0) AS TotalCallCount,
+        ISNULL(SUM(PersonalCallCount), 0) AS TotalPersonalCallCount,
         ISNULL(SUM(PersonalCallCostKES), 0) AS TotalPersonalCostKES,
+        ISNULL(SUM(PersonalCallCostUSD), 0) AS TotalPersonalCostUSD,
+        ISNULL(SUM(OfficialCallCount), 0) AS TotalOfficialCallCount,
         ISNULL(SUM(OfficialCallCostKES), 0) AS TotalOfficialCostKES,
-        ISNULL(SUM(RecoveredCallCostKES), 0) AS TotalRecoveredCostKES
+        ISNULL(SUM(OfficialCallCostUSD), 0) AS TotalOfficialCostUSD,
+        ISNULL(SUM(RecoveredCallCount), 0) AS TotalRecoveredCallCount,
+        ISNULL(SUM(RecoveredCallCostKES), 0) AS TotalRecoveredCostKES,
+        ISNULL(SUM(TotalCostKES), 0) AS TotalTotalCostKES,
+        ISNULL(SUM(TotalCostUSD), 0) AS TotalTotalCostUSD
     FROM #StaffData;
 
     -- Result set 2: Staff rows (paginated or all for export)

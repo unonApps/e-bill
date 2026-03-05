@@ -584,27 +584,27 @@ else
                             </td>
                             <!-- Personal totals -->
                             <td class="px-3 py-3 text-end fw-bold text-warning grp-l-personal">
-                                @Model.StaffRows.Sum(r => r.PersonalCallCount).ToString("N0")
+                                @Model.TotalPersonalCallCount.ToString("N0")
                             </td>
                             <td class="px-3 py-3 text-end fw-bold" style="color: #8b5cf6;">
                                 @Model.TotalPersonalCostKES.ToString("N2")
                             </td>
                             <td class="px-3 py-3 text-end fw-bold grp-r-personal" style="color: #8b5cf6;">
-                                @Model.StaffRows.Sum(r => r.PersonalCallCostUSD).ToString("N2")
+                                @Model.TotalPersonalCostUSD.ToString("N2")
                             </td>
                             <!-- Official totals -->
                             <td class="px-3 py-3 text-end fw-bold grp-l-official" style="color: #009EDB;">
-                                @Model.StaffRows.Sum(r => r.OfficialCallCount).ToString("N0")
+                                @Model.TotalOfficialCallCount.ToString("N0")
                             </td>
                             <td class="px-3 py-3 text-end fw-bold" style="color: #009EDB;">
                                 @Model.TotalOfficialCostKES.ToString("N2")
                             </td>
                             <td class="px-3 py-3 text-end fw-bold grp-r-official" style="color: #009EDB;">
-                                @Model.StaffRows.Sum(r => r.OfficialCallCostUSD).ToString("N2")
+                                @Model.TotalOfficialCostUSD.ToString("N2")
                             </td>
                             <!-- Recovered totals -->
                             <td class="px-3 py-3 text-end fw-bold text-success grp-l-recovered">
-                                @Model.StaffRows.Sum(r => r.RecoveredCallCount).ToString("N0")
+                                @Model.TotalRecoveredCallCount.ToString("N0")
                             </td>
                             <td class="px-3 py-3 text-end fw-bold text-success grp-r-recovered">
                                 @Model.TotalRecoveredCostKES.ToString("N2")
@@ -614,10 +614,10 @@ else
                                 @Model.TotalCallCount.ToString("N0")
                             </td>
                             <td class="px-3 py-3 text-end fw-bold text-dark">
-                                @Model.StaffRows.Sum(r => r.TotalCostKES).ToString("N2")
+                                @Model.TotalTotalCostKES.ToString("N2")
                             </td>
                             <td class="px-3 py-3 text-end fw-bold text-dark grp-r-total">
-                                @Model.StaffRows.Sum(r => r.TotalCostUSD).ToString("N2")
+                                @Model.TotalTotalCostUSD.ToString("N2")
                             </td>
                         </tr>
                     </tfoot>

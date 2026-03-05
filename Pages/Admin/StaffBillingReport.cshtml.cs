@@ -56,9 +56,16 @@ namespace TAB.Web.Pages.Admin
         // KPI totals (computed from ALL filtered rows, before pagination)
         public int TotalStaffCount { get; set; }
         public int TotalCallCount { get; set; }
+        public int TotalPersonalCallCount { get; set; }
         public decimal TotalPersonalCostKES { get; set; }
+        public decimal TotalPersonalCostUSD { get; set; }
+        public int TotalOfficialCallCount { get; set; }
         public decimal TotalOfficialCostKES { get; set; }
+        public decimal TotalOfficialCostUSD { get; set; }
+        public int TotalRecoveredCallCount { get; set; }
         public decimal TotalRecoveredCostKES { get; set; }
+        public decimal TotalTotalCostKES { get; set; }
+        public decimal TotalTotalCostUSD { get; set; }
 
         // Pagination
         public int TotalCount { get; set; }
@@ -139,9 +146,16 @@ namespace TAB.Web.Pages.Admin
                 {
                     TotalStaffCount = reader.GetInt32(reader.GetOrdinal("TotalStaffCount"));
                     TotalCallCount = reader.GetInt32(reader.GetOrdinal("TotalCallCount"));
+                    TotalPersonalCallCount = reader.GetInt32(reader.GetOrdinal("TotalPersonalCallCount"));
                     TotalPersonalCostKES = reader.GetDecimal(reader.GetOrdinal("TotalPersonalCostKES"));
+                    TotalPersonalCostUSD = reader.GetDecimal(reader.GetOrdinal("TotalPersonalCostUSD"));
+                    TotalOfficialCallCount = reader.GetInt32(reader.GetOrdinal("TotalOfficialCallCount"));
                     TotalOfficialCostKES = reader.GetDecimal(reader.GetOrdinal("TotalOfficialCostKES"));
+                    TotalOfficialCostUSD = reader.GetDecimal(reader.GetOrdinal("TotalOfficialCostUSD"));
+                    TotalRecoveredCallCount = reader.GetInt32(reader.GetOrdinal("TotalRecoveredCallCount"));
                     TotalRecoveredCostKES = reader.GetDecimal(reader.GetOrdinal("TotalRecoveredCostKES"));
+                    TotalTotalCostKES = reader.GetDecimal(reader.GetOrdinal("TotalTotalCostKES"));
+                    TotalTotalCostUSD = reader.GetDecimal(reader.GetOrdinal("TotalTotalCostUSD"));
                 }
 
                 // Result set 2: Staff rows
@@ -215,17 +229,17 @@ namespace TAB.Web.Pages.Admin
             }
 
             csv.AppendLine($"TOTAL,,,," +
-                $"{StaffRows.Sum(r => r.PersonalCallCount)}," +
-                $"{StaffRows.Sum(r => r.PersonalCallCostKES):F2}," +
-                $"{StaffRows.Sum(r => r.PersonalCallCostUSD):F2}," +
-                $"{StaffRows.Sum(r => r.OfficialCallCount)}," +
-                $"{StaffRows.Sum(r => r.OfficialCallCostKES):F2}," +
-                $"{StaffRows.Sum(r => r.OfficialCallCostUSD):F2}," +
-                $"{StaffRows.Sum(r => r.RecoveredCallCount)}," +
-                $"{StaffRows.Sum(r => r.RecoveredCallCostKES):F2}," +
+                $"{TotalPersonalCallCount}," +
+                $"{TotalPersonalCostKES:F2}," +
+                $"{TotalPersonalCostUSD:F2}," +
+                $"{TotalOfficialCallCount}," +
+                $"{TotalOfficialCostKES:F2}," +
+                $"{TotalOfficialCostUSD:F2}," +
+                $"{TotalRecoveredCallCount}," +
+                $"{TotalRecoveredCostKES:F2}," +
                 $"{TotalCallCount}," +
-                $"{StaffRows.Sum(r => r.TotalCostKES):F2}," +
-                $"{StaffRows.Sum(r => r.TotalCostUSD):F2}");
+                $"{TotalTotalCostKES:F2}," +
+                $"{TotalTotalCostUSD:F2}");
 
             var bytes = Encoding.UTF8.GetBytes(csv.ToString());
             var monthLabel = FilterMonth == 0
@@ -281,17 +295,17 @@ namespace TAB.Web.Pages.Admin
 
             // Totals row
             sheet.Cell(row, 1).Value = "TOTAL";
-            sheet.Cell(row, 5).Value = StaffRows.Sum(r => r.PersonalCallCount);
-            sheet.Cell(row, 6).Value = StaffRows.Sum(r => r.PersonalCallCostKES);
-            sheet.Cell(row, 7).Value = StaffRows.Sum(r => r.PersonalCallCostUSD);
-            sheet.Cell(row, 8).Value = StaffRows.Sum(r => r.OfficialCallCount);
-            sheet.Cell(row, 9).Value = StaffRows.Sum(r => r.OfficialCallCostKES);
-            sheet.Cell(row, 10).Value = StaffRows.Sum(r => r.OfficialCallCostUSD);
-            sheet.Cell(row, 11).Value = StaffRows.Sum(r => r.RecoveredCallCount);
-            sheet.Cell(row, 12).Value = StaffRows.Sum(r => r.RecoveredCallCostKES);
+            sheet.Cell(row, 5).Value = TotalPersonalCallCount;
+            sheet.Cell(row, 6).Value = TotalPersonalCostKES;
+            sheet.Cell(row, 7).Value = TotalPersonalCostUSD;
+            sheet.Cell(row, 8).Value = TotalOfficialCallCount;
+            sheet.Cell(row, 9).Value = TotalOfficialCostKES;
+            sheet.Cell(row, 10).Value = TotalOfficialCostUSD;
+            sheet.Cell(row, 11).Value = TotalRecoveredCallCount;
+            sheet.Cell(row, 12).Value = TotalRecoveredCostKES;
             sheet.Cell(row, 13).Value = TotalCallCount;
-            sheet.Cell(row, 14).Value = StaffRows.Sum(r => r.TotalCostKES);
-            sheet.Cell(row, 15).Value = StaffRows.Sum(r => r.TotalCostUSD);
+            sheet.Cell(row, 14).Value = TotalTotalCostKES;
+            sheet.Cell(row, 15).Value = TotalTotalCostUSD;
             sheet.Range(row, 1, row, headers.Length).Style.Font.Bold = true;
             sheet.Range(row, 1, row, headers.Length).Style.Fill.BackgroundColor = XLColor.LightBlue;
 
