@@ -132,27 +132,7 @@ namespace TAB.Web.Pages.Modules.EBillManagement.CallRecords
                 return RedirectToPage("/Modules/EBillManagement/CallRecords/MyCallLogs");
             }
 
-            // Auto-verify unverified calls as "Official" before submission
-            // This allows users to submit without manually verifying each call (defaults to Official)
-            var unverifiedCalls = await _context.CallRecords
-                .Where(c => idList.Contains(c.Id) &&
-                           (c.ResponsibleIndexNumber == UserIndexNumber ||
-                            (c.PayingIndexNumber == UserIndexNumber && c.AssignmentStatus == "Accepted")) &&
-                           !c.IsVerified &&
-                           c.VerificationType != "Personal") // Don't auto-verify Personal calls
-                .ToListAsync();
-
-            if (unverifiedCalls.Any())
-            {
-                foreach (var call in unverifiedCalls)
-                {
-                    call.IsVerified = true;
-                    call.VerificationType = "Official";
-                }
-                await _context.SaveChangesAsync();
-            }
-
-            // Load ALL calls for summary display (now includes auto-verified ones)
+            // Load ALL calls for summary display
             var allCallsQuery = _context.CallRecords
                 .Include(c => c.UserPhone)
                     .ThenInclude(up => up.ClassOfService)
@@ -295,6 +275,17 @@ namespace TAB.Web.Pages.Modules.EBillManagement.CallRecords
                         return RedirectToPage();
                     }
                 }
+
+                // Auto-verify unverified calls as "Official" on actual submission
+                foreach (var call in callRecords)
+                {
+                    if (!call.IsVerified && call.VerificationType != "Personal")
+                    {
+                        call.IsVerified = true;
+                        call.VerificationType = "Official";
+                    }
+                }
+                await _context.SaveChangesAsync();
 
                 // Get or create verifications for each call record
                 var verificationIds = new List<int>();
