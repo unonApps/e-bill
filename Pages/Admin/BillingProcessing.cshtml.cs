@@ -730,119 +730,49 @@ namespace TAB.Web.Pages.Admin
                     return new JsonResult(new { success = false, message = "Batch not found" });
                 }
 
-                // Count original anomalies
-                var originalCount = await _context.CallLogStagings
-                    .Where(c => c.BatchId == batchId && c.HasAnomalies)
-                    .CountAsync();
+                var userName = User.Identity?.Name ?? "System";
 
-                _logger.LogInformation("Reprocessing anomalies for batch {BatchId}. Original count: {Count}", batchId, originalCount);
+                _logger.LogInformation("Reprocessing anomalies for batch {BatchId}", batchId);
 
-                // Set longer timeout for these operations
-                var originalTimeout = _context.Database.GetCommandTimeout();
-                _context.Database.SetCommandTimeout(300); // 5 minutes
+                // Run recheck via stored procedure (phone matching + anomaly detection + auto-verify)
+                var conn = _context.Database.GetDbConnection();
+                var wasOpen = conn.State == System.Data.ConnectionState.Open;
+                if (!wasOpen) await conn.OpenAsync();
+
+                int originalCount = 0, resolvedCount = 0, remainingCount = 0, verifiedCount = 0;
 
                 try
                 {
-                    // Step 1a: Update UserPhoneId - exact match (fast, uses index)
-                    var updatePhoneExactSql = @"
-                        UPDATE cls
-                        SET cls.UserPhoneId = up.Id,
-                            cls.ResponsibleIndexNumber = ISNULL(cls.ResponsibleIndexNumber, up.IndexNumber)
-                        FROM CallLogStagings cls
-                        INNER JOIN UserPhones up ON up.PhoneNumber = cls.ExtensionNumber AND up.IsActive = 1
-                        WHERE cls.BatchId = @BatchId
-                          AND cls.UserPhoneId IS NULL";
+                    using var cmd = conn.CreateCommand();
+                    cmd.CommandText = "ebill.sp_RecheckAnomalies";
+                    cmd.CommandType = System.Data.CommandType.StoredProcedure;
+                    cmd.CommandTimeout = 300;
+                    cmd.Parameters.Add(new SqlParameter("@BatchId", batchId));
+                    cmd.Parameters.Add(new SqlParameter("@VerifiedBy", userName));
 
-                    await _context.Database.ExecuteSqlRawAsync(updatePhoneExactSql, new SqlParameter("@BatchId", batchId));
-
-                    // Step 1b: Update UserPhoneId - +254 to 0 format (staging has +254, phone has 0)
-                    var updatePhone254To0Sql = @"
-                        UPDATE cls
-                        SET cls.UserPhoneId = up.Id,
-                            cls.ResponsibleIndexNumber = ISNULL(cls.ResponsibleIndexNumber, up.IndexNumber)
-                        FROM CallLogStagings cls
-                        INNER JOIN UserPhones up ON up.PhoneNumber = REPLACE(cls.ExtensionNumber, '+254', '0') AND up.IsActive = 1
-                        WHERE cls.BatchId = @BatchId
-                          AND cls.UserPhoneId IS NULL
-                          AND cls.ExtensionNumber LIKE '+254%'";
-
-                    await _context.Database.ExecuteSqlRawAsync(updatePhone254To0Sql, new SqlParameter("@BatchId", batchId));
-
-                    // Step 1c: Update UserPhoneId - 0 to +254 format (staging has 0, phone has +254)
-                    var updatePhone0To254Sql = @"
-                        UPDATE cls
-                        SET cls.UserPhoneId = up.Id,
-                            cls.ResponsibleIndexNumber = ISNULL(cls.ResponsibleIndexNumber, up.IndexNumber)
-                        FROM CallLogStagings cls
-                        INNER JOIN UserPhones up ON up.PhoneNumber = REPLACE(cls.ExtensionNumber, '0', '+254') AND up.IsActive = 1
-                        WHERE cls.BatchId = @BatchId
-                          AND cls.UserPhoneId IS NULL
-                          AND cls.ExtensionNumber LIKE '07%'
-                          AND LEN(cls.ExtensionNumber) = 10";
-
-                    await _context.Database.ExecuteSqlRawAsync(updatePhone0To254Sql, new SqlParameter("@BatchId", batchId));
-
-                    // Step 1d: Update ResponsibleIndexNumber for records that already have UserPhoneId
-                    // but are missing ResponsibleIndexNumber (phone was matched but had no index number at the time)
-                    var updateIndexSql = @"
-                        UPDATE cls
-                        SET cls.ResponsibleIndexNumber = up.IndexNumber
-                        FROM CallLogStagings cls
-                        INNER JOIN UserPhones up ON cls.UserPhoneId = up.Id
-                        WHERE cls.BatchId = @BatchId
-                          AND (cls.ResponsibleIndexNumber IS NULL OR cls.ResponsibleIndexNumber = '')
-                          AND up.IndexNumber IS NOT NULL
-                          AND up.IndexNumber != ''";
-
-                    await _context.Database.ExecuteSqlRawAsync(updateIndexSql, new SqlParameter("@BatchId", batchId));
-
-                    // Step 1e: Update ResponsibleIndexNumber if it changed in UserPhones (user reassigned phone)
-                    var updateChangedIndexSql = @"
-                        UPDATE cls
-                        SET cls.ResponsibleIndexNumber = up.IndexNumber
-                        FROM CallLogStagings cls
-                        INNER JOIN UserPhones up ON cls.UserPhoneId = up.Id
-                        WHERE cls.BatchId = @BatchId
-                          AND cls.HasAnomalies = 1
-                          AND up.IndexNumber IS NOT NULL
-                          AND up.IndexNumber != ''
-                          AND (cls.ResponsibleIndexNumber IS NULL OR cls.ResponsibleIndexNumber != up.IndexNumber)";
-
-                    await _context.Database.ExecuteSqlRawAsync(updateChangedIndexSql, new SqlParameter("@BatchId", batchId));
+                    using var reader = await cmd.ExecuteReaderAsync();
+                    if (await reader.ReadAsync())
+                    {
+                        originalCount = reader.GetInt32(reader.GetOrdinal("OriginalCount"));
+                        resolvedCount = reader.GetInt32(reader.GetOrdinal("ResolvedCount"));
+                        remainingCount = reader.GetInt32(reader.GetOrdinal("RemainingCount"));
+                        verifiedCount = reader.GetInt32(reader.GetOrdinal("VerifiedCount"));
+                    }
                 }
                 finally
                 {
-                    // Restore original timeout
-                    _context.Database.SetCommandTimeout(originalTimeout);
+                    if (!wasOpen) await conn.CloseAsync();
                 }
 
-                // Step 2: Re-run anomaly detection
-                await _stagingService.DetectBatchAnomaliesFastAsync(batchId);
-
-                // Step 3: Auto-verify clean records
-                var userName = User.Identity?.Name ?? "System";
-                var verifiedCount = await _stagingService.AutoVerifyCleanRecordsAsync(batchId, userName);
-
-                // Step 4: Push newly verified records to production
+                // Push newly verified records to production
                 if (verifiedCount > 0)
                 {
                     var verificationPeriod = DateTime.UtcNow.AddDays(7);
                     await _stagingService.PushToProductionInBackgroundAsync(batchId, verificationPeriod, "Official", userName, sendNotifications: false);
                 }
 
-                // Count remaining anomalies
-                var remainingCount = await _context.CallLogStagings
-                    .Where(c => c.BatchId == batchId && c.HasAnomalies)
-                    .CountAsync();
-
-                var resolvedCount = originalCount - remainingCount;
-
-                // Update batch statistics
-                batch.RecordsWithAnomalies = remainingCount;
-                batch.VerifiedRecords = await _context.CallLogStagings
-                    .Where(c => c.BatchId == batchId && c.VerificationStatus == VerificationStatus.Verified)
-                    .CountAsync();
-                await _context.SaveChangesAsync();
+                // Reload batch to reflect SP updates
+                await _context.Entry(batch).ReloadAsync();
 
                 _logger.LogInformation("Reprocessing complete for batch {BatchId}. Resolved: {Resolved}, Remaining: {Remaining}, Verified: {Verified}",
                     batchId, resolvedCount, remainingCount, verifiedCount);
