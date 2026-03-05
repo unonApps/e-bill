@@ -31,6 +31,9 @@ namespace TAB.Web.Pages.Staff
         [BindProperty(SupportsGet = true)]
         public string? RecoveryType { get; set; }
 
+        [BindProperty(SupportsGet = true)]
+        public bool HideZeroCost { get; set; }
+
         // User Information
         public string UserIndexNumber { get; set; } = string.Empty;
         public string UserName { get; set; } = string.Empty;
@@ -100,6 +103,9 @@ namespace TAB.Web.Pages.Staff
             if (EndDate.HasValue)
                 query = query.Where(rl => rl.RecoveryDate <= EndDate.Value);
 
+            if (HideZeroCost)
+                query = query.Where(rl => rl.AmountRecovered > 0);
+
             var recoveryLogs = await query.ToListAsync();
 
             if (recoveryLogs.Any())
@@ -153,6 +159,8 @@ namespace TAB.Web.Pages.Staff
                 query = query.Where(rl => rl.RecoveryDate <= EndDate.Value);
             if (!string.IsNullOrEmpty(RecoveryType))
                 query = query.Where(rl => rl.RecoveryType == RecoveryType);
+            if (HideZeroCost)
+                query = query.Where(rl => rl.AmountRecovered > 0);
 
             RecoveryDetails = await query
                 .OrderByDescending(rl => rl.RecoveryDate)
@@ -192,6 +200,8 @@ namespace TAB.Web.Pages.Staff
                 query = query.Where(rl => rl.RecoveryDate <= EndDate.Value);
             if (!string.IsNullOrEmpty(RecoveryType))
                 query = query.Where(rl => rl.RecoveryType == RecoveryType);
+            if (HideZeroCost)
+                query = query.Where(rl => rl.AmountRecovered > 0);
 
             var allRecoveries = await query
                 .OrderByDescending(rl => rl.RecoveryDate)
