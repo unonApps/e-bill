@@ -794,42 +794,32 @@
         </div>
     </div>
 
-    <!-- Filters Card (Collapsible) -->
-    <div class="card border-0 shadow-sm mb-4" style="border-radius: 20px;">
-        <div class="card-header bg-white border-0 p-3" style="cursor: pointer; border-radius: 20px 20px 0 0;" data-bs-toggle="collapse" data-bs-target="#filterCollapse">
-            <div class="d-flex justify-content-between align-items-center">
-                <h6 class="mb-0 fw-bold">
-                    <i class="bi bi-funnel me-2"></i>Filters
-                </h6>
-                <i class="bi bi-chevron-down"></i>
-            </div>
-        </div>
-        <div class="collapse" id="filterCollapse">
-            <div class="card-body p-4">
-                <form method="get" class="filter-form" id="filterForm">
-                    <div class="row g-3">
-                        @if (Model.IsAdmin && Model.AvailableUsers.Any())
-                        {
-                            <div class="col-md-3">
-                                <label class="form-label text-muted small">User</label>
-                                <select name="SelectedUserId" id="userFilter" class="form-select border-0 bg-light filter-auto-submit" style="border-radius: 12px;">
-                                    <option value="">All Users</option>
-                                    @foreach (var user in Model.AvailableUsers)
-                                    {
-                                        var displayName = !string.IsNullOrEmpty(user.FirstName) && !string.IsNullOrEmpty(user.LastName)
-                                            ? $"{user.FirstName} {user.LastName}"
-                                            : user.UserName;
-                                        <option value="@user.Id" selected="@(Model.SelectedUserId == user.Id)">
-                                            @displayName
-                                        </option>
-                                    }
-                                </select>
-                            </div>
-                        }
-
-                        <div class="col-md-3">
-                            <label class="form-label text-muted small">Status</label>
-                            <select name="SelectedStatus" id="statusFilter" class="form-select border-0 bg-light filter-auto-submit" style="border-radius: 12px;">
+    <!-- Filter Row -->
+    <div class="card border-0 shadow-sm mb-2" style="border-radius: 12px;">
+        <div class="card-body py-3">
+            <form method="get" id="filterForm" class="d-flex align-items-center gap-3 flex-wrap">
+                <div class="d-flex align-items-center gap-2">
+                    <label class="mb-0 text-muted" style="font-size: 14px; white-space: nowrap;">
+                        <i class="bi bi-funnel me-1"></i>Filter:
+                    </label>
+                    @if (Model.IsAdmin && Model.AvailableUsers.Any())
+                    {
+                        <!-- User -->
+                        <select name="SelectedUserId" id="userFilter" class="form-select form-select-sm filter-auto-submit" style="width: 180px; border-radius: 10px;">
+                            <option value="">All Users</option>
+                            @foreach (var user in Model.AvailableUsers)
+                            {
+                                var displayName = !string.IsNullOrEmpty(user.FirstName) && !string.IsNullOrEmpty(user.LastName)
+                                    ? $"{user.FirstName} {user.LastName}"
+                                    : user.UserName;
+                                <option value="@user.Id" selected="@(Model.SelectedUserId == user.Id)">
+                                    @displayName
+                                </option>
+                            }
+                        </select>
+                    }
+                    <!-- Status -->
+                    <select name="SelectedStatus" id="statusFilter" class="form-select form-select-sm filter-auto-submit" style="width: 170px; border-radius: 10px;">
                         <option value="">All Status</option>
                         <option value="@((int)RequestStatus.Draft)" selected="@(Model.SelectedStatus == RequestStatus.Draft)">Draft</option>
                         <option value="@((int)RequestStatus.PendingSupervisor)" selected="@(Model.SelectedStatus == RequestStatus.PendingSupervisor)">Pending Supervisor</option>
@@ -839,39 +829,19 @@
                         <option value="@((int)RequestStatus.PendingSIMCollection)" selected="@(Model.SelectedStatus == RequestStatus.PendingSIMCollection)">Pending Collection</option>
                         <option value="@((int)RequestStatus.Approved)" selected="@(Model.SelectedStatus == RequestStatus.Approved)">Approved</option>
                         <option value="@((int)RequestStatus.Completed)" selected="@(Model.SelectedStatus == RequestStatus.Completed)">Completed</option>
-                                <option value="@((int)RequestStatus.Rejected)" selected="@(Model.SelectedStatus == RequestStatus.Rejected)">Rejected</option>
-                                <option value="@((int)RequestStatus.Cancelled)" selected="@(Model.SelectedStatus == RequestStatus.Cancelled)">Cancelled</option>
-                            </select>
-                        </div>
-
-                        <div class="col-md-2">
-                            <label class="form-label text-muted small">From Date</label>
-                            <input type="date" name="StartDate" id="startDate" class="form-control border-0 bg-light filter-auto-submit" style="border-radius: 12px;" value="@Model.StartDate?.ToString("yyyy-MM-dd")" />
-                        </div>
-
-                        <div class="col-md-2">
-                            <label class="form-label text-muted small">To Date</label>
-                            <input type="date" name="EndDate" id="endDate" class="form-control border-0 bg-light filter-auto-submit" style="border-radius: 12px;" value="@Model.EndDate?.ToString("yyyy-MM-dd")" />
-                        </div>
-
-                        <div class="col-md-2">
-                            <label class="form-label text-muted small">Search</label>
-                            <input type="text" name="SearchTerm" id="searchTerm" class="form-control border-0 bg-light filter-search-input" style="border-radius: 12px;" placeholder="Name, Index..." value="@Model.SearchTerm" />
-                        </div>
-
-                    </div>
-                    <div class="row mt-2">
-                        <div class="col-md-12">
-                            @if (Model.SelectedUserId != null || Model.SelectedStatus != null || Model.StartDate != null || Model.EndDate != null || !string.IsNullOrEmpty(Model.SearchTerm))
-                            {
-                                <a href="/Modules/SimManagement/Requests" class="btn btn-outline-secondary btn-sm" style="border-radius: 12px;">
-                                    <i class="bi bi-x-circle me-1"></i> Clear Filters
-                                </a>
-                            }
-                        </div>
-                    </div>
-                </form>
-            </div>
+                        <option value="@((int)RequestStatus.Rejected)" selected="@(Model.SelectedStatus == RequestStatus.Rejected)">Rejected</option>
+                        <option value="@((int)RequestStatus.Cancelled)" selected="@(Model.SelectedStatus == RequestStatus.Cancelled)">Cancelled</option>
+                    </select>
+                    <!-- Search -->
+                    <input type="text" name="SearchTerm" id="searchTerm" class="form-control form-control-sm filter-search-input" style="width: 180px; border-radius: 10px;" placeholder="Name, Index..." value="@Model.SearchTerm" />
+                </div>
+                <button type="submit" class="btn btn-sm btn-primary" style="border-radius: 10px;">
+                    <i class="bi bi-search me-1"></i>Filter
+                </button>
+                <a href="/Modules/SimManagement/Requests" class="btn btn-sm btn-outline-secondary" style="border-radius: 10px;">
+                    <i class="bi bi-x-circle me-1"></i>Clear
+                </a>
+            </form>
         </div>
     </div>
 
