@@ -205,9 +205,16 @@ namespace TAB.Web.Services
 
                 var now = DateTime.UtcNow;
 
-                // Get all verifications that have been submitted to supervisor for this batch
+                // Get all call IDs in this batch
+                var batchCallIds = await _context.CallRecords
+                    .Where(cr => cr.SourceBatchId == batchId)
+                    .Select(cr => cr.Id)
+                    .ToListAsync();
+
+                // Get verifications that have been submitted to supervisor for calls in this batch
+                // Note: We match by CallRecordId (not BatchId, which may be null on verifications)
                 var submittedVerificationIds = await _context.CallLogVerifications
-                    .Where(v => v.SubmittedToSupervisor && v.BatchId == batchId)
+                    .Where(v => v.SubmittedToSupervisor && batchCallIds.Contains(v.CallRecordId))
                     .Select(v => v.CallRecordId)
                     .ToListAsync();
 
@@ -220,7 +227,8 @@ namespace TAB.Web.Services
                               && cr.VerificationPeriod.HasValue
                               && cr.VerificationPeriod.Value < now  // Verification deadline has passed
                               && cr.IsVerified == true  // Staff DID verify
-                              && !submittedVerificationIds.Contains(cr.Id)  // NOT submitted to supervisor
+                              && !submittedVerificationIds.Contains(cr.Id)  // NOT in CallLogVerifications as submitted
+                              && (cr.SupervisorApprovalStatus == null || cr.SupervisorApprovalStatus == "")  // NOT submitted/approved on CallRecord
                               && (cr.AssignmentStatus == "None" || cr.AssignmentStatus == null || cr.AssignmentStatus == "")
                               && (cr.RecoveryStatus == "NotProcessed" || cr.RecoveryStatus == null || cr.RecoveryStatus == ""))
                     .ToListAsync();
