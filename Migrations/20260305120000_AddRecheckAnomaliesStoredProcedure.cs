@@ -11,7 +11,7 @@ namespace TAB.Web.Migrations
         protected override void Up(MigrationBuilder migrationBuilder)
         {
             migrationBuilder.Sql(@"
-CREATE PROCEDURE ebill.sp_RecheckAnomalies
+CREATE OR ALTER PROCEDURE ebill.sp_RecheckAnomalies
     @BatchId UNIQUEIDENTIFIER,
     @VerifiedBy NVARCHAR(256) = 'System'
 AS
