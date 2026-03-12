@@ -1354,6 +1354,11 @@ namespace TAB.Web.Services
                 // Don't fail the push operation
             }
 
+            // Clear change tracker before deadline creation to prevent cascading failures.
+            // Previous operations (snapshot, COS auto-verify) may have left dirty entities
+            // that would cause SaveChangesAsync to timeout when trying to flush them all.
+            _context.ChangeTracker.Clear();
+
             // Create deadline tracking entries if verification period is set
             if (verificationPeriod.HasValue)
             {
@@ -1365,13 +1370,31 @@ namespace TAB.Web.Services
                         verificationPeriod.Value,
                         "System");
 
-                    _logger.LogInformation("Created deadline tracking for batch {BatchId} - Verification Period: {VerificationPeriod}",
+                    _logger.LogInformation("Created verification deadline for batch {BatchId} - Verification Period: {VerificationPeriod}",
                         batchId, verificationPeriod.Value);
                 }
                 catch (Exception ex)
                 {
-                    _logger.LogError(ex, "Error creating deadline tracking for batch {BatchId}", batchId);
-                    // Don't fail the push operation if deadline tracking fails
+                    _logger.LogError(ex, "Error creating verification deadline for batch {BatchId}", batchId);
+                }
+            }
+
+            // Create approval deadline tracking if approval period is set
+            if (approvalPeriod.HasValue)
+            {
+                try
+                {
+                    await _deadlineService.CreateApprovalDeadlineAsync(
+                        batchId,
+                        approvalPeriod.Value,
+                        "System");
+
+                    _logger.LogInformation("Created approval deadline for batch {BatchId} - Approval Period: {ApprovalPeriod}",
+                        batchId, approvalPeriod.Value);
+                }
+                catch (Exception ex)
+                {
+                    _logger.LogError(ex, "Error creating approval deadline for batch {BatchId}", batchId);
                 }
             }
 
@@ -1406,41 +1429,33 @@ namespace TAB.Web.Services
 
         private async Task<int> SnapshotOrgOfficeAsync(Guid batchId)
         {
-            var records = await _context.CallRecords
-                .Where(r => r.SourceBatchId == batchId && r.SnapshotOrganizationId == null)
-                .ToListAsync();
+            // Use raw SQL UPDATE with JOIN to avoid loading 278K+ entities into EF change tracker.
+            // Loading all records caused SaveChangesAsync timeouts which cascaded to subsequent operations.
+            var batchIdParam = new SqlParameter("@BatchId", batchId);
 
-            if (records.Count == 0) return 0;
+            var previousTimeout = _context.Database.GetCommandTimeout();
+            _context.Database.SetCommandTimeout(120);
 
-            var indexNumbers = records
-                .Where(r => r.ResponsibleIndexNumber != null)
-                .Select(r => r.ResponsibleIndexNumber!)
-                .Distinct()
-                .ToList();
+            var rowsAffected = await _context.Database.ExecuteSqlRawAsync(@"
+                UPDATE cr
+                SET cr.snapshot_org_id = u.OrganizationId,
+                    cr.snapshot_org_name = o.Name,
+                    cr.snapshot_office_id = u.OfficeId,
+                    cr.snapshot_office_name = ofc.Name,
+                    cr.snapshot_suboffice_id = u.SubOfficeId,
+                    cr.snapshot_suboffice_name = so.Name
+                FROM CallRecords cr
+                INNER JOIN EbillUsers u ON cr.ext_resp_index = u.IndexNumber
+                LEFT JOIN Organizations o ON u.OrganizationId = o.Id
+                LEFT JOIN Offices ofc ON u.OfficeId = ofc.Id
+                LEFT JOIN SubOffices so ON u.SubOfficeId = so.Id
+                WHERE cr.SourceBatchId = @BatchId
+                  AND cr.snapshot_org_id IS NULL",
+                batchIdParam);
 
-            var users = await _context.EbillUsers
-                .Where(u => indexNumbers.Contains(u.IndexNumber))
-                .Include(u => u.OrganizationEntity)
-                .Include(u => u.OfficeEntity)
-                .Include(u => u.SubOfficeEntity)
-                .ToDictionaryAsync(u => u.IndexNumber);
+            _context.Database.SetCommandTimeout(previousTimeout);
 
-            foreach (var record in records)
-            {
-                if (record.ResponsibleIndexNumber != null &&
-                    users.TryGetValue(record.ResponsibleIndexNumber, out var user))
-                {
-                    record.SnapshotOrganizationId = user.OrganizationId;
-                    record.SnapshotOrganizationName = user.OrganizationEntity?.Name;
-                    record.SnapshotOfficeId = user.OfficeId;
-                    record.SnapshotOfficeName = user.OfficeEntity?.Name;
-                    record.SnapshotSubOfficeId = user.SubOfficeId;
-                    record.SnapshotSubOfficeName = user.SubOfficeEntity?.Name;
-                }
-            }
-
-            await _context.SaveChangesAsync();
-            return records.Count;
+            return rowsAffected;
         }
 
         public async Task PushToProductionInBackgroundAsync(Guid batchId, DateTime? verificationPeriod, string? verificationType, string publishedBy, bool sendNotifications = true)
@@ -2061,45 +2076,50 @@ namespace TAB.Web.Services
             if (!cosOrgIds.Any())
                 return 0;
 
-            // 2. Get unverified call records from this batch where the responsible user belongs to a qualifying org
-            var batchCalls = await _context.CallRecords
-                .Where(r => r.SourceBatchId == batchId && !r.IsVerified)
-                .ToListAsync();
-
-            if (!batchCalls.Any())
-                return 0;
-
-            // 3. Get ebill users in qualifying orgs for fast lookup
+            // 2. Get qualifying user index numbers (lightweight query, no entity loading)
             var qualifyingIndexNumbers = await _context.EbillUsers
                 .Where(u => u.OrganizationId.HasValue && cosOrgIds.Contains(u.OrganizationId.Value))
                 .Select(u => u.IndexNumber)
                 .ToListAsync();
 
-            var qualifyingIndexSet = new HashSet<string>(qualifyingIndexNumbers, StringComparer.OrdinalIgnoreCase);
+            if (!qualifyingIndexNumbers.Any())
+                return 0;
 
-            // 4. Filter batch calls to only those from qualifying users
-            var qualifyingCalls = batchCalls
-                .Where(c => !string.IsNullOrEmpty(c.ResponsibleIndexNumber) && qualifyingIndexSet.Contains(c.ResponsibleIndexNumber))
-                .GroupBy(c => c.ResponsibleIndexNumber!)
+            // 3. Get per-user aggregated data from CallRecords (projection, NOT full entity load)
+            var qualifyingIndexSet = new HashSet<string>(qualifyingIndexNumbers, StringComparer.OrdinalIgnoreCase);
+            var userSummaries = await _context.CallRecords
+                .Where(r => r.SourceBatchId == batchId && !r.IsVerified
+                         && r.ResponsibleIndexNumber != null)
+                .GroupBy(r => new { r.ResponsibleIndexNumber, r.CallMonth, r.CallYear })
+                .Select(g => new
+                {
+                    IndexNumber = g.Key.ResponsibleIndexNumber!,
+                    CallMonth = g.Key.CallMonth,
+                    CallYear = g.Key.CallYear,
+                    TotalCostUSD = g.Sum(c => c.CallCostUSD),
+                    Count = g.Count()
+                })
+                .ToListAsync();
+
+            var qualifyingUsers = userSummaries
+                .Where(u => qualifyingIndexSet.Contains(u.IndexNumber))
                 .ToList();
 
-            if (!qualifyingCalls.Any())
+            if (!qualifyingUsers.Any())
                 return 0;
 
             int autoVerifiedCount = 0;
+            var now = DateTime.UtcNow;
 
-            foreach (var staffGroup in qualifyingCalls)
+            foreach (var userSummary in qualifyingUsers)
             {
-                var indexNumber = staffGroup.Key;
-                var staffCalls = staffGroup.ToList();
+                var indexNumber = userSummary.IndexNumber;
 
                 try
                 {
                     // Get the allowance limit for this user
                     var allowanceLimit = await _cosService.GetAllowanceLimitAsync(indexNumber);
 
-                    // Skip if user has no COS assigned (null with no phones)
-                    // But treat null-from-unlimited as unlimited (auto-verify)
                     var userPhones = await _context.UserPhones
                         .Include(up => up.ClassOfService)
                         .Where(up => up.IndexNumber == indexNumber && up.IsActive)
@@ -2119,17 +2139,10 @@ namespace TAB.Web.Services
                         continue;
                     }
 
-                    // Determine the billing month/year from the calls
-                    var sampleCall = staffCalls.First();
-                    int callMonth = sampleCall.CallMonth;
-                    int callYear = sampleCall.CallYear;
+                    // Calculate total usage for the month
+                    var existingUsage = await _cosService.GetMonthlyUsageAsync(indexNumber, userSummary.CallMonth, userSummary.CallYear);
+                    var totalUsage = existingUsage + userSummary.TotalCostUSD;
 
-                    // Calculate total usage for the month: existing official + all new batch calls
-                    var existingUsage = await _cosService.GetMonthlyUsageAsync(indexNumber, callMonth, callYear);
-                    var batchUsage = staffCalls.Sum(c => c.CallCostUSD);
-                    var totalUsage = existingUsage + batchUsage;
-
-                    // Check if within allowance
                     if (!isUnlimited && totalUsage > allowanceLimit!.Value)
                     {
                         _logger.LogDebug("Skipping COS auto-verify for {IndexNumber} - usage {Usage} exceeds allowance {Allowance}",
@@ -2137,50 +2150,64 @@ namespace TAB.Web.Services
                         continue;
                     }
 
-                    // Get the primary COS ID for the verification record
                     var primaryPhone = userPhones.FirstOrDefault(up => up.IsPrimary) ?? userPhones.First();
                     int? classOfServiceId = primaryPhone.ClassOfServiceId;
                     decimal? cosAllowance = primaryPhone.ClassOfService?.AirtimeAllowanceAmount;
 
-                    // Auto-verify all batch calls for this user
-                    foreach (var call in staffCalls)
+                    // Use raw SQL to update CallRecords and insert verification records
+                    // to avoid loading 278K+ entities into the EF change tracker
+                    var indexParam = new SqlParameter("@IndexNumber", indexNumber);
+                    var batchParam = new SqlParameter("@BatchId", batchId);
+                    var nowParam = new SqlParameter("@Now", now);
+                    var verifiedByParam = new SqlParameter("@VerifiedBy", indexNumber + " (COS-Auto)");
+                    var cosIdParam = new SqlParameter("@ClassOfServiceId", (object?)classOfServiceId ?? DBNull.Value);
+                    var allowanceParam = new SqlParameter("@AllowanceAmount", (object?)cosAllowance ?? DBNull.Value);
+
+                    // Update CallRecords for this user
+                    var updated = await _context.Database.ExecuteSqlRawAsync(@"
+                        UPDATE CallRecords
+                        SET call_ver_ind = 1,
+                            call_ver_date = @Now,
+                            verification_type = 'Official',
+                            assignment_status = 'Official',
+                            final_assignment_type = 'Official',
+                            recovery_status = 'Processed',
+                            recovery_amount = 0,
+                            recovery_date = @Now,
+                            recovery_processed_by = 'System-COSAutoVerify'
+                        WHERE SourceBatchId = @BatchId
+                          AND ext_resp_index = @IndexNumber
+                          AND call_ver_ind = 0",
+                        batchParam, indexParam, nowParam);
+
+                    // Insert CallLogVerification records
+                    if (updated > 0)
                     {
-                        call.IsVerified = true;
-                        call.VerificationDate = DateTime.UtcNow;
-                        call.VerificationType = "Official";
-                        call.AssignmentStatus = "Official";
-                        call.FinalAssignmentType = "Official";
-                        call.RecoveryStatus = "Processed";
-                        call.RecoveryAmount = 0;
-                        call.RecoveryDate = DateTime.UtcNow;
-                        call.RecoveryProcessedBy = "System-COSAutoVerify";
+                        await _context.Database.ExecuteSqlRawAsync(@"
+                            INSERT INTO CallLogVerifications (CallRecordId, VerifiedBy, VerifiedDate, VerificationType,
+                                ClassOfServiceId, AllowanceAmount, ActualAmount, IsOverage, ApprovalStatus,
+                                SupervisorApprovalStatus, SupervisorApprovedBy, SupervisorApprovedDate,
+                                BatchId, SubmittedToSupervisor, SubmittedDate, CreatedDate)
+                            SELECT cr.Id, @VerifiedBy, @Now, 1,
+                                @ClassOfServiceId, @AllowanceAmount, cr.call_cost_usd, 0, 'Approved',
+                                'Approved', 'System-COSAutoVerify', @Now,
+                                @BatchId, 1, @Now, @Now
+                            FROM CallRecords cr
+                            WHERE cr.SourceBatchId = @BatchId
+                              AND cr.ext_resp_index = @IndexNumber
+                              AND cr.call_ver_ind = 1
+                              AND cr.recovery_processed_by = 'System-COSAutoVerify'
+                              AND NOT EXISTS (
+                                  SELECT 1 FROM CallLogVerifications v
+                                  WHERE v.CallRecordId = cr.Id AND v.VerifiedBy = @VerifiedBy
+                              )",
+                            batchParam, indexParam, nowParam, verifiedByParam, cosIdParam, allowanceParam);
 
-                        var verification = new CallLogVerification
-                        {
-                            CallRecordId = call.Id,
-                            VerifiedBy = indexNumber + " (COS-Auto)",
-                            VerifiedDate = DateTime.UtcNow,
-                            VerificationType = Models.Enums.VerificationType.Official,
-                            ClassOfServiceId = classOfServiceId,
-                            AllowanceAmount = cosAllowance,
-                            ActualAmount = call.CallCostUSD,
-                            IsOverage = false,
-                            ApprovalStatus = "Approved",
-                            SupervisorApprovalStatus = "Approved",
-                            SupervisorApprovedBy = "System-COSAutoVerify",
-                            SupervisorApprovedDate = DateTime.UtcNow,
-                            BatchId = batchId,
-                            SubmittedToSupervisor = true,
-                            SubmittedDate = DateTime.UtcNow,
-                            CreatedDate = DateTime.UtcNow
-                        };
+                        autoVerifiedCount += updated;
 
-                        _context.CallLogVerifications.Add(verification);
-                        autoVerifiedCount++;
+                        _logger.LogInformation("COS auto-verified {Count} calls for {IndexNumber} (usage: {Usage}, allowance: {Allowance})",
+                            updated, indexNumber, totalUsage, isUnlimited ? "Unlimited" : allowanceLimit!.Value.ToString("F2"));
                     }
-
-                    _logger.LogInformation("COS auto-verified {Count} calls for {IndexNumber} (usage: {Usage}, allowance: {Allowance})",
-                        staffCalls.Count, indexNumber, totalUsage, isUnlimited ? "Unlimited" : allowanceLimit!.Value.ToString("F2"));
                 }
                 catch (Exception ex)
                 {
@@ -2188,9 +2215,6 @@ namespace TAB.Web.Services
                     // Continue with next staff member
                 }
             }
-
-            if (autoVerifiedCount > 0)
-                await _context.SaveChangesAsync();
 
             return autoVerifiedCount;
         }

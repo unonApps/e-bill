@@ -230,6 +230,104 @@ namespace TAB.Web.Services
                     }
                 }
 
+                // Step 2 Fallback: When no DeadlineTracking rows exist (e.g., creation failed during push),
+                // discover expired batches directly from CallRecords.verification_period
+                if (expiredVerifications.Count == 0)
+                {
+                    _logger.LogInformation("Step 2 Fallback: Checking CallRecords for expired verification periods without DeadlineTracking");
+                    executionLog.AppendLine("\n--- Step 2 Fallback: CallRecords Verification Period Check ---");
+
+                    try
+                    {
+                        var now = DateTime.UtcNow;
+
+                        // Find batch IDs with expired verification periods and unrecovered records
+                        var batchesWithExpiredVerification = await context.CallRecords
+                            .Where(cr => cr.VerificationPeriod.HasValue
+                                      && cr.VerificationPeriod.Value < now
+                                      && cr.IsVerified == false
+                                      && (cr.RecoveryStatus == "NotProcessed" || cr.RecoveryStatus == null))
+                            .Select(cr => cr.SourceBatchId)
+                            .Where(bid => bid.HasValue)
+                            .Distinct()
+                            .ToListAsync();
+
+                        // Exclude batches that already have DeadlineTracking rows
+                        var batchesWithDeadlines = await context.DeadlineTracking
+                            .Where(dt => dt.DeadlineType == "InitialVerification")
+                            .Select(dt => dt.BatchId)
+                            .Distinct()
+                            .ToListAsync();
+
+                        var orphanedBatches = batchesWithExpiredVerification
+                            .Where(b => b.HasValue && !batchesWithDeadlines.Contains(b.Value))
+                            .Select(b => b!.Value)
+                            .ToList();
+
+                        if (orphanedBatches.Any())
+                        {
+                            _logger.LogWarning("Found {Count} batches with expired verification periods but no DeadlineTracking rows", orphanedBatches.Count);
+                            executionLog.AppendLine($"Found {orphanedBatches.Count} orphaned batches with expired verifications");
+
+                            foreach (var batchId in orphanedBatches)
+                            {
+                                _logger.LogInformation("Processing orphaned batch {BatchId} via fallback", batchId);
+                                executionLog.AppendLine($"\nProcessing orphaned batch: {batchId}");
+
+                                var result = await recoveryService.ProcessExpiredVerificationsAsync(batchId);
+
+                                if (result.Success)
+                                {
+                                    execution.ExpiredVerificationsProcessed++;
+                                    execution.TotalRecordsProcessed += result.RecordsProcessed;
+                                    execution.TotalAmountRecovered += result.AmountRecovered;
+
+                                    _logger.LogInformation(
+                                        "Fallback: Processed {Count} expired verifications for batch {BatchId}, recovered ${Amount:N2}",
+                                        result.RecordsProcessed, batchId, result.AmountRecovered);
+
+                                    executionLog.AppendLine($"  SUCCESS: {result.RecordsProcessed} records, ${result.AmountRecovered:N2} recovered");
+
+                                    // Create the missing DeadlineTracking row retroactively
+                                    try
+                                    {
+                                        var earliestExpiry = await context.CallRecords
+                                            .Where(cr => cr.SourceBatchId == batchId && cr.VerificationPeriod.HasValue)
+                                            .MinAsync(cr => cr.VerificationPeriod!.Value);
+
+                                        var deadline = await deadlineService.CreateVerificationDeadlineAsync(batchId, earliestExpiry, "System-RecoveryFallback");
+                                        deadline.RecoveryProcessed = true;
+                                        deadline.RecoveryProcessedDate = DateTime.UtcNow;
+                                        deadline.DeadlineStatus = "Missed";
+                                        deadline.MissedDate = earliestExpiry;
+                                        await context.SaveChangesAsync();
+
+                                        _logger.LogInformation("Created retroactive DeadlineTracking for batch {BatchId}", batchId);
+                                    }
+                                    catch (Exception dtEx)
+                                    {
+                                        _logger.LogWarning(dtEx, "Could not create retroactive DeadlineTracking for batch {BatchId}", batchId);
+                                    }
+                                }
+                                else
+                                {
+                                    executionLog.AppendLine($"  FAILED: {result.Message}");
+                                    _logger.LogWarning("Fallback: Failed to process batch {BatchId}: {Message}", batchId, result.Message);
+                                }
+                            }
+                        }
+                        else
+                        {
+                            executionLog.AppendLine("No orphaned batches found");
+                        }
+                    }
+                    catch (Exception ex)
+                    {
+                        _logger.LogError(ex, "Error in Step 2 fallback processing");
+                        executionLog.AppendLine($"ERROR in fallback: {ex.Message}");
+                    }
+                }
+
                 // Step 2A: Process verified but not submitted calls
                 _logger.LogInformation("Step 2A: Processing verified but not submitted calls");
                 executionLog.AppendLine("\n--- Step 2A: Verified But Not Submitted Calls ---");
